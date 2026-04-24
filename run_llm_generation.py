@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import time
@@ -13,6 +14,18 @@ from openai import OpenAI
 
 def load_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def stable_json_dumps(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def sha256_json(value: Any) -> str:
+    return sha256_text(stable_json_dumps(value))
 
 
 def load_json_records(path: Path) -> tuple[List[Dict[str, Any]], bool]:
@@ -62,13 +75,51 @@ def ensure_jsonl_file(path: Path) -> List[Dict[str, Any]]:
     return records
 
 
-def load_completed(path: Path) -> set[tuple[str, str, str]]:
-    completed: set[tuple[str, str, str]] = set()
+def build_completion_key(
+    query_id: Any,
+    query_label: Any,
+    kg_id: Any,
+    model: Any,
+    system_prompt_hash: Any,
+    input_hash: Any,
+) -> tuple[str, str, str, str, str, str]:
+    return (
+        str(query_id),
+        str(query_label),
+        str(kg_id),
+        str(model),
+        str(system_prompt_hash),
+        str(input_hash),
+    )
+
+
+def extract_completion_key(rec: Dict[str, Any]) -> tuple[str, str, str, str, str, str]:
+    signature = rec.get("run_signature")
+    if isinstance(signature, dict):
+        return build_completion_key(
+            rec.get("query_id"),
+            rec.get("query_label"),
+            rec.get("kg_id"),
+            signature.get("model"),
+            signature.get("system_prompt_hash"),
+            signature.get("input_hash"),
+        )
+    return build_completion_key(
+        rec.get("query_id"),
+        rec.get("query_label"),
+        rec.get("kg_id"),
+        rec.get("model"),
+        "",
+        "",
+    )
+
+
+def load_completed(path: Path) -> set[tuple[str, str, str, str, str, str]]:
+    completed: set[tuple[str, str, str, str, str, str]] = set()
     for rec in ensure_jsonl_file(path):
         if not isinstance(rec, dict):
             continue
-        key = (str(rec.get("query_id")), str(rec.get("query_label")), str(rec.get("kg_id")))
-        completed.add(key)
+        completed.add(extract_completion_key(rec))
     return completed
 
 
@@ -144,7 +195,7 @@ def build_system_prompt(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run NL generation with OpenAI over LLM inputs JSONL.")
-    parser.add_argument("--input", default="prompts/llm_nl_generation.inputs.jsonl")
+    parser.add_argument("--input", default="llm_inputs.jsonl")
     parser.add_argument("--prompt", default="prompts/llm_nl_generation.prompt.txt")
     parser.add_argument("--schema", default="schemas/llm_output.schema.json")
     parser.add_argument("--examples", default="prompts/llm_nl_generation.examples.jsonl")
@@ -168,6 +219,10 @@ def main() -> None:
     schema = load_json(schema_path)
     examples_text = load_examples(examples_path)
     system_prompt = build_system_prompt(base_prompt, schema, examples_text)
+    prompt_hash = sha256_text(base_prompt)
+    schema_hash = sha256_json(schema)
+    examples_hash = sha256_text(examples_text)
+    system_prompt_hash = sha256_text(system_prompt)
 
     client = OpenAI()
     ok_count = 0
@@ -180,7 +235,15 @@ def main() -> None:
             user_prompt = json.dumps(payload, ensure_ascii=False, indent=2)
             label = payload.get("query_label") or payload.get("query_id")
             kg_id = payload.get("kg_id")
-            key = (str(payload.get("query_id")), str(payload.get("query_label")), str(payload.get("kg_id")))
+            input_hash = sha256_json(payload)
+            key = build_completion_key(
+                payload.get("query_id"),
+                payload.get("query_label"),
+                payload.get("kg_id"),
+                args.model,
+                system_prompt_hash,
+                input_hash,
+            )
             if key in completed:
                 print(f"[{idx}/{len(inputs)}] skip {kg_id} {label} (already done)")
                 continue
@@ -207,6 +270,14 @@ def main() -> None:
                     "kg_id": payload.get("kg_id"),
                     "llm_output": parsed,
                     "model": args.model,
+                    "run_signature": {
+                        "model": args.model,
+                        "prompt_hash": prompt_hash,
+                        "schema_hash": schema_hash,
+                        "examples_hash": examples_hash,
+                        "system_prompt_hash": system_prompt_hash,
+                        "input_hash": input_hash,
+                    },
                     "elapsed_ms": int((time.time() - started) * 1000),
                     "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                 }
@@ -220,6 +291,14 @@ def main() -> None:
                     "query_label": payload.get("query_label"),
                     "kg_id": payload.get("kg_id"),
                     "error": str(e),
+                    "run_signature": {
+                        "model": args.model,
+                        "prompt_hash": prompt_hash,
+                        "schema_hash": schema_hash,
+                        "examples_hash": examples_hash,
+                        "system_prompt_hash": system_prompt_hash,
+                        "input_hash": input_hash,
+                    },
                     "elapsed_ms": elapsed_ms,
                 }
                 err_f.write(json.dumps(err_rec, ensure_ascii=False) + "\n")
