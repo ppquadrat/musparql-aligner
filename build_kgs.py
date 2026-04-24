@@ -61,31 +61,94 @@ def fetch_url_text(url: str, timeout_s: int = 20) -> Dict[str, Any]:
         return {"url": url, "text": "", "error": f"request_error:{e.__class__.__name__}"}
 
 
+def github_headers(accept: str = "application/vnd.github+json") -> Dict[str, str]:
+    headers = {
+        "Accept": accept,
+        "User-Agent": "kg-pipeline/0.1",
+    }
+    token = os.getenv("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
+def resolve_github_ref(owner: str, repo: str, ref: str, timeout_s: int = 20) -> Optional[str]:
+    commit_api_url = f"https://api.github.com/repos/{owner}/{repo}/commits/{ref}"
+    try:
+        resp = requests.get(commit_api_url, timeout=timeout_s, headers=github_headers())
+    except requests.RequestException:
+        return None
+    if resp.status_code != 200:
+        return None
+    payload = resp.json()
+    sha = payload.get("sha")
+    return sha.strip() if isinstance(sha, str) and sha.strip() else None
+
+
 def fetch_github_readme(repo_url: str, timeout_s: int = 20) -> Dict[str, Any]:
-    """Fetch a GitHub repo README via GitHub API (raw), with raw fallback."""
+    """Fetch a GitHub repo README pinned to a resolved commit when possible."""
     parts = repo_url.rstrip("/").split("/")
     if len(parts) < 2:
         return {"url": repo_url, "text": "", "error": "bad_repo_url"}
     owner, repo = parts[-2], parts[-1]
 
+    repo_api_url = f"https://api.github.com/repos/{owner}/{repo}"
     api_url = f"https://api.github.com/repos/{owner}/{repo}/readme"
     try:
-        headers = {
-            "Accept": "application/vnd.github.raw",
-            "User-Agent": "kg-pipeline/0.1",
-        }
-        token = os.getenv("GITHUB_TOKEN")
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
-        r = requests.get(api_url, timeout=timeout_s, headers=headers)
-        if r.status_code != 200:
-            api_error = {"url": api_url, "text": "", "error": f"http_{r.status_code}"}
+        repo_resp = requests.get(repo_api_url, timeout=timeout_s, headers=github_headers())
+        if repo_resp.status_code != 200:
+            api_error = {"url": api_url, "text": "", "error": f"http_{repo_resp.status_code}"}
         else:
-            return {"url": api_url, "text": r.text}
+            repo_meta = repo_resp.json()
+            default_branch = repo_meta.get("default_branch")
+            if not isinstance(default_branch, str) or not default_branch.strip():
+                api_error = {"url": api_url, "text": "", "error": "missing_default_branch"}
+            else:
+                branch_api_url = f"https://api.github.com/repos/{owner}/{repo}/branches/{default_branch}"
+                branch_resp = requests.get(branch_api_url, timeout=timeout_s, headers=github_headers())
+                if branch_resp.status_code != 200:
+                    api_error = {"url": api_url, "text": "", "error": f"http_{branch_resp.status_code}"}
+                else:
+                    branch_meta = branch_resp.json()
+                    commit_obj = branch_meta.get("commit")
+                    commit_sha = commit_obj.get("sha") if isinstance(commit_obj, dict) else None
+                    if not isinstance(commit_sha, str) or not commit_sha.strip():
+                        api_error = {"url": api_url, "text": "", "error": "missing_commit_sha"}
+                    else:
+                        readme_resp = requests.get(
+                            api_url,
+                            timeout=timeout_s,
+                            headers=github_headers(),
+                            params={"ref": commit_sha},
+                        )
+                        if readme_resp.status_code != 200:
+                            api_error = {"url": api_url, "text": "", "error": f"http_{readme_resp.status_code}"}
+                        else:
+                            readme_meta = readme_resp.json()
+                            readme_path = readme_meta.get("path")
+                            if not isinstance(readme_path, str) or not readme_path.strip():
+                                api_error = {"url": api_url, "text": "", "error": "missing_readme_path"}
+                            else:
+                                raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{commit_sha}/{readme_path}"
+                                raw_resp = requests.get(
+                                    raw_url,
+                                    timeout=timeout_s,
+                                    headers={"User-Agent": "kg-pipeline/0.1"},
+                                )
+                                if raw_resp.status_code != 200:
+                                    api_error = {"url": api_url, "text": "", "error": f"http_{raw_resp.status_code}"}
+                                else:
+                                    return {
+                                        "url": repo_url,
+                                        "resolved_url": raw_url,
+                                        "text": raw_resp.text,
+                                        "repo_commit": commit_sha,
+                                        "source_path": readme_path,
+                                    }
     except requests.RequestException as e:
         api_error = {"url": api_url, "text": "", "error": f"request_error:{e.__class__.__name__}"}
 
-    # Fallback: try raw GitHub URLs without using the API.
+    # Fallback: try raw GitHub URLs without commit pinning.
     raw_base = f"https://raw.githubusercontent.com/{owner}/{repo}/HEAD"
     candidates = [
         "README.md",
@@ -106,11 +169,40 @@ def fetch_github_readme(repo_url: str, timeout_s: int = 20) -> Dict[str, Any]:
                 headers={"User-Agent": "kg-pipeline/0.1"},
             )
             if r.status_code == 200:
-                return {"url": raw_url, "text": r.text}
+                return {"url": repo_url, "resolved_url": raw_url, "text": r.text, "source_path": name}
         except requests.RequestException:
             continue
 
     return api_error
+
+
+def fetch_github_blob_text(url: str, timeout_s: int = 20) -> Dict[str, Any]:
+    parts = url.split("github.com/", 1)
+    if len(parts) != 2:
+        return fetch_url_text(url, timeout_s=timeout_s)
+    path = parts[1]
+    blob_marker = "/blob/"
+    if blob_marker not in path:
+        return fetch_url_text(url, timeout_s=timeout_s)
+
+    repo_part, blob_part = path.split(blob_marker, 1)
+    repo_bits = repo_part.strip("/").split("/")
+    if len(repo_bits) < 2:
+        return fetch_url_text(url, timeout_s=timeout_s)
+    owner, repo = repo_bits[0], repo_bits[1]
+    blob_bits = blob_part.split("/", 1)
+    if len(blob_bits) != 2:
+        return fetch_url_text(url, timeout_s=timeout_s)
+    ref, source_path = blob_bits
+    commit_sha = resolve_github_ref(owner, repo, ref, timeout_s=timeout_s)
+    resolved_ref = commit_sha or ref
+    raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{resolved_ref}/{source_path}"
+    fetched = fetch_url_text(raw_url, timeout_s=timeout_s)
+    fetched["url"] = url
+    fetched["resolved_url"] = raw_url
+    fetched["repo_commit"] = commit_sha
+    fetched["source_path"] = source_path
+    return fetched
 
 
 def save_sources(kg_id: str, sources: List[Dict[str, Any]], out_dir: Path) -> List[str]:
@@ -119,7 +211,7 @@ def save_sources(kg_id: str, sources: List[Dict[str, Any]], out_dir: Path) -> Li
     saved: List[str] = []
 
     for idx, src in enumerate(sources, start=1):
-        url = src.get("url") or src.get("source_url") or ""
+        url = src.get("resolved_url") or src.get("url") or src.get("source_url") or ""
         text = (src.get("text") or "").strip()
         if not text:
             continue
@@ -280,12 +372,10 @@ def fetch_sources_for_kg(kg: KGSeed) -> List[Dict[str, Any]]:
             sources.append(fetch_url_text(repo_url))
 
     for doc_url in (kg.docs or []):
-        normalized = doc_url
         if "github.com/" in doc_url and "/blob/" in doc_url:
-            # Convert GitHub blob URLs to raw content.
-            parts = doc_url.split("github.com/", 1)[-1]
-            normalized = "https://raw.githubusercontent.com/" + parts.replace("/blob/", "/")
-        sources.append(fetch_url_text(normalized))
+            sources.append(fetch_github_blob_text(doc_url))
+        else:
+            sources.append(fetch_url_text(doc_url))
 
     return sources
 
@@ -323,7 +413,22 @@ def main() -> None:
         sources = sources_by_kg.get(kg.kg_id, [])
         saved_files = saved_by_kg.get(kg.kg_id, [])
 
-        rec["source_urls"] = [s.get("url") for s in sources if s.get("url")]
+        rec["source_urls"] = [
+            s.get("resolved_url") or s.get("url")
+            for s in sources
+            if s.get("resolved_url") or s.get("url")
+        ]
+        rec["source_details"] = [
+            {
+                "source_url": s.get("url"),
+                "resolved_url": s.get("resolved_url") or s.get("url"),
+                "repo_commit": s.get("repo_commit"),
+                "source_path": s.get("source_path"),
+                "error": s.get("error"),
+            }
+            for s in sources
+            if s.get("resolved_url") or s.get("url") or s.get("error")
+        ]
         rec["source_files"] = saved_files
         records.append(rec)
 

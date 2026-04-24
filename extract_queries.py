@@ -83,14 +83,15 @@ def repo_dir_from_url(repo_url: str) -> Path:
     return Path(f"{owner}__{repo}")
 
 
-def ensure_repo_cloned(repo_url: str, base_dir: Path) -> Path:
+def ensure_repo_cloned(repo_url: str, base_dir: Path) -> tuple[Path, str]:
     repo_dir = base_dir / repo_dir_from_url(repo_url)
     if not repo_dir.exists():
         subprocess.run(
             ["git", "clone", repo_url, str(repo_dir)],
             check=True,
         )
-    return repo_dir
+        return repo_dir, "fresh_clone"
+    return repo_dir, "reused_local_clone"
 
 
 def get_repo_commit(repo_dir: Path) -> str:
@@ -102,6 +103,22 @@ def get_repo_commit(repo_dir: Path) -> str:
         cwd=repo_dir,
     )
     return result.stdout.strip()
+
+
+def get_repo_default_branch(repo_dir: Path) -> Optional[str]:
+    result = subprocess.run(
+        ["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=repo_dir,
+    )
+    if result.returncode != 0:
+        return None
+    ref = result.stdout.strip()
+    if not ref:
+        return None
+    return ref.split("/", 1)[1] if "/" in ref else ref
 
 
 def iter_repo_files(repo_dir: Path) -> Iterable[Path]:
@@ -575,8 +592,9 @@ def main() -> None:
     for kg in kgs:
         for repo_url in kg.repos:
             repo_url = resolve_repo_url(repo_url)
-            repo_dir = ensure_repo_cloned(repo_url, repos_dir)
+            repo_dir, repo_checkout_mode = ensure_repo_cloned(repo_url, repos_dir)
             repo_commit = get_repo_commit(repo_dir)
+            repo_default_branch = get_repo_default_branch(repo_dir)
 
             for path in iter_repo_files(repo_dir):
                 extracted = extract_queries_from_file(path)
@@ -615,6 +633,8 @@ def main() -> None:
                             "source_url": repo_url,
                             "source_path": rel_path,
                             "repo_commit": repo_commit,
+                            "repo_checkout_mode": repo_checkout_mode,
+                            "repo_default_branch": repo_default_branch,
                             "snippet": item["query"].strip(),
                             "extracted_at": extracted_at,
                             "extractor_version": "extract_queries.py@v1",
