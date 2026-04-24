@@ -20,11 +20,17 @@ DUMPS_DIR = (REPO_ROOT / "dumps").resolve()
 
 
 @dataclass
+class SparqlTarget:
+    endpoint: str
+    auth: str = "none"
+    graph: Optional[str] = None
+
+
+@dataclass
 class KGEndpoint:
     kg_id: str
-    endpoint: str
-    graph: Optional[str] = None
-    fallbacks: List[str] = None
+    primary: SparqlTarget
+    fallbacks: List[SparqlTarget] = None
 
 
 @dataclass
@@ -57,23 +63,35 @@ def load_endpoints(path: Path) -> Dict[str, KGEndpoint]:
         if not isinstance(sparql, dict):
             continue
         endpoint = sparql.get("endpoint")
+        auth = sparql.get("auth", "none")
         graph = sparql.get("graph")
         fallbacks_raw = sparql.get("fallbacks")
-        fallbacks: List[str] = []
+        fallbacks: List[SparqlTarget] = []
         if isinstance(fallbacks_raw, list):
             for fb in fallbacks_raw:
                 if isinstance(fb, dict):
                     fb_ep = fb.get("endpoint")
                     if isinstance(fb_ep, str) and fb_ep.strip():
-                        fallbacks.append(fb_ep.strip())
+                        fb_auth = fb.get("auth", "none")
+                        fb_graph = fb.get("graph")
+                        fallbacks.append(
+                            SparqlTarget(
+                                endpoint=fb_ep.strip(),
+                                auth=fb_auth.strip() if isinstance(fb_auth, str) and fb_auth.strip() else "none",
+                                graph=fb_graph.strip() if isinstance(fb_graph, str) and fb_graph.strip() else None,
+                            )
+                        )
                 elif isinstance(fb, str) and fb.strip():
-                    fallbacks.append(fb.strip())
+                    fallbacks.append(SparqlTarget(endpoint=fb.strip()))
         if isinstance(endpoint, str) and endpoint.strip():
             graph_val = graph.strip() if isinstance(graph, str) and graph.strip() else None
             endpoints[kg_id.strip()] = KGEndpoint(
                 kg_id=kg_id.strip(),
-                endpoint=endpoint.strip(),
-                graph=graph_val,
+                primary=SparqlTarget(
+                    endpoint=endpoint.strip(),
+                    auth=auth.strip() if isinstance(auth, str) and auth.strip() else "none",
+                    graph=graph_val,
+                ),
                 fallbacks=fallbacks,
             )
     return endpoints
@@ -524,8 +542,8 @@ def is_remote_executable(query: str) -> bool:
 def preflight_endpoint(endpoint: KGEndpoint) -> None:
     probe_default = "SELECT * WHERE { ?s ?p ?o } LIMIT 1"
     probe_named = "SELECT ?g WHERE { GRAPH ?g { ?s ?p ?o } } LIMIT 1"
-    default_res = run_select_query(endpoint.endpoint, probe_default, timeout_s=20)
-    named_res = run_select_query(endpoint.endpoint, probe_named, timeout_s=20)
+    default_res = run_select_query(endpoint.primary.endpoint, probe_default, timeout_s=20)
+    named_res = run_select_query(endpoint.primary.endpoint, probe_named, timeout_s=20)
     sample = named_res.get("sample_row") or {}
     graph_uri = None
     if isinstance(sample, dict):
@@ -546,22 +564,26 @@ def preflight_endpoint(endpoint: KGEndpoint) -> None:
         )
 
     if default_res.get("status") == "empty" and named_res.get("status") == "ok":
-        if not endpoint.graph:
+        if not endpoint.primary.graph:
             msg = f"warning: {endpoint.kg_id} default graph empty; named graph data found"
             if graph_uri:
                 msg += f" (e.g. {graph_uri})"
             msg += ". Consider setting sparql.graph in seeds.yaml."
             print(msg)
-        elif graph_uri and endpoint.graph not in graph_uri and endpoint.graph != graph_uri:
+        elif (
+            graph_uri
+            and endpoint.primary.graph not in graph_uri
+            and endpoint.primary.graph != graph_uri
+        ):
             print(
                 f"warning: {endpoint.kg_id} graph mismatch. "
-                f"configured={endpoint.graph}, sample={graph_uri}"
+                f"configured={endpoint.primary.graph}, sample={graph_uri}"
             )
 
 
 def is_endpoint_healthy(endpoint: KGEndpoint) -> bool:
     probe = "SELECT * WHERE { ?s ?p ?o } LIMIT 1"
-    res = run_select_query(endpoint.endpoint, probe, timeout_s=20)
+    res = run_select_query(endpoint.primary.endpoint, probe, timeout_s=20)
     if res.get("status") in {"ok", "empty"}:
         return True
     if res.get("status") in {"bad_json", "http_error", "request_error"}:
@@ -634,7 +656,7 @@ def main() -> None:
             failures.append(
                 {
                     "kg_id": kg_id,
-                    "endpoint": endpoint.endpoint,
+                    "endpoint": endpoint.primary.endpoint,
                     "status": "skipped_endpoint_unavailable",
                     "query_id": rec.get("query_id"),
                     "query_label": rec.get("query_label"),
@@ -654,7 +676,7 @@ def main() -> None:
                 failures.append(
                     {
                         "kg_id": kg_id,
-                        "endpoint": endpoint.endpoint,
+                        "endpoint": endpoint.primary.endpoint,
                         "status": "skipped_local_query",
                         "query_id": rec.get("query_id"),
                         "query_label": rec.get("query_label"),
@@ -665,7 +687,7 @@ def main() -> None:
                 rec["latest_run"] = {
                     "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                     "status": "skipped_local_query",
-                    "endpoint": endpoint.endpoint,
+                    "endpoint": endpoint.primary.endpoint,
                     "result_count": None,
                     "sample_row": None,
                     "duration_ms": 0,
@@ -675,13 +697,15 @@ def main() -> None:
         stat["ran"] += 1
         start = time.time()
         endpoint_used = None
+        target_used: Optional[SparqlTarget] = None
         if endpoint is not None:
-            endpoint_list = [endpoint.endpoint] + (endpoint.fallbacks or [])
+            endpoint_list = [endpoint.primary] + (endpoint.fallbacks or [])
             result = {"status": "request_error", "error": "No endpoint tried"}
-            for ep in endpoint_list:
-                query_with_graph = apply_graph(query_to_run, endpoint.graph)
-                result = run_select_query(ep, query_with_graph)
-                endpoint_used = ep
+            for target in endpoint_list:
+                query_with_graph = apply_graph(query_to_run, target.graph)
+                result = run_select_query(target.endpoint, query_with_graph)
+                endpoint_used = target.endpoint
+                target_used = target
                 if result.get("status") in {"ok", "empty"}:
                     break
                 if result.get("status") not in {"request_error", "http_error", "bad_json", "query_error", "parse_error"}:
@@ -703,7 +727,10 @@ def main() -> None:
                 for delay_s in (1.0, 2.0):
                     time.sleep(delay_s)
                     retry_start = time.time()
-                    retry = run_select_query(endpoint.endpoint, query_to_run)
+                    retry_target = target_used or endpoint.primary
+                    retry_query = apply_graph(query_to_run, retry_target.graph)
+                    retry = run_select_query(retry_target.endpoint, retry_query)
+                    endpoint_used = retry_target.endpoint
                     duration_ms = int((time.time() - retry_start) * 1000)
                     if retry.get("status") in {"ok", "empty"}:
                         result = retry
