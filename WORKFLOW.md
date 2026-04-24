@@ -6,7 +6,24 @@ The workflow deliberately separates **configuration/selection**, **deterministic
 
 ---
 
-## 0. Design principles
+## Workflow At A Glance
+
+At a high level, the pipeline works like this:
+
+1. Define which KGs to process in `seeds.yaml`.
+2. Collect deterministic KG source snapshots into `kgs.jsonl` and `kg_sources/`, with provenance attached.
+3. Extract candidate SPARQL queries from repos, docs, and PDFs into `kg_queries.jsonl`.
+4. Enrich those query records with nearby human-readable evidence such as comments, query descriptions, and competency questions.
+5. Run the queries against endpoints or local dumps and record execution metadata.
+6. Build LLM input payloads from the curated query records.
+7. Generate natural-language questions and confidence judgments with schema-constrained LLM output.
+8. Merge LLM results back into `kg_queries.jsonl` for downstream evaluation and curation.
+
+The intent is to keep every step inspectable: deterministic collection and execution happen first, and LLM interpretation happens only after provenance and run metadata are already attached.
+
+---
+
+## 1. Design Principles
 
 - **YAML = selection plane**  
   Specifies processing scope and source locations
@@ -24,7 +41,7 @@ This separation reduces hidden state, supports regeneration, and preserves datas
 
 ---
 
-## 1. Seed definition (`seeds.yaml`)
+## 2. Seed Definition (`seeds.yaml`)
 
 **Purpose:** define which KGs to process and where their technical resources live.
 
@@ -57,7 +74,7 @@ Example:
 
 ---
 
-## 1.5. Data model (schemas)
+## 3. Data Model (Schemas)
 
 To make provenance and QA explicit, we use **two JSONL files**:
 
@@ -87,7 +104,22 @@ Each line is a JSON object. Example:
       "docs": ["https://polifonia.kmi.open.ac.uk/meetups/queries.php"],
       "notes": "...",
       "created_at": "2026-01-30",
-      "updated_at": "2026-01-30"
+      "updated_at": "2026-01-30",
+      "source_urls": [
+        "https://raw.githubusercontent.com/polifonia-project/meetups-knowledge-graph/<commit>/README.md"
+      ],
+      "source_files": [
+        "kg_sources/meetups__01__raw-githubusercontent-com.txt"
+      ],
+      "source_details": [
+        {
+          "source_url": "https://github.com/polifonia-project/meetups-knowledge-graph",
+          "resolved_url": "https://raw.githubusercontent.com/polifonia-project/meetups-knowledge-graph/<commit>/README.md",
+          "repo_commit": "<commit>",
+          "source_path": "README.md",
+          "error": null
+        }
+      ]
     }
 
 ### `kg_queries.jsonl` (query-centric record)
@@ -110,6 +142,8 @@ One record per query, with provenance and run history:
           "source_url": "https://github.com/.../queries",
           "source_path": "docs/query1.sparql",
           "repo_commit": "abc123",
+          "repo_checkout_mode": "fresh_clone|reused_local_clone",
+          "repo_default_branch": "main",
           "snippet": "SELECT ...",
           "extracted_at": "2026-01-30",
           "extractor_version": "extract_queries.py@v1"
@@ -181,13 +215,14 @@ Notes:
 - `confidence` is a combined score (LLM confidence + runnability + heuristics).
 - `llm_output` stores the generated NL question, provenance, and LLM confidence.
 - `latest_run` and `latest_successful_run` are convenience fields; `run_history` is optional. These run-related fields are populated by `run_queries.py` in-place.
+- Repo-derived evidence may also record `repo_checkout_mode` and `repo_default_branch` so reuse of an existing local checkout is explicit in provenance.
 
 
 ---
 
-## 2. KG description generation (`kgs.jsonl`)
+## 4. KG Source Capture (`kgs.jsonl`)
 
-**Objective:** produce Quagga-ready KG records with rich, citable descriptions.
+**Objective:** produce KG records with deterministic source snapshots and explicit provenance.
 
 ### Inputs
 
@@ -200,9 +235,12 @@ Notes:
 
 For each KG:
 
-1. Collect textual sources.
-2. Use an LLM to generate a **120–180 word descriptive paragraph** suitable for a KG catalogue.
-3. Record provenance (URLs and papers used).
+1. Collect textual sources deterministically.
+2. Resolve GitHub README and GitHub `blob/...` documentation URLs to commit-pinned raw URLs when possible.
+3. Save source snapshots under `kg_sources/`.
+4. Record provenance in `kgs.jsonl` via `source_urls`, `source_files`, and `source_details`.
+
+Generated KG descriptions are an optional downstream step, not part of the current deterministic `build_kgs.py` implementation.
 
 ### Output
 
@@ -218,15 +256,20 @@ For each KG:
         "graph": null
       },
       "repos": ["https://github.com/..."],
-      "description_sources": [
-        "https://github.com/...",
-        "Paper DOI ..."
+      "source_details": [
+        {
+          "source_url": "https://github.com/...",
+          "resolved_url": "https://raw.githubusercontent.com/.../<commit>/README.md",
+          "repo_commit": "<commit>",
+          "source_path": "README.md",
+          "error": null
+        }
       ]
     }
 
 ---
 
-## 3. SPARQL query extraction (`kg_queries.jsonl`)
+## 5. SPARQL Query Extraction (`kg_queries.jsonl`)
 
 **Objective:** collect all candidate SPARQL queries with full provenance, without interpretation.
 
@@ -239,6 +282,7 @@ For each KG:
 ### Process 
 
 - Clone repositories.
+- Record whether each query came from a fresh clone or a reused local checkout.
 - Extract:
   - `.rq` and `.sparql` files
   - embedded SPARQL in code or documentation
@@ -248,6 +292,8 @@ For each KG:
   - repository URL
   - file path
   - commit hash
+  - checkout mode (`fresh_clone` or `reused_local_clone`)
+  - repository default branch (when available)
   - line spans (if available)
 
 ### Output
@@ -258,7 +304,7 @@ No filtering or LLM use occurs at this stage.
 
 ---
 
-## 3.5. Evidence enrichment (`kg_queries.jsonl`)
+## 6. Evidence Enrichment (`kg_queries.jsonl`)
 
 **Objective:** enrich query records with human-readable evidence from sources, preserving provenance and evidence types.
 
@@ -285,7 +331,7 @@ Extraction targets and evidence types:
   - SPARQL code embedded in tables/figures/algorithms → capture the table/figure/algorithm as a query; attach the caption as `doc_query_desc`
   - competency question sections or tables (including captioned tables) → `cq_item`
 
-All evidence items carry `evidence_id`, `source_url`, `source_path`, timestamps, and extractor version metadata.
+All evidence items carry `evidence_id`, `source_url`, `source_path`, timestamps, and extractor version metadata. Repo-derived evidence also carries `repo_commit`, and may carry `repo_checkout_mode` and `repo_default_branch`.
 
 ### Output
 
@@ -293,7 +339,7 @@ All evidence items carry `evidence_id`, `source_url`, `source_path`, timestamps,
 
 ---
 
-## 4. Query execution and run metadata (`kg_queries.jsonl`)
+## 7. Query Execution And Run Metadata (`kg_queries.jsonl`)
 
 **Objective:** record execution metadata for queries against endpoints or local dumps.
 
@@ -326,7 +372,7 @@ This step establishes **ground-truth executability** for each query record.
 
 ---
 
-## 5. Natural-language question and confidence generation
+## 8. Natural-Language Question And Confidence Generation
 
 **Objective:** create human-readable NL–SPARQL pairs with confidence estimates.
 
@@ -342,6 +388,13 @@ This step establishes **ground-truth executability** for each query record.
 1. Build inputs with `build_llm_inputs.py` → `llm_inputs.jsonl`.
 2. Run LLM generation with `run_llm_generation.py` → `llm_outputs.jsonl`.
 3. Merge outputs with `merge_llm_outputs.py` → `kg_queries.jsonl` (updates in-place).
+
+Current implementation notes:
+
+- `run_llm_generation.py` defaults to `llm_inputs.jsonl`.
+- `llm_outputs.jsonl` is treated as JSONL; legacy JSON-array files are normalized to JSONL on read.
+- Output records carry a `run_signature` containing hashes of the effective prompt/schema/examples/input configuration.
+- Resume/skip behavior uses `query_id`, `query_label`, `kg_id`, `model`, `system_prompt_hash`, and `input_hash`.
 
 For each runnable query, generate an object of the following form (stored in `llm_output`):
 
@@ -362,7 +415,8 @@ For each runnable query, generate an object of the following form (stored in `ll
         "primary_evidence_id": "e12"
       },
       "confidence": 92,
-      "confidence_rationale": "..."
+      "confidence_rationale": "...",
+      "needs_review": false
     }
 
 Guidelines:
@@ -384,11 +438,11 @@ A second **consistency-check pass** may be applied to downgrade overconfident pa
 
 ### Output
 
-`llm_outputs.jsonl` (LLM results) and `kg_queries.jsonl` (updated in-place).
+`llm_outputs.jsonl` (versioned JSONL LLM results with `run_signature`) and `kg_queries.jsonl` (updated in-place).
 
 ---
 
-## 6. Academic paper integration (parallel track)
+## 9. Academic Paper Integration (Parallel Track)
 
 For each KG:
 
@@ -406,12 +460,12 @@ Paper-derived queries pass through the **same pipeline** as repo-derived ones.
 
 ---
 
-## 7. Outputs and intended use
+## 10. Outputs And Intended Use
 
 At minimum, the project produces:
 
 - `seeds.yaml` – configuration input
-- `kgs.jsonl` – KG catalogue (Quagga-ready)
+- `kgs.jsonl` – KG catalogue 
 - `kg_queries.jsonl` – validated queries with run metadata and `llm_output`
 - `llm_inputs.jsonl` – LLM input payloads
 - `llm_outputs.jsonl` – LLM outputs (before merge)
@@ -425,7 +479,7 @@ These outputs may be:
 
 ---
 
-## 8. Rationale
+## 11. Rationale
 
 - Every artefact is reproducible.
 - Every query is runnable or explicitly marked otherwise.
