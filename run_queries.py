@@ -15,6 +15,9 @@ import requests
 import yaml
 from rdflib import Graph
 
+REPO_ROOT = Path(__file__).resolve().parent
+DUMPS_DIR = (REPO_ROOT / "dumps").resolve()
+
 
 @dataclass
 class KGEndpoint:
@@ -350,11 +353,28 @@ def guess_rdf_format(path: Path) -> Optional[str]:
     }.get(ext)
 
 
-def ensure_dump_available(dataset: KGDataset, limit_mb: int = 550) -> Path:
-    if dataset.local_path:
-        local_path = Path(dataset.local_path)
+def resolve_dump_path(dataset: KGDataset) -> Path:
+    configured_path = Path(dataset.local_path) if dataset.local_path else Path("dumps") / f"{dataset.kg_id}.ttl"
+    if configured_path.is_absolute():
+        resolved_path = configured_path.resolve()
+        # Allow migration from an old repo location to the current managed dumps directory.
+        if not resolved_path.exists():
+            migrated_path = (DUMPS_DIR / resolved_path.name).resolve()
+            if migrated_path.exists():
+                resolved_path = migrated_path
     else:
-        local_path = Path("dumps") / f"{dataset.kg_id}.ttl"
+        resolved_path = (REPO_ROOT / configured_path).resolve()
+
+    if resolved_path != DUMPS_DIR and DUMPS_DIR not in resolved_path.parents:
+        raise ValueError(
+            f"Unsafe dump path for {dataset.kg_id}: {resolved_path}. "
+            f"dataset.local_path must stay within {DUMPS_DIR}."
+        )
+    return resolved_path
+
+
+def ensure_dump_available(dataset: KGDataset, limit_mb: int = 550) -> Path:
+    local_path = resolve_dump_path(dataset)
     local_path.parent.mkdir(parents=True, exist_ok=True)
     if local_path.exists():
         head = local_path.read_bytes()[:1024].lstrip()
