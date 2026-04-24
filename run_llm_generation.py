@@ -15,32 +15,60 @@ def load_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def load_jsonl(path: Path) -> List[Dict[str, Any]]:
+def load_json_records(path: Path) -> tuple[List[Dict[str, Any]], bool]:
+    if not path.exists():
+        return [], False
+    raw = path.read_text(encoding="utf-8", errors="ignore")
+    stripped = raw.lstrip("\ufeff").lstrip()
+    if not stripped:
+        return [], False
+    if stripped.startswith("["):
+        try:
+            data = json.loads(stripped)
+        except json.JSONDecodeError:
+            return [], True
+        if not isinstance(data, list):
+            return [], True
+        return [item for item in data if isinstance(item, dict)], True
+
     rows: List[Dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            rows.append(json.loads(line))
-    return rows
+    for line in raw.splitlines():
+        line = line.strip().lstrip("\ufeff")
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(rec, dict):
+            rows.append(rec)
+    return rows, False
+
+
+def load_jsonl(path: Path) -> List[Dict[str, Any]]:
+    return load_json_records(path)[0]
+
+
+def write_jsonl(path: Path, records: List[Dict[str, Any]]) -> None:
+    with path.open("w", encoding="utf-8") as f:
+        for rec in records:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
+def ensure_jsonl_file(path: Path) -> List[Dict[str, Any]]:
+    records, was_array = load_json_records(path)
+    if was_array:
+        write_jsonl(path, records)
+    return records
 
 
 def load_completed(path: Path) -> set[tuple[str, str, str]]:
-    if not path.exists():
-        return set()
     completed: set[tuple[str, str, str]] = set()
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                rec = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            key = (str(rec.get("query_id")), str(rec.get("query_label")), str(rec.get("kg_id")))
-            completed.add(key)
+    for rec in ensure_jsonl_file(path):
+        if not isinstance(rec, dict):
+            continue
+        key = (str(rec.get("query_id")), str(rec.get("query_label")), str(rec.get("kg_id")))
+        completed.add(key)
     return completed
 
 
@@ -146,6 +174,7 @@ def main() -> None:
     err_count = 0
 
     completed = load_completed(out_path)
+    ensure_jsonl_file(err_path)
     with out_path.open("a", encoding="utf-8") as out_f, err_path.open("a", encoding="utf-8") as err_f:
         for idx, payload in enumerate(inputs, start=1):
             user_prompt = json.dumps(payload, ensure_ascii=False, indent=2)
