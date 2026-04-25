@@ -62,10 +62,14 @@ def main() -> None:
     review_export = read_json(review_path)
     bundle_dataset_id = str(bundle.get("dataset_id") or "")
     review_dataset_id = str(review_export.get("dataset_id") or "")
+    bundle_run_ids = [str(run_id) for run_id in bundle.get("run_ids", []) if str(run_id)]
+    review_run_id = str(review_export.get("run_id") or "")
     if bundle_dataset_id and review_dataset_id and bundle_dataset_id != review_dataset_id:
         raise ValueError(
             f"Dataset mismatch: bundle has {bundle_dataset_id}, review export has {review_dataset_id}"
         )
+    if review_run_id and bundle_run_ids and review_run_id not in bundle_run_ids:
+        raise ValueError(f"Run mismatch: review export points to {review_run_id}, bundle has {bundle_run_ids}")
 
     bundle_records = bundle.get("records")
     if not isinstance(bundle_records, list):
@@ -113,10 +117,13 @@ def main() -> None:
                 "review_id": review_id,
                 "review_export": str(review_path),
                 "dataset_id": review_dataset_id or bundle_dataset_id,
+                "run_id": review_run_id or record.get("run_id"),
                 "note": review.get("note") or "",
                 "updated_at": review.get("updated_at"),
             },
             "run": {
+                "run_id": record.get("run_id"),
+                "run_manifest": record.get("run_manifest"),
                 "run_label": record.get("run_label"),
                 "source_file": record.get("source_file"),
                 "model": record.get("output_meta", {}).get("model"),
@@ -155,6 +162,7 @@ def main() -> None:
         "source_bundle": str(bundle_path),
         "source_review_export": str(review_path),
         "dataset_id": review_dataset_id or bundle_dataset_id,
+        "run_id": review_run_id or (bundle_run_ids[0] if len(bundle_run_ids) == 1 else None),
         "counts": {
             "approved": len(approved),
             "pending": len(pending),

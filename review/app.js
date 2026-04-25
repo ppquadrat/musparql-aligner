@@ -349,6 +349,9 @@
   function exportReviews() {
     const payload = {
       dataset_id: data.dataset_id,
+      run_id: data.single_run_id,
+      run_ids: data.run_ids || [],
+      runs: data.runs || [],
       exported_at: new Date().toISOString(),
       reviews,
     };
@@ -370,6 +373,12 @@
         const payload = JSON.parse(String(reader.result || "{}"));
         if (payload.dataset_id && payload.dataset_id !== data.dataset_id) {
           if (!window.confirm("This review file was exported from a different dataset. Import anyway?")) {
+            event.target.value = "";
+            return;
+          }
+        }
+        if (payload.run_id && data.single_run_id && payload.run_id !== data.single_run_id) {
+          if (!window.confirm("This review file points to a different run. Import anyway?")) {
             event.target.value = "";
             return;
           }
