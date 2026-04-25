@@ -1,6 +1,6 @@
 # Workflow: Collecting NL–SPARQL Pairs for Musicological Knowledge Graphs
 
-This repository provides a **reproducible pipeline for collecting, testing, and curating natural-language question–SPARQL query pairs** for musicological Knowledge Graphs (KGs). The resulting dataset is intended for evaluation, benchmarking, and ingestion into systems such as **Quagga**.
+This repository provides a **reproducible pipeline for collecting, testing, and curating natural-language question–SPARQL query pairs** for musicological Knowledge Graphs (KGs). The resulting dataset is intended for evaluation, benchmarking, and downstream use in systems such as **Musparql**.
 
 The workflow deliberately separates **configuration/selection**, **deterministic processing**, and **LLM-assisted interpretation** to support auditability and long-term maintainability.
 
@@ -18,6 +18,7 @@ At a high level, the pipeline works like this:
 6. Build LLM input payloads from the curated query records.
 7. Generate natural-language questions and confidence judgments with schema-constrained LLM output.
 8. Merge LLM results back into `kg_queries.jsonl` for downstream evaluation and curation.
+9. Review examples in a lightweight human-review workbench, export reviewer decisions, and grow a benchmark of accepted or flagged pairs.
 
 The intent is to keep every step inspectable: deterministic collection and execution happen first, and LLM interpretation happens only after provenance and run metadata are already attached.
 
@@ -442,7 +443,55 @@ A second **consistency-check pass** may be applied to downgrade overconfident pa
 
 ---
 
-## 9. Academic Paper Integration (Parallel Track)
+## 9. Human Review And Benchmark Curation
+
+**Objective:** inspect generated NL–SPARQL pairs, capture human judgments, and turn reviewed examples into a reusable mini-benchmark.
+
+### Inputs
+
+- `llm_inputs.jsonl`
+- one or more LLM output files such as `llm_outputs.jsonl`
+- optional prior reviewer exports in `review/exports/`
+
+### Process
+
+1. Build a browser review bundle with `build_review_bundle.py` → `review/review_data.js`.
+2. Open `review/index.html` through a local web server.
+3. Inspect examples with:
+   - formatted SPARQL
+   - retained evidence phrases
+   - full input evidence
+   - generated NL question
+   - origin mode, confidence, and rationale
+4. Record reviewer decisions and optional rewrites.
+5. Export reviewer judgments as JSON and store them under `review/exports/`.
+
+Current reviewer labels:
+
+- `approve`: keep this example in the benchmark as-is
+- `dismiss`: exclude this example from the benchmark going forward
+- `needs_prompt_fix`: example is valid, but model behavior should improve through prompt changes
+- `needs_data_fix`: example may be valid, but the model inputs are wrong, incomplete, noisy, or missing key signals
+
+### Notes
+
+- Reviewer judgments are kept separate from model outputs.
+- Review exports are keyed to the review dataset and the underlying run provenance, so prompt/model changes naturally produce a new review set.
+- In practice this stage forms an iteration loop:
+  1. inspect examples
+  2. approve or flag them
+  3. improve prompt or enrichment
+  4. rerun generation
+  5. compare against the reviewed subset
+
+### Output
+
+- `review/review_data.js` – browser-friendly review bundle
+- `review/exports/*.json` – reviewer judgments, notes, and preferred rewrites
+
+---
+
+## 10. Academic Paper Integration (Parallel Track)
 
 For each KG:
 
@@ -460,7 +509,7 @@ Paper-derived queries pass through the **same pipeline** as repo-derived ones.
 
 ---
 
-## 10. Outputs And Intended Use
+## 11. Outputs And Intended Use
 
 At minimum, the project produces:
 
@@ -469,20 +518,23 @@ At minimum, the project produces:
 - `kg_queries.jsonl` – validated queries with run metadata and `llm_output`
 - `llm_inputs.jsonl` – LLM input payloads
 - `llm_outputs.jsonl` – LLM outputs (before merge)
+- `review/review_data.js` – local reviewer bundle
+- `review/exports/*.json` – benchmark judgments exported by human reviewers
 
 These outputs may be:
 
-- ingested into Quagga
+- ingested into Musparql
 - used for evaluation or benchmarking
 - published as a dataset
 - extended with additional KGs
 
 ---
 
-## 11. Rationale
+## 12. Rationale
 
 - Every artefact is reproducible.
 - Every query is runnable or explicitly marked otherwise.
 - Every NL question has an explicit confidence estimate.
+- Human review is versionable and separable from raw model output.
 - Provenance is preserved end-to-end.
 - LLM use is restricted to tasks where it adds value (language, summarisation).
