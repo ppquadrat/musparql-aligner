@@ -213,7 +213,7 @@
           <span class="pill">${escapeHtml(record.kg_id)}</span>
         </div>
         <p>${escapeHtml(record.output?.nl_question || "No model question")}</p>
-        <p class="record-subline">${escapeHtml(record.run_label)} · ${escapeHtml(getMode(record))} · confidence ${record.output?.confidence ?? "-"}</p>
+        <p class="record-subline">${escapeHtml(record.run_label)} · ${escapeHtml(getMode(record))} · confidence ${escapeHtml(formatInlineValue(record.output?.confidence, "-"))}</p>
         <p class="record-subline">${escapeHtml(review.status || "unreviewed")}</p>
       `;
       els.recordList.appendChild(item);
@@ -269,7 +269,7 @@
         card.className = "evidence-card used";
         card.innerHTML = `
           <div class="evidence-meta">
-            <span class="pill">rank ${item.rank}</span>
+            <span class="pill">rank ${escapeHtml(formatInlineValue(item.rank, "-"))}</span>
             <span class="pill">${escapeHtml(item.source_type)}</span>
             <span class="pill">${escapeHtml(item.evidence_id)}</span>
             <span class="pill">${item.verbatim ? "verbatim" : "cleaned"}</span>
@@ -405,6 +405,10 @@
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;");
+  }
+
+  function formatInlineValue(value, fallback = "") {
+    return value === null || value === undefined || value === "" ? fallback : String(value);
   }
 
   function timestampForFilename(date) {

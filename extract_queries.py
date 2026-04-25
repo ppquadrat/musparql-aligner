@@ -184,7 +184,7 @@ def normalize_query(text: str) -> str:
         normalized = "\n".join(deduped_lines)
     # Collapse excessive whitespace (keep newlines).
     normalized = re.sub(r"[ \t]+", " ", normalized)
-    normalized = re.sub(r"\\n{3,}", "\\n\\n", normalized)
+    normalized = re.sub(r"\n{3,}", "\n\n", normalized)
     return normalized.strip()
 
 

@@ -173,26 +173,26 @@ def parse_sparql_xml(xml_text: str) -> Optional[Dict[str, object]]:
 
 
 def extract_html_error(html_text: str) -> str:
-    match = re.search(r"<h1>\\s*([^<]+)\\s*</h1>", html_text, re.IGNORECASE)
+    match = re.search(r"<h1>\s*([^<]+)\s*</h1>", html_text, re.IGNORECASE)
     if match:
         return match.group(1).strip()
-    match = re.search(r"<p>\\s*([^<]+)\\s*</p>", html_text, re.IGNORECASE)
+    match = re.search(r"<p>\s*([^<]+)\s*</p>", html_text, re.IGNORECASE)
     if match:
         return match.group(1).strip()
     text = re.sub(r"<[^>]+>", " ", html_text)
-    text = re.sub(r"\\s+", " ", text)
+    text = re.sub(r"\s+", " ", text)
     return text.strip()[:200]
 
 
 def extract_html_error_line(html_text: str) -> str:
-    match = re.search(r"<h1>\\s*([^<]+)\\s*</h1>", html_text, re.IGNORECASE)
+    match = re.search(r"<h1>\s*([^<]+)\s*</h1>", html_text, re.IGNORECASE)
     if match:
         return match.group(1).strip()
-    match = re.search(r"<p>\\s*([^<]+)\\s*</p>", html_text, re.IGNORECASE)
+    match = re.search(r"<p>\s*([^<]+)\s*</p>", html_text, re.IGNORECASE)
     if match:
         return match.group(1).strip()
     text = re.sub(r"<[^>]+>", " ", html_text)
-    text = re.sub(r"\\s+", " ", text)
+    text = re.sub(r"\s+", " ", text)
     return text.strip()[:120]
 
 
@@ -393,7 +393,9 @@ def resolve_dump_path(dataset: KGDataset) -> Path:
 
 def ensure_dump_available(dataset: KGDataset, limit_mb: int = 550) -> Path:
     local_path = resolve_dump_path(dataset)
+    partial_path = local_path.with_name(local_path.name + ".part")
     local_path.parent.mkdir(parents=True, exist_ok=True)
+    partial_path.unlink(missing_ok=True)
     if local_path.exists():
         head = local_path.read_bytes()[:1024].lstrip()
         if head.startswith(b"<!doctype html") or head.startswith(b"<html"):
@@ -413,20 +415,24 @@ def ensure_dump_available(dataset: KGDataset, limit_mb: int = 550) -> Path:
 
     max_bytes = limit_mb * 1024 * 1024
     downloaded = 0
-    with requests.get(dataset.dump_url, stream=True, timeout=60) as resp:
-        resp.raise_for_status()
-        with open(local_path, "wb") as f:
-            for chunk in resp.iter_content(chunk_size=1024 * 1024):
-                if not chunk:
-                    continue
-                downloaded += len(chunk)
-                if downloaded > max_bytes:
-                    raise ValueError(f"Dump exceeds limit ({limit_mb} MB) for {dataset.kg_id}.")
-                f.write(chunk)
-    head = local_path.read_bytes()[:1024].lstrip()
-    if head.startswith(b"<!doctype html") or head.startswith(b"<html"):
-        local_path.unlink(missing_ok=True)
-        raise ValueError(f"Downloaded HTML instead of RDF for {dataset.kg_id}. Check dump_url.")
+    try:
+        with requests.get(dataset.dump_url, stream=True, timeout=60) as resp:
+            resp.raise_for_status()
+            with open(partial_path, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                    if not chunk:
+                        continue
+                    downloaded += len(chunk)
+                    if downloaded > max_bytes:
+                        raise ValueError(f"Dump exceeds limit ({limit_mb} MB) for {dataset.kg_id}.")
+                    f.write(chunk)
+        head = partial_path.read_bytes()[:1024].lstrip()
+        if head.startswith(b"<!doctype html") or head.startswith(b"<html"):
+            raise ValueError(f"Downloaded HTML instead of RDF for {dataset.kg_id}. Check dump_url.")
+        partial_path.replace(local_path)
+    except Exception:
+        partial_path.unlink(missing_ok=True)
+        raise
     return local_path
 
 
