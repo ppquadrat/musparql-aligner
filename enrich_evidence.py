@@ -234,7 +234,9 @@ def extract_leading_context(segment_text: str) -> str:
             context_lines.append(line.rstrip())
             continue
         if stripped.lower().startswith(("prefix ", "base ")):
-            break
+            # Allow query-local comments interleaved with PREFIX/BASE declarations
+            # until the first actual query verb.
+            continue
         if not stripped:
             context_lines.append("")
             continue
