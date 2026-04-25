@@ -15,10 +15,11 @@ At a high level, the pipeline works like this:
 3. Extract candidate SPARQL queries from repos, docs, and PDFs into `kg_queries.jsonl`.
 4. Enrich those query records with nearby human-readable evidence such as comments, query descriptions, and competency questions.
 5. Run the queries against endpoints or local dumps and record execution metadata.
-6. Build LLM input payloads from the curated query records.
-7. Generate natural-language questions and confidence judgments with schema-constrained LLM output.
+6. Build LLM input payloads into `llm_inputs.jsonl` from the enriched query records.
+7. Align SPARQL with source evidence where possible, and generate natural-language questions into `llm_outputs.jsonl` when no fitting source evidence exists.
 8. Merge LLM results back into `kg_queries.jsonl` for downstream evaluation and curation.
-9. Review examples in a lightweight human-review workbench, export reviewer decisions, and grow a benchmark of accepted or flagged pairs.
+9. Review examples in a lightweight human-review workbench and export reviewer decisions into `review/exports/*.json`.
+10. Build versioned benchmark snapshots such as `benchmark/vN/benchmark.jsonl` and `benchmark/vN/pending.jsonl` from reviewed examples.
 
 The intent is to keep every step inspectable: deterministic collection and execution happen first, and LLM interpretation happens only after provenance and run metadata are already attached.
 
@@ -37,6 +38,12 @@ The intent is to keep every step inspectable: deterministic collection and execu
 
 - **LLMs = language and interpretation layer**  
   KG descriptions, natural-language questions, confidence estimates.
+
+- **Human review = judgment layer**  
+  Reviewer decisions, notes, and rewrites are preserved as explicit artefacts rather than folded into model outputs.
+
+- **Benchmark snapshots = evaluation layer**  
+  Approved gold pairs are versioned separately from both raw generations and review judgments.
 
 This separation reduces hidden state, supports regeneration, and preserves dataset defensibility.
 
@@ -77,10 +84,12 @@ Example:
 
 ## 3. Data Model (Schemas)
 
-To make provenance and QA explicit, we use **two JSONL files**:
+To make provenance, QA, human judgment, and evaluation explicit, we use **four main artefact families**:
 
 - `kgs.jsonl`: one record per KG (metadata, endpoints, datasets)
 - `kg_queries.jsonl`: one record per query (SPARQL, evidence, NL artifacts, run metadata)
+- `review/exports/*.json`: exported reviewer judgments
+- `benchmark/vN/*.jsonl`: reviewed benchmark snapshots (approved, pending, dismissed)
 
 ### `kgs.jsonl` (KG metadata)
 
@@ -218,6 +227,77 @@ Notes:
 - `latest_run` and `latest_successful_run` are convenience fields; `run_history` is optional. These run-related fields are populated by `run_queries.py` in-place.
 - Repo-derived evidence may also record `repo_checkout_mode` and `repo_default_branch` so reuse of an existing local checkout is explicit in provenance.
 
+### `review/exports/*.json` (reviewer judgments)
+
+One exported review file contains the human judgments for a specific review dataset:
+
+    {
+      "dataset_id": "830748f26ceb9031",
+      "exported_at": "2026-04-25T20:10:00Z",
+      "reviews": {
+        "meetups::meetups-0002::<token>": {
+          "status": "approve|dismiss|needs_prompt_fix|needs_data_fix",
+          "preferred_question": "",
+          "note": "",
+          "updated_at": "2026-04-25T20:09:00Z"
+        }
+      }
+    }
+
+Notes:
+
+- Review exports preserve both approved and non-approved judgments.
+- They are intentionally separate from model outputs.
+- They are the source material used to build benchmark snapshots.
+
+### `benchmark/vN/benchmark.jsonl` (approved benchmark snapshot)
+
+One record per approved benchmark item:
+
+    {
+      "benchmark_id": "meetups::meetups-0002::<token>",
+      "kg_id": "meetups",
+      "query_id": "meetups__sha256:...",
+      "query_label": "meetups-0002",
+      "sparql": "...normalized SPARQL...",
+      "gold_question": "Who are the two people who most frequently participated in meetups with Edward Elgar?",
+      "gold_question_source": "approved_model_output|reviewer_rewrite",
+      "review_status": "approve",
+      "review": {
+        "review_id": "meetups::meetups-0002::<token>",
+        "review_export": "review/exports/....json",
+        "dataset_id": "<review-dataset-id>",
+        "note": "",
+        "updated_at": "2026-04-25T21:00:00Z"
+      },
+      "run": {
+        "run_label": "llm_outputs.sample_current",
+        "source_file": "llm_outputs.sample_current.jsonl",
+        "model": "gpt-5",
+        "run_signature": {"model": "gpt-5", "...": "..."}
+      },
+      "model_output": {
+        "nl_question": "...model wording...",
+        "origin_mode": "generated|paraphrased|verbatim",
+        "confidence": 82,
+        "confidence_rationale": "...",
+        "needs_review": false,
+        "retained_evidence_phrases": []
+      },
+      "evidence_summary": {
+        "evidence_count": 41,
+        "evidence_types": ["cq_item", "query_comment"],
+        "has_source_evidence": true,
+        "has_query_specific_evidence": true
+      }
+    }
+
+Notes:
+
+- Benchmark snapshots are built from review exports, not directly from raw model output files.
+- `gold_question` is the single canonical wording used for evaluation.
+- `pending.jsonl` and `dismissed.jsonl` use the same broad structure but capture non-approved review outcomes.
+
 
 ---
 
@@ -305,7 +385,27 @@ No filtering or LLM use occurs at this stage.
 
 ---
 
-## 6. Evidence Enrichment (`kg_queries.jsonl`)
+## 6. Academic Paper Integration (Parallel Track)
+
+Academic papers belong conceptually to the same source-acquisition layer as query extraction and evidence enrichment.
+
+For each KG:
+
+- Identify canonical papers.
+- Extract:
+  - SPARQL examples
+  - competency questions (CQs)
+
+If only CQs exist:
+
+- Optionally draft SPARQL (marked as `crafted_from_cq`).
+- Assign lower confidence unless verified against an endpoint.
+
+Paper-derived material then passes through the **same enrichment, execution, generation, review, and benchmark steps** as repo-derived material.
+
+---
+
+## 7. Evidence Enrichment (`kg_queries.jsonl`)
 
 **Objective:** enrich query records with human-readable evidence from sources, preserving provenance and evidence types.
 
@@ -340,7 +440,7 @@ All evidence items carry `evidence_id`, `source_url`, `source_path`, timestamps,
 
 ---
 
-## 7. Query Execution And Run Metadata (`kg_queries.jsonl`)
+## 8. Query Execution And Run Metadata (`kg_queries.jsonl`)
 
 **Objective:** record execution metadata for queries against endpoints or local dumps.
 
@@ -373,9 +473,9 @@ This step establishes **ground-truth executability** for each query record.
 
 ---
 
-## 8. Natural-Language Question And Confidence Generation
+## 9. Natural-Language Question And Confidence Generation
 
-**Objective:** create human-readable NL–SPARQL pairs with confidence estimates.
+**Objective:** align SPARQL with source evidence when possible, and otherwise generate human-readable NL–SPARQL pairs with confidence estimates.
 
 ### Inputs
 
@@ -387,7 +487,7 @@ This step establishes **ground-truth executability** for each query record.
 ### Process (LLM with schema enforcement)
 
 1. Build inputs with `build_llm_inputs.py` → `llm_inputs.jsonl`.
-2. Run LLM generation with `run_llm_generation.py` → `llm_outputs.jsonl`.
+2. Run LLM alignment/generation with `run_llm_generation.py` → `llm_outputs.jsonl`.
 3. Merge outputs with `merge_llm_outputs.py` → `kg_queries.jsonl` (updates in-place).
 
 Current implementation notes:
@@ -443,9 +543,9 @@ A second **consistency-check pass** may be applied to downgrade overconfident pa
 
 ---
 
-## 9. Human Review And Benchmark Curation
+## 10. Human Review And Benchmark Curation
 
-**Objective:** inspect generated NL–SPARQL pairs, capture human judgments, and turn reviewed examples into a reusable mini-benchmark.
+**Objective:** inspect generated NL–SPARQL pairs and capture human judgments in a reusable, versionable form.
 
 ### Inputs
 
@@ -491,25 +591,47 @@ Current reviewer labels:
 
 ---
 
-## 10. Academic Paper Integration (Parallel Track)
+## 11. Benchmark Construction
 
-For each KG:
+**Objective:** convert reviewed examples into versioned benchmark snapshots that can be used for prompt comparison, model evaluation, and downstream experiments.
 
-- Identify canonical papers.
-- Extract:
-  - SPARQL examples
-  - competency questions (CQs)
+### Inputs
 
-If only CQs exist:
+- `review/review_data.js`
+- one exported reviewer file from `review/exports/`
 
-- Optionally draft SPARQL (marked as `crafted_from_cq`).
-- Assign lower confidence unless verified against an endpoint.
+### Process
 
-Paper-derived queries pass through the **same pipeline** as repo-derived ones.
+1. Build a benchmark snapshot with `benchmark/build_benchmark.py`.
+2. Create a versioned directory such as `benchmark/v1/`.
+3. Split reviewed items into:
+   - approved benchmark items
+   - pending items that still need prompt/data fixes
+   - dismissed items excluded from the benchmark
+4. For approved items, set `gold_question` using:
+   - reviewer rewrite, if present
+   - otherwise the approved model output
+5. Preserve provenance linking each benchmark item back to:
+   - query identifiers
+   - review export
+   - generation run metadata
+
+### Output
+
+- `benchmark/vN/manifest.json` – snapshot metadata and counts
+- `benchmark/vN/benchmark.jsonl` – approved benchmark items only
+- `benchmark/vN/pending.jsonl` – reviewed but not yet benchmark-approved items
+- `benchmark/vN/dismissed.jsonl` – reviewed items explicitly excluded from the benchmark
+
+### Notes
+
+- The benchmark is distinct from both raw model outputs and review exports.
+- Review exports capture human judgments; benchmark snapshots capture the current curated gold set.
+- This separation makes it possible to compare multiple prompt/model runs against the same approved benchmark, while preserving reviewer provenance and benchmark history.
 
 ---
 
-## 11. Outputs And Intended Use
+## 12. Outputs And Intended Use
 
 At minimum, the project produces:
 
@@ -519,7 +641,10 @@ At minimum, the project produces:
 - `llm_inputs.jsonl` – LLM input payloads
 - `llm_outputs.jsonl` – LLM outputs (before merge)
 - `review/review_data.js` – local reviewer bundle
-- `review/exports/*.json` – benchmark judgments exported by human reviewers
+- `review/exports/*.json` – exported human-review judgments
+- `benchmark/vN/benchmark.jsonl` – versioned approved benchmark pairs
+- `benchmark/vN/pending.jsonl` – reviewed items pending fixes
+- `benchmark/vN/manifest.json` – benchmark snapshot metadata
 
 These outputs may be:
 
@@ -530,11 +655,12 @@ These outputs may be:
 
 ---
 
-## 12. Rationale
+## 13. Rationale
 
 - Every artefact is reproducible.
 - Every query is runnable or explicitly marked otherwise.
 - Every NL question has an explicit confidence estimate.
 - Human review is versionable and separable from raw model output.
+- Benchmark snapshots are versionable and separable from both review judgments and raw model output.
 - Provenance is preserved end-to-end.
 - LLM use is restricted to tasks where it adds value (language, summarisation).
