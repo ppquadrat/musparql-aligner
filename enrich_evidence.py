@@ -1180,6 +1180,9 @@ def main() -> None:
         sparql_hash = rec.get("sparql_hash")
         if isinstance(kg_id, str) and isinstance(sparql_hash, str):
             by_kg_hash[(kg_id, sparql_hash)] = rec
+        raw_hash = rec.get("raw_hash")
+        if isinstance(kg_id, str) and isinstance(raw_hash, str):
+            by_kg_hash[(kg_id, raw_hash)] = rec
 
     extracted_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 

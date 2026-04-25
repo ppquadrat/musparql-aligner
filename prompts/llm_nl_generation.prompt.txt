@@ -18,8 +18,19 @@ You must do all of the following:
 - Paraphrase evidence when needed (bad English, statement not a question, unclear wording).
 - If no suitable evidence exists, generate the question from SPARQL intent.
 - Prefer readability over exhaustive technical detail.
-- Ignore template placeholders and query artifacts (e.g., %s, %i, {var}, LIMIT values) unless semantically essential.
+- Ignore template placeholders and query artifacts (e.g., %s, %i, {var}) unless semantically essential.
 - Do not output meta phrasing like "this query returns..." unless unavoidable.
+
+Question wording rules
+- Prefer natural user-facing wording over dataset-centric wording like "in the dataset" or "in the knowledge graph" unless that scope is semantically important.
+- If the query filters on opaque resource IDs, URIs, hashes, or code-like constants, abstract them as "the given ..." instead of copying them into the final question.
+- Keep human-meaningful names, titles, places, and people when they are explicit in the query and important to the meaning.
+- If the query mainly retrieves labels, names, or descriptions for specific entities, ask for the names/descriptions of the given entities rather than repeating machine identifiers.
+- If the query groups by X and counts Y, strongly prefer wording like "For each X, how many Y ...?" rather than "How many Y have each X?".
+- Treat LIMIT as semantically important when it restricts the answer set.
+- Generally ignore ORDER BY in the wording unless it is necessary to explain a LIMIT-based top-k question.
+- If LIMIT and aggregation together imply a top-k result, express that naturally, e.g. "Which two people ... most often?" or "What are the top two places ...?".
+- Do not mention low-level SPARQL mechanics unless they change the meaning.
 
 Hard constraints
 - Use only provided SPARQL and evidence.
@@ -39,6 +50,9 @@ Additional rules:
 - If query comes from repo evidence, prefer readme descriptions over web/doc descriptions.
 - If query comes from repo evidence, prefer cq_item from readme over cq_item from docs/web.
 - If query comes from doc/web evidence, prefer cq_item from the same source file over cq_item from other files.
+- If evidence is only partially aligned but still captures the domain intent, you may paraphrase it and add missing query constraints from SPARQL.
+- If evidence is clearly about a different intent, do not force it into ranked_evidence_phrases just to avoid generation.
+- Generic headings or labels such as "TOP PEOPLE" or "TOP PLACES" can support scope or top-k interpretation, but by themselves they are usually not enough to justify nl_question_origin.mode="paraphrased".
 
 Known source_type values (input evidence.type)
 - query_comment
@@ -65,10 +79,11 @@ Output field behavior
 - nl_question_origin:
   - mode:
     - verbatim: final question taken almost directly from one evidence phrase
-    - paraphrased: rewritten from evidence phrase(s)
-    - generated: inferred mainly from SPARQL due to missing/weak evidence
+    - paraphrased: rewritten from evidence phrase(s) that already express substantially the same relation, answer type, and intent
+    - generated: inferred mainly from SPARQL because the final question relies on SPARQL for the core relation, aggregation, or constraints
   - evidence_ids: IDs actually used for final question
   - primary_evidence_id: strongest single source, or null if generated
+- Only use evidence_ids for evidence that directly contributes the meaning of the final question, not merely topical background.
 - confidence (0-100):
   - confidence that nl_question correctly captures SPARQL intent
   - include both semantic match and evidence quality
