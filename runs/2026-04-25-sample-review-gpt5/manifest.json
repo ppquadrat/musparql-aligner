@@ -1,0 +1,63 @@
+{
+  "run_id": "2026-04-25-sample-review-gpt5",
+  "created_at": "2026-04-25T23:14:14+00:00",
+  "purpose": "manual review sample",
+  "notes": null,
+  "record_counts": {
+    "outputs": 12,
+    "errors": 0
+  },
+  "models": [
+    "gpt-5"
+  ],
+  "files": {
+    "llm_inputs": {
+      "filename": "llm_inputs.jsonl",
+      "source_path": "prompts/llm_nl_generation.sample.jsonl",
+      "sha256": "c56b4e10a7b755b81e99817884535a8acf21dd959a433436e2ea32e5b9853556",
+      "size_bytes": 41032
+    },
+    "llm_outputs": {
+      "filename": "llm_outputs.jsonl",
+      "source_path": "llm_outputs.sample_current.jsonl",
+      "sha256": "4a8f3591d2fe499b46027c3bb7e4523a3cf45b70ce2429a1db5fc79e3244c506",
+      "size_bytes": 15463
+    },
+    "prompt": {
+      "filename": "prompt.txt",
+      "source_path": "prompts/llm_nl_generation.prompt.txt",
+      "sha256": "07e06749f40d74099d4b212f32f1152514afb8969f9063c794915c9534380631",
+      "size_bytes": 5792
+    },
+    "schema": {
+      "filename": "schema.json",
+      "source_path": "schemas/llm_output.schema.json",
+      "sha256": "683f317241dd63d44ac6d359c2c2407ad1c04ad512eb4dfeb93a65eccc66169f",
+      "size_bytes": 2285
+    },
+    "llm_outputs_errors": {
+      "filename": "llm_outputs.errors.jsonl",
+      "source_path": "llm_outputs.sample_current.errors.jsonl",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    "examples": {
+      "filename": "examples.jsonl",
+      "source_path": "prompts/llm_nl_generation.examples.jsonl",
+      "sha256": "9e2aceead2ed6f3e2f5da9f52655322360e862d8baee8823891e916270776813",
+      "size_bytes": 6839
+    },
+    "kgs": {
+      "filename": "kgs.jsonl",
+      "source_path": "kgs.jsonl",
+      "sha256": "c13283c56e42924942d051746c0d35328e79e427e517be6d96b02d9466f9ffea",
+      "size_bytes": 8418
+    },
+    "kg_queries": {
+      "filename": "kg_queries.jsonl",
+      "source_path": "kg_queries.jsonl",
+      "sha256": "ade4016b8e6eb1ba7d42007a6b291daf9671c74b3ccf5d23bb514c8171d9e8a6",
+      "size_bytes": 989437
+    }
+  }
+}

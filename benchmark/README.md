@@ -4,11 +4,13 @@ This directory stores **curated benchmark snapshots** derived from:
 
 - model outputs and their review bundle
 - exported human-review judgments
+- frozen generation runs in `runs/<run-id>/`
 
 The benchmark is distinct from:
 
 - raw generation artefacts such as `llm_outputs.jsonl`
 - reviewer exports in `review/exports/`
+- the run snapshot itself
 
 ## Structure
 
@@ -55,3 +57,9 @@ Benchmark items are intentionally compact:
 - light analysis metadata (model origin mode, evidence type summary, review provenance)
 
 The benchmark should be easy to evaluate against, while still traceable back to the reviewed generation run.
+
+In other words, the intended chain is:
+
+```text
+runs/<run-id>/ -> review/exports/<review-file>.json -> benchmark/vN/
+```

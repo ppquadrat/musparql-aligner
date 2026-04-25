@@ -74,5 +74,17 @@
       "note": "",
       "updated_at": "2026-04-25T20:40:24.728Z"
     }
-  }
+  },
+  "run_id": "2026-04-25-sample-review-gpt5",
+  "run_ids": [
+    "2026-04-25-sample-review-gpt5"
+  ],
+  "runs": [
+    {
+      "run_id": "2026-04-25-sample-review-gpt5",
+      "manifest_path": "runs/2026-04-25-sample-review-gpt5/manifest.json",
+      "purpose": "manual review sample",
+      "created_at": "2026-04-25T23:14:14+00:00"
+    }
+  ]
 }

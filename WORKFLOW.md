@@ -18,8 +18,9 @@ At a high level, the pipeline works like this:
 6. Build LLM input payloads into `llm_inputs.jsonl` from the enriched query records.
 7. Align SPARQL with source evidence where possible, and generate natural-language questions into `llm_outputs.jsonl` when no fitting source evidence exists.
 8. Merge LLM results back into `kg_queries.jsonl` for downstream evaluation and curation.
-9. Review examples in a lightweight human-review workbench and export reviewer decisions into `review/exports/*.json`.
-10. Build versioned benchmark snapshots such as `benchmark/vN/benchmark.jsonl` and `benchmark/vN/pending.jsonl` from reviewed examples.
+9. Freeze review-worthy generation outputs into `runs/<run-id>/`.
+10. Review examples in a lightweight human-review workbench, export reviewer decisions, and place those exports into `review/exports/`.
+11. Build versioned benchmark snapshots such as `benchmark/vN/benchmark.jsonl` and `benchmark/vN/pending.jsonl` from reviewed examples.
 
 The intent is to keep every step inspectable: deterministic collection and execution happen first, and LLM interpretation happens only after provenance and run metadata are already attached.
 
@@ -84,10 +85,11 @@ Example:
 
 ## 3. Data Model (Schemas)
 
-To make provenance, QA, human judgment, and evaluation explicit, we use **four main artefact families**:
+To make provenance, QA, human judgment, and evaluation explicit, we use **five main artefact families**:
 
 - `kgs.jsonl`: one record per KG (metadata, endpoints, datasets)
 - `kg_queries.jsonl`: one record per query (SPARQL, evidence, NL artifacts, run metadata)
+- `runs/<run-id>/`: frozen LLM-generation runs
 - `review/exports/*.json`: exported reviewer judgments
 - `benchmark/vN/*.jsonl`: reviewed benchmark snapshots (approved, pending, dismissed)
 
@@ -227,12 +229,51 @@ Notes:
 - `latest_run` and `latest_successful_run` are convenience fields; `run_history` is optional. These run-related fields are populated by `run_queries.py` in-place.
 - Repo-derived evidence may also record `repo_checkout_mode` and `repo_default_branch` so reuse of an existing local checkout is explicit in provenance.
 
+### `runs/<run-id>/manifest.json` (frozen generation run)
+
+One frozen run captures the exact generation artefacts that became important enough to
+review, compare, or report:
+
+    {
+      "run_id": "2026-04-25-sample-review-gpt5",
+      "created_at": "2026-04-25T23:14:14+00:00",
+      "purpose": "manual review sample",
+      "notes": "Auto-frozen by build_review_bundle.py",
+      "record_counts": {
+        "outputs": 12,
+        "errors": 0
+      },
+      "models": ["gpt-5"],
+      "files": {
+        "llm_inputs": {"filename": "llm_inputs.jsonl", "sha256": "..."},
+        "llm_outputs": {"filename": "llm_outputs.jsonl", "sha256": "..."},
+        "prompt": {"filename": "prompt.txt", "sha256": "..."},
+        "schema": {"filename": "schema.json", "sha256": "..."}
+      }
+    }
+
+Notes:
+
+- A run is the immutable generation layer.
+- One run can have many review exports.
+- `build_review_bundle.py` should normally create or attach this run before review starts.
+
 ### `review/exports/*.json` (reviewer judgments)
 
 One exported review file contains the human judgments for a specific review dataset:
 
     {
       "dataset_id": "830748f26ceb9031",
+      "run_id": "2026-04-25-sample-review-gpt5",
+      "run_ids": ["2026-04-25-sample-review-gpt5"],
+      "runs": [
+        {
+          "run_id": "2026-04-25-sample-review-gpt5",
+          "manifest_path": "runs/2026-04-25-sample-review-gpt5/manifest.json",
+          "purpose": "manual review sample",
+          "created_at": "2026-04-25T23:14:14+00:00"
+        }
+      ],
       "exported_at": "2026-04-25T20:10:00Z",
       "reviews": {
         "meetups::meetups-0002::<token>": {
@@ -248,6 +289,7 @@ Notes:
 
 - Review exports preserve both approved and non-approved judgments.
 - They are intentionally separate from model outputs.
+- They should point to exactly one frozen run.
 - They are the source material used to build benchmark snapshots.
 
 ### `benchmark/vN/benchmark.jsonl` (approved benchmark snapshot)
@@ -543,7 +585,37 @@ A second **consistency-check pass** may be applied to downgrade overconfident pa
 
 ---
 
-## 10. Human Review And Benchmark Curation
+## 10. Frozen Run Capture
+
+**Objective:** preserve review-worthy LLM-generation artefacts in an immutable form before human validation begins.
+
+### Inputs
+
+- `llm_inputs.jsonl`
+- one LLM output file to review, such as `llm_outputs.jsonl`
+- optional `llm_outputs.errors.jsonl`
+
+### Process
+
+1. Freeze the generation artefacts into `runs/<run-id>/`.
+2. Copy the inputs, outputs, prompt, schema, and any relevant source snapshots needed for later traceability.
+3. Write `runs/<run-id>/manifest.json` with file hashes, model list, counts, and purpose metadata.
+4. Use the frozen run as the review target from this point onward.
+
+### Notes
+
+- A run is the immutable generation layer.
+- One run can later accumulate multiple review exports.
+- `build_review_bundle.py` can create this run automatically when the chosen output is not already inside `runs/<run-id>/`.
+
+### Output
+
+- `runs/<run-id>/manifest.json`
+- copied generation artefacts inside `runs/<run-id>/`
+
+---
+
+## 11. Human Review
 
 **Objective:** inspect generated NL–SPARQL pairs and capture human judgments in a reusable, versionable form.
 
@@ -556,6 +628,7 @@ A second **consistency-check pass** may be applied to downgrade overconfident pa
 ### Process
 
 1. Build a browser review bundle with `build_review_bundle.py` → `review/review_data.js`.
+   - If the selected outputs are not already inside `runs/<run-id>/`, the builder should auto-freeze a run snapshot first.
 2. Open `review/index.html` through a local web server.
 3. Inspect examples with:
    - formatted SPARQL
@@ -564,7 +637,8 @@ A second **consistency-check pass** may be applied to downgrade overconfident pa
    - generated NL question
    - origin mode, confidence, and rationale
 4. Record reviewer decisions and optional rewrites.
-5. Export reviewer judgments as JSON and store them under `review/exports/`.
+5. Export reviewer judgments as JSON.
+6. Place the exported review file under `review/exports/` so it can be reused for benchmark construction and later prompt/model comparisons.
 
 Current reviewer labels:
 
@@ -577,6 +651,7 @@ Current reviewer labels:
 
 - Reviewer judgments are kept separate from model outputs.
 - Review exports are keyed to the review dataset and the underlying run provenance, so prompt/model changes naturally produce a new review set.
+- One review export should correspond to exactly one run, but one run may accumulate multiple review exports from different reviewers or sessions.
 - In practice this stage forms an iteration loop:
   1. inspect examples
   2. approve or flag them
@@ -591,7 +666,7 @@ Current reviewer labels:
 
 ---
 
-## 11. Benchmark Construction
+## 12. Benchmark Construction
 
 **Objective:** convert reviewed examples into versioned benchmark snapshots that can be used for prompt comparison, model evaluation, and downstream experiments.
 
@@ -631,7 +706,7 @@ Current reviewer labels:
 
 ---
 
-## 12. Outputs And Intended Use
+## 13. Outputs And Intended Use
 
 At minimum, the project produces:
 
@@ -640,6 +715,7 @@ At minimum, the project produces:
 - `kg_queries.jsonl` – validated queries with run metadata and `llm_output`
 - `llm_inputs.jsonl` – LLM input payloads
 - `llm_outputs.jsonl` – LLM outputs (before merge)
+- `runs/<run-id>/manifest.json` – frozen run metadata and copied generation artefacts
 - `review/review_data.js` – local reviewer bundle
 - `review/exports/*.json` – exported human-review judgments
 - `benchmark/vN/benchmark.jsonl` – versioned approved benchmark pairs
@@ -655,7 +731,7 @@ These outputs may be:
 
 ---
 
-## 13. Rationale
+## 14. Rationale
 
 - Every artefact is reproducible.
 - Every query is runnable or explicitly marked otherwise.
