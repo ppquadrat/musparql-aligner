@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Musparql Review Workbench</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Musparql</p>
+          <h1>Review Workbench</h1>
+          <p class="subtitle">Inspect SPARQL, evidence, model output, and reviewer feedback in one place.</p>
+        </div>
+        <div class="toolbar">
+          <button id="exportReviewsBtn" class="btn solid">Export Reviews</button>
+          <label class="btn">
+            Import Reviews
+            <input id="importReviewsInput" type="file" accept=".json,application/json" hidden />
+          </label>
+        </div>
+      </header>
+
+      <section class="summary-strip">
+        <div class="chip"><span class="chip-label">Dataset</span><span id="datasetId">-</span></div>
+        <div class="chip"><span class="chip-label">Records</span><span id="recordCount">-</span></div>
+        <div class="chip"><span class="chip-label">Visible</span><span id="visibleCount">-</span></div>
+        <div class="chip"><span class="chip-label">Reviewed</span><span id="reviewedCount">-</span></div>
+      </section>
+
+      <section class="layout">
+        <aside class="sidebar">
+          <div class="panel">
+            <h2>Filters</h2>
+            <div class="field-grid">
+              <label>
+                <span>Search</span>
+                <input id="searchInput" type="search" placeholder="query label, question, evidence..." />
+              </label>
+              <label>
+                <span>KG</span>
+                <select id="kgFilter"></select>
+              </label>
+              <label>
+                <span>Mode</span>
+                <select id="modeFilter"></select>
+              </label>
+              <label>
+                <span>Review</span>
+                <select id="statusFilter"></select>
+              </label>
+              <label>
+                <span>Run</span>
+                <select id="runFilter"></select>
+              </label>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Examples</h2>
+            </div>
+            <div id="recordList" class="record-list"></div>
+          </div>
+        </aside>
+
+        <main class="detail">
+          <div id="emptyState" class="panel empty-state">
+            <h2>No data loaded</h2>
+            <p>Run <code>build_review_bundle.py</code> to create <code>review/review_data.js</code>, then reload this page.</p>
+          </div>
+
+          <div id="detailView" class="detail-stack hidden">
+            <section class="panel hero detail-top">
+              <div class="hero-head">
+                <div>
+                  <p id="detailMeta" class="eyebrow">-</p>
+                  <h2 id="detailTitle">-</h2>
+                </div>
+                <div class="hero-actions">
+                  <div class="pager">
+                    <button id="prevBtn" class="btn small">Prev</button>
+                    <button id="nextBtn" class="btn small">Next</button>
+                  </div>
+                  <div class="hero-badges">
+                    <span id="modeBadge" class="badge">-</span>
+                    <span id="confidenceBadge" class="badge">-</span>
+                    <span id="reviewBadge" class="badge muted">unreviewed</span>
+                  </div>
+                </div>
+              </div>
+              <div class="detail-columns">
+                <section class="detail-column">
+                  <p class="section-label">SPARQL</p>
+                  <pre id="sparqlBlock" class="code-block compact"></pre>
+                </section>
+                <section class="detail-column">
+                  <div class="question-block">
+                    <p class="section-label">Model question</p>
+                    <p id="detailQuestion" class="big-question">-</p>
+                  </div>
+                  <div class="meta-grid compact">
+                    <div>
+                      <p class="section-label">Origin</p>
+                      <p id="detailOrigin">-</p>
+                    </div>
+                    <div>
+                      <p class="section-label">Model</p>
+                      <p id="detailModel">-</p>
+                    </div>
+                    <div>
+                      <p class="section-label">Run</p>
+                      <p id="detailRun">-</p>
+                    </div>
+                    <div>
+                      <p class="section-label">Elapsed</p>
+                      <p id="detailElapsed">-</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="section-label">Confidence rationale</p>
+                    <p id="detailRationale" class="rationale">-</p>
+                  </div>
+                  <div class="retained-block">
+                    <p class="section-label">Retained evidence phrases</p>
+                    <div id="rankedEvidenceList" class="stack-list compact-list"></div>
+                  </div>
+                </section>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>Reviewer Decision</h2>
+              <div class="decision-grid">
+                <button data-status="approve" class="decision-btn approve">Approve</button>
+                <button data-status="dismiss" class="decision-btn dismiss">Dismiss</button>
+                <button data-status="needs_prompt_fix" class="decision-btn prompt">Needs Prompt Fix</button>
+                <button data-status="needs_data_fix" class="decision-btn data">Needs Data Fix</button>
+                <button data-status="" class="decision-btn clear">Clear</button>
+              </div>
+              <div class="field-grid">
+                <label class="wide">
+                  <span>Preferred / corrected NL question</span>
+                  <textarea id="preferredQuestionInput" rows="2" placeholder="Optional better wording"></textarea>
+                </label>
+                <label class="wide">
+                  <span>Reviewer note</span>
+                  <textarea id="reviewNoteInput" rows="4" placeholder="Why this is good, bad, or needs a fix"></textarea>
+                </label>
+              </div>
+              <div class="inline-note">
+                <strong>Labels:</strong>
+                <span>`dismiss` excludes an example from the benchmark. `needs_prompt_fix` means the example is valid but the model behavior should improve via prompt changes. `needs_data_fix` means the model inputs were wrong, incomplete, or missing important signals.</span>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h2>All Input Evidence</h2>
+                <span id="evidenceCount" class="muted-meta">-</span>
+              </div>
+              <div id="allEvidenceList" class="stack-list"></div>
+            </section>
+          </div>
+        </main>
+      </section>
+    </div>
+
+    <script src="review_data.js"></script>
+    <script src="app.js"></script>
+  </body>
+  </html>
