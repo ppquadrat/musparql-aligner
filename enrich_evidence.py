@@ -554,6 +554,28 @@ def extract_pdf_code_blocks(text: str) -> List[Dict[str, object]]:
 
 
 def extract_pdf_query_blocks(text: str) -> List[Dict[str, object]]:
+    query_start_re = re.compile(r"^\s*(prefix|base|select|construct|ask|describe)\b", re.IGNORECASE)
+    query_line_re = re.compile(
+        r"^\s*(prefix|base|select|construct|ask|describe|where|from|graph|optional|union|filter|bind|values|service|minus|group\s+by|order\s+by|limit|offset|having)\b",
+        re.IGNORECASE,
+    )
+    caption_re = re.compile(r"^\s*(figure|fig\.|table|algorithm)\s+\d+\s*[:.]", re.IGNORECASE)
+    cq_heading_re = re.compile(r"^\s*CQ\d+\b", re.IGNORECASE)
+    page_num_re = re.compile(r"^\s*\d+\s*$")
+
+    def is_query_continuation_line(stripped: str) -> bool:
+        if not stripped:
+            return True
+        if stripped.startswith("#"):
+            return True
+        if query_line_re.match(stripped):
+            return True
+        if stripped.startswith(("?", "{", "}", "(", "[", "]")):
+            return True
+        if re.match(r"^\s*[A-Za-z_][\w-]*:[^\s]*", stripped):
+            return True
+        return False
+
     lines = text.splitlines()
     blocks: List[Dict[str, object]] = []
     current: List[str] = []
@@ -561,39 +583,63 @@ def extract_pdf_query_blocks(text: str) -> List[Dict[str, object]]:
     depth = 0
     seen_query = False
     start_idx = 0
+    start_char = 0
+    char_idx = 0
     for idx, line in enumerate(lines):
         stripped = line.strip()
-        is_code_line = bool(
-            re.search(r"\b(select|construct|ask|describe|where|prefix)\b", stripped, re.IGNORECASE)
-            or "{ " in stripped
-            or stripped.startswith("{")
-            or stripped.startswith("PREFIX")
-        )
-        if is_code_line:
+        if not stripped:
+            if in_block:
+                current.append("")
+            char_idx += len(line) + 1
+            continue
+        if in_block and page_num_re.match(stripped):
+            char_idx += len(line) + 1
+            continue
+        if in_block and (caption_re.match(stripped) or cq_heading_re.match(stripped)):
+            if seen_query and depth <= 0 and current:
+                blocks.append({"start_idx": start_idx, "start_char": start_char, "lines": current[:]})
+            current = []
+            in_block = False
+            depth = 0
+            seen_query = False
+            char_idx += len(line) + 1
+            continue
+        if query_start_re.match(stripped):
+            if in_block and seen_query and depth <= 0 and current:
+                blocks.append({"start_idx": start_idx, "start_char": start_char, "lines": current[:]})
+                current = []
+                depth = 0
+                seen_query = False
             if not in_block:
                 in_block = True
                 current = []
                 depth = 0
                 seen_query = False
                 start_idx = idx
+                start_char = char_idx
             current.append(line.rstrip())
-            if re.search(r"\b(select|construct|ask|describe)\b", stripped, re.IGNORECASE):
+            if re.match(r"^\s*(select|construct|ask|describe)\b", stripped, re.IGNORECASE):
                 seen_query = True
             depth += line.count("{") - line.count("}")
+            char_idx += len(line) + 1
+            continue
+        if in_block and is_query_continuation_line(stripped):
+            current.append(line.rstrip())
+            if re.match(r"^\s*(select|construct|ask|describe)\b", stripped, re.IGNORECASE):
+                seen_query = True
+            depth += line.count("{") - line.count("}")
+            char_idx += len(line) + 1
             continue
         if in_block:
-            depth += line.count("{") - line.count("}")
-            current.append(line.rstrip())
-            if seen_query and depth <= 0:
-                if current:
-                    blocks.append({"start_idx": start_idx, "lines": current[:]})
-                current = []
-                in_block = False
-                depth = 0
-                seen_query = False
-                continue
+            if seen_query and depth <= 0 and current:
+                blocks.append({"start_idx": start_idx, "start_char": start_char, "lines": current[:]})
+            current = []
+            in_block = False
+            depth = 0
+            seen_query = False
+        char_idx += len(line) + 1
     if in_block and current:
-        blocks.append({"start_idx": start_idx, "lines": current[:]})
+        blocks.append({"start_idx": start_idx, "start_char": start_char, "lines": current[:]})
 
     # Normalize PREFIX lines / broken IRIs like extract_queries_from_pdf_text.
     normalized: List[Dict[str, object]] = []

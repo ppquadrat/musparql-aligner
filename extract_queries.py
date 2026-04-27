@@ -246,41 +246,35 @@ def split_queries(text: str) -> List[str]:
     return segments or [text]
 
 
-def is_select_query(text: str) -> bool:
-    # Strip comments and PREFIX/BASE to find the main query verb.
-    cleaned_lines: List[str] = []
+def first_query_verb(text: str) -> Optional[str]:
     for line in text.splitlines():
         stripped = line.strip()
         if not stripped:
             continue
         if stripped.startswith("#"):
             continue
-        cleaned_lines.append(line)
-    cleaned = "\n".join(cleaned_lines)
-    cleaned = re.sub(r"(?im)^(\s*(prefix|base)\b.*)$", "", cleaned)
-    cleaned = cleaned.strip()
-    if not cleaned:
-        return False
-    # Match the first query keyword.
-    match = re.search(
-        r"\b(select|construct|ask|describe|insert|delete|with|load|clear|create|drop|copy|move|add)\b",
-        cleaned,
-        flags=re.IGNORECASE,
-    )
-    if not match:
-        return False
-    return match.group(1).lower() == "select"
+        if re.match(r"(?im)^\s*(prefix|base)\b", stripped):
+            continue
+        match = re.match(r"(?i)^(select|construct|ask|describe)\b", stripped)
+        if match:
+            return match.group(1).lower()
+        return None
+    return None
+
+
+def is_select_query(text: str) -> bool:
+    return first_query_verb(text) == "select"
 
 
 def is_well_formed_query(query: str) -> bool:
     text = query.strip()
     if not text:
         return False
-    if re.match(r"(?im)^\s*where\b", text):
+    if first_query_verb(text) != "select":
         return False
-    if not re.search(r"(?im)\bselect\b", text):
+    if not re.search(r"(?im)^\s*where\b", text) and not re.search(r"(?im)\bwhere\b", text):
         return False
-    if not re.search(r"(?im)\bwhere\b", text):
+    if "{" not in text or "}" not in text:
         return False
     if text.count("{") != text.count("}"):
         return False
@@ -323,6 +317,28 @@ def extract_text_from_pdf(path: Path) -> str:
 
 
 def extract_queries_from_pdf_text(text: str) -> List[str]:
+    query_start_re = re.compile(r"^\s*(prefix|base|select|construct|ask|describe)\b", re.IGNORECASE)
+    query_line_re = re.compile(
+        r"^\s*(prefix|base|select|construct|ask|describe|where|from|graph|optional|union|filter|bind|values|service|minus|group\s+by|order\s+by|limit|offset|having)\b",
+        re.IGNORECASE,
+    )
+    caption_re = re.compile(r"^\s*(figure|fig\.|table|algorithm)\s+\d+\s*[:.]", re.IGNORECASE)
+    cq_heading_re = re.compile(r"^\s*CQ\d+\b", re.IGNORECASE)
+    page_num_re = re.compile(r"^\s*\d+\s*$")
+
+    def is_query_continuation_line(stripped: str) -> bool:
+        if not stripped:
+            return True
+        if stripped.startswith("#"):
+            return True
+        if query_line_re.match(stripped):
+            return True
+        if stripped.startswith(("?", "{", "}", "(", "[", "]")):
+            return True
+        if re.match(r"^\s*[A-Za-z_][\w-]*:[^\s]*", stripped):
+            return True
+        return False
+
     lines = text.splitlines()
     blocks: List[str] = []
     current: List[str] = []
@@ -331,35 +347,51 @@ def extract_queries_from_pdf_text(text: str) -> List[str]:
     seen_query = False
     for line in lines:
         stripped = line.strip()
-        is_code_line = bool(
-            re.search(r"\b(select|construct|ask|describe|where|prefix)\b", stripped, re.IGNORECASE)
-            or "{ " in stripped
-            or stripped.startswith("{")
-            or stripped.startswith("PREFIX")
-        )
-        if is_code_line:
+        if not stripped:
+            if in_block:
+                current.append("")
+            continue
+        if in_block and page_num_re.match(stripped):
+            continue
+        if in_block and (caption_re.match(stripped) or cq_heading_re.match(stripped)):
+            if seen_query and depth <= 0 and current:
+                blocks.append("\n".join(current).strip())
+            current = []
+            in_block = False
+            depth = 0
+            seen_query = False
+            # CQ headings are prose labels; a later PREFIX/SELECT line will start the next block.
+            continue
+        if query_start_re.match(stripped):
+            if in_block and seen_query and depth <= 0 and current:
+                blocks.append("\n".join(current).strip())
+                current = []
+                depth = 0
+                seen_query = False
             if not in_block:
                 in_block = True
                 current = []
                 depth = 0
                 seen_query = False
             current.append(line.rstrip())
-            if re.search(r"\b(select|construct|ask|describe)\b", stripped, re.IGNORECASE):
+            if re.match(r"^\s*(select|construct|ask|describe)\b", stripped, re.IGNORECASE):
+                seen_query = True
+            depth += line.count("{") - line.count("}")
+            continue
+        if in_block and is_query_continuation_line(stripped):
+            current.append(line.rstrip())
+            if re.match(r"^\s*(select|construct|ask|describe)\b", stripped, re.IGNORECASE):
                 seen_query = True
             depth += line.count("{") - line.count("}")
             continue
         if in_block:
-            # Keep collecting until braces close after a query start.
-            depth += line.count("{") - line.count("}")
-            current.append(line.rstrip())
-            if seen_query and depth <= 0:
-                if current:
-                    blocks.append("\n".join(current).strip())
-                current = []
-                in_block = False
-                depth = 0
-                seen_query = False
-                continue
+            if seen_query and depth <= 0 and current:
+                blocks.append("\n".join(current).strip())
+            current = []
+            in_block = False
+            depth = 0
+            seen_query = False
+            continue
     if in_block and current:
         blocks.append("\n".join(current).strip())
     # Repair broken PREFIX lines split across PDF line breaks.
