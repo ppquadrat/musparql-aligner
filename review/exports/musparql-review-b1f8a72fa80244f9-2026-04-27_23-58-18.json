@@ -1,0 +1,342 @@
+{
+  "dataset_id": "b1f8a72fa80244f9",
+  "run_id": "2026-04-26-full-review-gpt5",
+  "run_ids": [
+    "2026-04-26-full-review-gpt5"
+  ],
+  "runs": [
+    {
+      "run_id": "2026-04-26-full-review-gpt5",
+      "manifest_path": "/Users/polina/Musparql/runs/2026-04-26-full-review-gpt5/manifest.json",
+      "purpose": "full review run",
+      "created_at": "2026-04-26T00:53:29+00:00"
+    }
+  ],
+  "exported_at": "2026-04-27T22:58:18.686Z",
+  "reviews": {
+    "jazzontology::jazzontology-0001::60ee523572cf": {
+      "status": "approve",
+      "preferred_question": "For the given album, disk and track number, find the track",
+      "note": "",
+      "updated_at": "2026-04-26T10:43:06.822Z"
+    },
+    "jazzontology::jazzontology-0002::ca8d9dbf2d94": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T10:43:34.375Z"
+    },
+    "jazzontology::jazzontology-0003::0a834b918811": {
+      "status": "dismiss",
+      "preferred_question": "",
+      "note": "The wording is fine but the concept of ReleaseEvent is not very NL friendly. It is probably used here to find the label that released the album. But on its own, this query does not make much sense to anyone not intimately familiar witht he ontology",
+      "updated_at": "2026-04-26T10:49:02.193Z"
+    },
+    "jazzontology::jazzontology-0004::b80118126798": {
+      "status": "approve",
+      "preferred_question": "Find the label given its name",
+      "note": "",
+      "updated_at": "2026-04-26T10:50:55.420Z"
+    },
+    "jazzontology::jazzontology-0005::2f270d2dd98b": {
+      "status": "approve",
+      "preferred_question": "Given the album title and the number of records, find the release",
+      "note": "It would be great if the model would be able to learn that in NL release is usually called album. But in this specific example, it's the album title that is given but what we are looking for is a release - the connection from the album to the date and label. This is not a very NL friendly concept.",
+      "updated_at": "2026-04-26T11:00:03.330Z"
+    },
+    "jazzontology::jazzontology-0006::e5382425ea60": {
+      "status": "dismiss",
+      "preferred_question": "",
+      "note": "This one is looking for a specific disk within a larger release (usually a large compilation), by the disk title and number. The model would not be able to know it without knowing more about the ontology. The generated NL is not wrong, it just misses the context",
+      "updated_at": "2026-04-26T11:02:40.328Z"
+    },
+    "jazzontology::jazzontology-0007::2a605d621964": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T11:03:29.025Z"
+    },
+    "jazzontology::jazzontology-0008::2b7daed4eaf9": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T11:03:49.643Z"
+    },
+    "jazzontology::jazzontology-0009::4582022d20cc": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T11:04:04.254Z"
+    },
+    "jazzontology::jazzontology-0010::86b7a633958e": {
+      "status": "needs_prompt_fix",
+      "preferred_question": "Did this composer write the given tune?",
+      "note": "Given the composer name and the tune object, find the composer object. The previous one would return all composer objects whereas this one differentiates by name so should hopefully return one or none. The question is not about who, we already have the name, rather it is about whether the composer is associated with the tune.",
+      "updated_at": "2026-04-26T11:08:58.689Z"
+    },
+    "jazzontology::jazzontology-0011::d38d1e2073e2": {
+      "status": "needs_prompt_fix",
+      "preferred_question": "Is there more than one arranger with this name in the graph?",
+      "note": "This could be name disambiguation on the one hand - is there more than one arranger with this name in the dataset. Or, on the other hand, it could be a check whether there is an arranger with this name (this is what was generated), or whether this musician did any arrangements. The presence of 'distinct' suggests the former I would say.",
+      "updated_at": "2026-04-26T13:14:04.079Z"
+    },
+    "jazzontology::jazzontology-0012::f08e42a2554a": {
+      "status": "needs_prompt_fix",
+      "preferred_question": "Find the band by its name",
+      "note": "",
+      "updated_at": "2026-04-26T13:14:53.430Z"
+    },
+    "jazzontology::jazzontology-0013::1ff32a0c0665": {
+      "status": "dismiss",
+      "preferred_question": "Find the musician by name who played in a session with the given performer",
+      "note": "This seems to be a disambiguation query rather then search, since we already have the name. I would dismiss it",
+      "updated_at": "2026-04-26T13:18:21.452Z"
+    },
+    "jazzontology::jazzontology-0014::9d7838cc9612": {
+      "status": "needs_prompt_fix",
+      "preferred_question": "Given the album title, disk number and track number, find the track title and the associated signal",
+      "note": "My main concern here is the album vs release difference - in NL we would talk about album title rather than release title; in the ontology, release was chosen rather than album to indicate the relation to time",
+      "updated_at": "2026-04-26T13:22:29.525Z"
+    },
+    "jazzontology::jazzontology-0015::0c04aa0ba9ca": {
+      "status": "needs_prompt_fix",
+      "preferred_question": "Which musicians performed together with the given performer?",
+      "note": "Missing context - the Jazz Ontology models all performances as part of a session, therefore this query is for all musicians who ever performed together with the given one",
+      "updated_at": "2026-04-26T13:26:25.038Z"
+    },
+    "jazzontology::jazzontology-0016::cf071ce53b31": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T13:29:45.451Z"
+    },
+    "jazzontology::jazzontology-0017::78e49bdd8791": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "Just a remark on the context - the dataset only contains information about recorded sessions, though the ontology allows for non-recorded sessions to be modelled, therefore the generated NL is correct",
+      "updated_at": "2026-04-26T13:32:59.933Z"
+    },
+    "jazzontology::jazzontology-0018::1ce665602261": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T13:33:17.918Z"
+    },
+    "jazzontology::jazzontology-0019::dc2eb1adf7f2": {
+      "status": "approve",
+      "preferred_question": "Which pairs of recordings have the same audio fingerprint?",
+      "note": "This again seems to be a disambiguation query, looking for distinct signal objects with the same fingerprint",
+      "updated_at": "2026-04-26T13:35:42.848Z"
+    },
+    "meetups::meetups-0001::4335885377cd": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T15:38:43.967Z"
+    },
+    "meetups::meetups-0002::f50b43e95de4": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T15:40:20.109Z"
+    },
+    "meetups::meetups-0003::913f92213429": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T15:48:30.800Z"
+    },
+    "meetups::meetups-0004::a24d9404e3d6": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "This in fact is quite good, and the paraphrasing mode is probably justified",
+      "updated_at": "2026-04-26T16:03:01.145Z"
+    },
+    "meetups::meetups-0005::0803e0a11b9b": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T16:06:33.129Z"
+    },
+    "meetups::meetups-0006::46609e87a654": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T16:07:32.997Z"
+    },
+    "meetups::meetups-0007::c6485bb7e1da": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T16:08:33.908Z"
+    },
+    "meetups::meetups-0008::e4e55ac1b6b5": {
+      "status": "needs_prompt_fix",
+      "preferred_question": "List all places in the graph with their coordinates",
+      "note": "The generated phrase is factually accurate but highly improbable in NL.",
+      "updated_at": "2026-04-26T23:16:35.570Z"
+    },
+    "meetups::meetups-0009::7e51a917f0c3": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T23:21:05.281Z"
+    },
+    "meetups::meetups-0010::ff48c2ed74d8": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T23:22:16.216Z"
+    },
+    "meetups::meetups-0011::f6d524dc4df1": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T23:25:16.508Z"
+    },
+    "meetups::meetups-0012::b6828cce70b8": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T23:26:32.823Z"
+    },
+    "meetups::meetups-0013::050bc918a318": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T23:43:05.178Z"
+    },
+    "meetups::meetups-0014::20810cf83c68": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T23:46:15.385Z"
+    },
+    "meetups::meetups-0015::96affcb6eced": {
+      "status": "approve",
+      "preferred_question": "For meetups involving Niccolò Paganini, how is their time or duration recorded in the graph?",
+      "note": "TimeExpression is not NL friendly. They can be time points, time ranges or time mentions.",
+      "updated_at": "2026-04-26T23:52:26.052Z"
+    },
+    "meetups::meetups-0016::70cb14b43d3d": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T23:55:18.605Z"
+    },
+    "meetups::meetups-0017::fb53332edb19": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-26T23:56:10.932Z"
+    },
+    "meetups::meetups-0018::4d70551a84c6": {
+      "status": "approve",
+      "preferred_question": "How many historical meetups are in the graph?",
+      "note": "",
+      "updated_at": "2026-04-26T23:58:05.508Z"
+    },
+    "meetups::meetups-0019::20a1278d8b58": {
+      "status": "approve",
+      "preferred_question": "How many distinct people are mentioned across all historical meetups in the graph?",
+      "note": "",
+      "updated_at": "2026-04-27T00:00:29.833Z"
+    },
+    "meetups::meetups-0020::a8f94e5563f0": {
+      "status": "approve",
+      "preferred_question": "How many distinct places are mentioned across all historical meetups in the graph?",
+      "note": "",
+      "updated_at": "2026-04-27T00:01:11.139Z"
+    },
+    "meetups::meetups-0021::bb2a1a4facdd": {
+      "status": "approve",
+      "preferred_question": "How many different time points, time ranges or time mentions are recorded for all meetups in the graph?",
+      "note": "",
+      "updated_at": "2026-04-27T00:02:57.111Z"
+    },
+    "meetups::meetups-0022::da97f3dfd893": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-27T00:03:51.740Z"
+    },
+    "meetups::meetups-0023::c77f64b8a18e": {
+      "status": "approve",
+      "preferred_question": "Which performers did Clara Schumann meet in her career and where did she meet them?",
+      "note": "",
+      "updated_at": "2026-04-27T00:08:48.345Z"
+    },
+    "meetups::meetups-0024::1fd8e2caab70": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-27T00:13:13.016Z"
+    },
+    "meetups::meetups-0025::5cb67cc1a253": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-27T00:14:33.064Z"
+    },
+    "meetups::meetups-0026::ba13cd18d40c": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-27T00:18:19.308Z"
+    },
+    "meetups::meetups-0027::c8ed312c2b76": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-27T00:21:17.512Z"
+    },
+    "meetups::meetups-0028::a17289db1b1c": {
+      "status": "dismiss",
+      "preferred_question": "",
+      "note": "This is not sparql",
+      "updated_at": "2026-04-27T00:27:41.013Z"
+    },
+    "organs::organs-0001::9a881f085c9f": {
+      "status": "needs_prompt_fix",
+      "preferred_question": "List all organs in the graph",
+      "note": "",
+      "updated_at": "2026-04-27T13:52:35.755Z"
+    },
+    "organs::organs-0002::4e7bb094ec79": {
+      "status": "needs_prompt_fix",
+      "preferred_question": "List the descriptions of the specified organs",
+      "note": "",
+      "updated_at": "2026-04-27T13:53:19.997Z"
+    },
+    "organs::organs-0003::7a7d343f145e": {
+      "status": "approve",
+      "preferred_question": "When was each of the listed organs or organ parts built?",
+      "note": "",
+      "updated_at": "2026-04-27T22:46:50.954Z"
+    },
+    "organs::organs-0004::1eea18a3f2e5": {
+      "status": "needs_prompt_fix",
+      "preferred_question": "Which of the listed organs have an external website?",
+      "note": "",
+      "updated_at": "2026-04-27T22:49:05.663Z"
+    },
+    "organs::organs-0005::418bbf56b82c": {
+      "status": "approve",
+      "preferred_question": "",
+      "note": "",
+      "updated_at": "2026-04-27T22:51:12.548Z"
+    },
+    "organs::organs-0006::3bcc01933cfb": {
+      "status": "approve",
+      "preferred_question": "For the given organ or organ part, where was is most recently located?",
+      "note": "",
+      "updated_at": "2026-04-27T22:54:21.868Z"
+    },
+    "organs::organs-0008::be9da9202d65": {
+      "status": "approve",
+      "preferred_question": "For each of the listed organs or organ parts, find their picture online and its caption",
+      "note": "",
+      "updated_at": "2026-04-27T22:58:10.967Z"
+    }
+  }
+}
