@@ -205,21 +205,67 @@ def fetch_github_blob_text(url: str, timeout_s: int = 20) -> Dict[str, Any]:
     return fetched
 
 
+def source_cache_path(kg_id: str, idx: int, source: Dict[str, Any], out_dir: Path) -> Path:
+    url = source.get("resolved_url") or source.get("url") or source.get("source_url") or ""
+    netloc = urlparse(url).netloc
+    base = slugify_filename(netloc) if netloc else "source"
+    fname = f"{kg_id}__{idx:02d}__{base}.txt"
+    return out_dir / fname
+
+
+def load_cached_source(path: Path) -> Optional[Dict[str, Any]]:
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    if not raw.strip():
+        return None
+    header, sep, body = raw.partition("\n\n")
+    if not sep:
+        return None
+    source_url = ""
+    if header.startswith("SOURCE: "):
+        source_url = header[len("SOURCE: ") :].strip()
+    return {
+        "resolved_url": source_url,
+        "text": body,
+        "cache_path": str(path),
+    }
+
+
+def apply_cached_fallbacks(kg_id: str, sources: List[Dict[str, Any]], out_dir: Path) -> List[Dict[str, Any]]:
+    resolved: List[Dict[str, Any]] = []
+    for idx, src in enumerate(sources, start=1):
+        current = dict(src)
+        cache_path = source_cache_path(kg_id, idx, current, out_dir)
+        current["cache_path"] = str(cache_path)
+        if current.get("text"):
+            resolved.append(current)
+            continue
+        cached = load_cached_source(cache_path)
+        if cached is None:
+            resolved.append(current)
+            continue
+        current["text"] = cached["text"]
+        if not current.get("resolved_url") and cached.get("resolved_url"):
+            current["resolved_url"] = cached["resolved_url"]
+        current["used_cached_copy"] = True
+        resolved.append(current)
+    return resolved
+
+
 def save_sources(kg_id: str, sources: List[Dict[str, Any]], out_dir: Path) -> List[str]:
     """Save each source text to a file. Returns list of file paths (as strings)."""
     out_dir.mkdir(parents=True, exist_ok=True)
     saved: List[str] = []
 
     for idx, src in enumerate(sources, start=1):
-        url = src.get("resolved_url") or src.get("url") or src.get("source_url") or ""
         text = (src.get("text") or "").strip()
         if not text:
             continue
 
-        netloc = urlparse(url).netloc
-        base = slugify_filename(netloc) if netloc else "source"
-        fname = f"{kg_id}__{idx:02d}__{base}.txt"
-        path = out_dir / fname
+        path = source_cache_path(kg_id, idx, src, out_dir)
+        url = src.get("resolved_url") or src.get("url") or src.get("source_url") or ""
 
         path.write_text(f"SOURCE: {url}\n\n{text}", encoding="utf-8")
         saved.append(str(path))
@@ -380,6 +426,29 @@ def fetch_sources_for_kg(kg: KGSeed) -> List[Dict[str, Any]]:
     return sources
 
 
+def print_source_status(kg: KGSeed, sources: List[Dict[str, Any]], saved_files: List[str]) -> None:
+    endpoint = kg.sparql.endpoint if kg.sparql else "(no endpoint)"
+    errors = [s for s in sources if s.get("error")]
+    cached = [s for s in sources if s.get("used_cached_copy")]
+
+    print(f"- {kg.kg_id}: {kg.name}")
+    print(f"  endpoint: {endpoint}")
+    print(f"  repos:    {len(kg.repos or [])}")
+    print(f"  docs:     {len(kg.docs or [])}")
+    print(f"  sources:  {len(saved_files)} saved")
+    if errors:
+        print(f"  WARNING:  {len(errors)} source fetch failures")
+        for src in errors:
+            source_url = src.get("url") or src.get("resolved_url") or "(unknown source)"
+            extra = ""
+            if src.get("used_cached_copy"):
+                extra = f" -> reused cached copy {src.get('cache_path')}"
+            print(f"    - {source_url}: {src.get('error')}{extra}")
+    elif cached:
+        print(f"  NOTE:     reused {len(cached)} cached source copies")
+    print()
+
+
 def main() -> None:
     seeds_path = Path("seeds.yaml")
     out_path = Path("kgs.jsonl")
@@ -394,17 +463,11 @@ def main() -> None:
     sources_by_kg: Dict[str, List[Dict[str, Any]]] = {}
     saved_by_kg: Dict[str, List[str]] = {}
     for kg in kgs:
-        sources = fetch_sources_for_kg(kg)
+        sources = apply_cached_fallbacks(kg.kg_id, fetch_sources_for_kg(kg), sources_dir)
         saved_files = save_sources(kg.kg_id, sources, sources_dir)
         sources_by_kg[kg.kg_id] = sources
         saved_by_kg[kg.kg_id] = saved_files
-
-        endpoint = kg.sparql.endpoint if kg.sparql else "(no endpoint)"
-        print(f"- {kg.kg_id}: {kg.name}")
-        print(f"  endpoint: {endpoint}")
-        print(f"  repos:    {len(kg.repos or [])}")
-        print(f"  docs:     {len(kg.docs or [])}")
-        print(f"  sources:  {len(saved_files)} saved\n")
+        print_source_status(kg, sources, saved_files)
 
     print("Step 3: writing kgs.jsonl (metadata + provenance, no generated descriptions yet)\n")
     records: List[Dict[str, Any]] = []
@@ -425,6 +488,7 @@ def main() -> None:
                 "repo_commit": s.get("repo_commit"),
                 "source_path": s.get("source_path"),
                 "error": s.get("error"),
+                "used_cached_copy": bool(s.get("used_cached_copy")),
             }
             for s in sources
             if s.get("resolved_url") or s.get("url") or s.get("error")
