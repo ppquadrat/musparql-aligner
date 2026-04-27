@@ -11,7 +11,7 @@ The workflow deliberately separates **configuration/selection**, **deterministic
 At a high level, the pipeline works like this:
 
 1. Define which KGs to process in `seeds.yaml`.
-2. Collect deterministic KG source snapshots into `kgs.jsonl` and `kg_sources/`, with provenance attached.
+2. Collect deterministic KG source snapshots into `kgs.jsonl` and `kg_sources/`, while also allowing curated local source overrides under `curated_sources/`.
 3. Extract candidate SPARQL queries from repos, docs, and PDFs into `kg_queries.jsonl`.
 4. Enrich those query records with nearby human-readable evidence such as comments, query descriptions, and competency questions.
 5. Run the queries against endpoints or local dumps and record execution metadata.
@@ -62,6 +62,7 @@ Each KG entry typically includes:
 - SPARQL endpoint (if available)
 - repository URLs (one or more)
 - optional documentation links
+- optional curated local documents for repaired or manually transcribed sources
 - priority and notes
 
 Example:
@@ -80,6 +81,8 @@ Example:
           - https://github.com/polifonia-project/meetups-kg
 
 `seeds.yaml` is version-controlled and changes infrequently.
+
+If an upstream source is malformed or intermittently unavailable, add a corrected local copy under `curated_sources/` and list it in the KG's `docs:` alongside the original remote source. The pipeline ingests both; identical SPARQL queries are deduplicated later by normalized hash, while provenance from both sources is preserved.
 
 ---
 
@@ -121,7 +124,8 @@ Each line is a JSON object. Example:
         "https://raw.githubusercontent.com/polifonia-project/meetups-knowledge-graph/<commit>/README.md"
       ],
       "source_files": [
-        "kg_sources/meetups__01__raw-githubusercontent-com.txt"
+        "kg_sources/meetups__01__raw-githubusercontent-com.txt",
+        "curated_sources/example_fixed_readme.txt"
       ],
       "source_details": [
         {
@@ -130,6 +134,14 @@ Each line is a JSON object. Example:
           "repo_commit": "<commit>",
           "source_path": "README.md",
           "error": null
+        },
+        {
+          "source_url": "curated_sources/example_fixed_readme.txt",
+          "resolved_url": "curated_sources/example_fixed_readme.txt",
+          "repo_commit": null,
+          "source_path": "curated_sources/example_fixed_readme.txt",
+          "error": null,
+          "is_local_file": true
         }
       ]
     }

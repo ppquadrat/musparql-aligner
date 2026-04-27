@@ -584,6 +584,12 @@ def build_query_record(
     }
 
 
+def append_unique_source(kg_sources: Dict[str, List[str]], kg_id: str, source_path: str) -> None:
+    bucket = kg_sources.setdefault(kg_id, [])
+    if source_path not in bucket:
+        bucket.append(source_path)
+
+
 def main() -> None:
     seeds_path = Path("seeds.yaml")
     out_path = Path("kg_queries.jsonl")
@@ -606,22 +612,20 @@ def main() -> None:
             source_files = kg.get("source_files")
             docs = kg.get("docs")
             if isinstance(kg_id, str) and isinstance(source_files, list):
-                filtered = []
                 for s in source_files:
                     if not isinstance(s, str):
                         continue
                     # Skip README snapshots pulled from GitHub API to avoid duplicates.
                     if "api-github-com" in s:
                         continue
-                    filtered.append(s)
-                kg_sources[kg_id] = filtered
+                    append_unique_source(kg_sources, kg_id, s)
             if isinstance(kg_id, str) and isinstance(docs, list):
                 for doc in docs:
                     if not isinstance(doc, str):
                         continue
                     doc_path = Path(doc)
                     if doc_path.exists():
-                        kg_sources.setdefault(kg_id, []).append(str(doc_path))
+                        append_unique_source(kg_sources, kg_id, str(doc_path))
 
     for kg in kgs:
         for repo_url in kg.repos:
@@ -734,7 +738,9 @@ def main() -> None:
         for src_file in kg_sources.get(kg.kg_id, []):
             src_path = Path(src_file)
             if not src_path.is_absolute():
-                if src_path.parts and src_path.parts[0] == "kg_sources":
+                if src_path.exists():
+                    src_path = src_path
+                elif src_path.parts and src_path.parts[0] in {"kg_sources", "curated_sources"}:
                     src_path = src_path
                 else:
                     src_path = Path("kg_sources") / src_path

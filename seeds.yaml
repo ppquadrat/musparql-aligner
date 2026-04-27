@@ -16,6 +16,7 @@
       - https://github.com/polifonia-project/organs-knowledge-graph
     docs:
       - https://github.com/polifonia-project/organs-ontology/blob/main/README.md
+      - curated_sources/organs__02__raw-githubusercontent-com_curated.txt
     priority: high
     notes: >
       Already partially curated manually. Use as baseline for automation tests.

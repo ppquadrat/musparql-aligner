@@ -121,7 +121,56 @@ def normalize_query(text: str) -> str:
     normalized = text.strip()
     while normalized.endswith(";"):
         normalized = normalized[:-1].rstrip()
-    return normalized
+    lines = normalized.splitlines()
+    seen_prefixes = set()
+    deduped_lines: List[str] = []
+    prefix_decl_re = re.compile(r"(?im)^\s*prefix\s+(\w+):")
+    for line in lines:
+        match = prefix_decl_re.match(line)
+        if match:
+            prefix_name = match.group(1).lower()
+            if prefix_name in seen_prefixes:
+                continue
+            seen_prefixes.add(prefix_name)
+        deduped_lines.append(line)
+    normalized = "\n".join(deduped_lines)
+    for p in ("rdf", "rdfs", "xsd", "dc", "dtl", "event", "mo", "tl", "foaf"):
+        normalized = re.sub(rf"\b{p.upper()}:", f"{p}:", normalized)
+    prefix_map = {
+        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
+        "dc": "http://purl.org/dc/elements/1.1/",
+        "dtl": "http://www.DTL.org/schema/properties/",
+        "event": "http://purl.org/NET/c4dm/event.owl#",
+        "mo": "http://purl.org/ontology/mo/",
+        "tl": "http://purl.org/NET/c4dm/timeline.owl#",
+        "foaf": "http://xmlns.com/foaf/0.1/",
+    }
+    existing = {m.group(1).lower() for m in re.finditer(r"(?im)^\s*prefix\s+(\w+):", normalized)}
+    needed: List[str] = []
+    for prefix, iri in prefix_map.items():
+        if prefix in existing:
+            continue
+        if re.search(rf"\b{re.escape(prefix)}:", normalized):
+            needed.append(f"PREFIX {prefix}: <{iri}>")
+    if needed:
+        normalized = "\n".join(needed) + "\n" + normalized
+        lines = normalized.splitlines()
+        seen_prefixes = set()
+        deduped_lines = []
+        for line in lines:
+            match = prefix_decl_re.match(line)
+            if match:
+                prefix_name = match.group(1).lower()
+                if prefix_name in seen_prefixes:
+                    continue
+                seen_prefixes.add(prefix_name)
+            deduped_lines.append(line)
+        normalized = "\n".join(deduped_lines)
+    normalized = re.sub(r"[ \t]+", " ", normalized)
+    normalized = re.sub(r"\n{3,}", "\n\n", normalized)
+    return normalized.strip()
 
 
 def clean_md_text(text: str) -> str:
@@ -1025,6 +1074,10 @@ def extract_context_for_code(text: str, start_idx: int) -> Optional[str]:
     if start_idx < 0:
         return None
     label_re = re.compile(r"^\s*[A-Z]{2,3}\d+\.\s+")
+    codeish_re = re.compile(
+        r"^\s*(prefix|select|construct|ask|describe|where|filter|optional|bind|values)\b",
+        re.IGNORECASE,
+    )
     # Find nearest label above.
     label_idx = None
     i = start_idx - 1
@@ -1042,20 +1095,45 @@ def extract_context_for_code(text: str, start_idx: int) -> Optional[str]:
     collected: List[str] = []
     i = start_idx - 1
     while i >= 0 and len(collected) < 2:
-        if not lines[i].strip():
+        stripped = lines[i].strip()
+        if not stripped:
             i -= 1
             continue
-        if lines[i].strip().startswith(("-", "*")):
-            collected.append(lines[i].strip())
+        if (
+            stripped.startswith("```")
+            or stripped in {"{", "}", ";", ".", "```"}
+            or codeish_re.match(stripped)
+            or stripped.startswith(("?", "$"))
+            or (":" in stripped and stripped.endswith((".", ";", "}")))
+        ):
+            i -= 1
+            continue
+        if stripped.startswith(("-", "*")):
+            collected.append(stripped)
             i -= 1
             continue
         # paragraph line
-        collected.append(lines[i].strip())
+        collected.append(stripped)
         i -= 1
     if collected:
         collected.reverse()
         return "\n".join(collected).strip()
     return None
+
+
+def is_probable_sparql_line(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if stripped.startswith("PREFIX "):
+        return True
+    if re.match(r"^(SELECT|CONSTRUCT|ASK|DESCRIBE)\b", stripped):
+        return True
+    if re.match(r"^WHERE(?:\s|\{|$)", stripped):
+        return True
+    if re.match(r"^FILTER(?:\s|\(|$)", stripped):
+        return True
+    return False
 
 
 def clean_desc(text: str) -> str:
@@ -1065,8 +1143,9 @@ def clean_desc(text: str) -> str:
         stripped = line.strip()
         if not stripped:
             continue
-        upper = stripped.upper()
-        if upper.startswith(("PREFIX ", "SELECT ", "CONSTRUCT ", "ASK ", "DESCRIBE ", "WHERE ", "FILTER ")):
+        if is_probable_sparql_line(stripped):
+            continue
+        if stripped.startswith("```") or stripped == "```":
             continue
         if stripped in {"{", "}", "};", ";"}:
             continue
@@ -1170,6 +1249,12 @@ def dedupe_evidence(evidence: List[Dict[str, object]]) -> List[Dict[str, object]
             if re.match(r"^\s*(table|figure|algorithm)\s+\d+[:.].*competency\s+questions", cleaned, re.IGNORECASE):
                 continue
             ev = {**ev, "snippet": cleaned}
+        if ev.get("type") in {"doc_query_desc", "web_query_desc", "readme_query_desc"}:
+            bullet = extract_last_bullet(snippet)
+            cleaned = clean_desc(bullet or snippet)
+            if not cleaned:
+                continue
+            ev = {**ev, "snippet": cleaned}
         key = (ev.get("type"), ev.get("source_path"), ev.get("snippet"))
         if key in seen:
             continue
@@ -1212,6 +1297,70 @@ def renumber_evidence(evidence: List[Dict[str, object]]) -> List[Dict[str, objec
         ev["evidence_id"] = f"e{idx}"
         renumbered.append(ev)
     return renumbered
+
+
+def append_unique_source(kg_sources: Dict[str, List[str]], kg_id: str, source_path: str) -> None:
+    bucket = kg_sources.setdefault(kg_id, [])
+    if source_path not in bucket:
+        bucket.append(source_path)
+
+
+def ensure_missing_source_query_descs(
+    by_kg_hash: Dict[tuple[str, str], Dict[str, object]],
+    kg_sources: Dict[str, List[str]],
+    extracted_at: str,
+) -> None:
+    for kg_id, source_files in kg_sources.items():
+        for src_file in source_files:
+            src_path = Path(src_file)
+            if not src_path.is_absolute():
+                if src_path.exists():
+                    src_path = src_path
+                elif src_path.parts and src_path.parts[0] in {"kg_sources", "curated_sources"}:
+                    src_path = src_path
+                else:
+                    src_path = Path("kg_sources") / src_path
+            if not src_path.exists() or src_path.suffix.lower() == ".pdf":
+                continue
+            if "api-github-com" in str(src_path):
+                continue
+            source_url, body, raw_body = parse_source_file(src_path)
+            if not body.strip():
+                continue
+            blocks = extract_md_blocks_with_desc(body) + extract_pre_blocks_with_desc(raw_body)
+            for block in blocks:
+                desc = block.get("desc", "")
+                context = extract_context_for_code(body, int(block.get("start_idx", 0)))
+                if context and not desc:
+                    desc = context
+                cleaned_desc = clean_desc(desc)
+                if not cleaned_desc:
+                    continue
+                for segment in split_queries_with_starts(block["query"]):
+                    normalized = normalize_query(segment["query"])
+                    if not normalized:
+                        continue
+                    q_hash = sha256_hash(normalized)
+                    target = by_kg_hash.get((kg_id, q_hash))
+                    if target is None:
+                        continue
+                    evidence = target.get("evidence", []) or []
+                    if any(
+                        isinstance(ev, dict)
+                        and ev.get("type") in {"web_query_desc", "doc_query_desc", "readme_query_desc"}
+                        and ev.get("source_path") == str(src_path)
+                        for ev in evidence
+                    ):
+                        continue
+                    add_evidence(
+                        target,
+                        "web_query_desc",
+                        source_url or "",
+                        str(src_path),
+                        "",
+                        cleaned_desc,
+                        extracted_at,
+                    )
 
 
 def main() -> None:
@@ -1268,7 +1417,9 @@ def main() -> None:
             kg_id = kg.get("kg_id")
             source_files = kg.get("source_files")
             if isinstance(kg_id, str) and isinstance(source_files, list):
-                kg_sources[kg_id] = [s for s in source_files if isinstance(s, str)]
+                for s in source_files:
+                    if isinstance(s, str):
+                        append_unique_source(kg_sources, kg_id, s)
             docs = kg.get("docs")
             if isinstance(kg_id, str) and isinstance(docs, list):
                 for doc in docs:
@@ -1276,9 +1427,7 @@ def main() -> None:
                         continue
                     doc_path = Path(doc)
                     if doc_path.exists():
-                        kg_sources.setdefault(kg_id, [])
-                        if str(doc_path) not in kg_sources[kg_id]:
-                            kg_sources[kg_id].append(str(doc_path))
+                        append_unique_source(kg_sources, kg_id, str(doc_path))
 
     for rec in records:
         kg_id = rec.get("kg_id")
@@ -1352,8 +1501,8 @@ def main() -> None:
                             continue
                         desc = block.get("desc", "")
                         context = extract_context_for_code(text, int(block.get("start_idx", 0)))
-                        if context:
-                            desc = f"{context}\n{desc}".strip() if desc else context
+                        if context and not desc:
+                            desc = context
                         if desc:
                             add_evidence(
                                 target,
@@ -1444,8 +1593,8 @@ def main() -> None:
                             continue
                         desc = block.get("desc", "")
                         context = extract_context_for_code(readme_text, int(block.get("start_idx", 0)))
-                        if context:
-                            desc = f"{context}\n{desc}".strip() if desc else context
+                        if context and not desc:
+                            desc = context
                         if desc:
                             add_evidence(
                                 target,
@@ -1463,7 +1612,9 @@ def main() -> None:
         for src_file in source_files:
             src_path = Path(src_file)
             if not src_path.is_absolute():
-                if src_path.parts and src_path.parts[0] == "kg_sources":
+                if src_path.exists():
+                    src_path = src_path
+                elif src_path.parts and src_path.parts[0] in {"kg_sources", "curated_sources"}:
                     src_path = src_path
                 else:
                     src_path = sources_dir / src_path
@@ -1519,8 +1670,8 @@ def main() -> None:
                         continue
                     desc = block.get("desc", "")
                     context = extract_context_for_code(body, int(block.get("start_idx", 0)))
-                    if context:
-                        desc = f"{context}\n{desc}".strip() if desc else context
+                    if context and not desc:
+                        desc = context
                     if desc:
                         add_evidence(
                             target,
@@ -1531,6 +1682,41 @@ def main() -> None:
                             clean_desc(desc),
                             extracted_at,
                         )
+            # Ensure each matched query block has at least one local query description.
+            for block in extract_md_blocks_with_desc(body) + extract_pre_blocks_with_desc(raw_body):
+                for segment in split_queries_with_starts(block["query"]):
+                    raw_query = segment["query"]
+                    normalized = normalize_query(raw_query)
+                    if not normalized:
+                        continue
+                    q_hash = sha256_hash(normalized)
+                    target = by_kg_hash.get((kg_id, q_hash))
+                    if target is None:
+                        continue
+                    desc = block.get("desc", "")
+                    context = extract_context_for_code(body, int(block.get("start_idx", 0)))
+                    if context and not desc:
+                        desc = context
+                    cleaned_desc = clean_desc(desc)
+                    if not cleaned_desc:
+                        continue
+                    evidence = target.get("evidence", []) or []
+                    if any(
+                        isinstance(ev, dict)
+                        and ev.get("type") in {"web_query_desc", "doc_query_desc", "readme_query_desc"}
+                        and ev.get("source_path") == str(src_path)
+                        for ev in evidence
+                    ):
+                        continue
+                    add_evidence(
+                        target,
+                        "web_query_desc",
+                        source_url or "",
+                        str(src_path),
+                        "",
+                        cleaned_desc,
+                        extracted_at,
+                    )
 
             cq_section_items = extract_cq_section(body)
             if cq_section_items and not doc_cq_seen and not table_blocks:
@@ -1726,6 +1912,8 @@ def main() -> None:
                                 extracted_at,
                             )
                     matched_targets.append(target)
+
+    ensure_missing_source_query_descs(by_kg_hash, kg_sources, extracted_at)
 
     after_counts: Dict[str, int] = {}
     type_counts: Dict[str, int] = {}

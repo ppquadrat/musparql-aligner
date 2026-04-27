@@ -61,6 +61,29 @@ def fetch_url_text(url: str, timeout_s: int = 20) -> Dict[str, Any]:
         return {"url": url, "text": "", "error": f"request_error:{e.__class__.__name__}"}
 
 
+def load_local_text_source(path_str: str) -> Dict[str, Any]:
+    path = Path(path_str)
+    if path.suffix.lower() == ".pdf":
+        return {
+            "url": path_str,
+            "resolved_url": path_str,
+            "text": "",
+            "source_path": str(path),
+            "is_local_file": True,
+        }
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError as e:
+        return {"url": path_str, "text": "", "error": f"local_read_error:{e.__class__.__name__}"}
+    return {
+        "url": path_str,
+        "resolved_url": path_str,
+        "text": text,
+        "source_path": str(path),
+        "is_local_file": True,
+    }
+
+
 def github_headers(accept: str = "application/vnd.github+json") -> Dict[str, str]:
     headers = {
         "Accept": accept,
@@ -260,6 +283,10 @@ def save_sources(kg_id: str, sources: List[Dict[str, Any]], out_dir: Path) -> Li
     saved: List[str] = []
 
     for idx, src in enumerate(sources, start=1):
+        if src.get("is_local_file"):
+            saved.append(str(src.get("source_path") or src.get("url") or src.get("resolved_url")))
+            continue
+
         text = (src.get("text") or "").strip()
         if not text:
             continue
@@ -418,6 +445,10 @@ def fetch_sources_for_kg(kg: KGSeed) -> List[Dict[str, Any]]:
             sources.append(fetch_url_text(repo_url))
 
     for doc_url in (kg.docs or []):
+        doc_path = Path(doc_url)
+        if doc_path.exists():
+            sources.append(load_local_text_source(doc_url))
+            continue
         if "github.com/" in doc_url and "/blob/" in doc_url:
             sources.append(fetch_github_blob_text(doc_url))
         else:
@@ -430,12 +461,15 @@ def print_source_status(kg: KGSeed, sources: List[Dict[str, Any]], saved_files: 
     endpoint = kg.sparql.endpoint if kg.sparql else "(no endpoint)"
     errors = [s for s in sources if s.get("error")]
     cached = [s for s in sources if s.get("used_cached_copy")]
+    local_files = [s for s in sources if s.get("is_local_file")]
 
     print(f"- {kg.kg_id}: {kg.name}")
     print(f"  endpoint: {endpoint}")
     print(f"  repos:    {len(kg.repos or [])}")
     print(f"  docs:     {len(kg.docs or [])}")
     print(f"  sources:  {len(saved_files)} saved")
+    if local_files:
+        print(f"  local:    {len(local_files)} curated/local docs")
     if errors:
         print(f"  WARNING:  {len(errors)} source fetch failures")
         for src in errors:
@@ -489,6 +523,7 @@ def main() -> None:
                 "source_path": s.get("source_path"),
                 "error": s.get("error"),
                 "used_cached_copy": bool(s.get("used_cached_copy")),
+                "is_local_file": bool(s.get("is_local_file")),
             }
             for s in sources
             if s.get("resolved_url") or s.get("url") or s.get("error")

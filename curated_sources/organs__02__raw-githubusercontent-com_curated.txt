@@ -1,0 +1,46 @@
+SOURCE: https://raw.githubusercontent.com/polifonia-project/organs-ontology/main/README.md
+
+
+- Who built an organ? 
+```
+PREFIX organs: <https://w3id.org/arco/ontology/organs/>
+PREFIX core: <https://w3id.org/arco/ontology/core/>
+
+SELECT DISTINCT ?agent
+WHERE { 
+?organ core:isDescribedBy ?project .
+?project core:hasAgentRole ?agentRole .
+?agentRole core:hasRole ?role .
+
+FILTER(str(?role)='builder')
+}
+```
+
+- What was the disposition of the organ at a specific point in time?
+```
+PREFIX organs: <https://w3id.org/arco/ontology/organs/>
+PREFIX core: <https://w3id.org/arco/ontology/core/>
+
+SELECT DISTINCT ?partHood ?timeinterval
+WHERE { 
+?organ core:isWholeincludedIn ?parthood . 
+?parthood a core:Parthood .
+?parthood core:hasTimeInterval ?timeInterval .
+}
+```
+
+- Where is an organ located originally?  
+```
+PREFIX organs: <https://w3id.org/arco/ontology/organs/>
+PREFIX core: <https://w3id.org/arco/ontology/core/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT DISTINCT ?place
+WHERE { 
+?organ core:isDescribedBy ?project .
+?project core:hasPlace ?place .
+?place a core:PhysicalPlace . 
+?project core:isFirstProject ?isFirstProject .
+FILTER(xsd:Boolean(?isFirstProject) = True)
+}
+```
