@@ -568,6 +568,8 @@ def extract_pdf_query_blocks(text: str) -> List[Dict[str, object]]:
             return True
         if stripped.startswith("#"):
             return True
+        if stripped in {".", ";", ","}:
+            return True
         if query_line_re.match(stripped):
             return True
         if stripped.startswith(("?", "{", "}", "(", "[", "]")):
