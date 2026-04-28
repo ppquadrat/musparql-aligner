@@ -22,6 +22,18 @@ If you want to review an already-frozen run explicitly:
   --run-manifest runs/<run-id>/manifest.json
 ```
 
+To compare a previous reviewed run with a new run:
+
+```bash
+.venv/bin/python build_review_diff_bundle.py \
+  --previous-outputs runs/<old-run-id>/llm_outputs.jsonl \
+  --current-outputs runs/<new-run-id>/llm_outputs.jsonl \
+  --previous-reviews review/exports/<previous-review-export>.json
+```
+
+The compare bundle shows only changed, added, and removed pairs by default. Use
+`--include-unchanged` if you want unchanged pairs visible too.
+
 2. Serve the repo locally:
 
 ```bash
@@ -62,3 +74,5 @@ The recommended repo location for exported reviewer decisions is `review/exports
 - The generated review file is `review/review_data.js`.
 - Exported reviewer judgments can be stored in `review/exports/` and committed when you want them versioned alongside the benchmark work.
 - Review exports can be shared with other evaluators without changing the original model output files.
+- Compare-mode exports contain the reviewer decisions for the current run, while
+  the imported previous review remains read-only context.

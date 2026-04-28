@@ -129,7 +129,7 @@ h1 {
 
 .layout {
   display: grid;
-  grid-template-columns: 380px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -175,6 +175,178 @@ h1 {
   gap: 1rem;
   margin-top: 0.9rem;
   align-items: start;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.compare-top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.compare-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.compare-column {
+  min-width: 0;
+}
+
+.compare-question {
+  margin-top: 0.9rem;
+}
+
+.compare-rationale {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.75rem;
+  margin: 1rem 0 0;
+}
+
+.compare-rationale p:last-child {
+  margin: 0;
+}
+
+.sparql-details {
+  margin-top: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: #fffdf8;
+  overflow: hidden;
+}
+
+.sparql-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.75rem 0.9rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.sparql-details summary::marker {
+  color: var(--accent);
+}
+
+.sparql-details .compare-code {
+  border-radius: 0;
+  border-top: 1px solid var(--line);
+}
+
+.compare-review-note {
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(241, 230, 210, 0.45);
+  padding: 0.75rem 0.85rem;
+  min-height: 7.5rem;
+}
+
+.compare-review-panel {
+  border-top: 1px solid var(--line);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.compare-review-panel h2 {
+  font-size: 1.15rem;
+}
+
+.compare-review-head {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.compare-review-head .decision-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  width: 100%;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.compare-review-head .decision-btn {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.84rem;
+  line-height: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.compare-review-head .decision-btn.approve {
+  grid-column: 1 / span 3;
+}
+
+.compare-review-head .decision-btn.dismiss {
+  grid-column: 4 / span 3;
+}
+
+.decision-row-break {
+  display: none;
+}
+
+.compare-review-head .decision-btn.prompt {
+  grid-column: 1 / span 2;
+}
+
+.compare-review-head .decision-btn.data {
+  grid-column: 3 / span 2;
+}
+
+.compare-review-head .decision-btn.clear {
+  grid-column: 5 / span 2;
+}
+
+.compare-note-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.compare-note-head .section-label {
+  margin-top: 0.45rem;
+}
+
+.compare-review-fields {
+  display: grid;
+  grid-template-rows: minmax(7.5rem, auto) minmax(9.5rem, auto);
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+}
+
+.compare-review-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.compare-review-fields textarea {
+  flex: 1;
+  min-height: 0;
+}
+
+.compare-review-note p:last-child {
+  margin: 0;
+}
+
+.compare-section-gap {
+  margin-top: 1rem;
+}
+
+.compare-code {
+  max-height: 18rem;
+  font-size: 0.82rem;
 }
 
 .detail-column {
@@ -384,6 +556,27 @@ textarea {
   background: rgba(15, 91, 91, 0.06);
 }
 
+.evidence-card.diff-added {
+  border-color: var(--good);
+  background: rgba(22, 101, 52, 0.06);
+}
+
+.evidence-card.diff-removed {
+  border-color: var(--bad);
+  background: rgba(153, 27, 27, 0.06);
+}
+
+.evidence-card.diff-changed {
+  border-color: var(--accent-2);
+  background: rgba(161, 79, 42, 0.07);
+}
+
+.diff-pill {
+  border-color: currentColor;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .evidence-meta {
   display: flex;
   gap: 0.45rem;
@@ -431,6 +624,10 @@ textarea {
   }
 
   .detail-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-grid {
     grid-template-columns: 1fr;
   }
 
