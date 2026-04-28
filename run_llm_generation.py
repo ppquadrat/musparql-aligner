@@ -68,6 +68,13 @@ def write_jsonl(path: Path, records: List[Dict[str, Any]]) -> None:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
 
+def log(message: str) -> None:
+    try:
+        print(message, flush=True)
+    except BrokenPipeError:
+        pass
+
+
 def ensure_jsonl_file(path: Path) -> List[Dict[str, Any]]:
     records, was_array = load_json_records(path)
     if was_array:
@@ -203,6 +210,7 @@ def main() -> None:
     parser.add_argument("--errors", default="llm_outputs.errors.jsonl")
     parser.add_argument("--model", default="gpt-5")
     parser.add_argument("--max-records", type=int, default=0, help="0 means all")
+    parser.add_argument("--timeout-s", type=float, default=180.0, help="Per-request OpenAI timeout in seconds.")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -224,7 +232,7 @@ def main() -> None:
     examples_hash = sha256_text(examples_text)
     system_prompt_hash = sha256_text(system_prompt)
 
-    client = OpenAI()
+    client = OpenAI(timeout=args.timeout_s)
     ok_count = 0
     err_count = 0
 
@@ -245,9 +253,9 @@ def main() -> None:
                 input_hash,
             )
             if key in completed:
-                print(f"[{idx}/{len(inputs)}] skip {kg_id} {label} (already done)")
+                log(f"[{idx}/{len(inputs)}] skip {kg_id} {label} (already done)")
                 continue
-            print(f"[{idx}/{len(inputs)}] running {kg_id} {label}")
+            log(f"[{idx}/{len(inputs)}] running {kg_id} {label}")
             started = time.time()
             try:
                 resp = client.responses.create(
@@ -283,7 +291,7 @@ def main() -> None:
                 }
                 out_f.write(json.dumps(out_rec, ensure_ascii=False) + "\n")
                 ok_count += 1
-                print(f"[{idx}/{len(inputs)}] ok {payload.get('query_label')} ({out_rec['elapsed_ms']} ms)")
+                log(f"[{idx}/{len(inputs)}] ok {payload.get('query_label')} ({out_rec['elapsed_ms']} ms)")
             except Exception as e:
                 elapsed_ms = int((time.time() - started) * 1000)
                 err_rec = {
@@ -303,11 +311,11 @@ def main() -> None:
                 }
                 err_f.write(json.dumps(err_rec, ensure_ascii=False) + "\n")
                 err_count += 1
-                print(f"[{idx}/{len(inputs)}] error {payload.get('query_label')} ({elapsed_ms} ms): {e}")
+                log(f"[{idx}/{len(inputs)}] error {payload.get('query_label')} ({elapsed_ms} ms): {e}")
 
-    print(f"Wrote {ok_count} outputs to {out_path.resolve()}")
+    log(f"Wrote {ok_count} outputs to {out_path.resolve()}")
     if err_count:
-        print(f"Wrote {err_count} errors to {err_path.resolve()}")
+        log(f"Wrote {err_count} errors to {err_path.resolve()}")
 
 
 if __name__ == "__main__":

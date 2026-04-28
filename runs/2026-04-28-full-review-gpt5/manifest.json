@@ -1,0 +1,63 @@
+{
+  "run_id": "2026-04-28-full-review-gpt5",
+  "created_at": "2026-04-28T11:46:57+00:00",
+  "purpose": "full review run",
+  "notes": "Full pipeline rerun after extraction, enrichment, review compare, and generation changes",
+  "record_counts": {
+    "outputs": 160,
+    "errors": 0
+  },
+  "models": [
+    "gpt-5"
+  ],
+  "files": {
+    "llm_inputs": {
+      "filename": "llm_inputs.jsonl",
+      "source_path": "llm_inputs.jsonl",
+      "sha256": "cbac01457b052ea95ccd4f916eb02f0218de79549469b1b8e5745026fdc31ad2",
+      "size_bytes": 655239
+    },
+    "llm_outputs": {
+      "filename": "llm_outputs.jsonl",
+      "source_path": "llm_outputs.full_2026-04-28.jsonl",
+      "sha256": "0ab313be4df3d8281161e7ef862b703c9968f10325b9b667a1c66660f45b4410",
+      "size_bytes": 227994
+    },
+    "prompt": {
+      "filename": "prompt.txt",
+      "source_path": "prompts/llm_nl_generation.prompt.txt",
+      "sha256": "07e06749f40d74099d4b212f32f1152514afb8969f9063c794915c9534380631",
+      "size_bytes": 5792
+    },
+    "schema": {
+      "filename": "schema.json",
+      "source_path": "schemas/llm_output.schema.json",
+      "sha256": "683f317241dd63d44ac6d359c2c2407ad1c04ad512eb4dfeb93a65eccc66169f",
+      "size_bytes": 2285
+    },
+    "llm_outputs_errors": {
+      "filename": "llm_outputs.errors.jsonl",
+      "source_path": "llm_outputs.full_2026-04-28.errors.jsonl",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    "examples": {
+      "filename": "examples.jsonl",
+      "source_path": "prompts/llm_nl_generation.examples.jsonl",
+      "sha256": "9e2aceead2ed6f3e2f5da9f52655322360e862d8baee8823891e916270776813",
+      "size_bytes": 6839
+    },
+    "kgs": {
+      "filename": "kgs.jsonl",
+      "source_path": "kgs.jsonl",
+      "sha256": "bbb9aaf02df6db1e84637ef22230b45cd0cc5f93488c01c0256e5d2015329112",
+      "size_bytes": 10778
+    },
+    "kg_queries": {
+      "filename": "kg_queries.jsonl",
+      "source_path": "kg_queries.jsonl",
+      "sha256": "441c3ab8d1b409c4ff375e92391a9b0e5fce1ce97a4dff859675c6db4e8d6176",
+      "size_bytes": 1496234
+    }
+  }
+}
