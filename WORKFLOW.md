@@ -639,7 +639,7 @@ A second **consistency-check pass** may be applied to downgrade overconfident pa
 
 ### Process
 
-1. Build a browser review bundle with `build_review_bundle.py` → `review/review_data.js`.
+1. For a first review of a run, build a browser review bundle with `build_review_bundle.py` → `review/review_data.js`.
    - If the selected outputs are not already inside `runs/<run-id>/`, the builder should auto-freeze a run snapshot first.
 2. Open `review/index.html` through a local web server.
 3. Inspect examples with:
@@ -651,6 +651,24 @@ A second **consistency-check pass** may be applied to downgrade overconfident pa
 4. Record reviewer decisions and optional rewrites.
 5. Export reviewer judgments as JSON.
 6. Place the exported review file under `review/exports/` so it can be reused for benchmark construction and later prompt/model comparisons.
+
+For later review rounds after changing extraction, enrichment, prompts, or
+models, build a compare-review bundle instead:
+
+```bash
+.venv/bin/python build_next_review_round.py \
+  --previous-run runs/<old-run-id> \
+  --current-run runs/<new-run-id> \
+  --previous-reviews review/exports/<previous-review-export>.json
+```
+
+`--current-run` may also point at a current output file such as
+`llm_outputs.jsonl`, which is the default. Compare mode shows only changed,
+added, and removed pairs unless `--include-unchanged` is passed. The UI presents
+previous and current records side by side, including SPARQL, generated question,
+retained evidence, reviewer choices, preferred wording, and notes. Previous
+review decisions are read-only context; the exported compare review contains the
+new decisions for the current run.
 
 Current reviewer labels:
 
@@ -664,6 +682,8 @@ Current reviewer labels:
 - Reviewer judgments are kept separate from model outputs.
 - Review exports are keyed to the review dataset and the underlying run provenance, so prompt/model changes naturally produce a new review set.
 - One review export should correspond to exactly one run, but one run may accumulate multiple review exports from different reviewers or sessions.
+- Compare-review exports are keyed to a comparison dataset and should be applied
+  with the compare bundle they were exported from.
 - In practice this stage forms an iteration loop:
   1. inspect examples
   2. approve or flag them
@@ -689,7 +709,7 @@ Current reviewer labels:
 
 ### Process
 
-1. Build a benchmark snapshot with `benchmark/build_benchmark.py`.
+1. For a first reviewed run, build a benchmark snapshot with `benchmark/build_benchmark.py`.
 2. Create a versioned directory such as `benchmark/v1/`.
 3. Split reviewed items into:
    - approved benchmark items
@@ -703,6 +723,23 @@ Current reviewer labels:
    - review export
    - generation run metadata
 
+For later review rounds, apply a compare-review export to the previous benchmark
+snapshot:
+
+```bash
+.venv/bin/python benchmark/update_benchmark.py \
+  --previous-benchmark benchmark/v1 \
+  --bundle review/review_data.js \
+  --reviews review/exports/<compare-review-export>.json \
+  --outdir benchmark/v2
+```
+
+The update routine carries forward unchanged previous benchmark records and
+replaces only pairs that received decisions in the compare review. Approved
+current records enter `benchmark.jsonl`, dismissed records enter
+`dismissed.jsonl`, and `needs_prompt_fix` / `needs_data_fix` records enter
+`pending.jsonl`.
+
 ### Output
 
 - `benchmark/vN/manifest.json` – snapshot metadata and counts
@@ -714,6 +751,8 @@ Current reviewer labels:
 
 - The benchmark is distinct from both raw model outputs and review exports.
 - Review exports capture human judgments; benchmark snapshots capture the current curated gold set.
+- Compare-review exports are update instructions for a benchmark version, not a
+  full benchmark by themselves.
 - This separation makes it possible to compare multiple prompt/model runs against the same approved benchmark, while preserving reviewer provenance and benchmark history.
 
 ---

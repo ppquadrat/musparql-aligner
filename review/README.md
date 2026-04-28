@@ -37,6 +37,10 @@ new outputs are in the repo-root current output file.
 The compare bundle shows only changed, added, and removed pairs by default. Use
 `--include-unchanged` if you want unchanged pairs visible too.
 
+Compare mode shows the previous run and current run side by side. Previous
+review decisions are read-only context; current decisions are stored separately
+and exported as a new compare-mode review file.
+
 2. Serve the repo locally:
 
 ```bash
@@ -74,6 +78,8 @@ The recommended repo location for exported reviewer decisions is `review/exports
 - Model outputs remain separate from reviewer judgments.
 - Review exports should point to exactly one run.
 - `build_review_bundle.py` is responsible for making that true before review starts.
+- `build_next_review_round.py` is the usual entry point after changing extraction,
+  enrichment, prompts, or models.
 - The generated review file is `review/review_data.js`.
 - Exported reviewer judgments can be stored in `review/exports/` and committed when you want them versioned alongside the benchmark work.
 - Review exports can be shared with other evaluators without changing the original model output files.
