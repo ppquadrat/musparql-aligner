@@ -47,6 +47,19 @@ Build a benchmark snapshot from a review bundle and an exported review file:
   --outdir benchmark/v1
 ```
 
+Apply a compare-review export to an existing benchmark snapshot:
+
+```bash
+.venv/bin/python benchmark/update_benchmark.py \
+  --previous-benchmark benchmark/v1 \
+  --bundle review/review_data.js \
+  --reviews review/exports/<compare-review-export>.json \
+  --outdir benchmark/v2
+```
+
+The update routine carries forward unchanged records from the previous benchmark
+and replaces only the pairs that received decisions in the compare review.
+
 ## Record design
 
 Benchmark items are intentionally compact:

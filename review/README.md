@@ -25,11 +25,14 @@ If you want to review an already-frozen run explicitly:
 To compare a previous reviewed run with a new run:
 
 ```bash
-.venv/bin/python build_review_diff_bundle.py \
-  --previous-outputs runs/<old-run-id>/llm_outputs.jsonl \
-  --current-outputs runs/<new-run-id>/llm_outputs.jsonl \
+.venv/bin/python build_next_review_round.py \
+  --previous-run runs/<old-run-id> \
+  --current-run runs/<new-run-id> \
   --previous-reviews review/exports/<previous-review-export>.json
 ```
+
+`--current-run` defaults to `llm_outputs.jsonl`, so it can be omitted when the
+new outputs are in the repo-root current output file.
 
 The compare bundle shows only changed, added, and removed pairs by default. Use
 `--include-unchanged` if you want unchanged pairs visible too.
