@@ -1,0 +1,28 @@
+{
+  "benchmark_version": "v2",
+  "built_at": "2026-04-30T17:37:30+00:00",
+  "source_bundle": "review/review_data.2026-04-26-full-review-gpt5.js",
+  "source_review_export": "review/exports/musparql-review-b1f8a72fa80244f9-2026-04-27_23-58-18.json",
+  "dataset_id": "b1f8a72fa80244f9",
+  "run_id": "2026-04-26-full-review-gpt5",
+  "counts": {
+    "approved": 41,
+    "pending": 9,
+    "dismissed": 4,
+    "reviewed_total": 54,
+    "status_counts": {
+      "approve": 41,
+      "dismiss": 4,
+      "needs_prompt_fix": 9
+    }
+  },
+  "files": {
+    "benchmark": "benchmark.jsonl",
+    "pending": "pending.jsonl",
+    "dismissed": "dismissed.jsonl"
+  },
+  "gold_question_policy": {
+    "preferred_question_used_when_present": true,
+    "approved_model_output_used_otherwise": true
+  }
+}
