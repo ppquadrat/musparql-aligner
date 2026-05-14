@@ -452,6 +452,19 @@ def run_local_select_query(graph: Graph, query: str) -> Dict[str, object]:
     return {"status": "ok" if count > 0 else "empty", "result_count": count, "sample_row": sample}
 
 
+def record_query_execution(rec: Dict[str, object], execution: Dict[str, object]) -> None:
+    """Write execution fields plus legacy run fields for existing consumers."""
+    rec["latest_execution"] = execution
+    rec["latest_run"] = execution
+    execution_history = rec.get("execution_history")
+    if not isinstance(execution_history, list):
+        legacy_history = rec.get("run_history")
+        execution_history = list(legacy_history) if isinstance(legacy_history, list) else []
+    execution_history.append(execution)
+    rec["execution_history"] = execution_history
+    rec["run_history"] = execution_history
+
+
 def clean_query(query: str) -> str:
     # Drop leading/trailing comment-only lines to avoid endpoint parser quirks.
     lines = query.splitlines()
@@ -690,7 +703,7 @@ def main() -> None:
                     }
                 )
                 stat["skipped_local"] += 1
-                rec["latest_run"] = {
+                skipped_execution = {
                     "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                     "status": "skipped_local_query",
                     "endpoint": endpoint.primary.endpoint,
@@ -699,6 +712,7 @@ def main() -> None:
                     "duration_ms": 0,
                     "error": None,
                 }
+                record_query_execution(rec, skipped_execution)
                 continue
         stat["ran"] += 1
         start = time.time()
@@ -744,7 +758,7 @@ def main() -> None:
                         break
                     result = retry
         status = result.get("status")
-        latest_run = {
+        latest_execution = {
             "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "status": status,
             "endpoint": endpoint_used if endpoint is not None else None,
@@ -754,17 +768,12 @@ def main() -> None:
             "error": result.get("error"),
         }
         if result.get("error_line") is not None:
-            latest_run["error_line"] = result.get("error_line")
+            latest_execution["error_line"] = result.get("error_line")
         if result.get("http_status") is not None:
-            latest_run["http_status"] = result.get("http_status")
+            latest_execution["http_status"] = result.get("http_status")
         if result.get("content_type") is not None:
-            latest_run["content_type"] = result.get("content_type")
-        rec["latest_run"] = latest_run
-        run_history = rec.get("run_history")
-        if not isinstance(run_history, list):
-            run_history = []
-        run_history.append(latest_run)
-        rec["run_history"] = run_history
+            latest_execution["content_type"] = result.get("content_type")
+        record_query_execution(rec, latest_execution)
         if status not in {"ok", "empty"}:
             failures.append(
                 {
@@ -787,7 +796,8 @@ def main() -> None:
             stat["ok"] += 1
         else:
             stat["empty"] += 1
-        rec["latest_successful_run"] = latest_run
+        rec["latest_successful_execution"] = latest_execution
+        rec["latest_successful_run"] = latest_execution
         kept += 1
 
     with out_path.open("w", encoding="utf-8") as f:

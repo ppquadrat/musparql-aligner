@@ -10,11 +10,11 @@ This folder contains a lightweight local reviewer for LLM question-generation ou
 .venv/bin/python build_review_bundle.py
 ```
 
-By default, the builder ensures the bundle points to exactly one frozen run. If the
-selected output is not already inside `runs/<run-id>/`, it will auto-freeze a run
+By default, the builder ensures the bundle points to exactly one frozen LLM generation run. If the
+selected output is not already inside `runs/<run-id>/`, it will auto-freeze a generation run
 snapshot first and then build the review bundle from that run.
 
-If you want to review an already-frozen run explicitly:
+If you want to review an already-frozen generation run explicitly:
 
 ```bash
 .venv/bin/python build_review_bundle.py \

@@ -118,11 +118,13 @@ def main() -> None:
                 "review_export": str(review_path),
                 "dataset_id": review_dataset_id or bundle_dataset_id,
                 "run_id": review_run_id or record.get("run_id"),
+                "generation_run_id": review_run_id or record.get("generation_run_id") or record.get("run_id"),
                 "note": review.get("note") or "",
                 "updated_at": review.get("updated_at"),
             },
             "run": {
                 "run_id": record.get("run_id"),
+                "generation_run_id": record.get("generation_run_id") or record.get("run_id"),
                 "run_manifest": record.get("run_manifest"),
                 "run_label": record.get("run_label"),
                 "source_file": record.get("source_file"),

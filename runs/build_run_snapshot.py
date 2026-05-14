@@ -127,6 +127,7 @@ def create_run_snapshot(
     request_summary = summarize_request_configs(output_records)
     manifest = {
         "run_id": run_id,
+        "generation_run_id": run_id,
         "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "purpose": purpose or None,
         "notes": notes or None,

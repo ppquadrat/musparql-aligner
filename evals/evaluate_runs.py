@@ -265,13 +265,16 @@ def load_run(run_path: Path) -> Dict[str, Any]:
 
     outputs = load_json_records(output_path)
     inputs = load_json_records(input_path)
+    manifest = load_json(manifest_path)
+    generation_run_id = str(manifest.get("generation_run_id") or manifest.get("run_id") or run_id)
     return {
         "run_id": run_id,
+        "generation_run_id": generation_run_id,
         "path": str(run_path),
         "output_path": str(output_path),
         "input_path": str(input_path),
         "manifest_path": str(manifest_path),
-        "manifest": load_json(manifest_path),
+        "manifest": manifest,
         "outputs": {str(rec.get("query_id")): rec for rec in outputs if rec.get("query_id")},
         "inputs": {str(rec.get("query_id")): rec for rec in inputs if rec.get("query_id")},
         "output_count": len(outputs),
@@ -436,6 +439,7 @@ def score_item(
 
     return {
         "run_id": run_id,
+        "generation_run_id": run_id,
         "benchmark_id": benchmark_item.get("benchmark_id"),
         "benchmark_status_group": benchmark_item.get("_benchmark_status_group"),
         "review_status": benchmark_item.get("review_status"),
@@ -467,6 +471,7 @@ def summarize(scores: List[Dict[str, Any]], dismissed_count: int, baseline_run_i
     summary: Dict[str, Any] = {
         "dismissed_excluded": dismissed_count,
         "baseline_run_id": baseline_run_id,
+        "baseline_generation_run_id": baseline_run_id,
         "runs": {},
     }
     baseline_scores = {
@@ -552,7 +557,7 @@ def render_summary_md(summary: Dict[str, Any], scores: List[Dict[str, Any]]) -> 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate NL generation runs against a reviewed benchmark.")
+    parser = argparse.ArgumentParser(description="Evaluate LLM generation runs against a reviewed benchmark.")
     parser.add_argument("--benchmark", default="benchmark/v2")
     parser.add_argument("--runs", nargs="+", required=True)
     parser.add_argument("--baseline", default="")
@@ -615,6 +620,7 @@ def main() -> None:
         "runs": [
             {
                 "run_id": run["run_id"],
+                "generation_run_id": run["generation_run_id"],
                 "path": run["path"],
                 "output_count": run["output_count"],
                 "input_count": run["input_count"],
@@ -623,6 +629,7 @@ def main() -> None:
             for run in runs
         ],
         "baseline_run_id": baseline_run["run_id"] if baseline_run else None,
+        "baseline_generation_run_id": baseline_run["generation_run_id"] if baseline_run else None,
         "judge": {
             "enabled": not args.skip_judge,
             "model": args.judge_model,

@@ -4,7 +4,7 @@ This directory stores **curated benchmark snapshots** derived from:
 
 - model outputs and their review bundle
 - exported human-review judgments
-- frozen generation runs in `runs/<run-id>/`
+- frozen LLM generation runs in `runs/<run-id>/`
 
 The benchmark is distinct from:
 
@@ -73,7 +73,7 @@ Benchmark items are intentionally compact:
 - traceability metadata (`query_id`, `query_label`, `kg_id`, source review file)
 - light analysis metadata (model origin mode, evidence type summary, review provenance)
 
-The benchmark should be easy to evaluate against, while still traceable back to the reviewed generation run.
+The benchmark should be easy to evaluate against, while still traceable back to the reviewed LLM generation run.
 
 In other words, the intended chain is:
 
@@ -83,7 +83,7 @@ runs/<run-id>/ -> review/exports/<review-file>.json -> benchmark/vN/
 
 ## Automatic evaluation
 
-Use `evals/evaluate_runs.py` to compare frozen prompt/model runs against a
+Use `evals/evaluate_runs.py` to compare frozen prompt/model generation runs against a
 benchmark snapshot:
 
 ```bash

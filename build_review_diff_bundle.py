@@ -47,6 +47,7 @@ def run_summary(output_path: Path, explicit_manifest: Optional[Path]) -> Dict[st
         manifest = load_json(manifest_path)
     return {
         "run_id": manifest.get("run_id") or output_path.parent.name,
+        "generation_run_id": manifest.get("generation_run_id") or manifest.get("run_id") or output_path.parent.name,
         "run_label": output_path.parent.name if output_path.parent.name != "." else output_path.stem,
         "output_path": str(output_path),
         "manifest_path": str(manifest_path) if manifest_path is not None else None,
@@ -78,6 +79,7 @@ def record_payload(
     return {
         "review_id": review_id,
         "run_id": run.get("run_id"),
+        "generation_run_id": run.get("generation_run_id") or run.get("run_id"),
         "run_label": run.get("run_label"),
         "source_file": run.get("output_path"),
         "run_manifest": run.get("manifest_path"),

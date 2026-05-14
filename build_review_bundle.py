@@ -206,10 +206,11 @@ def main() -> None:
         run_id = ""
         if run_manifest_path is not None:
             run_manifest = load_json(run_manifest_path)
-            run_id = str(run_manifest.get("run_id") or "")
+            run_id = str(run_manifest.get("generation_run_id") or run_manifest.get("run_id") or "")
             if run_id:
                 run_summaries[run_id] = {
                     "run_id": run_id,
+                    "generation_run_id": run_id,
                     "manifest_path": str(run_manifest_path),
                     "purpose": run_manifest.get("purpose"),
                     "created_at": run_manifest.get("created_at"),
@@ -226,6 +227,7 @@ def main() -> None:
                 {
                     "review_id": review_id,
                     "run_id": run_id or None,
+                    "generation_run_id": run_id or None,
                     "run_label": run_label,
                     "source_file": str(output_path),
                     "run_manifest": str(run_manifest_path) if run_manifest_path is not None else None,
@@ -276,7 +278,9 @@ def main() -> None:
         "inputs_path": str(inputs_path),
         "output_paths": [str(p) for p in output_paths],
         "run_ids": sorted(run_summaries.keys()),
+        "generation_run_ids": sorted(run_summaries.keys()),
         "single_run_id": sorted(run_summaries.keys())[0] if len(run_summaries) == 1 else None,
+        "single_generation_run_id": sorted(run_summaries.keys())[0] if len(run_summaries) == 1 else None,
         "runs": [run_summaries[run_id] for run_id in sorted(run_summaries.keys())],
         "record_count": len(review_records),
         "review_status_definitions": {
