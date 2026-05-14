@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from openai import OpenAI
 
+SCRIPT_VERSION = "run_llm_generation.py@v2"
+
 
 def load_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -89,6 +91,7 @@ def build_completion_key(
     model: Any,
     system_prompt_hash: Any,
     input_hash: Any,
+    request_config_hash: Any = "",
 ) -> tuple[str, str, str, str, str, str]:
     return (
         str(query_id),
@@ -96,7 +99,7 @@ def build_completion_key(
         str(kg_id),
         str(model),
         str(system_prompt_hash),
-        str(input_hash),
+        f"{input_hash}:{request_config_hash}" if request_config_hash else str(input_hash),
     )
 
 
@@ -110,6 +113,7 @@ def extract_completion_key(rec: Dict[str, Any]) -> tuple[str, str, str, str, str
             signature.get("model"),
             signature.get("system_prompt_hash"),
             signature.get("input_hash"),
+            signature.get("request_config_hash", ""),
         )
     return build_completion_key(
         rec.get("query_id"),
@@ -200,6 +204,51 @@ def build_system_prompt(
     return "\n".join(parts)
 
 
+def build_request_config(
+    *,
+    args: argparse.Namespace,
+    prompt_hash: str,
+    schema_hash: str,
+    examples_hash: str,
+    system_prompt_hash: str,
+) -> Dict[str, Any]:
+    generation_parameters = {
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "max_output_tokens": args.max_output_tokens or None,
+        "reasoning_effort": args.reasoning_effort or None,
+    }
+    return {
+        "script_version": SCRIPT_VERSION,
+        "api_method": "responses.create",
+        "requested_model": args.model,
+        "timeout_s": args.timeout_s,
+        "max_records": args.max_records,
+        "input_path": args.input,
+        "prompt_path": args.prompt,
+        "schema_path": args.schema,
+        "examples_path": args.examples or None,
+        "prompt_hash": prompt_hash,
+        "schema_hash": schema_hash,
+        "examples_hash": examples_hash,
+        "system_prompt_hash": system_prompt_hash,
+        "generation_parameters": generation_parameters,
+    }
+
+
+def build_response_create_kwargs(args: argparse.Namespace) -> Dict[str, Any]:
+    kwargs: Dict[str, Any] = {"model": args.model}
+    if args.temperature is not None:
+        kwargs["temperature"] = args.temperature
+    if args.top_p is not None:
+        kwargs["top_p"] = args.top_p
+    if args.max_output_tokens:
+        kwargs["max_output_tokens"] = args.max_output_tokens
+    if args.reasoning_effort:
+        kwargs["reasoning"] = {"effort": args.reasoning_effort}
+    return kwargs
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run NL generation with OpenAI over LLM inputs JSONL.")
     parser.add_argument("--input", default="llm_inputs.jsonl")
@@ -211,6 +260,10 @@ def main() -> None:
     parser.add_argument("--model", default="gpt-5")
     parser.add_argument("--max-records", type=int, default=0, help="0 means all")
     parser.add_argument("--timeout-s", type=float, default=180.0, help="Per-request OpenAI timeout in seconds.")
+    parser.add_argument("--temperature", type=float, default=None)
+    parser.add_argument("--top-p", type=float, default=None)
+    parser.add_argument("--max-output-tokens", type=int, default=0)
+    parser.add_argument("--reasoning-effort", default="", choices=["", "minimal", "low", "medium", "high", "xhigh"])
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -231,6 +284,15 @@ def main() -> None:
     schema_hash = sha256_json(schema)
     examples_hash = sha256_text(examples_text)
     system_prompt_hash = sha256_text(system_prompt)
+    request_config = build_request_config(
+        args=args,
+        prompt_hash=prompt_hash,
+        schema_hash=schema_hash,
+        examples_hash=examples_hash,
+        system_prompt_hash=system_prompt_hash,
+    )
+    request_config_hash = sha256_json(request_config)
+    response_create_kwargs = build_response_create_kwargs(args)
 
     client = OpenAI(timeout=args.timeout_s)
     ok_count = 0
@@ -251,6 +313,7 @@ def main() -> None:
                 args.model,
                 system_prompt_hash,
                 input_hash,
+                request_config_hash,
             )
             if key in completed:
                 log(f"[{idx}/{len(inputs)}] skip {kg_id} {label} (already done)")
@@ -259,7 +322,7 @@ def main() -> None:
             started = time.time()
             try:
                 resp = client.responses.create(
-                    model=args.model,
+                    **response_create_kwargs,
                     input=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
@@ -285,6 +348,12 @@ def main() -> None:
                         "examples_hash": examples_hash,
                         "system_prompt_hash": system_prompt_hash,
                         "input_hash": input_hash,
+                        "request_config_hash": request_config_hash,
+                    },
+                    "request_config": request_config,
+                    "response_metadata": {
+                        "id": getattr(resp, "id", None),
+                        "model": getattr(resp, "model", None),
                     },
                     "elapsed_ms": int((time.time() - started) * 1000),
                     "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
@@ -306,7 +375,9 @@ def main() -> None:
                         "examples_hash": examples_hash,
                         "system_prompt_hash": system_prompt_hash,
                         "input_hash": input_hash,
+                        "request_config_hash": request_config_hash,
                     },
+                    "request_config": request_config,
                     "elapsed_ms": elapsed_ms,
                 }
                 err_f.write(json.dumps(err_rec, ensure_ascii=False) + "\n")

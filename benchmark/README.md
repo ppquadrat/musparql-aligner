@@ -27,6 +27,10 @@ The benchmark is distinct from:
   - reviewed but not benchmark-approved items
   - typically `needs_prompt_fix` or `needs_data_fix`
 
+- `benchmark/vN/dismissed.jsonl`
+  - reviewed items explicitly excluded from the benchmark
+  - useful for provenance/data-quality inspection, but not semantic scoring
+
 ## Gold question policy
 
 For each reviewed item:
@@ -76,3 +80,26 @@ In other words, the intended chain is:
 ```text
 runs/<run-id>/ -> review/exports/<review-file>.json -> benchmark/vN/
 ```
+
+## Automatic evaluation
+
+Use `evals/evaluate_runs.py` to compare frozen prompt/model runs against a
+benchmark snapshot:
+
+```bash
+.venv/bin/python evals/evaluate_runs.py \
+  --benchmark benchmark/v2 \
+  --runs runs/<baseline-run> runs/<candidate-run> \
+  --baseline runs/<baseline-run> \
+  --judge-model gpt-5 \
+  --out evals/reports/<eval-id>
+```
+
+The evaluator scores approved plus pending items by default. Pending items are
+included because they capture reviewed examples where the previous model output
+needed prompt or data improvement. Dismissed items are excluded from semantic
+scoring.
+
+SPARQL is treated as fixed input. If a run input's SPARQL differs from the
+benchmark SPARQL for the same `query_id`, the evaluator reports a deterministic
+`sparql_mismatch` warning and skips semantic judge scoring for that item.

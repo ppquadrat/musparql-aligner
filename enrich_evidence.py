@@ -621,6 +621,8 @@ def extract_pdf_query_blocks(text: str) -> List[Dict[str, object]]:
             return True
         if query_line_re.match(stripped):
             return True
+        if stripped.startswith("<"):
+            return True
         if stripped.startswith(("?", "{", "}", "(", "[", "]")):
             return True
         if re.match(r"^\s*[A-Za-z_][\w-]*:[^\s]*", stripped):
@@ -1132,6 +1134,8 @@ def is_probable_sparql_line(line: str) -> bool:
     if re.match(r"^WHERE(?:\s|\{|$)", stripped):
         return True
     if re.match(r"^FILTER(?:\s|\(|$)", stripped):
+        return True
+    if stripped.startswith(("?", "<")):
         return True
     return False
 

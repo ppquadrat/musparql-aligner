@@ -21,6 +21,7 @@ At a high level, the pipeline works like this:
 9. Freeze review-worthy generation outputs into `runs/<run-id>/`.
 10. Review examples in a lightweight human-review workbench, export reviewer decisions, and place those exports into `review/exports/`.
 11. Build versioned benchmark snapshots such as `benchmark/vN/benchmark.jsonl` and `benchmark/vN/pending.jsonl` from reviewed examples.
+12. Run automatic prompt/model evaluation reports under `evals/reports/<eval-id>/`, using deterministic checks plus optional LLM judging against the reviewed benchmark.
 
 The intent is to keep every step inspectable: deterministic collection and execution happen first, and LLM interpretation happens only after provenance and run metadata are already attached.
 
@@ -43,8 +44,8 @@ The intent is to keep every step inspectable: deterministic collection and execu
 - **Human review = judgment layer**  
   Reviewer decisions, notes, and rewrites are preserved as explicit artefacts rather than folded into model outputs.
 
-- **Benchmark snapshots = evaluation layer**  
-  Approved gold pairs are versioned separately from both raw generations and review judgments.
+- **Benchmark snapshots and eval reports = evaluation layer**  
+  Approved/pending gold pairs and prompt/model comparison reports are versioned separately from both raw generations and review judgments.
 
 This separation reduces hidden state, supports regeneration, and preserves dataset defensibility.
 
@@ -88,13 +89,14 @@ If an upstream source is malformed or intermittently unavailable, add a correcte
 
 ## 3. Data Model (Schemas)
 
-To make provenance, QA, human judgment, and evaluation explicit, we use **five main artefact families**:
+To make provenance, QA, human judgment, and evaluation explicit, we use **six main artefact families**:
 
 - `kgs.jsonl`: one record per KG (metadata, endpoints, datasets)
 - `kg_queries.jsonl`: one record per query (SPARQL, evidence, NL artifacts, run metadata)
 - `runs/<run-id>/`: frozen LLM-generation runs
 - `review/exports/*.json`: exported reviewer judgments
 - `benchmark/vN/*.jsonl`: reviewed benchmark snapshots (approved, pending, dismissed)
+- `evals/reports/<eval-id>/`: automatic prompt/model evaluation reports
 
 ### `kgs.jsonl` (KG metadata)
 
@@ -256,6 +258,32 @@ review, compare, or report:
         "errors": 0
       },
       "models": ["gpt-5"],
+      "model_provenance": {
+        "request_configs": [
+          {
+            "hash": "sha256-like-request-config-hash",
+            "count": 12,
+            "config": {
+              "script_version": "run_llm_generation.py@v2",
+              "api_method": "responses.create",
+              "requested_model": "gpt-5",
+              "timeout_s": 180.0,
+              "prompt_hash": "...",
+              "schema_hash": "...",
+              "examples_hash": "...",
+              "system_prompt_hash": "...",
+              "generation_parameters": {
+                "temperature": null,
+                "top_p": null,
+                "max_output_tokens": null,
+                "reasoning_effort": null
+              }
+            }
+          }
+        ],
+        "legacy_records_without_request_config": 0,
+        "response_models": ["gpt-5"]
+      },
       "files": {
         "llm_inputs": {"filename": "llm_inputs.jsonl", "sha256": "..."},
         "llm_outputs": {"filename": "llm_outputs.jsonl", "sha256": "..."},
@@ -269,6 +297,20 @@ Notes:
 - A run is the immutable generation layer.
 - One run can have many review exports.
 - `build_review_bundle.py` should normally create or attach this run before review starts.
+- Older run manifests may only contain `models`; newer manifests include `model_provenance` so prompt/model comparisons can distinguish model aliases, request parameters, and prompt/schema/example hashes.
+
+`runs/<run-id>/llm_outputs.jsonl` contains one output record per generated
+question. New records include:
+
+- query keys: `query_id`, `query_label`, `kg_id`
+- `llm_output`: the schema-validated generated question, retained evidence, origin mode, confidence, rationale, and review flag
+- `model`: requested model alias
+- `run_signature`: prompt/schema/example/system/input hashes plus `request_config_hash`
+- `request_config`: API method, requested model, timeout, prompt/schema/example paths and hashes, and explicit generation parameters
+- `response_metadata`: API response ID and returned model name when available
+- `elapsed_ms` and `generated_at`
+
+Older output records may omit `request_config` and `response_metadata`; tooling should treat those fields as optional.
 
 ### `review/exports/*.json` (reviewer judgments)
 
@@ -351,6 +393,55 @@ Notes:
 - Benchmark snapshots are built from review exports, not directly from raw model output files.
 - `gold_question` is the single canonical wording used for evaluation.
 - `pending.jsonl` and `dismissed.jsonl` use the same broad structure but capture non-approved review outcomes.
+
+### `evals/reports/<eval-id>/` (automatic evaluation report)
+
+One evaluation report compares one or more frozen runs against a benchmark
+snapshot:
+
+    {
+      "created_at": "2026-05-14T12:00:00+00:00",
+      "script_version": "evaluate_runs.py@v1",
+      "benchmark": "benchmark/v2",
+      "benchmark_counts": {
+        "approved": 41,
+        "pending": 9,
+        "dismissed": 4
+      },
+      "scored_status_groups": ["approved", "pending"],
+      "dismissed_excluded": 4,
+      "runs": [
+        {
+          "run_id": "2026-04-26-full-review-gpt5",
+          "path": "runs/2026-04-26-full-review-gpt5",
+          "output_count": 149,
+          "input_count": 149,
+          "manifest": {"...": "..."}
+        }
+      ],
+      "baseline_run_id": "2026-04-26-full-review-gpt5",
+      "judge": {
+        "enabled": true,
+        "model": "gpt-5",
+        "prompt_hash": "...",
+        "timeout_s": 120.0
+      },
+      "summary": {"...": "..."}
+    }
+
+`scores.jsonl` contains one score record per benchmark item per run, including:
+
+- deterministic `errors` and `warnings`
+- `sparql_match` and `sparql_mismatch` compatibility warning when applicable
+- candidate, gold, and baseline questions
+- judge status and cached judge result when semantic judging is enabled
+- run signature and request configuration when present
+
+Notes:
+
+- Approved and pending benchmark records are scored by default.
+- Dismissed records are excluded from semantic scoring.
+- SPARQL mismatch is a deterministic provenance warning, not part of LLM quality scoring.
 
 
 ---
@@ -437,29 +528,23 @@ Generated KG descriptions are an optional downstream step, not part of the curre
 
 No filtering or LLM use occurs at this stage.
 
----
+### Tests
 
-## 6. Academic Paper Integration (Parallel Track)
+SPARQL extraction helpers are covered by standard-library unit tests:
 
-Academic papers belong conceptually to the same source-acquisition layer as query extraction and evidence enrichment.
+```bash
+.venv/bin/python -m unittest tests/test_extract_queries.py
+```
 
-For each KG:
-
-- Identify canonical papers.
-- Extract:
-  - SPARQL examples
-  - competency questions (CQs)
-
-If only CQs exist:
-
-- Optionally draft SPARQL (marked as `crafted_from_cq`).
-- Assign lower confidence unless verified against an endpoint.
-
-Paper-derived material then passes through the **same enrichment, execution, generation, review, and benchmark steps** as repo-derived material.
+The tests use small synthetic fixtures for Markdown fences, HTML/pre blocks,
+multiple queries in one file, prefix normalization, malformed/non-SELECT
+rejection, and PDF-like broken `PREFIX` / IRI line wrapping. These tests are
+intended to protect extractor behavior directly; a separate golden mini-corpus
+can be added later for end-to-end extraction drift checks.
 
 ---
 
-## 7. Evidence Enrichment (`kg_queries.jsonl`)
+## 6. Evidence Enrichment (`kg_queries.jsonl`)
 
 **Objective:** enrich query records with human-readable evidence from sources, preserving provenance and evidence types.
 
@@ -491,6 +576,34 @@ All evidence items carry `evidence_id`, `source_url`, `source_path`, timestamps,
 ### Output
 
 `kg_queries.jsonl` (updated in-place with evidence items)
+
+### Tests
+
+Evidence and CQ enrichment helpers are covered by standard-library unit tests:
+
+```bash
+.venv/bin/python -m unittest tests/test_enrich_evidence.py
+```
+
+The tests cover query comments, nearest prose descriptions for Markdown and
+HTML/pre query blocks, competency-question tables, competency-question bullet
+lists, duplicate evidence suppression, and removal of SPARQL-like lines from
+natural-language evidence snippets.
+
+---
+
+## 7. Academic Paper Integration (Parallel Track)
+
+Academic papers belong conceptually to the same source-acquisition layer as query extraction and evidence enrichment.
+
+For each KG:
+
+- Identify canonical papers.
+- Extract:
+  - SPARQL examples
+  - competency questions (CQs), e.g. from headers, tables and figure captions.
+
+Paper-derived material is then added to queries and evidence in the same way as repo-derived material. Unit tests include this functionality.
 
 ---
 
@@ -549,7 +662,17 @@ Current implementation notes:
 - `run_llm_generation.py` defaults to `llm_inputs.jsonl`.
 - `llm_outputs.jsonl` is treated as JSONL; legacy JSON-array files are normalized to JSONL on read.
 - Output records carry a `run_signature` containing hashes of the effective prompt/schema/examples/input configuration.
-- Resume/skip behavior uses `query_id`, `query_label`, `kg_id`, `model`, `system_prompt_hash`, and `input_hash`.
+- New output records also carry `request_config`, which records:
+  - script version
+  - API method (`responses.create`)
+  - requested model alias
+  - timeout
+  - input/prompt/schema/example paths
+  - prompt/schema/examples/system-prompt hashes
+  - explicit generation parameters such as temperature, top-p, max output tokens, and reasoning effort
+- `response_metadata` records response-level metadata exposed by the API, such as response ID and returned model name when available.
+- Resume/skip behavior uses `query_id`, `query_label`, `kg_id`, `model`, `system_prompt_hash`, `input_hash`, and, for new records, `request_config_hash`.
+- Older runs remain readable even when they only contain `model` and `run_signature`.
 
 For each runnable query, generate an object of the following form (stored in `llm_output`):
 
@@ -619,6 +742,7 @@ A second **consistency-check pass** may be applied to downgrade overconfident pa
 - A run is the immutable generation layer.
 - One run can later accumulate multiple review exports.
 - `build_review_bundle.py` can create this run automatically when the chosen output is not already inside `runs/<run-id>/`.
+- For new runs, `manifest.json` includes `model_provenance`, summarising distinct request configurations, response model names when available, and the count of legacy records without `request_config`.
 
 ### Output
 
@@ -757,7 +881,73 @@ current records enter `benchmark.jsonl`, dismissed records enter
 
 ---
 
-## 13. Outputs And Intended Use
+## 13. Automatic Prompt/Model Evaluation
+
+**Objective:** compare prompt and model runs against a reviewed benchmark without
+requiring immediate human review of every changed output.
+
+### Inputs
+
+- one benchmark snapshot such as `benchmark/v2/`
+- one or more frozen generation runs under `runs/<run-id>/`
+- optional baseline run
+- optional LLM judge model
+
+### Process
+
+Run deterministic-only checks:
+
+```bash
+.venv/bin/python evals/evaluate_runs.py \
+  --benchmark benchmark/v2 \
+  --runs runs/<candidate-run> \
+  --baseline runs/<baseline-run> \
+  --skip-judge \
+  --out evals/reports/<eval-id>
+```
+
+Run semantic evaluation with an LLM judge:
+
+```bash
+.venv/bin/python evals/evaluate_runs.py \
+  --benchmark benchmark/v2 \
+  --runs runs/<baseline-run> runs/<candidate-run> \
+  --baseline runs/<baseline-run> \
+  --judge-model gpt-5 \
+  --out evals/reports/<eval-id>
+```
+
+Evaluation uses approved and pending benchmark items by default:
+
+- `benchmark.jsonl` items are approved gold pairs.
+- `pending.jsonl` items are reviewed cases needing prompt/data fixes and are useful for measuring improvement.
+- `dismissed.jsonl` items are excluded from semantic scoring.
+
+### Scoring Policy
+
+- SPARQL is treated as fixed input. The system does not generate new SPARQL.
+- A benchmark/run SPARQL mismatch is reported as a deterministic provenance warning (`sparql_mismatch`), not as model-quality failure.
+- If SPARQL mismatches or input provenance is missing, semantic judge scoring is skipped for that item.
+- Deterministic checks cover coverage, output shape, non-empty questions, placeholder leakage, evidence ID integrity, and question changes against the baseline.
+- LLM judging is used only for semantic question quality: faithfulness to the fixed SPARQL and equivalence to the gold question.
+- Judge results are cached in `judge_cache.jsonl` so repeated comparisons do not re-score unchanged triples of SPARQL, gold question, and candidate question.
+
+### Output
+
+- `evals/reports/<eval-id>/manifest.json` – inputs, run metadata, judge configuration, and aggregate summary
+- `evals/reports/<eval-id>/scores.jsonl` – one score record per benchmark item per run
+- `evals/reports/<eval-id>/summary.md` – human-readable report
+- `evals/reports/<eval-id>/judge_cache.jsonl` – cached semantic judge results
+
+### Notes
+
+- Offline reports are the first evaluation layer; they are not automatically CI gates.
+- CI gating should start with deterministic checks only, such as unit tests, schema checks, and SPARQL compatibility warnings.
+- LLM judge scores should be calibrated against human review before they are used as blocking quality thresholds.
+
+---
+
+## 14. Outputs And Intended Use
 
 At minimum, the project produces:
 
@@ -772,6 +962,7 @@ At minimum, the project produces:
 - `benchmark/vN/benchmark.jsonl` – versioned approved benchmark pairs
 - `benchmark/vN/pending.jsonl` – reviewed items pending fixes
 - `benchmark/vN/manifest.json` – benchmark snapshot metadata
+- `evals/reports/<eval-id>/` – automatic prompt/model evaluation reports
 
 These outputs may be:
 
@@ -782,7 +973,7 @@ These outputs may be:
 
 ---
 
-## 14. Rationale
+## 15. Rationale
 
 - Every artefact is reproducible.
 - Every query is runnable or explicitly marked otherwise.

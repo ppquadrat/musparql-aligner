@@ -58,6 +58,38 @@ def infer_models(output_records: List[Dict[str, Any]]) -> List[str]:
     return models
 
 
+def summarize_request_configs(output_records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    request_configs: Dict[str, Dict[str, Any]] = {}
+    response_models = sorted(
+        {
+            str(rec.get("response_metadata", {}).get("model"))
+            for rec in output_records
+            if isinstance(rec.get("response_metadata"), dict) and rec.get("response_metadata", {}).get("model")
+        }
+    )
+    legacy_count = 0
+    for rec in output_records:
+        config = rec.get("request_config")
+        if not isinstance(config, dict):
+            legacy_count += 1
+            continue
+        digest = hashlib.sha256(json.dumps(config, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+        request_configs.setdefault(
+            digest,
+            {
+                "hash": digest,
+                "config": config,
+                "count": 0,
+            },
+        )
+        request_configs[digest]["count"] += 1
+    return {
+        "request_configs": sorted(request_configs.values(), key=lambda item: item["hash"]),
+        "legacy_records_without_request_config": legacy_count,
+        "response_models": response_models,
+    }
+
+
 def create_run_snapshot(
     *,
     run_id: str,
@@ -92,6 +124,7 @@ def create_run_snapshot(
 
     output_records = load_json_records(outputs)
     error_records = load_json_records(errors) if errors and errors.exists() else []
+    request_summary = summarize_request_configs(output_records)
     manifest = {
         "run_id": run_id,
         "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
@@ -102,6 +135,7 @@ def create_run_snapshot(
             "errors": len(error_records),
         },
         "models": infer_models(output_records),
+        "model_provenance": request_summary,
         "files": files,
     }
     (outdir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

@@ -335,6 +335,8 @@ def extract_queries_from_pdf_text(text: str) -> List[str]:
             return True
         if query_line_re.match(stripped):
             return True
+        if stripped.startswith("<"):
+            return True
         if stripped.startswith(("?", "{", "}", "(", "[", "]")):
             return True
         if re.match(r"^\s*[A-Za-z_][\w-]*:[^\s]*", stripped):
