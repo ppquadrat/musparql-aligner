@@ -22,6 +22,16 @@ def main() -> None:
     parser.add_argument("--current-run", default="llm_outputs.jsonl", help="Current run directory or current llm_outputs.jsonl.")
     parser.add_argument("--out", default="review/review_data.js")
     parser.add_argument("--include-unchanged", action="store_true")
+    parser.add_argument(
+        "--include-dismissed",
+        action="store_true",
+        help="Include pairs dismissed in the previous review export. By default they are excluded.",
+    )
+    parser.add_argument(
+        "--include-metadata-only",
+        action="store_true",
+        help="Include pairs whose only changes are confidence, rationale, model, or full-input evidence metadata.",
+    )
     args = parser.parse_args()
 
     command: List[str] = [
@@ -38,6 +48,10 @@ def main() -> None:
     ]
     if args.include_unchanged:
         command.append("--include-unchanged")
+    if args.include_dismissed:
+        command.append("--include-dismissed")
+    if args.include_metadata_only:
+        command.append("--include-metadata-only")
 
     subprocess.run(command, check=True)
 

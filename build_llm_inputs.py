@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Set
 
 
 SPARQL_BLOCK_EVIDENCE_TYPES = {
@@ -26,6 +26,19 @@ def load_jsonl(path: Path) -> List[Dict[str, object]]:
                 continue
             records.append(json.loads(line))
     return records
+
+
+def load_dismissed_query_ids(path: Path) -> Set[str]:
+    dismissed_path = path / "dismissed.jsonl" if path.is_dir() else path
+    if not dismissed_path.exists():
+        raise FileNotFoundError(f"Dismissed benchmark records not found: {dismissed_path}")
+
+    dismissed: Set[str] = set()
+    for rec in load_jsonl(dismissed_path):
+        query_id = rec.get("query_id")
+        if isinstance(query_id, str) and query_id:
+            dismissed.add(query_id)
+    return dismissed
 
 
 def iter_evidence(
@@ -97,15 +110,31 @@ def main() -> None:
         action="store_true",
         help="Keep evidence types that are likely full SPARQL blocks (repo_file/md_pre/doc_pre/etc).",
     )
+    parser.add_argument(
+        "--exclude-dismissed-benchmark",
+        default="",
+        help="Benchmark directory, or dismissed.jsonl file, whose dismissed query_ids should be excluded from prompt inputs.",
+    )
     args = parser.parse_args()
 
     in_path = Path(args.input)
     out_path = Path(args.output)
     records = load_jsonl(in_path)
+    dismissed_query_ids = (
+        load_dismissed_query_ids(Path(args.exclude_dismissed_benchmark))
+        if args.exclude_dismissed_benchmark
+        else set()
+    )
 
     written = 0
+    skipped_dismissed = 0
     with out_path.open("w", encoding="utf-8") as f:
         for rec in records:
+            query_id = rec.get("query_id")
+            if isinstance(query_id, str) and query_id in dismissed_query_ids:
+                skipped_dismissed += 1
+                continue
+
             payload = build_prompt_input(
                 rec,
                 include_raw=args.include_raw_sparql,
@@ -119,6 +148,8 @@ def main() -> None:
             written += 1
 
     print(f"Wrote {written} prompt payloads to {out_path.resolve()}")
+    if skipped_dismissed:
+        print(f"Skipped {skipped_dismissed} dismissed benchmark records")
 
 
 if __name__ == "__main__":

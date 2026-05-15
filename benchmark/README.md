@@ -30,6 +30,7 @@ The benchmark is distinct from:
 - `benchmark/vN/dismissed.jsonl`
   - reviewed items explicitly excluded from the benchmark
   - useful for provenance/data-quality inspection, but not semantic scoring
+  - can be reused as an exclusion list when building future LLM prompt inputs
 
 ## Gold question policy
 

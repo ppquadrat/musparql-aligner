@@ -119,6 +119,46 @@ def current_review_id(pair: Dict[str, Any]) -> str:
     return str(pair.get("pair_id") or "")
 
 
+def previous_record(pair: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    previous = pair.get("previous")
+    if not isinstance(previous, dict):
+        return None
+    record = previous.get("record")
+    return record if isinstance(record, dict) else None
+
+
+def record_pair_key(record: Dict[str, Any]) -> Tuple[str, str]:
+    return (str(record.get("kg_id") or ""), str(record.get("query_id") or ""))
+
+
+def replacement_sparql_key(text: Any) -> str:
+    if not isinstance(text, str):
+        return ""
+    kept: List[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.lower().startswith("order by"):
+            continue
+        kept.append(stripped)
+    return " ".join(" ".join(kept).split()).lower()
+
+
+def pop_key_from_all(
+    key: Tuple[str, str],
+    approved_by_key: Dict[Tuple[str, str], Dict[str, Any]],
+    pending_by_key: Dict[Tuple[str, str], Dict[str, Any]],
+    dismissed_by_key: Dict[Tuple[str, str], Dict[str, Any]],
+) -> bool:
+    removed = False
+    for records in (approved_by_key, pending_by_key, dismissed_by_key):
+        if key in records:
+            records.pop(key, None)
+            removed = True
+    return removed
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Apply compare-review decisions to a previous benchmark snapshot.")
     parser.add_argument("--previous-benchmark", required=True, help="Previous benchmark/vN directory.")
@@ -154,10 +194,26 @@ def main() -> None:
     approved_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "benchmark.jsonl")}
     pending_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "pending.jsonl")}
     dismissed_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "dismissed.jsonl")}
+    removed_records: List[Dict[str, Any]] = []
+    removed_by_label: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+    removed_by_sparql: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+    for pair in pairs:
+        if not isinstance(pair, dict) or pair.get("pair_status") != "removed":
+            continue
+        record = previous_record(pair)
+        if record is None:
+            continue
+        removed_records.append(record)
+        label_key = (str(record.get("kg_id") or ""), str(record.get("query_label") or ""))
+        removed_by_label.setdefault(label_key, []).append(record)
+        sparql_key = replacement_sparql_key(record.get("input", {}).get("sparql_clean"))
+        if sparql_key:
+            removed_by_sparql.setdefault((str(record.get("kg_id") or ""), sparql_key), []).append(record)
     current_run = bundle.get("current_run") if isinstance(bundle.get("current_run"), dict) else {}
     dataset_id = str(review_export.get("dataset_id") or bundle.get("dataset_id") or "")
     status_counts: Counter[str] = Counter()
     applied = 0
+    superseded_removed = 0
 
     for pair in pairs:
         if not isinstance(pair, dict):
@@ -196,6 +252,23 @@ def main() -> None:
                 }
             continue
 
+        if pair.get("pair_status") == "added":
+            label_key = (str(record.get("kg_id") or ""), str(record.get("query_label") or ""))
+            sparql_key = replacement_sparql_key(record.get("input", {}).get("sparql_clean"))
+            candidates = list(removed_by_label.get(label_key, []))
+            if sparql_key:
+                candidates.extend(removed_by_sparql.get((str(record.get("kg_id") or ""), sparql_key), []))
+            seen_candidate_keys = set()
+            for candidate in candidates:
+                candidate_key = record_pair_key(candidate)
+                if candidate_key in seen_candidate_keys:
+                    continue
+                seen_candidate_keys.add(candidate_key)
+                if candidate_key == key:
+                    continue
+                if pop_key_from_all(candidate_key, approved_by_key, pending_by_key, dismissed_by_key):
+                    superseded_removed += 1
+
         next_record = make_benchmark_record(
             record=record,
             review=review,
@@ -233,6 +306,7 @@ def main() -> None:
             "dismissed": len(dismissed),
             "applied_compare_reviews": applied,
             "applied_status_counts": dict(status_counts),
+            "superseded_removed_previous_items": superseded_removed,
         },
         "files": {
             "benchmark": "benchmark.jsonl",

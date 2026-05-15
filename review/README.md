@@ -34,8 +34,13 @@ To compare a previous reviewed run with a new run:
 `--current-run` defaults to `llm_outputs.jsonl`, so it can be omitted when the
 new outputs are in the repo-root current output file.
 
-The compare bundle shows only changed, added, and removed pairs by default. Use
-`--include-unchanged` if you want unchanged pairs visible too.
+The compare bundle shows only added, removed, and review-worthy changed pairs by
+default. Use `--include-unchanged` if you want unchanged pairs visible too.
+Rationale, confidence, model, and full-input evidence changes are treated as
+metadata-only unless the question, origin, retained evidence, or SPARQL also
+changed. Use `--include-metadata-only` if you want those records visible.
+Pairs that were dismissed in the previous review export are excluded by default;
+use `--include-dismissed` only when intentionally revisiting those exclusions.
 
 Compare mode shows the previous run and current run side by side. Previous
 review decisions are read-only context; current decisions are stored separately
@@ -63,6 +68,7 @@ The recommended repo location for exported reviewer decisions is `review/exports
 
 - `dismiss`
   - Exclude this example from the benchmark going forward.
+  - Dismissed pairs are also omitted from future compare-review queues by default.
   - Use when the underlying pair is bad benchmark material, not merely when the model behaved badly.
 
 - `needs_prompt_fix`

@@ -15,7 +15,7 @@ At a high level, the pipeline works like this:
 3. Extract candidate SPARQL queries from repos, docs, and PDFs into `kg_queries.jsonl`.
 4. Enrich those query records with nearby human-readable evidence such as comments, query descriptions, and competency questions.
 5. Run the queries against endpoints or local dumps and record execution metadata.
-6. Build LLM input payloads into `llm_inputs.jsonl` from the enriched query records.
+6. Build LLM input payloads into `llm_inputs.jsonl` from the enriched query records, optionally excluding queries already dismissed in a benchmark snapshot.
 7. Align SPARQL with source evidence where possible, and generate natural-language questions into `llm_outputs.jsonl` when no fitting source evidence exists.
 8. Merge LLM results back into `kg_queries.jsonl` for downstream evaluation and curation.
 9. Freeze review-worthy generation outputs into `runs/<run-id>/`.
@@ -669,6 +669,9 @@ This step establishes **ground-truth executability** for each query record.
 Current implementation notes:
 
 - `run_llm_generation.py` defaults to `llm_inputs.jsonl`.
+- When a benchmark already identifies queries that are unsuitable for NL generation, pass
+  `--exclude-dismissed-benchmark benchmark/vN` to `build_llm_inputs.py`. This uses
+  `benchmark/vN/dismissed.jsonl` as a deterministic query exclusion list.
 - `llm_outputs.jsonl` is treated as JSONL; legacy JSON-array files are normalized to JSONL on read.
 - Output records carry a `run_signature` containing hashes of the effective prompt/schema/examples/input configuration.
 - New output records also carry `request_config`, which records:
@@ -796,8 +799,14 @@ models, build a compare-review bundle instead:
 ```
 
 `--current-run` may also point at a current output file such as
-`llm_outputs.jsonl`, which is the default. Compare mode shows only changed,
-added, and removed pairs unless `--include-unchanged` is passed. The UI presents
+`llm_outputs.jsonl`, which is the default. Compare mode shows added, removed,
+and review-worthy changed pairs unless `--include-unchanged` is passed.
+Question, origin, retained-evidence, and SPARQL changes are review-worthy.
+Confidence, rationale, model, and full-input evidence changes are treated as
+metadata-only unless one of the review-worthy fields also changed; pass
+`--include-metadata-only` to audit those records. Pairs dismissed in the
+previous review export are excluded by default; pass `--include-dismissed` only
+when intentionally revisiting those decisions. The UI presents
 previous and current records side by side, including SPARQL, generated question,
 retained evidence, reviewer choices, preferred wording, and notes. Previous
 review decisions are read-only context; the exported compare review contains the
@@ -806,7 +815,7 @@ new decisions for the current run.
 Current reviewer labels:
 
 - `approve`: keep this example in the benchmark as-is
-- `dismiss`: exclude this example from the benchmark going forward
+- `dismiss`: exclude this example from the benchmark, future compare-review queues, and future LLM input generation when dismissed benchmark exclusions are enabled
 - `needs_prompt_fix`: example is valid, but model behavior should improve through prompt changes
 - `needs_data_fix`: example may be valid, but the model inputs are wrong, incomplete, noisy, or missing key signals
 
@@ -878,12 +887,13 @@ current records enter `benchmark.jsonl`, dismissed records enter
 - `benchmark/vN/manifest.json` – snapshot metadata and counts
 - `benchmark/vN/benchmark.jsonl` – approved benchmark items only
 - `benchmark/vN/pending.jsonl` – reviewed but not yet benchmark-approved items
-- `benchmark/vN/dismissed.jsonl` – reviewed items explicitly excluded from the benchmark
+- `benchmark/vN/dismissed.jsonl` – reviewed items explicitly excluded from the benchmark; this file can also be used as the exclusion list for future generation inputs
 
 ### Notes
 
 - The benchmark is distinct from both raw model outputs and review exports.
 - Review exports capture human judgments; benchmark snapshots capture the current curated gold set.
+- Dismissed records are still preserved with provenance so the exclusion is auditable and reversible.
 - Compare-review exports are update instructions for a benchmark version, not a
   full benchmark by themselves.
 - This separation makes it possible to compare multiple prompt/model runs against the same approved benchmark, while preserving reviewer provenance and benchmark history.

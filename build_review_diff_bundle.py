@@ -66,6 +66,21 @@ def load_reviews(path: Optional[Path]) -> Dict[str, Any]:
     return reviews
 
 
+def previous_review_status_by_pair(
+    previous_outputs: Dict[PairKey, Tuple[int, Dict[str, Any]]],
+    previous_reviews: Dict[str, Any],
+) -> Dict[PairKey, str]:
+    statuses: Dict[PairKey, str] = {}
+    for key, (idx, output) in previous_outputs.items():
+        review = previous_reviews.get(review_id_for(output, idx))
+        if not isinstance(review, dict):
+            continue
+        status = review.get("status")
+        if isinstance(status, str) and status:
+            statuses[key] = status
+    return statuses
+
+
 def record_payload(
     output_record: Dict[str, Any],
     input_index: Dict[Tuple[str, str, str], Dict[str, Any]],
@@ -190,6 +205,20 @@ def pair_status(previous: Optional[Dict[str, Any]], current: Optional[Dict[str, 
     return "changed" if flags else "unchanged"
 
 
+REVIEW_WORTHY_FLAGS = {
+    "question_changed",
+    "origin_changed",
+    "retained_evidence_changed",
+    "sparql_changed",
+}
+
+
+def has_review_worthy_change(status: str, flags: List[str]) -> bool:
+    if status in {"added", "removed"}:
+        return True
+    return any(flag in REVIEW_WORTHY_FLAGS for flag in flags)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build a browser review bundle comparing two LLM review runs.")
     parser.add_argument("--previous-outputs", required=True)
@@ -201,6 +230,16 @@ def main() -> None:
     parser.add_argument("--previous-run-manifest", default="")
     parser.add_argument("--current-run-manifest", default="")
     parser.add_argument("--include-unchanged", action="store_true")
+    parser.add_argument(
+        "--include-dismissed",
+        action="store_true",
+        help="Include pairs that were dismissed in the previous review export. By default they are excluded from compare review.",
+    )
+    parser.add_argument(
+        "--include-metadata-only",
+        action="store_true",
+        help="Include pairs whose only changes are confidence, rationale, model, or full-input evidence metadata.",
+    )
     args = parser.parse_args()
 
     previous_outputs_path = Path(args.previous_outputs)
@@ -218,9 +257,16 @@ def main() -> None:
     previous_outputs = index_outputs(load_json_records(previous_outputs_path))
     current_outputs = index_outputs(load_json_records(current_outputs_path))
     previous_reviews = load_reviews(previous_reviews_path)
+    previous_statuses = previous_review_status_by_pair(previous_outputs, previous_reviews)
 
     records: List[Dict[str, Any]] = []
+    dismissed_excluded = 0
+    metadata_only_excluded = 0
     for key in sorted(set(previous_outputs) | set(current_outputs)):
+        if previous_statuses.get(key) == "dismiss" and not args.include_dismissed:
+            dismissed_excluded += 1
+            continue
+
         previous_record = None
         previous_review_id = None
         if key in previous_outputs:
@@ -238,6 +284,9 @@ def main() -> None:
         flags = change_flags(previous_record, current_record)
         status = pair_status(previous_record, current_record, flags)
         if status == "unchanged" and not args.include_unchanged:
+            continue
+        if status == "changed" and not has_review_worthy_change(status, flags) and not args.include_metadata_only:
+            metadata_only_excluded += 1
             continue
 
         display_record = current_record or previous_record or {}
@@ -291,6 +340,8 @@ def main() -> None:
             "changed": sum(1 for rec in records if rec["pair_status"] == "changed"),
             "added": sum(1 for rec in records if rec["pair_status"] == "added"),
             "removed": sum(1 for rec in records if rec["pair_status"] == "removed"),
+            "dismissed_excluded": dismissed_excluded,
+            "metadata_only_excluded": metadata_only_excluded,
         },
         "records": records,
     }
@@ -302,6 +353,10 @@ def main() -> None:
         encoding="utf-8",
     )
     print(f"Wrote {len(records)} comparison records to {out_path}")
+    if dismissed_excluded:
+        print(f"Excluded {dismissed_excluded} previously dismissed pairs")
+    if metadata_only_excluded:
+        print(f"Excluded {metadata_only_excluded} metadata-only changed pairs")
 
 
 if __name__ == "__main__":
