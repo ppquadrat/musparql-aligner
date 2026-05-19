@@ -35,6 +35,10 @@
           auth: none
     repos:
       - https://github.com/polifonia-project/meetups-knowledge-graph
+    ontology_sources:
+      - url: https://w3id.org/polifonia/ontology/meetups-ontology
+        format: turtle
+        role: primary
     docs:
       - https://polifonia.kmi.open.ac.uk/meetups/queries.php
       - pdfs/2023_SEMMES_Meetups-CR.pdf
@@ -97,6 +101,10 @@
       format: turtle
     repos:
       - https://github.com/ppquadrat/DigThatLick
+    ontology_sources:
+      - url: https://raw.githubusercontent.com/ppquadrat/JazzOntology/master/JazzOntology.owl
+        format: turtle
+        role: primary
     docs:
       - pdfs/Jazz Ontology supplement.pdf
       - https://www.sciencedirect.com/science/article/pii/S1570826822000245

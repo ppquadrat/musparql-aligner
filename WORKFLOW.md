@@ -721,7 +721,14 @@ Provide the full evidence list to the LLM and specify a preference order by type
 1. `query_comment` (SPARQL comments)
 2. `doc_query_desc` / `web_query_desc` / `readme_query_desc`
 3. `cq_item`
-4. general KG descriptions (`kg_summary`, `doc_summary`, `readme_summary`, `web_summary`, `repo_summary`)
+4. optional ontology and graph-shape context (`ontology_term_context`, `graph_shape_context`)
+5. general KG descriptions (`kg_summary`, `doc_summary`, `readme_summary`, `web_summary`, `repo_summary`)
+
+`enrich_evidence.py` can add query-scoped ontology and observed graph-shape context when run with
+`--include-ontology-context` and/or `--include-graph-shape-context`. Ontology context comes from
+`ontology_sources` in `seeds.yaml` or `kgs.jsonl`; graph-shape context comes from configured local
+dataset dumps. These contexts are intended for term disambiguation, not for forcing ontology jargon
+into final user-facing questions.
 
 A second **consistency-check pass** may be applied to downgrade overconfident pairs.
 

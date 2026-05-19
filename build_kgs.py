@@ -29,6 +29,7 @@ class KGSeed:
     description_hint: Optional[str] = None
     sparql: Optional[SparqlConfig] = None
     repos: List[str] = None
+    ontology_sources: List[Dict[str, str]] = None
     docs: List[str] = None
     priority: Optional[str] = None
     notes: Optional[str] = None
@@ -328,11 +329,29 @@ def parse_kg_seed(raw: Dict[str, Any]) -> KGSeed:
         raise ValueError(f"KG '{kg_id}': must have a non-empty string 'name'.")
 
     repos = raw.get("repos") or []
+    ontology_sources = raw.get("ontology_sources") or []
     docs = raw.get("docs") or []
     if not isinstance(repos, list) or not all(isinstance(x, str) for x in repos):
         raise ValueError(f"KG '{kg_id}': 'repos' must be a list of strings.")
+    if not isinstance(ontology_sources, list):
+        raise ValueError(f"KG '{kg_id}': 'ontology_sources' must be a list.")
     if not isinstance(docs, list) or not all(isinstance(x, str) for x in docs):
         raise ValueError(f"KG '{kg_id}': 'docs' must be a list of strings.")
+    normalized_ontology_sources: List[Dict[str, str]] = []
+    for idx, source in enumerate(ontology_sources):
+        if isinstance(source, str):
+            normalized_ontology_sources.append({"url": source})
+            continue
+        if not isinstance(source, dict):
+            raise ValueError(f"KG '{kg_id}': ontology_sources[{idx}] must be a string or mapping.")
+        normalized: Dict[str, str] = {}
+        for key in ("url", "local_path", "format", "role"):
+            value = source.get(key)
+            if isinstance(value, str) and value.strip():
+                normalized[key] = value.strip()
+        if "url" not in normalized and "local_path" not in normalized:
+            raise ValueError(f"KG '{kg_id}': ontology_sources[{idx}] needs url or local_path.")
+        normalized_ontology_sources.append(normalized)
 
     sparql_cfg = None
     sparql = raw.get("sparql")
@@ -386,6 +405,7 @@ def parse_kg_seed(raw: Dict[str, Any]) -> KGSeed:
         description_hint=raw.get("description_hint"),
         sparql=sparql_cfg,
         repos=repos,
+        ontology_sources=normalized_ontology_sources,
         docs=docs,
         priority=raw.get("priority"),
         notes=raw.get("notes"),
@@ -419,6 +439,7 @@ def kgseed_to_record(kg: KGSeed) -> Dict[str, Any]:
         "sparql": sparql_obj,
         "dataset": dataset_obj,
         "repos": list(kg.repos or []),
+        "ontology_sources": list(kg.ontology_sources or []),
         "docs": list(kg.docs or []),
         "notes": kg.notes,
         "created_at": today,
