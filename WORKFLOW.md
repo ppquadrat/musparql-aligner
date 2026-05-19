@@ -47,6 +47,9 @@ The intent is to keep every step inspectable: deterministic collection and SPARQ
 - **Benchmark snapshots and eval reports = evaluation layer**  
   Approved/pending gold pairs and prompt/model comparison reports are versioned separately from both raw generations and review judgments.
 
+- **Experiment notes = method history**  
+  Pipeline variants that are tested but not necessarily adopted are recorded under `experiments/`, with links to their run snapshots, review exports, evaluation reports, and adoption decisions.
+
 This separation reduces hidden state, supports regeneration, and preserves dataset defensibility.
 
 ---
@@ -728,6 +731,21 @@ A second **consistency-check pass** may be applied to downgrade overconfident pa
 ### Output
 
 `llm_outputs.jsonl` (versioned JSONL LLM results with `run_signature`) and `kg_queries.jsonl` (updated in-place).
+
+---
+
+## 9A. Experiment History
+
+**Objective:** preserve the outcome of pipeline variants without conflating method
+adoption with benchmark curation.
+
+When a run changes extraction, enrichment, prompting, model choice, or evaluation
+procedure, add an experiment note under `experiments/`. The note should link to
+the implementation commit, generated run, review export, evaluation report, and
+any benchmark snapshot produced from the review.
+
+The benchmark may still be updated from a useful review even when the tested
+method is not adopted as a default pipeline step.
 
 ---
 
