@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from build_benchmark import (
+    benchmark_gold_records,
     has_query_specific_evidence,
     read_json,
     read_review_bundle,
@@ -34,6 +35,13 @@ def read_jsonl(path: Path) -> List[Dict[str, Any]]:
 
 def pair_key(record: Dict[str, Any]) -> Tuple[str, str]:
     return (str(record.get("kg_id") or ""), str(record.get("query_id") or ""))
+
+
+def approved_records_path(benchmark_dir: Path) -> Path:
+    preferred = benchmark_dir / "approved.jsonl"
+    if preferred.exists():
+        return preferred
+    return benchmark_dir / "benchmark.jsonl"
 
 
 def sort_records(records: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -191,7 +199,7 @@ def main() -> None:
     if not isinstance(pairs, list):
         raise ValueError("Compare bundle missing records list")
 
-    approved_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "benchmark.jsonl")}
+    approved_by_key = {pair_key(rec): rec for rec in read_jsonl(approved_records_path(previous_dir))}
     pending_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "pending.jsonl")}
     dismissed_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "dismissed.jsonl")}
     removed_records: List[Dict[str, Any]] = []
@@ -289,9 +297,21 @@ def main() -> None:
     dismissed = sort_records(dismissed_by_key.values())
     previous_manifest = read_json(previous_dir / "manifest.json") if (previous_dir / "manifest.json").exists() else {}
 
+    built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    benchmark_version = outdir.name
+    benchmark_records = benchmark_gold_records(
+        approved=approved,
+        pending=pending,
+        benchmark_version=benchmark_version,
+        built_at=built_at,
+        source_bundle=str(bundle_path),
+        source_review_export=str(review_path),
+        dataset_id=dataset_id,
+    )
+
     manifest = {
-        "benchmark_version": outdir.name,
-        "built_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "benchmark_version": benchmark_version,
+        "built_at": built_at,
         "update_type": "compare_review_update",
         "previous_benchmark": str(previous_dir),
         "previous_benchmark_version": previous_manifest.get("benchmark_version"),
@@ -301,6 +321,7 @@ def main() -> None:
         "previous_run": bundle.get("previous_run"),
         "current_run": bundle.get("current_run"),
         "counts": {
+            "benchmark": len(benchmark_records),
             "approved": len(approved),
             "pending": len(pending),
             "dismissed": len(dismissed),
@@ -310,10 +331,13 @@ def main() -> None:
         },
         "files": {
             "benchmark": "benchmark.jsonl",
+            "approved": "approved.jsonl",
             "pending": "pending.jsonl",
             "dismissed": "dismissed.jsonl",
         },
         "gold_question_policy": {
+            "benchmark_includes_approved": True,
+            "benchmark_includes_pending_with_reviewer_rewrite": True,
             "preferred_question_used_when_present": True,
             "approved_model_output_used_otherwise": True,
             "unchanged_previous_items_carried_forward": True,
@@ -321,12 +345,14 @@ def main() -> None:
     }
 
     write_json(outdir / "manifest.json", manifest)
-    write_jsonl(outdir / "benchmark.jsonl", approved)
+    write_jsonl(outdir / "benchmark.jsonl", benchmark_records)
+    write_jsonl(outdir / "approved.jsonl", approved)
     write_jsonl(outdir / "pending.jsonl", pending)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
 
     print(f"Wrote manifest to {outdir / 'manifest.json'}")
-    print(f"Wrote {len(approved)} approved records to {outdir / 'benchmark.jsonl'}")
+    print(f"Wrote {len(benchmark_records)} benchmark records to {outdir / 'benchmark.jsonl'}")
+    print(f"Wrote {len(approved)} approved records to {outdir / 'approved.jsonl'}")
     print(f"Wrote {len(pending)} pending records to {outdir / 'pending.jsonl'}")
     print(f"Wrote {len(dismissed)} dismissed records to {outdir / 'dismissed.jsonl'}")
     print(f"Applied {applied} compare-review decisions")

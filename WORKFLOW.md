@@ -351,11 +351,16 @@ Notes:
 - They should point to exactly one frozen generation run.
 - They are the source material used to build benchmark snapshots.
 
-### `benchmark/vN/benchmark.jsonl` (approved benchmark snapshot)
+### `benchmark/vN/benchmark.jsonl` (gold evaluation snapshot)
 
-One record per approved benchmark item:
+One record per benchmark item included in automatic evaluation. This file contains
+approved items plus pending items that have a reviewer-supplied gold question,
+with exactly one canonical `gold_question` per SPARQL query:
 
     {
+      "benchmark_version": "v3",
+      "benchmark_built_at": "2026-05-19T12:00:00+00:00",
+      "benchmark_status_group": "approved|pending",
       "benchmark_id": "meetups::meetups-0002::<token>",
       "kg_id": "meetups",
       "query_id": "meetups__sha256:...",
@@ -378,14 +383,6 @@ One record per approved benchmark item:
         "model": "gpt-5",
         "run_signature": {"model": "gpt-5", "...": "..."}
       },
-      "model_output": {
-        "nl_question": "...model wording...",
-        "origin_mode": "generated|paraphrased|verbatim",
-        "confidence": 82,
-        "confidence_rationale": "...",
-        "needs_review": false,
-        "retained_evidence_phrases": []
-      },
       "evidence_summary": {
         "evidence_count": 41,
         "evidence_types": ["cq_item", "query_comment"],
@@ -398,7 +395,9 @@ Notes:
 
 - Benchmark snapshots are built from review exports, not directly from raw model output files.
 - `gold_question` is the single canonical wording used for evaluation.
-- `pending.jsonl` and `dismissed.jsonl` use the same broad structure but capture non-approved review outcomes.
+- `approved.jsonl` preserves detailed approved records, including reviewed model output.
+- `pending.jsonl` preserves detailed pending records, including reviewed model output.
+- `dismissed.jsonl` preserves excluded records for audit and future input exclusion.
 
 ### `evals/reports/<eval-id>/` (automatic evaluation report)
 
@@ -854,13 +853,14 @@ Current reviewer labels:
 1. For a first reviewed run, build a benchmark snapshot with `benchmark/build_benchmark.py`.
 2. Create a versioned directory such as `benchmark/v1/`.
 3. Split reviewed items into:
-   - approved benchmark items
+   - approved records
    - pending items that still need prompt/data fixes
    - dismissed items excluded from the benchmark
-4. For approved items, set `gold_question` using:
+4. Build `benchmark.jsonl` from approved records plus pending records that have reviewer-supplied gold questions.
+5. Set `gold_question` using:
    - reviewer rewrite, if present
    - otherwise the approved model output
-5. Preserve provenance linking each benchmark item back to:
+6. Preserve provenance linking each benchmark item back to:
    - query identifiers
    - review export
    - generation run metadata
@@ -878,15 +878,16 @@ snapshot:
 
 The update routine carries forward unchanged previous benchmark records and
 replaces only pairs that received decisions in the compare review. Approved
-current records enter `benchmark.jsonl`, dismissed records enter
-`dismissed.jsonl`, and `needs_prompt_fix` / `needs_data_fix` records enter
-`pending.jsonl`.
+current records enter `approved.jsonl`, dismissed records enter `dismissed.jsonl`,
+and `needs_prompt_fix` / `needs_data_fix` records enter `pending.jsonl`.
+`benchmark.jsonl` is then extracted as the combined evaluation set.
 
 ### Output
 
 - `benchmark/vN/manifest.json` – snapshot metadata and counts
-- `benchmark/vN/benchmark.jsonl` – approved benchmark items only
-- `benchmark/vN/pending.jsonl` – reviewed but not yet benchmark-approved items
+- `benchmark/vN/benchmark.jsonl` – combined gold evaluation pairs: approved plus pending records with reviewer-supplied gold questions
+- `benchmark/vN/approved.jsonl` – detailed approved records
+- `benchmark/vN/pending.jsonl` – detailed reviewed but not yet benchmark-approved items
 - `benchmark/vN/dismissed.jsonl` – reviewed items explicitly excluded from the benchmark; this file can also be used as the exclusion list for future generation inputs
 
 ### Notes
@@ -936,10 +937,10 @@ Run semantic evaluation with an LLM judge:
   --out evals/reports/<eval-id>
 ```
 
-Evaluation uses approved and pending benchmark items by default:
+Evaluation uses the combined gold benchmark by default:
 
-- `benchmark.jsonl` items are approved gold pairs.
-- `pending.jsonl` items are reviewed cases needing prompt/data fixes and are useful for measuring improvement.
+- `benchmark.jsonl` items are approved pairs plus pending pairs with reviewer-supplied gold questions.
+- `approved.jsonl` and `pending.jsonl` keep the detailed review records for audit and review workflows.
 - `dismissed.jsonl` items are excluded from semantic scoring.
 
 ### Scoring Policy
@@ -978,8 +979,9 @@ At minimum, the project produces:
 - `runs/<run-id>/manifest.json` – frozen generation run metadata and copied generation artefacts
 - `review/review_data.js` – local reviewer bundle
 - `review/exports/*.json` – exported human-review judgments
-- `benchmark/vN/benchmark.jsonl` – versioned approved benchmark pairs
-- `benchmark/vN/pending.jsonl` – reviewed items pending fixes
+- `benchmark/vN/benchmark.jsonl` – combined gold evaluation pairs
+- `benchmark/vN/approved.jsonl` – detailed approved records
+- `benchmark/vN/pending.jsonl` – detailed reviewed items pending fixes
 - `benchmark/vN/manifest.json` – benchmark snapshot metadata
 - `evals/reports/<eval-id>/` – automatic prompt/model evaluation reports
 

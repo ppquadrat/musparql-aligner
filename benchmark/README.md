@@ -20,12 +20,18 @@ The benchmark is distinct from:
   - counts of approved / pending / dismissed items
 
 - `benchmark/vN/benchmark.jsonl`
-  - approved benchmark items only
-  - one record per NL–SPARQL pair
+  - the clean evaluation dataset
+  - approved items plus pending items that have a reviewer-supplied gold question
+  - one canonical `gold_question` per NL–SPARQL pair
+
+- `benchmark/vN/approved.jsonl`
+  - detailed approved records only
+  - preserves reviewed model output and provenance
 
 - `benchmark/vN/pending.jsonl`
   - reviewed but not benchmark-approved items
   - typically `needs_prompt_fix` or `needs_data_fix`
+  - records are included in `benchmark.jsonl` only when the reviewer supplied a gold question
 
 - `benchmark/vN/dismissed.jsonl`
   - reviewed items explicitly excluded from the benchmark
@@ -39,7 +45,7 @@ For each reviewed item:
 - if the reviewer supplied a preferred rewrite, use that as `gold_question`
 - otherwise, if the model output was approved as-is, use the approved model output as `gold_question`
 
-This keeps a single canonical wording per benchmark item, while preserving provenance about whether that wording came from the reviewer or the model.
+This keeps a single canonical wording per benchmark item, while preserving provenance about whether that wording came from the reviewer or the model. `benchmark.jsonl` intentionally omits the generated model wording; the detailed `approved.jsonl` and `pending.jsonl` files keep it for audit and review workflows.
 
 ## Builder
 
@@ -67,12 +73,13 @@ and replaces only the pairs that received decisions in the compare review.
 
 ## Record design
 
-Benchmark items are intentionally compact:
+Records in `benchmark.jsonl` are intentionally compact:
 
 - `sparql`
 - `gold_question`
 - traceability metadata (`query_id`, `query_label`, `kg_id`, source review file)
-- light analysis metadata (model origin mode, evidence type summary, review provenance)
+- benchmark metadata (`benchmark_version`, `benchmark_built_at`, status group)
+- light analysis metadata (evidence type summary, review provenance)
 
 The benchmark should be easy to evaluate against, while still traceable back to the reviewed LLM generation run.
 
@@ -96,10 +103,9 @@ benchmark snapshot:
   --out evals/reports/<eval-id>
 ```
 
-The evaluator scores approved plus pending items by default. Pending items are
-included because they capture reviewed examples where the previous model output
-needed prompt or data improvement. Dismissed items are excluded from semantic
-scoring.
+The evaluator scores `benchmark.jsonl`. That file already contains approved
+items plus pending items with reviewer-supplied gold questions. Dismissed items
+are excluded from semantic scoring.
 
 SPARQL is treated as fixed input. If a run input's SPARQL differs from the
 benchmark SPARQL for the same `query_id`, the evaluator reports a deterministic

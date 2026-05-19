@@ -234,19 +234,33 @@ def placeholder_warnings(question: str) -> List[str]:
 
 
 def load_benchmark(benchmark_dir: Path) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, int]]:
-    approved = load_json_records(benchmark_dir / "benchmark.jsonl")
+    manifest = load_json(benchmark_dir / "manifest.json")
+    new_layout = (benchmark_dir / "approved.jsonl").exists() or "approved" in manifest.get("files", {})
+    benchmark = load_json_records(benchmark_dir / "benchmark.jsonl")
+    approved = load_json_records(benchmark_dir / "approved.jsonl") if new_layout else benchmark
     pending = load_json_records(benchmark_dir / "pending.jsonl")
     dismissed = load_json_records(benchmark_dir / "dismissed.jsonl")
     items: List[Dict[str, Any]] = []
-    for rec in approved:
-        item = dict(rec)
-        item["_benchmark_status_group"] = "approved"
-        items.append(item)
-    for rec in pending:
-        item = dict(rec)
-        item["_benchmark_status_group"] = "pending"
-        items.append(item)
-    counts = {"approved": len(approved), "pending": len(pending), "dismissed": len(dismissed)}
+    if new_layout:
+        for rec in benchmark:
+            item = dict(rec)
+            item["_benchmark_status_group"] = str(rec.get("benchmark_status_group") or rec.get("_benchmark_status_group") or "")
+            items.append(item)
+    else:
+        for rec in approved:
+            item = dict(rec)
+            item["_benchmark_status_group"] = "approved"
+            items.append(item)
+        for rec in pending:
+            item = dict(rec)
+            item["_benchmark_status_group"] = "pending"
+            items.append(item)
+    counts = {
+        "benchmark": len(items),
+        "approved": len(approved),
+        "pending": len(pending),
+        "dismissed": len(dismissed),
+    }
     return items, dismissed, counts
 
 

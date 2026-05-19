@@ -46,6 +46,48 @@ def has_query_specific_evidence(evidence_types: List[str]) -> bool:
     return any(t in {"query_comment", "readme_query_desc", "doc_query_desc", "web_query_desc"} for t in evidence_types)
 
 
+def benchmark_gold_records(
+    *,
+    approved: List[Dict[str, Any]],
+    pending: List[Dict[str, Any]],
+    benchmark_version: str,
+    built_at: str,
+    source_bundle: str,
+    source_review_export: str,
+    dataset_id: str,
+) -> List[Dict[str, Any]]:
+    records: List[Dict[str, Any]] = []
+    for status_group, source_records in (("approved", approved), ("pending", pending)):
+        for rec in source_records:
+            gold_question = str(rec.get("gold_question") or "").strip()
+            if not gold_question:
+                continue
+            if status_group == "pending" and rec.get("gold_question_source") != "reviewer_rewrite":
+                continue
+            records.append(
+                {
+                    "benchmark_version": benchmark_version,
+                    "benchmark_built_at": built_at,
+                    "benchmark_status_group": status_group,
+                    "benchmark_id": rec.get("benchmark_id"),
+                    "kg_id": rec.get("kg_id"),
+                    "query_id": rec.get("query_id"),
+                    "query_label": rec.get("query_label"),
+                    "sparql": rec.get("sparql"),
+                    "gold_question": gold_question,
+                    "gold_question_source": rec.get("gold_question_source"),
+                    "review_status": rec.get("review_status"),
+                    "review": rec.get("review"),
+                    "run": rec.get("run"),
+                    "evidence_summary": rec.get("evidence_summary"),
+                    "source_bundle": source_bundle,
+                    "source_review_export": source_review_export,
+                    "dataset_id": dataset_id,
+                }
+            )
+    return sorted(records, key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build a benchmark snapshot from a review bundle and reviewer export.")
     parser.add_argument("--bundle", default="review/review_data.js")
@@ -158,14 +200,28 @@ def main() -> None:
     pending.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
     dismissed.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
 
+    built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    benchmark_version = outdir.name
+    dataset_id = review_dataset_id or bundle_dataset_id
+    benchmark_records = benchmark_gold_records(
+        approved=approved,
+        pending=pending,
+        benchmark_version=benchmark_version,
+        built_at=built_at,
+        source_bundle=str(bundle_path),
+        source_review_export=str(review_path),
+        dataset_id=dataset_id,
+    )
+
     manifest = {
-        "benchmark_version": outdir.name,
-        "built_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "benchmark_version": benchmark_version,
+        "built_at": built_at,
         "source_bundle": str(bundle_path),
         "source_review_export": str(review_path),
-        "dataset_id": review_dataset_id or bundle_dataset_id,
+        "dataset_id": dataset_id,
         "run_id": review_run_id or (bundle_run_ids[0] if len(bundle_run_ids) == 1 else None),
         "counts": {
+            "benchmark": len(benchmark_records),
             "approved": len(approved),
             "pending": len(pending),
             "dismissed": len(dismissed),
@@ -174,22 +230,27 @@ def main() -> None:
         },
         "files": {
             "benchmark": "benchmark.jsonl",
+            "approved": "approved.jsonl",
             "pending": "pending.jsonl",
             "dismissed": "dismissed.jsonl",
         },
         "gold_question_policy": {
+            "benchmark_includes_approved": True,
+            "benchmark_includes_pending_with_reviewer_rewrite": True,
             "preferred_question_used_when_present": True,
             "approved_model_output_used_otherwise": True,
         },
     }
 
     write_json(outdir / "manifest.json", manifest)
-    write_jsonl(outdir / "benchmark.jsonl", approved)
+    write_jsonl(outdir / "benchmark.jsonl", benchmark_records)
+    write_jsonl(outdir / "approved.jsonl", approved)
     write_jsonl(outdir / "pending.jsonl", pending)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
 
     print(f"Wrote manifest to {outdir / 'manifest.json'}")
-    print(f"Wrote {len(approved)} approved records to {outdir / 'benchmark.jsonl'}")
+    print(f"Wrote {len(benchmark_records)} benchmark records to {outdir / 'benchmark.jsonl'}")
+    print(f"Wrote {len(approved)} approved records to {outdir / 'approved.jsonl'}")
     print(f"Wrote {len(pending)} pending records to {outdir / 'pending.jsonl'}")
     print(f"Wrote {len(dismissed)} dismissed records to {outdir / 'dismissed.jsonl'}")
 

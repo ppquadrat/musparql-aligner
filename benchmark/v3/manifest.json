@@ -1,6 +1,6 @@
 {
   "benchmark_version": "v3",
-  "built_at": "2026-05-15T00:07:51+00:00",
+  "built_at": "2026-05-19T12:58:18+00:00",
   "update_type": "compare_review_update",
   "previous_benchmark": "benchmark/v2",
   "previous_benchmark_version": "v2",
@@ -24,6 +24,7 @@
     "created_at": "2026-04-28T11:46:57+00:00"
   },
   "counts": {
+    "benchmark": 61,
     "approved": 50,
     "pending": 11,
     "dismissed": 4,
@@ -37,10 +38,13 @@
   },
   "files": {
     "benchmark": "benchmark.jsonl",
+    "approved": "approved.jsonl",
     "pending": "pending.jsonl",
     "dismissed": "dismissed.jsonl"
   },
   "gold_question_policy": {
+    "benchmark_includes_approved": true,
+    "benchmark_includes_pending_with_reviewer_rewrite": true,
     "preferred_question_used_when_present": true,
     "approved_model_output_used_otherwise": true,
     "unchanged_previous_items_carried_forward": true
