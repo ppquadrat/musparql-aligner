@@ -44,8 +44,7 @@ Global priority:
 1. query_comment
 2. readme_query_desc / doc_query_desc / web_query_desc
 3. cq_item
-4. ontology_term_context / graph_shape_context
-5. general summaries (kg_summary, doc_summary, readme_summary, web_summary, repo_summary)
+4. general summaries (kg_summary, doc_summary, readme_summary, web_summary, repo_summary)
 
 Additional rules:
 - If query comes from repo evidence, prefer readme descriptions over web/doc descriptions.
@@ -54,7 +53,6 @@ Additional rules:
 - If evidence is only partially aligned but still captures the domain intent, you may paraphrase it and add missing query constraints from SPARQL.
 - If evidence is clearly about a different intent, do not force it into ranked_evidence_phrases just to avoid generation.
 - Generic headings or labels such as "TOP PEOPLE" or "TOP PLACES" can support scope or top-k interpretation, but by themselves they are usually not enough to justify nl_question_origin.mode="paraphrased".
-- Ontology and graph shape context are supporting context for understanding class/property meanings and observed data shape. Use them to disambiguate SPARQL terms, but avoid exposing ontology jargon in the final question unless the term is genuinely user-facing.
 
 Known source_type values (input evidence.type)
 - query_comment
@@ -67,8 +65,6 @@ Known source_type values (input evidence.type)
 - readme_summary
 - web_summary
 - repo_summary
-- ontology_term_context
-- graph_shape_context
 - Other values may appear; handle them conservatively by semantic match.
 
 Output field behavior
