@@ -51,6 +51,25 @@ def signature_token(record: Dict[str, Any], idx: int) -> str:
     return f"{model}-{idx:04d}"
 
 
+def output_meta(record: Dict[str, Any]) -> Dict[str, Any]:
+    request_config = record.get("request_config")
+    response_metadata = record.get("response_metadata")
+    meta = {
+        "model": record.get("model"),
+        "elapsed_ms": record.get("elapsed_ms"),
+        "generated_at": record.get("generated_at"),
+        "run_signature": record.get("run_signature"),
+    }
+    if isinstance(request_config, dict):
+        meta["request_config"] = request_config
+        meta["requested_model"] = request_config.get("requested_model")
+        meta["generation_parameters"] = request_config.get("generation_parameters")
+    if isinstance(response_metadata, dict):
+        meta["response_metadata"] = response_metadata
+        meta["response_model"] = response_metadata.get("model")
+    return meta
+
+
 def build_input_index(records: Iterable[Dict[str, Any]]) -> Dict[Tuple[str, str, str], Dict[str, Any]]:
     index: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
     for rec in records:
@@ -240,12 +259,7 @@ def main() -> None:
                         "evidence": source_input.get("evidence", []),
                     },
                     "output": rec.get("llm_output"),
-                    "output_meta": {
-                        "model": rec.get("model"),
-                        "elapsed_ms": rec.get("elapsed_ms"),
-                        "generated_at": rec.get("generated_at"),
-                        "run_signature": rec.get("run_signature"),
-                    },
+                    "output_meta": output_meta(rec),
                 }
             )
 

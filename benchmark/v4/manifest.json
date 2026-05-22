@@ -49,5 +49,61 @@
     "preferred_question_used_when_present": true,
     "approved_model_output_used_otherwise": true,
     "unchanged_previous_items_carried_forward": true
+  },
+  "model_provenance": {
+    "source": "benchmark.jsonl records enriched from runs/*/llm_outputs.jsonl and summarized with runs/*/manifest.json",
+    "runs": [
+      {
+        "run_id": "2026-04-26-full-review-gpt5",
+        "benchmark_record_count": 26,
+        "records_with_request_config": 0,
+        "legacy_records_without_request_config": 26
+      },
+      {
+        "run_id": "2026-04-28-full-review-gpt5",
+        "benchmark_record_count": 4,
+        "records_with_request_config": 0,
+        "legacy_records_without_request_config": 4
+      },
+      {
+        "run_id": "2026-05-19-ontology-shape-gpt5",
+        "benchmark_record_count": 31,
+        "records_with_request_config": 31,
+        "legacy_records_without_request_config": 0,
+        "run_model_provenance": {
+          "request_configs": [
+            {
+              "hash": "d636b7b394062357c97150120322e93dfd26d7244e53d46437740d8d90a0466d",
+              "config": {
+                "script_version": "run_llm_generation.py@v2",
+                "api_method": "responses.create",
+                "requested_model": "gpt-5",
+                "timeout_s": 180.0,
+                "max_records": 0,
+                "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
+                "prompt_path": "prompts/llm_nl_generation.prompt.txt",
+                "schema_path": "schemas/llm_output.schema.json",
+                "examples_path": "prompts/llm_nl_generation.examples.jsonl",
+                "prompt_hash": "06cd7ddd2c02bedb14029c590bb6f0443bd3701157f9fb94209c5417b38067a9",
+                "schema_hash": "514195726e341212994b40f3a81a0e1a734367c8ad9e4718c29e01310a3c5be1",
+                "examples_hash": "a45ee7c9b30f9e4a8fbe7df967f8a7732bc020b7b15b5da6985b4d086f28681f",
+                "system_prompt_hash": "919322f99f006af4da3378431d9e04507f5aa11c52ad95845032992d073282e7",
+                "generation_parameters": {
+                  "temperature": null,
+                  "top_p": null,
+                  "max_output_tokens": null,
+                  "reasoning_effort": null
+                }
+              },
+              "count": 160
+            }
+          ],
+          "legacy_records_without_request_config": 0,
+          "response_models": [
+            "gpt-5-2025-08-07"
+          ]
+        }
+      }
+    ]
   }
 }

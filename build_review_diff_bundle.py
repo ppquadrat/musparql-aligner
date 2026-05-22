@@ -91,6 +91,21 @@ def record_payload(
     query_id = str(output_record.get("query_id") or "")
     query_label = str(output_record.get("query_label") or "")
     source_input = input_index.get((kg_id, query_id, query_label), {})
+    request_config = output_record.get("request_config")
+    response_metadata = output_record.get("response_metadata")
+    output_meta = {
+        "model": output_record.get("model"),
+        "elapsed_ms": output_record.get("elapsed_ms"),
+        "generated_at": output_record.get("generated_at"),
+        "run_signature": output_record.get("run_signature"),
+    }
+    if isinstance(request_config, dict):
+        output_meta["request_config"] = request_config
+        output_meta["requested_model"] = request_config.get("requested_model")
+        output_meta["generation_parameters"] = request_config.get("generation_parameters")
+    if isinstance(response_metadata, dict):
+        output_meta["response_metadata"] = response_metadata
+        output_meta["response_model"] = response_metadata.get("model")
     return {
         "review_id": review_id,
         "run_id": run.get("run_id"),
@@ -107,12 +122,7 @@ def record_payload(
             "evidence": source_input.get("evidence", []),
         },
         "output": output_record.get("llm_output"),
-        "output_meta": {
-            "model": output_record.get("model"),
-            "elapsed_ms": output_record.get("elapsed_ms"),
-            "generated_at": output_record.get("generated_at"),
-            "run_signature": output_record.get("run_signature"),
-        },
+        "output_meta": output_meta,
     }
 
 

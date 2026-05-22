@@ -46,6 +46,34 @@ def has_query_specific_evidence(evidence_types: List[str]) -> bool:
     return any(t in {"query_comment", "readme_query_desc", "doc_query_desc", "web_query_desc"} for t in evidence_types)
 
 
+def run_metadata(record: Dict[str, Any]) -> Dict[str, Any]:
+    output_meta = record.get("output_meta", {})
+    if not isinstance(output_meta, dict):
+        output_meta = {}
+    request_config = output_meta.get("request_config")
+    response_metadata = output_meta.get("response_metadata")
+    meta = {
+        "run_id": record.get("run_id"),
+        "generation_run_id": record.get("generation_run_id") or record.get("run_id"),
+        "run_manifest": record.get("run_manifest"),
+        "run_label": record.get("run_label"),
+        "source_file": record.get("source_file"),
+        "model": output_meta.get("model"),
+        "run_signature": output_meta.get("run_signature"),
+    }
+    if output_meta.get("requested_model") is not None:
+        meta["requested_model"] = output_meta.get("requested_model")
+    if output_meta.get("response_model") is not None:
+        meta["response_model"] = output_meta.get("response_model")
+    if output_meta.get("generation_parameters") is not None:
+        meta["generation_parameters"] = output_meta.get("generation_parameters")
+    if isinstance(request_config, dict):
+        meta["request_config"] = request_config
+    if isinstance(response_metadata, dict):
+        meta["response_metadata"] = response_metadata
+    return meta
+
+
 def benchmark_gold_records(
     *,
     approved: List[Dict[str, Any]],
@@ -165,13 +193,7 @@ def main() -> None:
                 "updated_at": review.get("updated_at"),
             },
             "run": {
-                "run_id": record.get("run_id"),
-                "generation_run_id": record.get("generation_run_id") or record.get("run_id"),
-                "run_manifest": record.get("run_manifest"),
-                "run_label": record.get("run_label"),
-                "source_file": record.get("source_file"),
-                "model": record.get("output_meta", {}).get("model"),
-                "run_signature": record.get("output_meta", {}).get("run_signature"),
+                **run_metadata(record),
             },
             "model_output": {
                 "nl_question": model_question,
