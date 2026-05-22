@@ -19,6 +19,7 @@ from build_review_bundle import (
 
 
 PairKey = Tuple[str, str]
+HOLDOUT_SPLIT = "private_holdout"
 
 
 def pair_key(record: Dict[str, Any]) -> PairKey:
@@ -79,6 +80,21 @@ def previous_review_status_by_pair(
         if isinstance(status, str) and status:
             statuses[key] = status
     return statuses
+
+
+def previous_review_split_by_pair(
+    previous_outputs: Dict[PairKey, Tuple[int, Dict[str, Any]]],
+    previous_reviews: Dict[str, Any],
+) -> Dict[PairKey, str]:
+    splits: Dict[PairKey, str] = {}
+    for key, (idx, output) in previous_outputs.items():
+        review = previous_reviews.get(review_id_for(output, idx))
+        if not isinstance(review, dict):
+            continue
+        split = review.get("split")
+        if isinstance(split, str) and split:
+            splits[key] = split
+    return splits
 
 
 def record_payload(
@@ -268,11 +284,16 @@ def main() -> None:
     current_outputs = index_outputs(load_json_records(current_outputs_path))
     previous_reviews = load_reviews(previous_reviews_path)
     previous_statuses = previous_review_status_by_pair(previous_outputs, previous_reviews)
+    previous_splits = previous_review_split_by_pair(previous_outputs, previous_reviews)
 
     records: List[Dict[str, Any]] = []
     dismissed_excluded = 0
+    holdout_excluded = 0
     metadata_only_excluded = 0
     for key in sorted(set(previous_outputs) | set(current_outputs)):
+        if previous_splits.get(key) == HOLDOUT_SPLIT:
+            holdout_excluded += 1
+            continue
         if previous_statuses.get(key) == "dismiss" and not args.include_dismissed:
             dismissed_excluded += 1
             continue
@@ -351,6 +372,7 @@ def main() -> None:
             "added": sum(1 for rec in records if rec["pair_status"] == "added"),
             "removed": sum(1 for rec in records if rec["pair_status"] == "removed"),
             "dismissed_excluded": dismissed_excluded,
+            "holdout_excluded": holdout_excluded,
             "metadata_only_excluded": metadata_only_excluded,
         },
         "records": records,
@@ -365,6 +387,8 @@ def main() -> None:
     print(f"Wrote {len(records)} comparison records to {out_path}")
     if dismissed_excluded:
         print(f"Excluded {dismissed_excluded} previously dismissed pairs")
+    if holdout_excluded:
+        print(f"Excluded {holdout_excluded} private holdout pairs")
     if metadata_only_excluded:
         print(f"Excluded {metadata_only_excluded} metadata-only changed pairs")
 

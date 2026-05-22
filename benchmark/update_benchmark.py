@@ -9,8 +9,10 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from build_benchmark import (
+    HOLDOUT_SPLIT,
     benchmark_gold_records,
     has_query_specific_evidence,
+    is_private_holdout,
     read_json,
     read_review_bundle,
     run_metadata,
@@ -45,6 +47,10 @@ def approved_records_path(benchmark_dir: Path) -> Path:
     return benchmark_dir / "benchmark.jsonl"
 
 
+def holdout_records_path(benchmark_dir: Path) -> Path:
+    return benchmark_dir / "holdout.jsonl"
+
+
 def sort_records(records: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return sorted(records, key=lambda rec: (str(rec.get("kg_id") or ""), str(rec.get("query_label") or "")))
 
@@ -77,6 +83,7 @@ def make_benchmark_record(
         "gold_question": gold_question,
         "gold_question_source": gold_source,
         "review_status": status,
+        "split": HOLDOUT_SPLIT if is_private_holdout(review) else "public",
         "review": {
             "review_id": review_id,
             "review_export": str(review_path),
@@ -151,9 +158,10 @@ def pop_key_from_all(
     approved_by_key: Dict[Tuple[str, str], Dict[str, Any]],
     pending_by_key: Dict[Tuple[str, str], Dict[str, Any]],
     dismissed_by_key: Dict[Tuple[str, str], Dict[str, Any]],
+    holdout_by_key: Dict[Tuple[str, str], Dict[str, Any]],
 ) -> bool:
     removed = False
-    for records in (approved_by_key, pending_by_key, dismissed_by_key):
+    for records in (approved_by_key, pending_by_key, dismissed_by_key, holdout_by_key):
         if key in records:
             records.pop(key, None)
             removed = True
@@ -195,6 +203,7 @@ def main() -> None:
     approved_by_key = {pair_key(rec): rec for rec in read_jsonl(approved_records_path(previous_dir))}
     pending_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "pending.jsonl")}
     dismissed_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "dismissed.jsonl")}
+    holdout_by_key = {pair_key(rec): rec for rec in read_jsonl(holdout_records_path(previous_dir))}
     removed_records: List[Dict[str, Any]] = []
     removed_by_label: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
     removed_by_sparql: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
@@ -231,6 +240,7 @@ def main() -> None:
         approved_by_key.pop(key, None)
         pending_by_key.pop(key, None)
         dismissed_by_key.pop(key, None)
+        holdout_by_key.pop(key, None)
         status_counts[status] += 1
         applied += 1
 
@@ -267,7 +277,7 @@ def main() -> None:
                 seen_candidate_keys.add(candidate_key)
                 if candidate_key == key:
                     continue
-                if pop_key_from_all(candidate_key, approved_by_key, pending_by_key, dismissed_by_key):
+                if pop_key_from_all(candidate_key, approved_by_key, pending_by_key, dismissed_by_key, holdout_by_key):
                     superseded_removed += 1
 
         next_record = make_benchmark_record(
@@ -278,7 +288,9 @@ def main() -> None:
             dataset_id=dataset_id,
             current_run=current_run,
         )
-        if status == "approve":
+        if is_private_holdout(review):
+            holdout_by_key[key] = next_record
+        elif status == "approve":
             approved_by_key[key] = next_record
         elif status == "dismiss":
             dismissed_by_key[key] = next_record
@@ -288,6 +300,7 @@ def main() -> None:
     approved = sort_records(approved_by_key.values())
     pending = sort_records(pending_by_key.values())
     dismissed = sort_records(dismissed_by_key.values())
+    holdout = sort_records(holdout_by_key.values())
     previous_manifest = read_json(previous_dir / "manifest.json") if (previous_dir / "manifest.json").exists() else {}
 
     built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -318,6 +331,7 @@ def main() -> None:
             "approved": len(approved),
             "pending": len(pending),
             "dismissed": len(dismissed),
+            "holdout": len(holdout),
             "applied_compare_reviews": applied,
             "applied_status_counts": dict(status_counts),
             "superseded_removed_previous_items": superseded_removed,
@@ -327,6 +341,7 @@ def main() -> None:
             "approved": "approved.jsonl",
             "pending": "pending.jsonl",
             "dismissed": "dismissed.jsonl",
+            "holdout": "holdout.jsonl",
         },
         "gold_question_policy": {
             "benchmark_includes_approved": True,
@@ -335,6 +350,13 @@ def main() -> None:
             "approved_model_output_used_otherwise": True,
             "unchanged_previous_items_carried_forward": True,
         },
+        "holdout_policy": {
+            "review_split": HOLDOUT_SPLIT,
+            "excluded_from_public_benchmark": True,
+            "excluded_from_normal_autoeval": True,
+            "excluded_from_future_generation_inputs": True,
+            "unchanged_previous_holdout_items_carried_forward": True,
+        },
     }
 
     write_json(outdir / "manifest.json", manifest)
@@ -342,12 +364,14 @@ def main() -> None:
     write_jsonl(outdir / "approved.jsonl", approved)
     write_jsonl(outdir / "pending.jsonl", pending)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
+    write_jsonl(outdir / "holdout.jsonl", holdout)
 
     print(f"Wrote manifest to {outdir / 'manifest.json'}")
     print(f"Wrote {len(benchmark_records)} benchmark records to {outdir / 'benchmark.jsonl'}")
     print(f"Wrote {len(approved)} approved records to {outdir / 'approved.jsonl'}")
     print(f"Wrote {len(pending)} pending records to {outdir / 'pending.jsonl'}")
     print(f"Wrote {len(dismissed)} dismissed records to {outdir / 'dismissed.jsonl'}")
+    print(f"Wrote {len(holdout)} private holdout records to {outdir / 'holdout.jsonl'}")
     print(f"Applied {applied} compare-review decisions")
 
 

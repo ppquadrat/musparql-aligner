@@ -46,6 +46,11 @@ Compare mode shows the previous run and current run side by side. Previous
 review decisions are read-only context; current decisions are stored separately
 and exported as a new compare-mode review file.
 
+New examples can be marked as **Private holdout** before export. In compare
+mode, this control is shown for added pairs. Holdout decisions are saved in the
+review export as `split: "private_holdout"` and are intended for reviewer-only
+sanity checks, not prompt development.
+
 2. Serve the repo locally:
 
 ```bash
@@ -91,3 +96,7 @@ The recommended repo location for exported reviewer decisions is `review/exports
 - Review exports can be shared with other evaluators without changing the original model output files.
 - Compare-mode exports contain the reviewer decisions for the current run, while
   the imported previous review remains read-only context.
+- Private holdout records are excluded from normal benchmark snapshots,
+  compare-review queues, future prompt-input generation, and automatic
+  evaluation by default. Do not paste or print holdout labels in model-visible
+  conversations if the goal is to keep them clean.

@@ -9,6 +9,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 
+HOLDOUT_SPLIT = "private_holdout"
+
+
 def read_review_bundle(path: Path) -> Dict[str, Any]:
     text = path.read_text(encoding="utf-8")
     prefix = "window.REVIEW_DATA = "
@@ -44,6 +47,10 @@ def source_evidence_types(evidence: List[Dict[str, Any]]) -> List[str]:
 
 def has_query_specific_evidence(evidence_types: List[str]) -> bool:
     return any(t in {"query_comment", "readme_query_desc", "doc_query_desc", "web_query_desc"} for t in evidence_types)
+
+
+def is_private_holdout(review: Dict[str, Any]) -> bool:
+    return review.get("split") == HOLDOUT_SPLIT
 
 
 def run_metadata(record: Dict[str, Any]) -> Dict[str, Any]:
@@ -105,6 +112,7 @@ def benchmark_gold_records(
                     "gold_question": gold_question,
                     "gold_question_source": rec.get("gold_question_source"),
                     "review_status": rec.get("review_status"),
+                    "split": rec.get("split") or "public",
                     "review": rec.get("review"),
                     "run": rec.get("run"),
                     "evidence_summary": rec.get("evidence_summary"),
@@ -151,7 +159,9 @@ def main() -> None:
     approved: List[Dict[str, Any]] = []
     pending: List[Dict[str, Any]] = []
     dismissed: List[Dict[str, Any]] = []
+    holdout: List[Dict[str, Any]] = []
     status_counts: Counter[str] = Counter()
+    split_counts: Counter[str] = Counter()
 
     for record in bundle_records:
         if not isinstance(record, dict):
@@ -164,6 +174,8 @@ def main() -> None:
         if not status:
             continue
         status_counts[status] += 1
+        split = HOLDOUT_SPLIT if is_private_holdout(review) else "public"
+        split_counts[split] += 1
 
         evidence = record.get("input", {}).get("evidence", [])
         if not isinstance(evidence, list):
@@ -183,6 +195,7 @@ def main() -> None:
             "gold_question": gold_question,
             "gold_question_source": gold_source,
             "review_status": status,
+            "split": split,
             "review": {
                 "review_id": review_id,
                 "review_export": str(review_path),
@@ -211,7 +224,9 @@ def main() -> None:
             },
         }
 
-        if status == "approve":
+        if split == HOLDOUT_SPLIT:
+            holdout.append(base)
+        elif status == "approve":
             approved.append(base)
         elif status == "dismiss":
             dismissed.append(base)
@@ -221,6 +236,7 @@ def main() -> None:
     approved.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
     pending.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
     dismissed.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
+    holdout.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
 
     built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     benchmark_version = outdir.name
@@ -247,20 +263,29 @@ def main() -> None:
             "approved": len(approved),
             "pending": len(pending),
             "dismissed": len(dismissed),
+            "holdout": len(holdout),
             "reviewed_total": sum(status_counts.values()),
             "status_counts": dict(status_counts),
+            "split_counts": dict(split_counts),
         },
         "files": {
             "benchmark": "benchmark.jsonl",
             "approved": "approved.jsonl",
             "pending": "pending.jsonl",
             "dismissed": "dismissed.jsonl",
+            "holdout": "holdout.jsonl",
         },
         "gold_question_policy": {
             "benchmark_includes_approved": True,
             "benchmark_includes_pending_with_reviewer_rewrite": True,
             "preferred_question_used_when_present": True,
             "approved_model_output_used_otherwise": True,
+        },
+        "holdout_policy": {
+            "review_split": HOLDOUT_SPLIT,
+            "excluded_from_public_benchmark": True,
+            "excluded_from_normal_autoeval": True,
+            "excluded_from_future_generation_inputs": True,
         },
     }
 
@@ -269,12 +294,14 @@ def main() -> None:
     write_jsonl(outdir / "approved.jsonl", approved)
     write_jsonl(outdir / "pending.jsonl", pending)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
+    write_jsonl(outdir / "holdout.jsonl", holdout)
 
     print(f"Wrote manifest to {outdir / 'manifest.json'}")
     print(f"Wrote {len(benchmark_records)} benchmark records to {outdir / 'benchmark.jsonl'}")
     print(f"Wrote {len(approved)} approved records to {outdir / 'approved.jsonl'}")
     print(f"Wrote {len(pending)} pending records to {outdir / 'pending.jsonl'}")
     print(f"Wrote {len(dismissed)} dismissed records to {outdir / 'dismissed.jsonl'}")
+    print(f"Wrote {len(holdout)} private holdout records to {outdir / 'holdout.jsonl'}")
 
 
 if __name__ == "__main__":

@@ -370,6 +370,36 @@ h1 {
   grid-column: 1 / -1;
 }
 
+.checkbox-field {
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(241, 230, 210, 0.45);
+  padding: 0.75rem 0.85rem;
+}
+
+.field-grid label.checkbox-field,
+.compare-review-fields label.checkbox-field {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.55rem;
+  align-items: start;
+}
+
+.checkbox-field input {
+  width: auto;
+  margin-top: 0.2rem;
+}
+
+.checkbox-field small {
+  grid-column: 2;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.compare-holdout-field {
+  min-height: 0;
+}
+
 input,
 select,
 textarea {

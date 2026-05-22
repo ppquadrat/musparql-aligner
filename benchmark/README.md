@@ -38,6 +38,13 @@ The benchmark is distinct from:
   - useful for provenance/data-quality inspection, but not semantic scoring
   - can be reused as an exclusion list when building future LLM prompt inputs
 
+- `benchmark/vN/holdout.jsonl`
+  - reviewer-marked private holdout items (`split: "private_holdout"`)
+  - excluded from `benchmark.jsonl`, `approved.jsonl`, `pending.jsonl`, and
+    `dismissed.jsonl`
+  - excluded from normal automatic evaluation and future generation inputs
+  - should not be printed, pasted into prompts, or used for prompt iteration
+
 ## Gold question policy
 
 For each reviewed item:
@@ -70,6 +77,7 @@ Apply a compare-review export to an existing benchmark snapshot:
 
 The update routine carries forward unchanged records from the previous benchmark
 and replaces only the pairs that received decisions in the compare review.
+Private holdout records are carried forward separately in `holdout.jsonl`.
 
 ## Record design
 
@@ -106,6 +114,8 @@ benchmark snapshot:
 The evaluator scores `benchmark.jsonl`. That file already contains approved
 items plus pending items with reviewer-supplied gold questions. Dismissed items
 are excluded from semantic scoring.
+Private holdout items are also excluded because they are stored only in
+`holdout.jsonl`, not in `benchmark.jsonl`.
 
 SPARQL is treated as fixed input. If a run input's SPARQL differs from the
 benchmark SPARQL for the same `query_id`, the evaluator reports a deterministic

@@ -260,6 +260,7 @@ def load_benchmark(benchmark_dir: Path) -> Tuple[List[Dict[str, Any]], List[Dict
         "approved": len(approved),
         "pending": len(pending),
         "dismissed": len(dismissed),
+        "holdout": int(manifest.get("counts", {}).get("holdout", 0)) if isinstance(manifest.get("counts"), dict) else 0,
     }
     return items, dismissed, counts
 
@@ -477,13 +478,14 @@ def score_item(
     }
 
 
-def summarize(scores: List[Dict[str, Any]], dismissed_count: int, baseline_run_id: Optional[str]) -> Dict[str, Any]:
+def summarize(scores: List[Dict[str, Any]], dismissed_count: int, holdout_count: int, baseline_run_id: Optional[str]) -> Dict[str, Any]:
     by_run: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     for score in scores:
         by_run[str(score.get("run_id"))].append(score)
 
     summary: Dict[str, Any] = {
         "dismissed_excluded": dismissed_count,
+        "holdout_excluded": holdout_count,
         "baseline_run_id": baseline_run_id,
         "baseline_generation_run_id": baseline_run_id,
         "runs": {},
@@ -543,6 +545,7 @@ def render_summary_md(summary: Dict[str, Any], scores: List[Dict[str, Any]]) -> 
         "",
         f"- Baseline: `{summary.get('baseline_run_id') or ''}`",
         f"- Dismissed benchmark items excluded from scoring: {summary.get('dismissed_excluded', 0)}",
+        f"- Private holdout items excluded from scoring: {summary.get('holdout_excluded', 0)}",
         "",
         "## Runs",
         "",
@@ -623,7 +626,12 @@ def main() -> None:
                 )
             )
 
-    summary = summarize(scores, dismissed_count=len(dismissed_items), baseline_run_id=baseline_run["run_id"] if baseline_run else None)
+    summary = summarize(
+        scores,
+        dismissed_count=len(dismissed_items),
+        holdout_count=benchmark_counts.get("holdout", 0),
+        baseline_run_id=baseline_run["run_id"] if baseline_run else None,
+    )
     manifest = {
         "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "script_version": SCRIPT_VERSION,
@@ -631,6 +639,7 @@ def main() -> None:
         "benchmark_counts": benchmark_counts,
         "scored_status_groups": ["approved", "pending"],
         "dismissed_excluded": len(dismissed_items),
+        "holdout_excluded": benchmark_counts.get("holdout", 0),
         "runs": [
             {
                 "run_id": run["run_id"],

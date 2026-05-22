@@ -342,6 +342,7 @@ One exported review file contains the human judgments for a specific review data
           "status": "approve|dismiss|needs_prompt_fix|needs_data_fix",
           "preferred_question": "",
           "note": "",
+          "split": "private_holdout",
           "updated_at": "2026-04-25T20:09:00Z"
         }
       }
@@ -353,6 +354,9 @@ Notes:
 - They are intentionally separate from model outputs.
 - They should point to exactly one frozen generation run.
 - They are the source material used to build benchmark snapshots.
+- `split: "private_holdout"` marks a reviewer-only holdout item. These records
+  are routed to `holdout.jsonl` and excluded from the public/dev benchmark,
+  normal autoeval, compare-review queues, and future generation inputs.
 
 ### `benchmark/vN/benchmark.jsonl` (gold evaluation snapshot)
 
@@ -401,6 +405,8 @@ Notes:
 - `approved.jsonl` preserves detailed approved records, including reviewed model output.
 - `pending.jsonl` preserves detailed pending records, including reviewed model output.
 - `dismissed.jsonl` preserves excluded records for audit and future input exclusion.
+- `holdout.jsonl` preserves private holdout records separately and should not
+  be used for prompt iteration or normal autoeval.
 
 ### `evals/reports/<eval-id>/` (automatic evaluation report)
 
@@ -887,6 +893,7 @@ Current reviewer labels:
    - approved records
    - pending items that still need prompt/data fixes
    - dismissed items excluded from the benchmark
+   - private holdout items excluded from public/dev benchmark construction
 4. Build `benchmark.jsonl` from approved records plus pending records that have reviewer-supplied gold questions.
 5. Set `gold_question` using:
    - reviewer rewrite, if present
@@ -911,7 +918,8 @@ The update routine carries forward unchanged previous benchmark records and
 replaces only pairs that received decisions in the compare review. Approved
 current records enter `approved.jsonl`, dismissed records enter `dismissed.jsonl`,
 and `needs_prompt_fix` / `needs_data_fix` records enter `pending.jsonl`.
-`benchmark.jsonl` is then extracted as the combined evaluation set.
+Reviewer-marked private holdout records enter `holdout.jsonl`. `benchmark.jsonl`
+is then extracted as the combined public/dev evaluation set.
 
 ### Output
 
@@ -920,12 +928,16 @@ and `needs_prompt_fix` / `needs_data_fix` records enter `pending.jsonl`.
 - `benchmark/vN/approved.jsonl` – detailed approved records
 - `benchmark/vN/pending.jsonl` – detailed reviewed but not yet benchmark-approved items
 - `benchmark/vN/dismissed.jsonl` – reviewed items explicitly excluded from the benchmark; this file can also be used as the exclusion list for future generation inputs
+- `benchmark/vN/holdout.jsonl` – private holdout items excluded from public/dev benchmark files, normal autoeval, and future generation inputs
 
 ### Notes
 
 - The benchmark is distinct from both raw model outputs and review exports.
 - Review exports capture human judgments; benchmark snapshots capture the current curated gold set.
 - Dismissed records are still preserved with provenance so the exclusion is auditable and reversible.
+- Private holdout records are preserved separately; do not inspect, print, or
+  feed their labels back into prompt-development workflows if they need to stay
+  clean.
 - Compare-review exports are update instructions for a benchmark version, not a
   full benchmark by themselves.
 - This separation makes it possible to compare multiple prompt/model runs against the same approved benchmark, while preserving reviewer provenance and benchmark history.
@@ -973,6 +985,8 @@ Evaluation uses the combined gold benchmark by default:
 - `benchmark.jsonl` items are approved pairs plus pending pairs with reviewer-supplied gold questions.
 - `approved.jsonl` and `pending.jsonl` keep the detailed review records for audit and review workflows.
 - `dismissed.jsonl` items are excluded from semantic scoring.
+- `holdout.jsonl` items are excluded from normal semantic scoring; use them only
+  for separately controlled reviewer-only checks.
 
 ### Scoring Policy
 

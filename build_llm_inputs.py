@@ -28,17 +28,27 @@ def load_jsonl(path: Path) -> List[Dict[str, object]]:
     return records
 
 
-def load_dismissed_query_ids(path: Path) -> Set[str]:
-    dismissed_path = path / "dismissed.jsonl" if path.is_dir() else path
-    if not dismissed_path.exists():
-        raise FileNotFoundError(f"Dismissed benchmark records not found: {dismissed_path}")
-
-    dismissed: Set[str] = set()
-    for rec in load_jsonl(dismissed_path):
+def load_query_ids(path: Path) -> Set[str]:
+    query_ids: Set[str] = set()
+    if not path.exists():
+        return query_ids
+    for rec in load_jsonl(path):
         query_id = rec.get("query_id")
         if isinstance(query_id, str) and query_id:
-            dismissed.add(query_id)
-    return dismissed
+            query_ids.add(query_id)
+    return query_ids
+
+
+def load_excluded_query_ids(path: Path) -> Set[str]:
+    if path.is_dir():
+        return load_query_ids(path / "dismissed.jsonl") | load_query_ids(path / "holdout.jsonl")
+    if not path.exists():
+        raise FileNotFoundError(f"Benchmark exclusion records not found: {path}")
+    return load_query_ids(path)
+
+
+def load_dismissed_query_ids(path: Path) -> Set[str]:
+    return load_excluded_query_ids(path)
 
 
 def iter_evidence(
@@ -113,26 +123,26 @@ def main() -> None:
     parser.add_argument(
         "--exclude-dismissed-benchmark",
         default="",
-        help="Benchmark directory, or dismissed.jsonl file, whose dismissed query_ids should be excluded from prompt inputs.",
+        help="Benchmark directory, or exclusion JSONL file, whose dismissed and private-holdout query_ids should be excluded from prompt inputs.",
     )
     args = parser.parse_args()
 
     in_path = Path(args.input)
     out_path = Path(args.output)
     records = load_jsonl(in_path)
-    dismissed_query_ids = (
-        load_dismissed_query_ids(Path(args.exclude_dismissed_benchmark))
+    excluded_query_ids = (
+        load_excluded_query_ids(Path(args.exclude_dismissed_benchmark))
         if args.exclude_dismissed_benchmark
         else set()
     )
 
     written = 0
-    skipped_dismissed = 0
+    skipped_excluded = 0
     with out_path.open("w", encoding="utf-8") as f:
         for rec in records:
             query_id = rec.get("query_id")
-            if isinstance(query_id, str) and query_id in dismissed_query_ids:
-                skipped_dismissed += 1
+            if isinstance(query_id, str) and query_id in excluded_query_ids:
+                skipped_excluded += 1
                 continue
 
             payload = build_prompt_input(
@@ -148,8 +158,8 @@ def main() -> None:
             written += 1
 
     print(f"Wrote {written} prompt payloads to {out_path.resolve()}")
-    if skipped_dismissed:
-        print(f"Skipped {skipped_dismissed} dismissed benchmark records")
+    if skipped_excluded:
+        print(f"Skipped {skipped_excluded} dismissed/holdout benchmark records")
 
 
 if __name__ == "__main__":

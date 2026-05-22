@@ -141,6 +141,11 @@
                 <button data-status="" class="decision-btn clear">Clear</button>
               </div>
               <div class="field-grid">
+                <label class="wide checkbox-field">
+                  <input id="holdoutSplitInput" type="checkbox" />
+                  <span>Private holdout</span>
+                  <small>Keep this judgement out of the public/dev benchmark, prompt work, and normal autoeval.</small>
+                </label>
                 <label class="wide">
                   <span>Preferred / corrected NL question</span>
                   <textarea id="preferredQuestionInput" rows="2" placeholder="Optional better wording"></textarea>

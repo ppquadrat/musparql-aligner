@@ -1,5 +1,6 @@
 (function () {
   const data = window.REVIEW_DATA || null;
+  const HOLDOUT_SPLIT = "private_holdout";
 
   const els = {
     emptyState: document.getElementById("emptyState"),
@@ -35,6 +36,7 @@
     allEvidenceList: document.getElementById("allEvidenceList"),
     preferredQuestionInput: document.getElementById("preferredQuestionInput"),
     reviewNoteInput: document.getElementById("reviewNoteInput"),
+    holdoutSplitInput: document.getElementById("holdoutSplitInput"),
     decisionButtons: Array.from(document.querySelectorAll(".decision-btn")),
   };
 
@@ -132,6 +134,7 @@
     els.nextBtn.addEventListener("click", () => moveSelection(1));
     els.preferredQuestionInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.reviewNoteInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
+    els.holdoutSplitInput.addEventListener("change", () => updateCurrentReview({ rerender: true }));
     els.decisionButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         updateCurrentReview({ forcedStatus: btn.dataset.status || "", rerender: true });
@@ -153,7 +156,11 @@
   }
 
   function getReview(record) {
-    return reviews[record.review_id] || { status: "", note: "", preferred_question: "" };
+    return reviews[record.review_id] || { status: "", note: "", preferred_question: "", split: "" };
+  }
+
+  function isHoldoutReview(review) {
+    return review?.split === HOLDOUT_SPLIT;
   }
 
   function getFilteredRecords() {
@@ -219,7 +226,7 @@
         </div>
         <p>${escapeHtml(record.output?.nl_question || "No model question")}</p>
         <p class="record-subline">${escapeHtml(record.run_label)} · ${escapeHtml(getMode(record))} · confidence ${escapeHtml(formatInlineValue(record.output?.confidence, "-"))}</p>
-        <p class="record-subline">${escapeHtml(review.status || "unreviewed")}</p>
+        <p class="record-subline">${escapeHtml(review.status || "unreviewed")}${isHoldoutReview(review) ? " · holdout" : ""}</p>
       `;
       els.recordList.appendChild(item);
     });
@@ -260,6 +267,7 @@
 
     els.preferredQuestionInput.value = review.preferred_question || "";
     els.reviewNoteInput.value = review.note || "";
+    els.holdoutSplitInput.checked = isHoldoutReview(review);
     els.decisionButtons.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.status === (review.status || ""));
     });
@@ -330,9 +338,10 @@
       status: nextStatus,
       preferred_question: els.preferredQuestionInput.value.trim(),
       note: els.reviewNoteInput.value.trim(),
+      split: els.holdoutSplitInput.checked ? HOLDOUT_SPLIT : "",
       updated_at: new Date().toISOString(),
     };
-    if (!reviews[reviewId].status && !reviews[reviewId].preferred_question && !reviews[reviewId].note) {
+    if (!reviews[reviewId].status && !reviews[reviewId].preferred_question && !reviews[reviewId].note && !reviews[reviewId].split) {
       delete reviews[reviewId];
     }
     saveReviews();
@@ -342,7 +351,7 @@
   }
 
   function getReviewById(reviewId) {
-    return reviews[reviewId] || { status: "", note: "", preferred_question: "" };
+    return reviews[reviewId] || { status: "", note: "", preferred_question: "", split: "" };
   }
 
   function formatOrigin(origin) {
@@ -507,11 +516,11 @@
 
     function getCurrentReview(pair) {
       const reviewId = pair.current?.review_id || pair.pair_id;
-      return compareReviews[reviewId] || { status: "", preferred_question: "", note: "" };
+      return compareReviews[reviewId] || { status: "", preferred_question: "", note: "", split: "" };
     }
 
     function getPreviousReview(pair) {
-      return pair.previous?.review || { status: "", preferred_question: "", note: "" };
+      return pair.previous?.review || { status: "", preferred_question: "", note: "", split: "" };
     }
 
     function getFilteredCompareRecords() {
@@ -583,7 +592,7 @@
           </div>
           <p>${escapeHtml(currentQuestion)}</p>
           <p class="record-subline">${escapeHtml(pair.pair_status)} · ${escapeHtml((pair.change_flags || []).join(", ") || "no field changes")}</p>
-          <p class="record-subline">old: ${escapeHtml(previousReview.status || "unreviewed")} · new: ${escapeHtml(currentReview.status || "unreviewed")}</p>
+          <p class="record-subline">old: ${escapeHtml(previousReview.status || "unreviewed")} · new: ${escapeHtml(currentReview.status || "unreviewed")}${isHoldoutReview(currentReview) ? " · holdout" : ""}</p>
         `;
         els.recordList.appendChild(item);
       });
@@ -642,6 +651,7 @@
           status: previousReview.status || "",
           preferred_question: previousReview.preferred_question || "",
           note: previousReview.note || "",
+          split: "",
           copied_from_review_id: pair.previous?.review_id || null,
           updated_at: new Date().toISOString(),
         };
@@ -659,6 +669,7 @@
           status: previousReview.status || "",
           preferred_question: previousReview.preferred_question || "",
           note: previousReview.note || "",
+          split: "",
           copied_from_review_id: pair.previous?.review_id || null,
           updated_at: new Date().toISOString(),
         };
@@ -683,16 +694,23 @@
         });
       });
       document.getElementById("editBetterBtn").addEventListener("click", () => {
-        document.getElementById("comparePreferredInput").focus();
+        document.getElementById("comparePreferredInput")?.focus();
       });
       Array.from(els.detailView.querySelectorAll(".decision-btn")).forEach((btn) => {
         btn.addEventListener("click", () => updateCompareReview(currentReviewId, { status: btn.dataset.status || "" }));
       });
-      document.getElementById("comparePreferredInput").addEventListener("input", () => {
+      document.getElementById("comparePreferredInput")?.addEventListener("input", () => {
         updateCompareReview(currentReviewId, { preferred_question: document.getElementById("comparePreferredInput").value.trim() }, false);
       });
-      document.getElementById("compareNoteInput").addEventListener("input", () => {
+      document.getElementById("compareNoteInput")?.addEventListener("input", () => {
         updateCompareReview(currentReviewId, { note: document.getElementById("compareNoteInput").value.trim() }, false);
+      });
+      document.getElementById("compareHoldoutInput")?.addEventListener("change", () => {
+        updateCompareReview(
+          currentReviewId,
+          { split: document.getElementById("compareHoldoutInput").checked ? HOLDOUT_SPLIT : "" },
+          true
+        );
       });
     }
 
@@ -727,7 +745,7 @@
           </div>
           <p class="section-label">Retained evidence phrases</p>
           <div class="stack-list compact-list">${renderRankedEvidence(ranked)}</div>
-          ${side === "previous" ? renderPreviousReviewPanel(review, record) : renderCurrentReviewPanel(review)}
+          ${side === "previous" ? renderPreviousReviewPanel(review, record) : renderCurrentReviewPanel(review, flags)}
           <div class="compare-rationale">
             <p class="section-label">Justification</p>
             <p>${escapeHtml(output.confidence_rationale || "-")}</p>
@@ -765,7 +783,8 @@
       `;
     }
 
-    function renderCurrentReviewPanel(review) {
+    function renderCurrentReviewPanel(review, flags) {
+      const canHoldout = (flags || []).includes("new_pair");
       return `
         <section class="compare-review-panel current-review-panel">
           <div class="panel-head compare-review-head">
@@ -780,6 +799,15 @@
             </div>
           </div>
           <div class="compare-review-fields">
+            ${
+              canHoldout || isHoldoutReview(review)
+                ? `<label class="checkbox-field compare-holdout-field">
+                    <input id="compareHoldoutInput" type="checkbox" ${isHoldoutReview(review) ? "checked" : ""} />
+                    <span>Private holdout</span>
+                    <small>Exclude this new pair from the public/dev benchmark, prompt work, and normal autoeval.</small>
+                  </label>`
+                : ""
+            }
             <label>
               <span>Preferred / corrected NL question</span>
               <textarea id="comparePreferredInput" rows="2" placeholder="Optional better wording">${escapeHtml(review.preferred_question || "")}</textarea>
@@ -841,7 +869,7 @@
     }
 
     function updateCompareReview(reviewId, patch, rerender = true) {
-      const existing = compareReviews[reviewId] || { status: "", preferred_question: "", note: "" };
+      const existing = compareReviews[reviewId] || { status: "", preferred_question: "", note: "", split: "" };
       compareReviews[reviewId] = {
         ...existing,
         ...patch,
@@ -854,7 +882,7 @@
 
     function cleanupEmptyCompareReview(reviewId) {
       const review = compareReviews[reviewId];
-      if (review && !review.status && !review.preferred_question && !review.note) {
+      if (review && !review.status && !review.preferred_question && !review.note && !review.split) {
         delete compareReviews[reviewId];
       }
     }
