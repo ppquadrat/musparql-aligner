@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import time
 from datetime import datetime, timezone
@@ -11,7 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from openai import OpenAI
 
-SCRIPT_VERSION = "run_llm_generation.py@v2"
+SCRIPT_VERSION = "run_llm_generation.py@v3"
 
 
 def load_json(path: Path) -> Dict[str, Any]:
@@ -211,6 +212,8 @@ def build_request_config(
     schema_hash: str,
     examples_hash: str,
     system_prompt_hash: str,
+    api_key_env: Optional[str],
+    base_url: Optional[str],
 ) -> Dict[str, Any]:
     generation_parameters = {
         "temperature": args.temperature,
@@ -220,8 +223,10 @@ def build_request_config(
     }
     return {
         "script_version": SCRIPT_VERSION,
-        "api_method": "responses.create",
+        "api_method": args.api_method,
         "requested_model": args.model,
+        "api_key_env": api_key_env,
+        "base_url": base_url,
         "timeout_s": args.timeout_s,
         "max_records": args.max_records,
         "input_path": args.input,
@@ -249,6 +254,69 @@ def build_response_create_kwargs(args: argparse.Namespace) -> Dict[str, Any]:
     return kwargs
 
 
+def build_chat_completion_kwargs(args: argparse.Namespace) -> Dict[str, Any]:
+    kwargs: Dict[str, Any] = {"model": args.model}
+    if args.temperature is not None:
+        kwargs["temperature"] = args.temperature
+    if args.top_p is not None:
+        kwargs["top_p"] = args.top_p
+    if args.max_output_tokens:
+        kwargs["max_tokens"] = args.max_output_tokens
+    if args.reasoning_effort:
+        kwargs["reasoning_effort"] = args.reasoning_effort
+    return kwargs
+
+
+def resolve_client_config(args: argparse.Namespace) -> Tuple[Dict[str, Any], Optional[str], Optional[str]]:
+    api_key_env = args.api_key_env or None
+    api_key = os.getenv(api_key_env) if api_key_env else None
+    base_url = args.base_url or (os.getenv(args.base_url_env) if args.base_url_env else None)
+    client_kwargs: Dict[str, Any] = {"timeout": args.timeout_s}
+    if api_key:
+        client_kwargs["api_key"] = api_key
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    return client_kwargs, api_key_env if api_key else None, base_url
+
+
+def run_model_request(
+    *,
+    client: OpenAI,
+    args: argparse.Namespace,
+    response_create_kwargs: Dict[str, Any],
+    chat_completion_kwargs: Dict[str, Any],
+    system_prompt: str,
+    user_prompt: str,
+) -> Tuple[str, Dict[str, Any]]:
+    if args.api_method == "responses.create":
+        resp = client.responses.create(
+            **response_create_kwargs,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        return (resp.output_text or "").strip(), {
+            "id": getattr(resp, "id", None),
+            "model": getattr(resp, "model", None),
+        }
+
+    resp = client.chat.completions.create(
+        **chat_completion_kwargs,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    )
+    choice = resp.choices[0] if getattr(resp, "choices", None) else None
+    message = getattr(choice, "message", None)
+    content = getattr(message, "content", "") if message is not None else ""
+    return str(content or "").strip(), {
+        "id": getattr(resp, "id", None),
+        "model": getattr(resp, "model", None),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run NL generation with OpenAI over LLM inputs JSONL.")
     parser.add_argument("--input", default="llm_inputs.jsonl")
@@ -258,6 +326,27 @@ def main() -> None:
     parser.add_argument("--output", default="llm_outputs.jsonl")
     parser.add_argument("--errors", default="llm_outputs.errors.jsonl")
     parser.add_argument("--model", default="gpt-5")
+    parser.add_argument(
+        "--api-method",
+        default="responses.create",
+        choices=["responses.create", "chat.completions.create"],
+        help="Use chat.completions.create for LiteLLM deployments that do not support the Responses API.",
+    )
+    parser.add_argument(
+        "--api-key-env",
+        default="GRAPHIA_API_KEY",
+        help="Environment variable containing the API key. The key value is never written to outputs.",
+    )
+    parser.add_argument(
+        "--base-url-env",
+        default="GRAPHIA_BASE_URL",
+        help="Environment variable containing the OpenAI-compatible base URL.",
+    )
+    parser.add_argument(
+        "--base-url",
+        default="",
+        help="OpenAI-compatible base URL override. Prefer GRAPHIA_BASE_URL for normal use.",
+    )
     parser.add_argument("--max-records", type=int, default=0, help="0 means all")
     parser.add_argument("--timeout-s", type=float, default=180.0, help="Per-request OpenAI timeout in seconds.")
     parser.add_argument("--temperature", type=float, default=None)
@@ -284,17 +373,21 @@ def main() -> None:
     schema_hash = sha256_json(schema)
     examples_hash = sha256_text(examples_text)
     system_prompt_hash = sha256_text(system_prompt)
+    client_kwargs, resolved_api_key_env, resolved_base_url = resolve_client_config(args)
     request_config = build_request_config(
         args=args,
         prompt_hash=prompt_hash,
         schema_hash=schema_hash,
         examples_hash=examples_hash,
         system_prompt_hash=system_prompt_hash,
+        api_key_env=resolved_api_key_env,
+        base_url=resolved_base_url,
     )
     request_config_hash = sha256_json(request_config)
     response_create_kwargs = build_response_create_kwargs(args)
+    chat_completion_kwargs = build_chat_completion_kwargs(args)
 
-    client = OpenAI(timeout=args.timeout_s)
+    client = OpenAI(**client_kwargs)
     ok_count = 0
     err_count = 0
 
@@ -321,14 +414,14 @@ def main() -> None:
             log(f"[{idx}/{len(inputs)}] running {kg_id} {label}")
             started = time.time()
             try:
-                resp = client.responses.create(
-                    **response_create_kwargs,
-                    input=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
+                text, response_metadata = run_model_request(
+                    client=client,
+                    args=args,
+                    response_create_kwargs=response_create_kwargs,
+                    chat_completion_kwargs=chat_completion_kwargs,
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
                 )
-                text = (resp.output_text or "").strip()
                 parsed = extract_first_json_object(text)
                 if parsed is None:
                     raise ValueError("No JSON object found in model output")
@@ -351,10 +444,7 @@ def main() -> None:
                         "request_config_hash": request_config_hash,
                     },
                     "request_config": request_config,
-                    "response_metadata": {
-                        "id": getattr(resp, "id", None),
-                        "model": getattr(resp, "model", None),
-                    },
+                    "response_metadata": response_metadata,
                     "elapsed_ms": int((time.time() - started) * 1000),
                     "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                 }

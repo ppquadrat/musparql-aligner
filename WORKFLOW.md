@@ -678,8 +678,10 @@ Current implementation notes:
 - Output records carry a `run_signature` containing hashes of the effective prompt/schema/examples/input configuration.
 - New output records also carry `request_config`, which records:
   - script version
-  - API method (`responses.create`)
+  - API method (`responses.create` or `chat.completions.create`)
   - requested model alias
+  - API key environment variable name, when one was used
+  - OpenAI-compatible base URL, when one was configured
   - timeout
   - input/prompt/schema/example paths
   - prompt/schema/examples/system-prompt hashes
@@ -687,6 +689,17 @@ Current implementation notes:
 - `response_metadata` records response-level metadata exposed by the API, such as response ID and returned model name when available.
 - Resume/skip behavior uses `query_id`, `query_label`, `kg_id`, `model`, `system_prompt_hash`, `input_hash`, and, for new records, `request_config_hash`.
 - Older runs remain readable even when they only contain `model` and `run_signature`.
+
+For Graphia/LiteLLM-hosted models, keep credentials in the shell environment:
+
+    export GRAPHIA_API_KEY="..."
+    export GRAPHIA_BASE_URL="https://llm.graphia-ssh.eu/v1"
+
+Then run through the OpenAI-compatible chat-completions endpoint, for example:
+
+    .venv/bin/python run_llm_generation.py \
+      --api-method chat.completions.create \
+      --model MiniMax-M2.5
 
 For each runnable query, generate an object of the following form (stored in `llm_output`):
 
