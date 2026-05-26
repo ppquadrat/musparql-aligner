@@ -19,8 +19,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build the next compare-review bundle from a previous reviewed run and current outputs.")
     parser.add_argument("--previous-run", required=True, help="Previous run directory or previous llm_outputs.jsonl.")
     parser.add_argument("--previous-reviews", required=True, help="Previous review export JSON.")
+    parser.add_argument(
+        "--previous-benchmark",
+        default="",
+        help="Previous benchmark/vN directory. Use this for normal benchmark comparison rounds so carried-forward decisions are shown.",
+    )
     parser.add_argument("--current-run", default="llm_outputs.jsonl", help="Current run directory or current llm_outputs.jsonl.")
     parser.add_argument("--out", default="review/review_data.js")
+    parser.add_argument(
+        "--benchmark-only",
+        action="store_true",
+        help="Only include pairs present in the previous benchmark public evaluation set.",
+    )
     parser.add_argument("--include-unchanged", action="store_true")
     parser.add_argument(
         "--include-dismissed",
@@ -46,6 +56,10 @@ def main() -> None:
         "--out",
         args.out,
     ]
+    if args.previous_benchmark:
+        command.extend(["--previous-benchmark", args.previous_benchmark])
+    if args.benchmark_only:
+        command.append("--benchmark-only")
     if args.include_unchanged:
         command.append("--include-unchanged")
     if args.include_dismissed:

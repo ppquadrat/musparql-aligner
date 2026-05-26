@@ -67,6 +67,63 @@ def load_reviews(path: Optional[Path]) -> Dict[str, Any]:
     return reviews
 
 
+def load_jsonl(path: Path) -> List[Dict[str, Any]]:
+    if not path.exists():
+        return []
+    records: List[Dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        item = json.loads(line)
+        if isinstance(item, dict):
+            records.append(item)
+    return records
+
+
+def benchmark_review_for_record(record: Dict[str, Any], group: str, source_benchmark: Path) -> Dict[str, Any]:
+    review = record.get("review") if isinstance(record.get("review"), dict) else {}
+    gold_source = str(record.get("gold_question_source") or "")
+    status = str(record.get("review_status") or "")
+    return {
+        "status": status,
+        "preferred_question": record.get("gold_question") if gold_source == "reviewer_rewrite" else "",
+        "note": review.get("note") or "",
+        "updated_at": review.get("updated_at"),
+        "benchmark_id": record.get("benchmark_id"),
+        "benchmark_status_group": group,
+        "source_benchmark": str(source_benchmark),
+    }
+
+
+def load_benchmark_reviews(path: Optional[Path]) -> Tuple[Dict[PairKey, Dict[str, Any]], set[PairKey]]:
+    if path is None:
+        return {}, set()
+    review_by_pair: Dict[PairKey, Dict[str, Any]] = {}
+    benchmark_pairs: set[PairKey] = set()
+    for group, filename in (
+        ("approved", "approved.jsonl"),
+        ("pending", "pending.jsonl"),
+        ("dismissed", "dismissed.jsonl"),
+        ("holdout", "holdout.jsonl"),
+    ):
+        for record in load_jsonl(path / filename):
+            key = pair_key(record)
+            if group in {"approved", "pending"}:
+                benchmark_pairs.add(key)
+            if group == "holdout":
+                review_by_pair[key] = {
+                    "status": str(record.get("review_status") or ""),
+                    "split": HOLDOUT_SPLIT,
+                    "benchmark_id": record.get("benchmark_id"),
+                    "benchmark_status_group": group,
+                    "source_benchmark": str(path),
+                }
+            else:
+                review_by_pair[key] = benchmark_review_for_record(record, group, path)
+    return review_by_pair, benchmark_pairs
+
+
 def previous_review_status_by_pair(
     previous_outputs: Dict[PairKey, Tuple[int, Dict[str, Any]]],
     previous_reviews: Dict[str, Any],
@@ -80,6 +137,18 @@ def previous_review_status_by_pair(
         if isinstance(status, str) and status:
             statuses[key] = status
     return statuses
+
+
+def previous_review_by_pair(
+    previous_outputs: Dict[PairKey, Tuple[int, Dict[str, Any]]],
+    previous_reviews: Dict[str, Any],
+) -> Dict[PairKey, Dict[str, Any]]:
+    mapped: Dict[PairKey, Dict[str, Any]] = {}
+    for key, (idx, output) in previous_outputs.items():
+        review = previous_reviews.get(review_id_for(output, idx))
+        if isinstance(review, dict):
+            mapped[key] = review
+    return mapped
 
 
 def previous_review_split_by_pair(
@@ -252,6 +321,16 @@ def main() -> None:
     parser.add_argument("--previous-inputs", default="", help="Defaults to llm_inputs.jsonl beside previous outputs, then ./llm_inputs.jsonl.")
     parser.add_argument("--current-inputs", default="", help="Defaults to llm_inputs.jsonl beside current outputs, then ./llm_inputs.jsonl.")
     parser.add_argument("--previous-reviews", default="")
+    parser.add_argument(
+        "--previous-benchmark",
+        default="",
+        help="Previous benchmark/vN directory. When provided, carried-forward benchmark decisions are used as previous review context.",
+    )
+    parser.add_argument(
+        "--benchmark-only",
+        action="store_true",
+        help="Only include pairs present in the previous benchmark's public benchmark.jsonl set.",
+    )
     parser.add_argument("--out", default="review/review_data.js")
     parser.add_argument("--previous-run-manifest", default="")
     parser.add_argument("--current-run-manifest", default="")
@@ -275,6 +354,7 @@ def main() -> None:
     previous_manifest = Path(args.previous_run_manifest) if args.previous_run_manifest else None
     current_manifest = Path(args.current_run_manifest) if args.current_run_manifest else None
     previous_reviews_path = Path(args.previous_reviews) if args.previous_reviews else None
+    previous_benchmark_path = Path(args.previous_benchmark) if args.previous_benchmark else None
 
     previous_run = run_summary(previous_outputs_path, previous_manifest)
     current_run = run_summary(current_outputs_path, current_manifest)
@@ -283,14 +363,22 @@ def main() -> None:
     previous_outputs = index_outputs(load_json_records(previous_outputs_path))
     current_outputs = index_outputs(load_json_records(current_outputs_path))
     previous_reviews = load_reviews(previous_reviews_path)
-    previous_statuses = previous_review_status_by_pair(previous_outputs, previous_reviews)
-    previous_splits = previous_review_split_by_pair(previous_outputs, previous_reviews)
+    previous_review_map = previous_review_by_pair(previous_outputs, previous_reviews)
+    benchmark_review_map, benchmark_pairs = load_benchmark_reviews(previous_benchmark_path)
+    if benchmark_review_map:
+        previous_review_map.update(benchmark_review_map)
+    previous_statuses = {key: str(review.get("status")) for key, review in previous_review_map.items() if review.get("status")}
+    previous_splits = {key: str(review.get("split")) for key, review in previous_review_map.items() if review.get("split")}
 
     records: List[Dict[str, Any]] = []
     dismissed_excluded = 0
     holdout_excluded = 0
+    non_benchmark_excluded = 0
     metadata_only_excluded = 0
     for key in sorted(set(previous_outputs) | set(current_outputs)):
+        if args.benchmark_only and previous_benchmark_path is not None and key not in benchmark_pairs:
+            non_benchmark_excluded += 1
+            continue
         if previous_splits.get(key) == HOLDOUT_SPLIT:
             holdout_excluded += 1
             continue
@@ -333,7 +421,7 @@ def main() -> None:
                 "previous": {
                     "review_id": previous_review_id,
                     "record": previous_record,
-                    "review": previous_reviews.get(previous_review_id or "", {}),
+                    "review": previous_review_map.get(key, {}),
                 },
                 "current": {
                     "review_id": current_review_id or f"{key[0]}::{key[1]}::removed",
@@ -349,6 +437,8 @@ def main() -> None:
                 {
                     "previous": str(previous_outputs_path),
                     "current": str(current_outputs_path),
+                    "previous_benchmark": str(previous_benchmark_path) if previous_benchmark_path else None,
+                    "benchmark_only": bool(args.benchmark_only),
                     "records": [
                         {
                             "pair_id": rec["pair_id"],
@@ -364,6 +454,8 @@ def main() -> None:
         "previous_run": previous_run,
         "current_run": current_run,
         "previous_reviews_path": str(previous_reviews_path) if previous_reviews_path else None,
+        "previous_benchmark_path": str(previous_benchmark_path) if previous_benchmark_path else None,
+        "benchmark_only": bool(args.benchmark_only),
         "previous_inputs_path": str(previous_inputs_path),
         "current_inputs_path": str(current_inputs_path),
         "record_count": len(records),
@@ -373,7 +465,10 @@ def main() -> None:
             "removed": sum(1 for rec in records if rec["pair_status"] == "removed"),
             "dismissed_excluded": dismissed_excluded,
             "holdout_excluded": holdout_excluded,
+            "non_benchmark_excluded": non_benchmark_excluded,
             "metadata_only_excluded": metadata_only_excluded,
+            "benchmark_approved": sum(1 for rec in records if rec.get("previous", {}).get("review", {}).get("benchmark_status_group") == "approved"),
+            "benchmark_pending": sum(1 for rec in records if rec.get("previous", {}).get("review", {}).get("benchmark_status_group") == "pending"),
         },
         "records": records,
     }
@@ -389,6 +484,8 @@ def main() -> None:
         print(f"Excluded {dismissed_excluded} previously dismissed pairs")
     if holdout_excluded:
         print(f"Excluded {holdout_excluded} private holdout pairs")
+    if non_benchmark_excluded:
+        print(f"Excluded {non_benchmark_excluded} non-benchmark pairs")
     if metadata_only_excluded:
         print(f"Excluded {metadata_only_excluded} metadata-only changed pairs")
 

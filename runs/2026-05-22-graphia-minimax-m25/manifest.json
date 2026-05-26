@@ -1,0 +1,99 @@
+{
+  "run_id": "2026-05-22-graphia-minimax-m25",
+  "generation_run_id": "2026-05-22-graphia-minimax-m25",
+  "created_at": "2026-05-22T01:39:18+00:00",
+  "purpose": "Graphia MiniMax-M2.5 generation round",
+  "notes": "Generated through Graphia OpenAI-compatible chat completions. Inputs rebuilt from kg_queries.jsonl with benchmark/v4 dismissed/holdout exclusions.",
+  "record_counts": {
+    "outputs": 156,
+    "errors": 0
+  },
+  "models": [
+    "MiniMax-M2.5"
+  ],
+  "model_provenance": {
+    "request_configs": [
+      {
+        "hash": "e332d75848aafee614863da779d1a3d6655927131360aeba089f22d4926eabc0",
+        "config": {
+          "script_version": "run_llm_generation.py@v3",
+          "api_method": "chat.completions.create",
+          "requested_model": "MiniMax-M2.5",
+          "api_key_env": "GRAPHIA_API_KEY",
+          "base_url": "https://llm.graphia-ssh.eu/v1",
+          "timeout_s": 180.0,
+          "max_records": 0,
+          "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
+          "prompt_path": "prompts/llm_nl_generation.prompt.txt",
+          "schema_path": "schemas/llm_output.schema.json",
+          "examples_path": "prompts/llm_nl_generation.examples.jsonl",
+          "prompt_hash": "07e06749f40d74099d4b212f32f1152514afb8969f9063c794915c9534380631",
+          "schema_hash": "514195726e341212994b40f3a81a0e1a734367c8ad9e4718c29e01310a3c5be1",
+          "examples_hash": "a45ee7c9b30f9e4a8fbe7df967f8a7732bc020b7b15b5da6985b4d086f28681f",
+          "system_prompt_hash": "8a31e4de1280fe83f19783f6a765d98472df2a2971f8755df037a3e586ca57b9",
+          "generation_parameters": {
+            "temperature": null,
+            "top_p": null,
+            "max_output_tokens": null,
+            "reasoning_effort": null
+          }
+        },
+        "count": 156
+      }
+    ],
+    "legacy_records_without_request_config": 0,
+    "response_models": [
+      "MiniMax-M2.5"
+    ]
+  },
+  "files": {
+    "llm_inputs": {
+      "filename": "llm_inputs.jsonl",
+      "source_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
+      "sha256": "feb17a37bcc86b12452bf15b35b710108f6bf4eab37bbfa771d5c6e3e5178095",
+      "size_bytes": 643538
+    },
+    "llm_outputs": {
+      "filename": "llm_outputs.jsonl",
+      "source_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-outputs.jsonl",
+      "sha256": "536267f65cd77681cc6e5ca227071e99f04fb331d5c81b17101322bf075d7284",
+      "size_bytes": 418329
+    },
+    "prompt": {
+      "filename": "prompt.txt",
+      "source_path": "prompts/llm_nl_generation.prompt.txt",
+      "sha256": "07e06749f40d74099d4b212f32f1152514afb8969f9063c794915c9534380631",
+      "size_bytes": 5792
+    },
+    "schema": {
+      "filename": "schema.json",
+      "source_path": "schemas/llm_output.schema.json",
+      "sha256": "683f317241dd63d44ac6d359c2c2407ad1c04ad512eb4dfeb93a65eccc66169f",
+      "size_bytes": 2285
+    },
+    "llm_outputs_errors": {
+      "filename": "llm_outputs.errors.jsonl",
+      "source_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-errors.jsonl",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    "examples": {
+      "filename": "examples.jsonl",
+      "source_path": "prompts/llm_nl_generation.examples.jsonl",
+      "sha256": "9e2aceead2ed6f3e2f5da9f52655322360e862d8baee8823891e916270776813",
+      "size_bytes": 6839
+    },
+    "kgs": {
+      "filename": "kgs.jsonl",
+      "source_path": "kgs.jsonl",
+      "sha256": "bbb9aaf02df6db1e84637ef22230b45cd0cc5f93488c01c0256e5d2015329112",
+      "size_bytes": 10778
+    },
+    "kg_queries": {
+      "filename": "kg_queries.jsonl",
+      "source_path": "kg_queries.jsonl",
+      "sha256": "441c3ab8d1b409c4ff375e92391a9b0e5fce1ce97a4dff859675c6db4e8d6176",
+      "size_bytes": 1496234
+    }
+  }
+}

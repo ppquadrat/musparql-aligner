@@ -831,7 +831,9 @@ models, build a compare-review bundle instead:
 .venv/bin/python build_next_review_round.py \
   --previous-run runs/<old-run-id> \
   --current-run runs/<new-run-id> \
-  --previous-reviews review/exports/<previous-review-export>.json
+  --previous-reviews review/exports/<previous-review-export>.json \
+  --previous-benchmark benchmark/vN \
+  --benchmark-only
 ```
 
 `--current-run` may also point at a current output file such as
@@ -847,6 +849,11 @@ previous and current records side by side, including SPARQL, generated question,
 retained evidence, reviewer choices, preferred wording, and notes. Previous
 review decisions are read-only context; the exported compare review contains the
 new decisions for the current run.
+
+Use `--previous-benchmark benchmark/vN --benchmark-only` for normal benchmark
+comparison rounds. Review exports are incremental and may contain only decisions
+from the latest review round; benchmark snapshots contain the carried-forward
+approved and pending decisions used for evaluation.
 
 Current reviewer labels:
 

@@ -28,7 +28,9 @@ To compare a previous reviewed run with a new run:
 .venv/bin/python build_next_review_round.py \
   --previous-run runs/<old-run-id> \
   --current-run runs/<new-run-id> \
-  --previous-reviews review/exports/<previous-review-export>.json
+  --previous-reviews review/exports/<previous-review-export>.json \
+  --previous-benchmark benchmark/vN \
+  --benchmark-only
 ```
 
 `--current-run` defaults to `llm_outputs.jsonl`, so it can be omitted when the
@@ -41,6 +43,11 @@ metadata-only unless the question, origin, retained evidence, or SPARQL also
 changed. Use `--include-metadata-only` if you want those records visible.
 Pairs that were dismissed in the previous review export are excluded by default;
 use `--include-dismissed` only when intentionally revisiting those exclusions.
+
+For normal benchmark review rounds, pass `--previous-benchmark benchmark/vN
+--benchmark-only`. Review exports are incremental, so the latest export may only
+contain decisions from the latest review round; the benchmark snapshot contains
+the carried-forward approved and pending decisions.
 
 Compare mode shows the previous run and current run side by side. Previous
 review decisions are read-only context; current decisions are stored separately

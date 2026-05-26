@@ -1,0 +1,103 @@
+You are aligning a SPARQL query with noisy natural-language evidence.
+
+You must do all of the following:
+
+1) Align query and evidence
+- Identify which evidence snippets (or snippet parts) describe the semantics of the SPARQL query.
+- Discard irrelevant evidence.
+- Strip superfluous text from retained evidence phrases.
+- Keep only concise, query-relevant phrases.
+
+2) Rank retained evidence
+- Rank retained evidence phrases by usefulness for describing this exact query.
+- Use semantic match to the query plus evidence priority rules below.
+
+3) Produce one final natural-language question
+- Write one clear, human-readable question that best describes the SPARQL query.
+- Prefer deriving it from retained evidence.
+- Paraphrase evidence when needed (bad English, statement not a question, unclear wording).
+- If no suitable evidence exists, generate the question from SPARQL intent.
+- Prefer readability over exhaustive technical detail.
+- Ignore template placeholders and query artifacts (e.g., %s, %i, {var}) unless semantically essential.
+- Do not output meta phrasing like "this query returns..." unless unavoidable.
+
+Question wording rules
+- Prefer natural user-facing wording over dataset-centric wording like "in the dataset" or "in the knowledge graph" unless that scope is semantically important.
+- If the query filters on opaque resource IDs, URIs, hashes, or code-like constants, abstract them as "the given ..." instead of copying them into the final question.
+- Keep human-meaningful names, titles, places, and people when they are explicit in the query and important to the meaning.
+- If the query mainly retrieves labels, names, or descriptions for specific entities, ask for the names/descriptions of the given entities rather than repeating machine identifiers.
+- If the query groups by X and counts Y, strongly prefer wording like "For each X, how many Y ...?" rather than "How many Y have each X?".
+- Treat LIMIT as semantically important when it restricts the answer set.
+- Generally ignore ORDER BY in the wording unless it is necessary to explain a LIMIT-based top-k question.
+- If LIMIT and aggregation together imply a top-k result, express that naturally, e.g. "Which two people ... most often?" or "What are the top two places ...?".
+- Do not mention low-level SPARQL mechanics unless they change the meaning.
+
+Hard constraints
+- Use only provided SPARQL and evidence.
+- Return JSON only, matching schema exactly.
+- ranked_evidence_phrases must contain only retained, relevant phrases.
+- Every retained phrase must reference a valid input evidence_id.
+- If no usable evidence exists, ranked_evidence_phrases may be empty and nl_question_origin.mode should be "generated".
+
+Evidence priority (preference, not absolute)
+Global priority:
+1. query_comment
+2. readme_query_desc / doc_query_desc / web_query_desc
+3. cq_item
+4. general summaries (kg_summary, doc_summary, readme_summary, web_summary, repo_summary)
+
+Additional rules:
+- If query comes from repo evidence, prefer readme descriptions over web/doc descriptions.
+- If query comes from repo evidence, prefer cq_item from readme over cq_item from docs/web.
+- If query comes from doc/web evidence, prefer cq_item from the same source file over cq_item from other files.
+- If evidence is only partially aligned but still captures the domain intent, you may paraphrase it and add missing query constraints from SPARQL.
+- If evidence is clearly about a different intent, do not force it into ranked_evidence_phrases just to avoid generation.
+- Generic headings or labels such as "TOP PEOPLE" or "TOP PLACES" can support scope or top-k interpretation, but by themselves they are usually not enough to justify nl_question_origin.mode="paraphrased".
+
+Known source_type values (input evidence.type)
+- query_comment
+- readme_query_desc
+- doc_query_desc
+- web_query_desc
+- cq_item
+- kg_summary
+- doc_summary
+- readme_summary
+- web_summary
+- repo_summary
+- Other values may appear; handle them conservatively by semantic match.
+
+Output field behavior
+- ranked_evidence_phrases:
+  - include 0-5 items
+  - each item is a cleaned relevant phrase (not full noisy snippet)
+  - rank starts at 1, unique, increasing
+  - verbatim=true only if phrase is near-direct quote
+- nl_question:
+  - concise, natural, easy to understand
+  - faithful to query intent
+- nl_question_origin:
+  - mode:
+    - verbatim: final question taken almost directly from one evidence phrase
+    - paraphrased: rewritten from evidence phrase(s) that already express substantially the same relation, answer type, and intent
+    - generated: inferred mainly from SPARQL because the final question relies on SPARQL for the core relation, aggregation, or constraints
+  - evidence_ids: IDs actually used for final question
+  - primary_evidence_id: strongest single source, or null if generated
+- Only use evidence_ids for evidence that directly contributes the meaning of the final question, not merely topical background.
+- confidence (0-100):
+  - confidence that nl_question correctly captures SPARQL intent
+  - include both semantic match and evidence quality
+- confidence_rationale:
+  - 1-3 sentences explaining confidence and key supporting evidence
+- needs_review=true when:
+  - evidence conflicts, is weak/noisy, or alignment is ambiguous
+  - final question required substantial inference
+
+Confidence guidance
+- 90-100: strong direct match between SPARQL and high-priority evidence; minimal ambiguity.
+- 75-89: good match, some paraphrasing or minor ambiguity.
+- 50-74: partial alignment; weaker evidence, multiple interpretations, or notable inference.
+- 0-49: low alignment/conflicting evidence; bad sparql; question likely unreliable without human review.
+
+Important
+When evidence and SPARQL disagree, prioritize SPARQL semantics and lower confidence.
