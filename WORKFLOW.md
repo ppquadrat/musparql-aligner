@@ -343,6 +343,12 @@ One exported review file contains the human judgments for a specific review data
           "preferred_question": "",
           "note": "",
           "split": "private_holdout",
+          "interpretive": {
+            "naturalness": 88,
+            "pragmatism": 70,
+            "room_for_interpretation": 22,
+            "requires_graph_context_knowledge": true
+          },
           "updated_at": "2026-04-25T20:09:00Z"
         }
       }
@@ -354,6 +360,8 @@ Notes:
 - They are intentionally separate from model outputs.
 - They should point to exactly one frozen generation run.
 - They are the source material used to build benchmark snapshots.
+- `interpretive` is optional and records reviewer-assigned interpretive
+  dimensions plus whether the wording requires graph/context knowledge.
 - `split: "private_holdout"` marks a reviewer-only holdout item. These records
   are routed to `holdout.jsonl` and excluded from the public/dev benchmark,
   normal autoeval, compare-review queues, and future generation inputs.
@@ -407,6 +415,8 @@ Notes:
 - `dismissed.jsonl` preserves excluded records for audit and future input exclusion.
 - `holdout.jsonl` preserves private holdout records separately and should not
   be used for prompt iteration or normal autoeval.
+- `ambiguity.jsonl` preserves public interpretive annotations and accepted
+  non-canonical phrasings with provenance. It is not used for normal scoring.
 
 ### `evals/reports/<eval-id>/` (automatic evaluation report)
 
@@ -808,11 +818,13 @@ method is not adopted as a default pipeline step.
 - `llm_inputs.jsonl`
 - one or more LLM output files such as `llm_outputs.jsonl`
 - optional prior reviewer exports in `review/exports/`
+- optional prior benchmark snapshot such as `benchmark/vN/`
 
 ### Process
 
 1. For a first review of a run, build a browser review bundle with `build_review_bundle.py` → `review/review_data.js`.
    - If the selected outputs are not already inside `runs/<run-id>/`, the builder should auto-freeze a run snapshot first.
+   - For a later normal review of newly generated pairs, pass `--previous-benchmark benchmark/vN`; previously reviewed pairs are excluded by default and private holdout pairs are always excluded.
 2. Open `review/index.html` through a local web server.
 3. Inspect examples with:
    - formatted SPARQL
@@ -820,7 +832,7 @@ method is not adopted as a default pipeline step.
    - full input evidence
    - generated NL question
    - origin mode, confidence, and rationale
-4. Record reviewer decisions and optional rewrites.
+4. Record reviewer decisions, optional rewrites, optional interpretive dimensions, and whether the wording requires graph/context knowledge.
 5. Export reviewer judgments as JSON.
 6. Place the exported review file under `review/exports/` so it can be reused for benchmark construction and later prompt/model comparisons.
 
@@ -854,6 +866,10 @@ Use `--previous-benchmark benchmark/vN --benchmark-only` for normal benchmark
 comparison rounds. Review exports are incremental and may contain only decisions
 from the latest review round; benchmark snapshots contain the carried-forward
 approved and pending decisions used for evaluation.
+
+Use `--include-reviewed` with `build_review_bundle.py` only for a deliberate
+normal-review audit of non-holdout previously reviewed pairs. Previous statuses
+remain hidden unless `--reveal-previous-status` is explicitly passed.
 
 Current reviewer labels:
 
@@ -905,7 +921,9 @@ Current reviewer labels:
 5. Set `gold_question` using:
    - reviewer rewrite, if present
    - otherwise the approved model output
-6. Preserve provenance linking each benchmark item back to:
+6. Build `ambiguity.jsonl` for public pairs that have interpretive annotations
+   or accepted non-canonical phrasings.
+7. Preserve provenance linking each benchmark item back to:
    - query identifiers
    - review export
    - generation run metadata
@@ -926,7 +944,8 @@ replaces only pairs that received decisions in the compare review. Approved
 current records enter `approved.jsonl`, dismissed records enter `dismissed.jsonl`,
 and `needs_prompt_fix` / `needs_data_fix` records enter `pending.jsonl`.
 Reviewer-marked private holdout records enter `holdout.jsonl`. `benchmark.jsonl`
-is then extracted as the combined public/dev evaluation set.
+is then extracted as the combined public/dev evaluation set. `ambiguity.jsonl`
+is carried forward separately and is not part of normal scoring.
 
 ### Output
 
@@ -936,6 +955,7 @@ is then extracted as the combined public/dev evaluation set.
 - `benchmark/vN/pending.jsonl` – detailed reviewed but not yet benchmark-approved items
 - `benchmark/vN/dismissed.jsonl` – reviewed items explicitly excluded from the benchmark; this file can also be used as the exclusion list for future generation inputs
 - `benchmark/vN/holdout.jsonl` – private holdout items excluded from public/dev benchmark files, normal autoeval, and future generation inputs
+- `benchmark/vN/ambiguity.jsonl` – public interpretive annotations and accepted non-canonical phrasings with provenance
 
 ### Notes
 
@@ -947,6 +967,8 @@ is then extracted as the combined public/dev evaluation set.
   clean.
 - Compare-review exports are update instructions for a benchmark version, not a
   full benchmark by themselves.
+- `ambiguity.jsonl` is versioned with the benchmark snapshot but excluded from
+  normal automatic evaluation.
 - This separation makes it possible to compare multiple prompt/model runs against the same approved benchmark, while preserving reviewer provenance and benchmark history.
 
 ---

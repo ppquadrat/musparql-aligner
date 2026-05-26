@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Tuple
 
 
 HOLDOUT_SPLIT = "private_holdout"
+AMBIGUITY_FILE = "ambiguity.jsonl"
 
 
 def read_review_bundle(path: Path) -> Dict[str, Any]:
@@ -41,6 +42,20 @@ def write_jsonl(path: Path, records: List[Dict[str, Any]]) -> None:
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
 
+def read_jsonl(path: Path) -> List[Dict[str, Any]]:
+    if not path.exists():
+        return []
+    records: List[Dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        item = json.loads(line)
+        if isinstance(item, dict):
+            records.append(item)
+    return records
+
+
 def source_evidence_types(evidence: List[Dict[str, Any]]) -> List[str]:
     return sorted({str(ev.get("type")) for ev in evidence if isinstance(ev, dict) and ev.get("type")})
 
@@ -51,6 +66,44 @@ def has_query_specific_evidence(evidence_types: List[str]) -> bool:
 
 def is_private_holdout(review: Dict[str, Any]) -> bool:
     return review.get("split") == HOLDOUT_SPLIT
+
+
+def pair_key(record: Dict[str, Any]) -> Tuple[str, str]:
+    return (str(record.get("kg_id") or ""), str(record.get("query_id") or ""))
+
+
+def normalize_rephrasing_text(text: Any) -> str:
+    return " ".join(str(text or "").split()).casefold()
+
+
+def normalize_interpretive(review: Dict[str, Any]) -> Dict[str, Any]:
+    raw = review.get("interpretive")
+    if not isinstance(raw, dict):
+        return {}
+
+    def score(value: Any) -> int | None:
+        if value is None or value == "":
+            return None
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            return None
+        return max(0, min(100, number))
+
+    interpretive = {
+        "naturalness": score(raw.get("naturalness")),
+        "pragmatism": score(raw.get("pragmatism")),
+        "room_for_interpretation": score(raw.get("room_for_interpretation")),
+        "requires_graph_context_knowledge": bool(raw.get("requires_graph_context_knowledge")),
+    }
+    if (
+        interpretive["naturalness"] is None
+        and interpretive["pragmatism"] is None
+        and interpretive["room_for_interpretation"] is None
+        and not interpretive["requires_graph_context_knowledge"]
+    ):
+        return {}
+    return interpretive
 
 
 def run_metadata(record: Dict[str, Any]) -> Dict[str, Any]:
@@ -79,6 +132,176 @@ def run_metadata(record: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(response_metadata, dict):
         meta["response_metadata"] = response_metadata
     return meta
+
+
+def review_provenance(
+    *,
+    review: Dict[str, Any],
+    review_id: str,
+    review_path: Path | str | None,
+    dataset_id: str,
+    record: Dict[str, Any] | None,
+) -> Dict[str, Any]:
+    run = run_metadata(record or {})
+    return {
+        "review_id": review_id,
+        "review_export": str(review_path) if review_path is not None else None,
+        "dataset_id": dataset_id,
+        "run_id": review.get("run_id") or run.get("run_id"),
+        "generation_run_id": review.get("generation_run_id") or run.get("generation_run_id"),
+        "model": run.get("model"),
+        "updated_at": review.get("updated_at"),
+        "run": run,
+    }
+
+
+def make_rephrasing_entry(
+    *,
+    text: str,
+    source_type: str,
+    review: Dict[str, Any],
+    review_id: str,
+    review_path: Path | str | None,
+    dataset_id: str,
+    record: Dict[str, Any] | None,
+) -> Dict[str, Any] | None:
+    clean_text = " ".join(str(text or "").split())
+    if not clean_text:
+        return None
+    return {
+        "text": clean_text,
+        "normalized_text": normalize_rephrasing_text(clean_text),
+        "source_type": source_type,
+        **review_provenance(
+            review=review,
+            review_id=review_id,
+            review_path=review_path,
+            dataset_id=dataset_id,
+            record=record,
+        ),
+    }
+
+
+def add_rephrasing(ambiguity: Dict[str, Any], entry: Dict[str, Any] | None) -> None:
+    if not entry:
+        return
+    existing = {
+        normalize_rephrasing_text(item.get("text"))
+        for item in ambiguity.get("accepted_rephrasings", [])
+        if isinstance(item, dict)
+    }
+    if entry["normalized_text"] in existing:
+        return
+    ambiguity.setdefault("accepted_rephrasings", []).append(entry)
+
+
+def update_ambiguity_identity(
+    ambiguity: Dict[str, Any],
+    *,
+    benchmark_record: Dict[str, Any],
+    benchmark_version: str,
+    built_at: str,
+) -> Dict[str, Any]:
+    ambiguity.update(
+        {
+            "benchmark_version": benchmark_version,
+            "benchmark_built_at": built_at,
+            "benchmark_id": benchmark_record.get("benchmark_id"),
+            "kg_id": benchmark_record.get("kg_id"),
+            "query_id": benchmark_record.get("query_id"),
+            "query_label": benchmark_record.get("query_label"),
+            "sparql": benchmark_record.get("sparql"),
+            "canonical_question": benchmark_record.get("gold_question"),
+            "canonical_question_source": benchmark_record.get("gold_question_source"),
+            "review_status": benchmark_record.get("review_status"),
+        }
+    )
+    ambiguity.setdefault("accepted_rephrasings", [])
+    ambiguity.setdefault("interpretive_annotations", [])
+    return ambiguity
+
+
+def add_interpretive_annotation(
+    ambiguity: Dict[str, Any],
+    *,
+    review: Dict[str, Any],
+    review_id: str,
+    review_path: Path | str | None,
+    dataset_id: str,
+    record: Dict[str, Any] | None,
+) -> None:
+    interpretive = normalize_interpretive(review)
+    if not interpretive:
+        return
+    annotation = {
+        "interpretive": interpretive,
+        **review_provenance(
+            review=review,
+            review_id=review_id,
+            review_path=review_path,
+            dataset_id=dataset_id,
+            record=record,
+        ),
+    }
+    existing = ambiguity.setdefault("interpretive_annotations", [])
+    if annotation not in existing:
+        existing.append(annotation)
+
+
+def ambiguity_record_has_content(record: Dict[str, Any]) -> bool:
+    return bool(record.get("accepted_rephrasings") or record.get("interpretive_annotations"))
+
+
+def sort_ambiguity_records(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return sorted(records, key=lambda rec: (str(rec.get("kg_id") or ""), str(rec.get("query_label") or "")))
+
+
+def ambiguity_from_benchmark_record(
+    *,
+    benchmark_record: Dict[str, Any],
+    review: Dict[str, Any],
+    source_record: Dict[str, Any],
+    review_id: str,
+    review_path: Path | str,
+    dataset_id: str,
+    benchmark_version: str,
+    built_at: str,
+) -> Dict[str, Any] | None:
+    if benchmark_record.get("split") == HOLDOUT_SPLIT or benchmark_record.get("review_status") == "dismiss":
+        return None
+    ambiguity = update_ambiguity_identity(
+        {},
+        benchmark_record=benchmark_record,
+        benchmark_version=benchmark_version,
+        built_at=built_at,
+    )
+    add_interpretive_annotation(
+        ambiguity,
+        review=review,
+        review_id=review_id,
+        review_path=review_path,
+        dataset_id=dataset_id,
+        record=source_record,
+    )
+    if benchmark_record.get("review_status") == "approve":
+        preferred = str(review.get("preferred_question") or "").strip()
+        model_question = str(source_record.get("output", {}).get("nl_question") or "").strip()
+        if preferred and normalize_rephrasing_text(preferred) != normalize_rephrasing_text(model_question):
+            add_rephrasing(
+                ambiguity,
+                make_rephrasing_entry(
+                    text=model_question,
+                    source_type="model_output",
+                    review=review,
+                    review_id=review_id,
+                    review_path=review_path,
+                    dataset_id=dataset_id,
+                    record=source_record,
+                ),
+            )
+    if not ambiguity_record_has_content(ambiguity):
+        return None
+    return ambiguity
 
 
 def benchmark_gold_records(
@@ -160,6 +383,7 @@ def main() -> None:
     pending: List[Dict[str, Any]] = []
     dismissed: List[Dict[str, Any]] = []
     holdout: List[Dict[str, Any]] = []
+    ambiguity_records: List[Dict[str, Any]] = []
     status_counts: Counter[str] = Counter()
     split_counts: Counter[str] = Counter()
 
@@ -233,6 +457,19 @@ def main() -> None:
         else:
             pending.append(base)
 
+        ambiguity = ambiguity_from_benchmark_record(
+            benchmark_record=base,
+            review=review,
+            source_record=record,
+            review_id=review_id,
+            review_path=review_path,
+            dataset_id=review_dataset_id or bundle_dataset_id,
+            benchmark_version=outdir.name,
+            built_at="",
+        )
+        if ambiguity:
+            ambiguity_records.append(ambiguity)
+
     approved.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
     pending.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
     dismissed.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
@@ -241,6 +478,10 @@ def main() -> None:
     built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     benchmark_version = outdir.name
     dataset_id = review_dataset_id or bundle_dataset_id
+    for ambiguity in ambiguity_records:
+        ambiguity["benchmark_version"] = benchmark_version
+        ambiguity["benchmark_built_at"] = built_at
+    ambiguity_records = sort_ambiguity_records(ambiguity_records)
     benchmark_records = benchmark_gold_records(
         approved=approved,
         pending=pending,
@@ -264,6 +505,7 @@ def main() -> None:
             "pending": len(pending),
             "dismissed": len(dismissed),
             "holdout": len(holdout),
+            "ambiguity": len(ambiguity_records),
             "reviewed_total": sum(status_counts.values()),
             "status_counts": dict(status_counts),
             "split_counts": dict(split_counts),
@@ -274,6 +516,7 @@ def main() -> None:
             "pending": "pending.jsonl",
             "dismissed": "dismissed.jsonl",
             "holdout": "holdout.jsonl",
+            "ambiguity": AMBIGUITY_FILE,
         },
         "gold_question_policy": {
             "benchmark_includes_approved": True,
@@ -295,6 +538,7 @@ def main() -> None:
     write_jsonl(outdir / "pending.jsonl", pending)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
     write_jsonl(outdir / "holdout.jsonl", holdout)
+    write_jsonl(outdir / AMBIGUITY_FILE, ambiguity_records)
 
     print(f"Wrote manifest to {outdir / 'manifest.json'}")
     print(f"Wrote {len(benchmark_records)} benchmark records to {outdir / 'benchmark.jsonl'}")
@@ -302,6 +546,7 @@ def main() -> None:
     print(f"Wrote {len(pending)} pending records to {outdir / 'pending.jsonl'}")
     print(f"Wrote {len(dismissed)} dismissed records to {outdir / 'dismissed.jsonl'}")
     print(f"Wrote {len(holdout)} private holdout records to {outdir / 'holdout.jsonl'}")
+    print(f"Wrote {len(ambiguity_records)} ambiguity records to {outdir / AMBIGUITY_FILE}")
 
 
 if __name__ == "__main__":

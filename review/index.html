@@ -52,6 +52,10 @@
                 <select id="statusFilter"></select>
               </label>
               <label>
+                <span>Scope</span>
+                <select id="scopeFilter"></select>
+              </label>
+              <label>
                 <span>Run</span>
                 <select id="runFilter"></select>
               </label>
@@ -146,9 +150,31 @@
                   <span>Private holdout</span>
                   <small>Keep this judgement out of the public/dev benchmark, prompt work, and normal autoeval.</small>
                 </label>
+                <div class="wide interpretive-grid" aria-label="Interpretive dimensions">
+                  <label>
+                    <span>Naturalness <output id="naturalnessValue">-</output></span>
+                    <small>awkward/formal ↔ fluent/human</small>
+                    <input id="naturalnessInput" type="range" min="0" max="100" step="1" />
+                  </label>
+                  <label>
+                    <span>Pragmatism <output id="pragmatismValue">-</output></span>
+                    <small>exhaustive/literal ↔ concise/salient</small>
+                    <input id="pragmatismInput" type="range" min="0" max="100" step="1" />
+                  </label>
+                  <label>
+                    <span>Room for Interpretation <output id="roomForInterpretationValue">-</output></span>
+                    <small>objective/constrained ↔ subjective/open</small>
+                    <input id="roomForInterpretationInput" type="range" min="0" max="100" step="1" />
+                  </label>
+                  <button id="clearInterpretiveBtn" type="button" class="btn small">Clear sliders</button>
+                </div>
                 <label class="wide">
                   <span>Preferred / corrected NL question</span>
                   <textarea id="preferredQuestionInput" rows="2" placeholder="Optional better wording"></textarea>
+                </label>
+                <label class="wide checkbox-field">
+                  <input id="requiresGraphContextKnowledgeInput" type="checkbox" />
+                  <span>Requires graph/context knowledge</span>
                 </label>
                 <label class="wide">
                   <span>Reviewer note</span>
@@ -173,7 +199,7 @@
       </section>
     </div>
 
-    <script src="review_data.js"></script>
-    <script src="app.js"></script>
+    <script src="review_data.js?v=review-workbench-20260526"></script>
+    <script src="app.js?v=review-workbench-20260526"></script>
   </body>
   </html>

@@ -9,14 +9,22 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from build_benchmark import (
+    AMBIGUITY_FILE,
     HOLDOUT_SPLIT,
+    add_interpretive_annotation,
+    add_rephrasing,
+    ambiguity_record_has_content,
     benchmark_gold_records,
     has_query_specific_evidence,
     is_private_holdout,
+    make_rephrasing_entry,
+    normalize_rephrasing_text,
     read_json,
     read_review_bundle,
     run_metadata,
+    sort_ambiguity_records,
     source_evidence_types,
+    update_ambiguity_identity,
     write_json,
     write_jsonl,
 )
@@ -53,6 +61,45 @@ def holdout_records_path(benchmark_dir: Path) -> Path:
 
 def sort_records(records: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return sorted(records, key=lambda rec: (str(rec.get("kg_id") or ""), str(rec.get("query_label") or "")))
+
+
+def previous_gold_rephrasing(record: Dict[str, Any], dataset_id: str) -> Dict[str, Any] | None:
+    text = " ".join(str(record.get("gold_question") or "").split())
+    if not text:
+        return None
+    review = record.get("review") if isinstance(record.get("review"), dict) else {}
+    run = record.get("run") if isinstance(record.get("run"), dict) else {}
+    return {
+        "text": text,
+        "normalized_text": normalize_rephrasing_text(text),
+        "source_type": "previous_gold_question",
+        "review_id": review.get("review_id") or record.get("benchmark_id"),
+        "review_export": review.get("review_export"),
+        "dataset_id": review.get("dataset_id") or dataset_id,
+        "run_id": review.get("run_id") or run.get("run_id"),
+        "generation_run_id": review.get("generation_run_id") or run.get("generation_run_id") or run.get("run_id"),
+        "model": run.get("model"),
+        "updated_at": review.get("updated_at"),
+        "run": run,
+    }
+
+
+def merge_ambiguity_records(
+    target: Dict[str, Any] | None,
+    source: Dict[str, Any] | None,
+) -> Dict[str, Any] | None:
+    if not source:
+        return target
+    if not target:
+        return source
+    for entry in source.get("accepted_rephrasings", []):
+        if isinstance(entry, dict):
+            add_rephrasing(target, entry)
+    annotations = target.setdefault("interpretive_annotations", [])
+    for annotation in source.get("interpretive_annotations", []):
+        if isinstance(annotation, dict) and annotation not in annotations:
+            annotations.append(annotation)
+    return target
 
 
 def make_benchmark_record(
@@ -204,6 +251,7 @@ def main() -> None:
     pending_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "pending.jsonl")}
     dismissed_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "dismissed.jsonl")}
     holdout_by_key = {pair_key(rec): rec for rec in read_jsonl(holdout_records_path(previous_dir))}
+    ambiguity_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / AMBIGUITY_FILE)}
     removed_records: List[Dict[str, Any]] = []
     removed_by_label: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
     removed_by_sparql: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
@@ -237,6 +285,8 @@ def main() -> None:
             continue
         record = current_record(pair)
         key = (str(pair.get("kg_id") or ""), str(pair.get("query_id") or ""))
+        previous_public_record = approved_by_key.get(key) or pending_by_key.get(key)
+        current_ambiguity = ambiguity_by_key.pop(key, None)
         approved_by_key.pop(key, None)
         pending_by_key.pop(key, None)
         dismissed_by_key.pop(key, None)
@@ -279,6 +329,7 @@ def main() -> None:
                     continue
                 if pop_key_from_all(candidate_key, approved_by_key, pending_by_key, dismissed_by_key, holdout_by_key):
                     superseded_removed += 1
+                    current_ambiguity = merge_ambiguity_records(current_ambiguity, ambiguity_by_key.pop(candidate_key, None))
 
         next_record = make_benchmark_record(
             record=record,
@@ -297,6 +348,46 @@ def main() -> None:
         else:
             pending_by_key[key] = next_record
 
+        if not is_private_holdout(review) and status != "dismiss":
+            current_ambiguity = current_ambiguity or {}
+            if previous_public_record and status == "approve":
+                old_gold = str(previous_public_record.get("gold_question") or "").strip()
+                new_gold = str(next_record.get("gold_question") or "").strip()
+                if old_gold and normalize_rephrasing_text(old_gold) != normalize_rephrasing_text(new_gold):
+                    add_rephrasing(current_ambiguity, previous_gold_rephrasing(previous_public_record, dataset_id))
+            add_interpretive_annotation(
+                current_ambiguity,
+                review=review,
+                review_id=review_id,
+                review_path=review_path,
+                dataset_id=dataset_id,
+                record=record,
+            )
+            if status == "approve":
+                preferred = str(review.get("preferred_question") or "").strip()
+                model_question = str(record.get("output", {}).get("nl_question") or "").strip()
+                if preferred and normalize_rephrasing_text(preferred) != normalize_rephrasing_text(model_question):
+                    add_rephrasing(
+                        current_ambiguity,
+                        make_rephrasing_entry(
+                            text=model_question,
+                            source_type="model_output",
+                            review=review,
+                            review_id=review_id,
+                            review_path=review_path,
+                            dataset_id=dataset_id,
+                            record=record,
+                        ),
+                    )
+            update_ambiguity_identity(
+                current_ambiguity,
+                benchmark_record=next_record,
+                benchmark_version=outdir.name,
+                built_at="",
+            )
+            if ambiguity_record_has_content(current_ambiguity):
+                ambiguity_by_key[key] = current_ambiguity
+
     approved = sort_records(approved_by_key.values())
     pending = sort_records(pending_by_key.values())
     dismissed = sort_records(dismissed_by_key.values())
@@ -305,6 +396,10 @@ def main() -> None:
 
     built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     benchmark_version = outdir.name
+    ambiguity_records = sort_ambiguity_records(list(ambiguity_by_key.values()))
+    for ambiguity in ambiguity_records:
+        ambiguity["benchmark_version"] = benchmark_version
+        ambiguity["benchmark_built_at"] = built_at
     benchmark_records = benchmark_gold_records(
         approved=approved,
         pending=pending,
@@ -332,6 +427,7 @@ def main() -> None:
             "pending": len(pending),
             "dismissed": len(dismissed),
             "holdout": len(holdout),
+            "ambiguity": len(ambiguity_records),
             "applied_compare_reviews": applied,
             "applied_status_counts": dict(status_counts),
             "superseded_removed_previous_items": superseded_removed,
@@ -342,6 +438,7 @@ def main() -> None:
             "pending": "pending.jsonl",
             "dismissed": "dismissed.jsonl",
             "holdout": "holdout.jsonl",
+            "ambiguity": AMBIGUITY_FILE,
         },
         "gold_question_policy": {
             "benchmark_includes_approved": True,
@@ -365,6 +462,7 @@ def main() -> None:
     write_jsonl(outdir / "pending.jsonl", pending)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
     write_jsonl(outdir / "holdout.jsonl", holdout)
+    write_jsonl(outdir / AMBIGUITY_FILE, ambiguity_records)
 
     print(f"Wrote manifest to {outdir / 'manifest.json'}")
     print(f"Wrote {len(benchmark_records)} benchmark records to {outdir / 'benchmark.jsonl'}")
@@ -372,6 +470,7 @@ def main() -> None:
     print(f"Wrote {len(pending)} pending records to {outdir / 'pending.jsonl'}")
     print(f"Wrote {len(dismissed)} dismissed records to {outdir / 'dismissed.jsonl'}")
     print(f"Wrote {len(holdout)} private holdout records to {outdir / 'holdout.jsonl'}")
+    print(f"Wrote {len(ambiguity_records)} ambiguity records to {outdir / AMBIGUITY_FILE}")
     print(f"Applied {applied} compare-review decisions")
 
 

@@ -13,6 +13,7 @@
     kgFilter: document.getElementById("kgFilter"),
     modeFilter: document.getElementById("modeFilter"),
     statusFilter: document.getElementById("statusFilter"),
+    scopeFilter: document.getElementById("scopeFilter"),
     runFilter: document.getElementById("runFilter"),
     recordList: document.getElementById("recordList"),
     prevBtn: document.getElementById("prevBtn"),
@@ -37,6 +38,14 @@
     preferredQuestionInput: document.getElementById("preferredQuestionInput"),
     reviewNoteInput: document.getElementById("reviewNoteInput"),
     holdoutSplitInput: document.getElementById("holdoutSplitInput"),
+    naturalnessInput: document.getElementById("naturalnessInput"),
+    pragmatismInput: document.getElementById("pragmatismInput"),
+    roomForInterpretationInput: document.getElementById("roomForInterpretationInput"),
+    naturalnessValue: document.getElementById("naturalnessValue"),
+    pragmatismValue: document.getElementById("pragmatismValue"),
+    roomForInterpretationValue: document.getElementById("roomForInterpretationValue"),
+    clearInterpretiveBtn: document.getElementById("clearInterpretiveBtn"),
+    requiresGraphContextKnowledgeInput: document.getElementById("requiresGraphContextKnowledgeInput"),
     decisionButtons: Array.from(document.querySelectorAll(".decision-btn")),
   };
 
@@ -57,6 +66,7 @@
     kg: "all",
     mode: "all",
     status: "all",
+    scope: data.review_scope_policy?.default_scope || "all",
     run: "all",
   };
 
@@ -92,6 +102,8 @@
       ["all", "unreviewed", "approve", "dismiss", "needs_prompt_fix", "needs_data_fix"],
       "All review states"
     );
+    fillSelect(els.scopeFilter, ["all", "new", "previously_reviewed"], "All scopes");
+    els.scopeFilter.value = state.scope;
     fillSelect(els.runFilter, ["all", ...uniqueValues(data.records.map((r) => r.run_label))], "All runs");
   }
 
@@ -126,6 +138,10 @@
       state.status = els.statusFilter.value;
       render();
     });
+    els.scopeFilter.addEventListener("change", () => {
+      state.scope = els.scopeFilter.value;
+      render();
+    });
     els.runFilter.addEventListener("change", () => {
       state.run = els.runFilter.value;
       render();
@@ -135,6 +151,18 @@
     els.preferredQuestionInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.reviewNoteInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.holdoutSplitInput.addEventListener("change", () => updateCurrentReview({ rerender: true }));
+    [els.naturalnessInput, els.pragmatismInput, els.roomForInterpretationInput].forEach((input) => {
+      input.addEventListener("input", () => {
+        input.dataset.hasValue = "true";
+        syncSliderOutputs();
+        updateCurrentReview({ rerender: false });
+      });
+    });
+    els.clearInterpretiveBtn.addEventListener("click", () => {
+      clearInterpretiveInputs();
+      updateCurrentReview({ rerender: true });
+    });
+    els.requiresGraphContextKnowledgeInput.addEventListener("change", () => updateCurrentReview({ rerender: false }));
     els.decisionButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         updateCurrentReview({ forcedStatus: btn.dataset.status || "", rerender: true });
@@ -156,7 +184,7 @@
   }
 
   function getReview(record) {
-    return reviews[record.review_id] || { status: "", note: "", preferred_question: "", split: "" };
+    return normalizeReview(reviews[record.review_id]);
   }
 
   function isHoldoutReview(review) {
@@ -180,6 +208,7 @@
       if (state.kg !== "all" && record.kg_id !== state.kg) return false;
       if (state.mode !== "all" && getMode(record) !== state.mode) return false;
       if (state.status !== "all" && status !== state.status) return false;
+      if (state.scope !== "all" && getReviewScope(record) !== state.scope) return false;
       if (state.run !== "all" && record.run_label !== state.run) return false;
       return true;
     });
@@ -226,7 +255,7 @@
         </div>
         <p>${escapeHtml(record.output?.nl_question || "No model question")}</p>
         <p class="record-subline">${escapeHtml(record.run_label)} · ${escapeHtml(getMode(record))} · confidence ${escapeHtml(formatInlineValue(record.output?.confidence, "-"))}</p>
-        <p class="record-subline">${escapeHtml(review.status || "unreviewed")}${isHoldoutReview(review) ? " · holdout" : ""}</p>
+        <p class="record-subline">${escapeHtml(review.status || "unreviewed")}${isHoldoutReview(review) ? " · holdout" : ""}${scopeSummary(record)}</p>
       `;
       els.recordList.appendChild(item);
     });
@@ -268,6 +297,7 @@
     els.preferredQuestionInput.value = review.preferred_question || "";
     els.reviewNoteInput.value = review.note || "";
     els.holdoutSplitInput.checked = isHoldoutReview(review);
+    setInterpretiveInputs(review.interpretive);
     els.decisionButtons.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.status === (review.status || ""));
     });
@@ -334,14 +364,22 @@
     const nextStatus = Object.prototype.hasOwnProperty.call(options, "forcedStatus")
       ? options.forcedStatus
       : current.status;
+    const interpretive = readInterpretiveInputs();
     reviews[reviewId] = {
       status: nextStatus,
       preferred_question: els.preferredQuestionInput.value.trim(),
       note: els.reviewNoteInput.value.trim(),
       split: els.holdoutSplitInput.checked ? HOLDOUT_SPLIT : "",
+      interpretive,
       updated_at: new Date().toISOString(),
     };
-    if (!reviews[reviewId].status && !reviews[reviewId].preferred_question && !reviews[reviewId].note && !reviews[reviewId].split) {
+    if (
+      !reviews[reviewId].status &&
+      !reviews[reviewId].preferred_question &&
+      !reviews[reviewId].note &&
+      !reviews[reviewId].split &&
+      isEmptyInterpretive(interpretive)
+    ) {
       delete reviews[reviewId];
     }
     saveReviews();
@@ -351,7 +389,97 @@
   }
 
   function getReviewById(reviewId) {
-    return reviews[reviewId] || { status: "", note: "", preferred_question: "", split: "" };
+    return normalizeReview(reviews[reviewId]);
+  }
+
+  function normalizeReview(review) {
+    return {
+      status: review?.status || "",
+      note: review?.note || "",
+      preferred_question: review?.preferred_question || "",
+      split: review?.split || "",
+      interpretive: normalizeInterpretive(review?.interpretive),
+    };
+  }
+
+  function normalizeInterpretive(interpretive) {
+    return {
+      naturalness: toNullableScore(interpretive?.naturalness),
+      pragmatism: toNullableScore(interpretive?.pragmatism),
+      room_for_interpretation: toNullableScore(interpretive?.room_for_interpretation),
+      requires_graph_context_knowledge: Boolean(interpretive?.requires_graph_context_knowledge),
+    };
+  }
+
+  function toNullableScore(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function readInterpretiveInputs() {
+    return {
+      naturalness: readSliderValue(els.naturalnessInput),
+      pragmatism: readSliderValue(els.pragmatismInput),
+      room_for_interpretation: readSliderValue(els.roomForInterpretationInput),
+      requires_graph_context_knowledge: els.requiresGraphContextKnowledgeInput.checked,
+    };
+  }
+
+  function readSliderValue(input) {
+    return input.dataset.hasValue === "true" ? Number(input.value) : null;
+  }
+
+  function setInterpretiveInputs(interpretive) {
+    setSliderValue(els.naturalnessInput, els.naturalnessValue, interpretive.naturalness);
+    setSliderValue(els.pragmatismInput, els.pragmatismValue, interpretive.pragmatism);
+    setSliderValue(els.roomForInterpretationInput, els.roomForInterpretationValue, interpretive.room_for_interpretation);
+    els.requiresGraphContextKnowledgeInput.checked = Boolean(interpretive.requires_graph_context_knowledge);
+  }
+
+  function syncSliderOutputs() {
+    els.naturalnessValue.textContent = els.naturalnessInput.dataset.hasValue === "true" ? els.naturalnessInput.value : "-";
+    els.pragmatismValue.textContent = els.pragmatismInput.dataset.hasValue === "true" ? els.pragmatismInput.value : "-";
+    els.roomForInterpretationValue.textContent = els.roomForInterpretationInput.dataset.hasValue === "true" ? els.roomForInterpretationInput.value : "-";
+  }
+
+  function setSliderValue(input, output, value) {
+    if (value === null || value === undefined || value === "") {
+      input.value = "50";
+      input.dataset.hasValue = "false";
+      output.textContent = "-";
+      return;
+    }
+    input.value = String(value);
+    input.dataset.hasValue = "true";
+    output.textContent = String(value);
+  }
+
+  function clearInterpretiveInputs() {
+    setSliderValue(els.naturalnessInput, els.naturalnessValue, null);
+    setSliderValue(els.pragmatismInput, els.pragmatismValue, null);
+    setSliderValue(els.roomForInterpretationInput, els.roomForInterpretationValue, null);
+    els.requiresGraphContextKnowledgeInput.checked = false;
+  }
+
+  function isEmptyInterpretive(interpretive) {
+    return (
+      interpretive.naturalness === null &&
+      interpretive.pragmatism === null &&
+      interpretive.room_for_interpretation === null &&
+      !interpretive.requires_graph_context_knowledge
+    );
+  }
+
+  function getReviewScope(record) {
+    return record.review_scope || "new";
+  }
+
+  function scopeSummary(record) {
+    if (getReviewScope(record) !== "previously_reviewed") return "";
+    const previous = record.previous_review || {};
+    if (previous.status) return ` · prior ${escapeHtml(previous.status)}`;
+    return " · previously reviewed";
   }
 
   function formatOrigin(origin) {
@@ -454,6 +582,7 @@
     relabelSelect(els.modeFilter, "Change");
     relabelSelect(els.statusFilter, "Current Review");
     relabelSelect(els.runFilter, "Previous Review");
+    els.scopeFilter.closest("label").classList.add("hidden");
     fillSelect(els.kgFilter, ["all", ...uniqueValues(data.records.map((r) => r.kg_id))], "All KGs");
     fillSelect(els.modeFilter, ["all", "changed", "added", "removed", ...uniqueValues(data.records.flatMap((r) => r.change_flags || []))], "All changes");
     fillSelect(

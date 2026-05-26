@@ -22,6 +22,20 @@ If you want to review an already-frozen generation run explicitly:
   --run-manifest runs/<run-id>/manifest.json
 ```
 
+For later normal review rounds, pass the latest benchmark snapshot:
+
+```bash
+.venv/bin/python build_review_bundle.py \
+  --outputs runs/<run-id>/llm_outputs.jsonl \
+  --run-manifest runs/<run-id>/manifest.json \
+  --previous-benchmark benchmark/vN
+```
+
+With `--previous-benchmark`, normal review excludes already reviewed pairs by
+default and always excludes private holdout pairs. Use `--include-reviewed` only
+for a deliberate audit pass over non-holdout reviewed pairs. Previous statuses
+are not included in the bundle unless `--reveal-previous-status` is also passed.
+
 To compare a previous reviewed run with a new run:
 
 ```bash
@@ -44,10 +58,11 @@ changed. Use `--include-metadata-only` if you want those records visible.
 Pairs that were dismissed in the previous review export are excluded by default;
 use `--include-dismissed` only when intentionally revisiting those exclusions.
 
-For normal benchmark review rounds, pass `--previous-benchmark benchmark/vN
---benchmark-only`. Review exports are incremental, so the latest export may only
-contain decisions from the latest review round; the benchmark snapshot contains
-the carried-forward approved and pending decisions.
+For compare review rounds against a curated benchmark, pass
+`--previous-benchmark benchmark/vN --benchmark-only`. Review exports are
+incremental, so the latest export may only contain decisions from the latest
+review round; the benchmark snapshot contains the carried-forward approved and
+pending decisions.
 
 Compare mode shows the previous run and current run side by side. Previous
 review decisions are read-only context; current decisions are stored separately
@@ -72,6 +87,11 @@ http://localhost:8000/review/
 
 Reviewer decisions are stored in browser local storage and can be exported/imported as JSON.
 The recommended repo location for exported reviewer decisions is `review/exports/`.
+The normal review form also exports optional interpretive dimensions
+(`naturalness`, `pragmatism`, `room_for_interpretation`) and the
+`requires_graph_context_knowledge` flag when you set them. Benchmark builders
+copy these into `benchmark/vN/ambiguity.jsonl`, not into the scoring
+`benchmark.jsonl`.
 
 ## Review labels
 

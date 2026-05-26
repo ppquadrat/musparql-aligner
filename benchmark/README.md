@@ -45,6 +45,11 @@ The benchmark is distinct from:
   - excluded from normal automatic evaluation and future generation inputs
   - should not be printed, pasted into prompts, or used for prompt iteration
 
+- `benchmark/vN/ambiguity.jsonl`
+  - public sidecar for interpretive annotations and accepted non-canonical phrasings
+  - one record per public pair that has interpretive data or accepted alternatives
+  - excluded from normal automatic evaluation
+
 ## Gold question policy
 
 For each reviewed item:
@@ -52,7 +57,13 @@ For each reviewed item:
 - if the reviewer supplied a preferred rewrite, use that as `gold_question`
 - otherwise, if the model output was approved as-is, use the approved model output as `gold_question`
 
-This keeps a single canonical wording per benchmark item, while preserving provenance about whether that wording came from the reviewer or the model. `benchmark.jsonl` intentionally omits the generated model wording; the detailed `approved.jsonl` and `pending.jsonl` files keep it for audit and review workflows.
+This keeps a single canonical wording per benchmark item, while preserving
+provenance about whether that wording came from the reviewer or the model.
+`benchmark.jsonl` intentionally omits accepted alternative wordings. When an
+approved human rewrite replaces a generated wording, the generated wording is
+retained in `ambiguity.jsonl` as an accepted rephrasing if it is distinct.
+When a later approved rewrite replaces an older canonical wording, the older
+canonical wording is also retained there.
 
 ## Builder
 
@@ -78,6 +89,8 @@ Apply a compare-review export to an existing benchmark snapshot:
 The update routine carries forward unchanged records from the previous benchmark
 and replaces only the pairs that received decisions in the compare review.
 Private holdout records are carried forward separately in `holdout.jsonl`.
+Accepted rephrasings and interpretive annotations are carried forward in
+`ambiguity.jsonl`.
 
 ## Record design
 
@@ -90,6 +103,8 @@ Records in `benchmark.jsonl` are intentionally compact:
 - light analysis metadata (evidence type summary, review provenance)
 
 The benchmark should be easy to evaluate against, while still traceable back to the reviewed LLM generation run.
+Interpretive dimensions and accepted alternatives live in `ambiguity.jsonl` so
+they can support later ambiguity analysis without changing scoring semantics.
 
 In other words, the intended chain is:
 
@@ -116,6 +131,8 @@ items plus pending items with reviewer-supplied gold questions. Dismissed items
 are excluded from semantic scoring.
 Private holdout items are also excluded because they are stored only in
 `holdout.jsonl`, not in `benchmark.jsonl`.
+Ambiguity records are excluded because they are stored only in
+`ambiguity.jsonl`, not in `benchmark.jsonl`.
 
 SPARQL is treated as fixed input. If a run input's SPARQL differs from the
 benchmark SPARQL for the same `query_id`, the evaluator reports a deterministic
