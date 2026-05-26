@@ -10,6 +10,14 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from runs.build_run_snapshot import create_run_snapshot
 
+HOLDOUT_SPLIT = "private_holdout"
+BENCHMARK_FILES = {
+    "approved": "approved.jsonl",
+    "pending": "pending.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "holdout": "holdout.jsonl",
+}
+
 
 def stable_json_dumps(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -41,6 +49,37 @@ def load_json_records(path: Path) -> List[Dict[str, Any]]:
         if isinstance(item, dict):
             rows.append(item)
     return rows
+
+
+def load_optional_json_records(path: Path) -> List[Dict[str, Any]]:
+    if not path.exists():
+        return []
+    return load_json_records(path)
+
+
+def load_previous_benchmark(path: Optional[Path]) -> Dict[Tuple[str, str], Dict[str, Any]]:
+    if path is None:
+        return {}
+    records: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    for status_group, filename in BENCHMARK_FILES.items():
+        for rec in load_optional_json_records(path / filename):
+            kg_id = str(rec.get("kg_id") or "")
+            query_id = str(rec.get("query_id") or "")
+            if not kg_id or not query_id:
+                continue
+            status = str(rec.get("review_status") or "")
+            split = str(rec.get("split") or "")
+            if status_group == "holdout":
+                split = HOLDOUT_SPLIT
+            records[(kg_id, query_id)] = {
+                "reviewed": True,
+                "benchmark_id": rec.get("benchmark_id"),
+                "benchmark_status_group": status_group,
+                "status": status,
+                "split": split,
+                "source_benchmark": str(path),
+            }
+    return records
 
 
 def signature_token(record: Dict[str, Any], idx: int) -> str:
@@ -186,6 +225,21 @@ def main() -> None:
     parser.add_argument("--run-manifest", default="", help="Optional run manifest to attach explicit run metadata.")
     parser.add_argument("--run-id", default="", help="Optional run id to use when auto-freezing a run.")
     parser.add_argument("--no-freeze", action="store_true", help="Do not auto-freeze a run when no manifest is found.")
+    parser.add_argument(
+        "--previous-benchmark",
+        default="",
+        help="Optional benchmark directory used to exclude previously reviewed pairs from normal review.",
+    )
+    parser.add_argument(
+        "--include-reviewed",
+        action="store_true",
+        help="Include non-holdout pairs already present in the previous benchmark.",
+    )
+    parser.add_argument(
+        "--reveal-previous-status",
+        action="store_true",
+        help="When reviewed pairs are included, expose their previous judgement in the UI bundle.",
+    )
     args = parser.parse_args()
 
     inputs_path = Path(args.inputs)
@@ -198,6 +252,14 @@ def main() -> None:
     examples_path = Path(args.examples) if args.examples else None
     kgs_path = Path(args.kgs) if args.kgs else None
     kg_queries_path = Path(args.kg_queries) if args.kg_queries else None
+    previous_benchmark_path = Path(args.previous_benchmark) if args.previous_benchmark else None
+    previous_benchmark = load_previous_benchmark(previous_benchmark_path)
+    scope_counts = {
+        "new_records": 0,
+        "previously_reviewed_records": 0,
+        "previously_reviewed_excluded": 0,
+        "holdout_excluded": 0,
+    }
 
     run_manifest_for_bundle = ensure_single_run_manifest(
         output_paths=output_paths,
@@ -240,28 +302,57 @@ def main() -> None:
             query_label = str(rec.get("query_label") or "")
             key = (kg_id, query_id, query_label)
             source_input = input_index.get(key, {})
+            previous_review = previous_benchmark.get((kg_id, query_id))
+            if previous_review and previous_review.get("split") == HOLDOUT_SPLIT:
+                scope_counts["holdout_excluded"] += 1
+                continue
+            if previous_review and not args.include_reviewed:
+                scope_counts["previously_reviewed_excluded"] += 1
+                continue
+            review_scope = "previously_reviewed" if previous_review else "new"
+            if review_scope == "previously_reviewed":
+                scope_counts["previously_reviewed_records"] += 1
+            else:
+                scope_counts["new_records"] += 1
+            previous_review_payload: Optional[Dict[str, Any]] = None
+            if previous_review:
+                previous_review_payload = {
+                    "reviewed": True,
+                    "source_benchmark": previous_review.get("source_benchmark"),
+                }
+                if args.reveal_previous_status:
+                    previous_review_payload.update(
+                        {
+                            "benchmark_id": previous_review.get("benchmark_id"),
+                            "benchmark_status_group": previous_review.get("benchmark_status_group"),
+                            "status": previous_review.get("status"),
+                            "split": previous_review.get("split"),
+                        }
+                    )
             token = signature_token(rec, idx)
             review_id = f"{kg_id}::{query_label}::{token}"
-            review_records.append(
-                {
-                    "review_id": review_id,
-                    "run_id": run_id or None,
-                    "generation_run_id": run_id or None,
-                    "run_label": run_label,
-                    "source_file": str(output_path),
-                    "run_manifest": str(run_manifest_path) if run_manifest_path is not None else None,
-                    "kg_id": kg_id,
-                    "query_id": query_id,
-                    "query_label": query_label,
-                    "input": {
-                        "sparql_clean": source_input.get("sparql_clean"),
-                        "schema_ref": source_input.get("schema_ref"),
-                        "evidence": source_input.get("evidence", []),
-                    },
-                    "output": rec.get("llm_output"),
-                    "output_meta": output_meta(rec),
-                }
-            )
+            review_record = {
+                "review_id": review_id,
+                "review_scope": review_scope,
+                "run_id": run_id or None,
+                "generation_run_id": run_id or None,
+                "run_label": run_label,
+                "source_file": str(output_path),
+                "run_manifest": str(run_manifest_path) if run_manifest_path is not None else None,
+                "kg_id": kg_id,
+                "query_id": query_id,
+                "query_label": query_label,
+                "input": {
+                    "sparql_clean": source_input.get("sparql_clean"),
+                    "schema_ref": source_input.get("schema_ref"),
+                    "evidence": source_input.get("evidence", []),
+                },
+                "output": rec.get("llm_output"),
+                "output_meta": output_meta(rec),
+            }
+            if previous_review_payload:
+                review_record["previous_review"] = previous_review_payload
+            review_records.append(review_record)
 
     review_records.sort(
         key=lambda rec: (
@@ -277,6 +368,9 @@ def main() -> None:
                 {
                     "inputs": str(inputs_path),
                     "outputs": [str(p) for p in output_paths],
+                    "previous_benchmark": str(previous_benchmark_path) if previous_benchmark_path is not None else "",
+                    "include_reviewed": args.include_reviewed,
+                    "reveal_previous_status": args.reveal_previous_status,
                     "records": [
                         {
                             "review_id": rec["review_id"],
@@ -297,6 +391,13 @@ def main() -> None:
         "single_generation_run_id": sorted(run_summaries.keys())[0] if len(run_summaries) == 1 else None,
         "runs": [run_summaries[run_id] for run_id in sorted(run_summaries.keys())],
         "record_count": len(review_records),
+        "review_scope_policy": {
+            "previous_benchmark_path": str(previous_benchmark_path) if previous_benchmark_path is not None else None,
+            "include_reviewed": bool(args.include_reviewed),
+            "reveal_previous_status": bool(args.reveal_previous_status),
+            "default_scope": "new" if previous_benchmark_path is not None else "all",
+            "counts": scope_counts,
+        },
         "review_status_definitions": {
             "approve": "Keep this example in the benchmark as-is.",
             "dismiss": "Exclude this example from the benchmark going forward.",
