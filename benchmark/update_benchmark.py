@@ -17,6 +17,7 @@ from build_benchmark import (
     benchmark_gold_records,
     has_query_specific_evidence,
     is_private_holdout,
+    literal_wording,
     make_rephrasing_entry,
     normalize_rephrasing_text,
     read_json,
@@ -138,6 +139,7 @@ def make_benchmark_record(
             "run_id": current_run.get("run_id") or record.get("run_id"),
             "generation_run_id": current_run.get("generation_run_id") or current_run.get("run_id") or record.get("generation_run_id") or record.get("run_id"),
             "note": review.get("note") or "",
+            "literal_wording": literal_wording(review),
             "updated_at": review.get("updated_at"),
             "copied_from_review_id": review.get("copied_from_review_id"),
         },
@@ -379,6 +381,18 @@ def main() -> None:
                             record=record,
                         ),
                     )
+            add_rephrasing(
+                current_ambiguity,
+                make_rephrasing_entry(
+                    text=literal_wording(review),
+                    source_type="literal_sparql_wording",
+                    review=review,
+                    review_id=review_id,
+                    review_path=review_path,
+                    dataset_id=dataset_id,
+                    record=record,
+                ),
+            )
             update_ambiguity_identity(
                 current_ambiguity,
                 benchmark_record=next_record,

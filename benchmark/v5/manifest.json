@@ -1,0 +1,65 @@
+{
+  "benchmark_version": "v5",
+  "built_at": "2026-05-28T01:02:19+00:00",
+  "update_type": "compare_review_update",
+  "previous_benchmark": "benchmark/v4",
+  "previous_benchmark_version": "v4",
+  "source_bundle": "review/review_data.js",
+  "source_review_export": "review/exports/musparql-review-compare-eb840472b7e92f51-2026-05-28_01-27-22.json",
+  "dataset_id": "eb840472b7e92f51",
+  "previous_run": {
+    "run_id": "2026-05-19-ontology-shape-gpt5",
+    "generation_run_id": "2026-05-19-ontology-shape-gpt5",
+    "run_label": "2026-05-19-ontology-shape-gpt5",
+    "output_path": "runs/2026-05-19-ontology-shape-gpt5/llm_outputs.jsonl",
+    "manifest_path": "runs/2026-05-19-ontology-shape-gpt5/manifest.json",
+    "purpose": "ontology and graph shape context enrichment experiment",
+    "created_at": "2026-05-19T17:14:36+00:00"
+  },
+  "current_run": {
+    "run_id": "2026-05-22-graphia-minimax-m25",
+    "generation_run_id": "2026-05-22-graphia-minimax-m25",
+    "run_label": "2026-05-22-graphia-minimax-m25",
+    "output_path": "runs/2026-05-22-graphia-minimax-m25/llm_outputs.jsonl",
+    "manifest_path": "runs/2026-05-22-graphia-minimax-m25/manifest.json",
+    "purpose": "Graphia MiniMax-M2.5 generation round",
+    "created_at": "2026-05-22T01:39:18+00:00"
+  },
+  "counts": {
+    "benchmark": 60,
+    "approved": 47,
+    "pending": 13,
+    "dismissed": 5,
+    "holdout": 0,
+    "ambiguity": 45,
+    "applied_compare_reviews": 61,
+    "applied_status_counts": {
+      "needs_prompt_fix": 13,
+      "approve": 47,
+      "dismiss": 1
+    },
+    "superseded_removed_previous_items": 0
+  },
+  "files": {
+    "benchmark": "benchmark.jsonl",
+    "approved": "approved.jsonl",
+    "pending": "pending.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "holdout": "holdout.jsonl",
+    "ambiguity": "ambiguity.jsonl"
+  },
+  "gold_question_policy": {
+    "benchmark_includes_approved": true,
+    "benchmark_includes_pending_with_reviewer_rewrite": true,
+    "preferred_question_used_when_present": true,
+    "approved_model_output_used_otherwise": true,
+    "unchanged_previous_items_carried_forward": true
+  },
+  "holdout_policy": {
+    "review_split": "private_holdout",
+    "excluded_from_public_benchmark": true,
+    "excluded_from_normal_autoeval": true,
+    "excluded_from_future_generation_inputs": true,
+    "unchanged_previous_holdout_items_carried_forward": true
+  }
+}

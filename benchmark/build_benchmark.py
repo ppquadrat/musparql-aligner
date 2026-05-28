@@ -76,6 +76,18 @@ def normalize_rephrasing_text(text: Any) -> str:
     return " ".join(str(text or "").split()).casefold()
 
 
+def literal_wording(review: Dict[str, Any]) -> str:
+    explicit = " ".join(str(review.get("literal_wording") or "").split())
+    if explicit:
+        return explicit
+    note = str(review.get("note") or "")
+    for line in note.splitlines():
+        stripped = line.strip().lstrip("\ufeff").replace("\xa0", " ")
+        if stripped.casefold().startswith("literal:"):
+            return " ".join(stripped.split(":", 1)[1].split())
+    return ""
+
+
 def normalize_interpretive(review: Dict[str, Any]) -> Dict[str, Any]:
     raw = review.get("interpretive")
     if not isinstance(raw, dict):
@@ -299,6 +311,18 @@ def ambiguity_from_benchmark_record(
                     record=source_record,
                 ),
             )
+    add_rephrasing(
+        ambiguity,
+        make_rephrasing_entry(
+            text=literal_wording(review),
+            source_type="literal_sparql_wording",
+            review=review,
+            review_id=review_id,
+            review_path=review_path,
+            dataset_id=dataset_id,
+            record=source_record,
+        ),
+    )
     if not ambiguity_record_has_content(ambiguity):
         return None
     return ambiguity
@@ -427,6 +451,7 @@ def main() -> None:
                 "run_id": review_run_id or record.get("run_id"),
                 "generation_run_id": review_run_id or record.get("generation_run_id") or record.get("run_id"),
                 "note": review.get("note") or "",
+                "literal_wording": literal_wording(review),
                 "updated_at": review.get("updated_at"),
             },
             "run": {

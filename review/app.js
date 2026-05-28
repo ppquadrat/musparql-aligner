@@ -36,6 +36,7 @@
     evidenceCount: document.getElementById("evidenceCount"),
     allEvidenceList: document.getElementById("allEvidenceList"),
     preferredQuestionInput: document.getElementById("preferredQuestionInput"),
+    literalWordingInput: document.getElementById("literalWordingInput"),
     reviewNoteInput: document.getElementById("reviewNoteInput"),
     holdoutSplitInput: document.getElementById("holdoutSplitInput"),
     naturalnessInput: document.getElementById("naturalnessInput"),
@@ -149,6 +150,7 @@
     els.prevBtn.addEventListener("click", () => moveSelection(-1));
     els.nextBtn.addEventListener("click", () => moveSelection(1));
     els.preferredQuestionInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
+    els.literalWordingInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.reviewNoteInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.holdoutSplitInput.addEventListener("change", () => updateCurrentReview({ rerender: true }));
     [els.naturalnessInput, els.pragmatismInput, els.roomForInterpretationInput].forEach((input) => {
@@ -295,6 +297,7 @@
     els.evidenceCount.textContent = `${evidence.length} evidence item${evidence.length === 1 ? "" : "s"}`;
 
     els.preferredQuestionInput.value = review.preferred_question || "";
+    els.literalWordingInput.value = review.literal_wording || "";
     els.reviewNoteInput.value = review.note || "";
     els.holdoutSplitInput.checked = isHoldoutReview(review);
     setInterpretiveInputs(review.interpretive);
@@ -368,6 +371,7 @@
     reviews[reviewId] = {
       status: nextStatus,
       preferred_question: els.preferredQuestionInput.value.trim(),
+      literal_wording: els.literalWordingInput.value.trim(),
       note: els.reviewNoteInput.value.trim(),
       split: els.holdoutSplitInput.checked ? HOLDOUT_SPLIT : "",
       interpretive,
@@ -376,6 +380,7 @@
     if (
       !reviews[reviewId].status &&
       !reviews[reviewId].preferred_question &&
+      !reviews[reviewId].literal_wording &&
       !reviews[reviewId].note &&
       !reviews[reviewId].split &&
       isEmptyInterpretive(interpretive)
@@ -393,13 +398,20 @@
   }
 
   function normalizeReview(review) {
+    const note = review?.note || "";
     return {
       status: review?.status || "",
-      note: review?.note || "",
+      note,
       preferred_question: review?.preferred_question || "",
+      literal_wording: review?.literal_wording || extractLiteralWordingFromNote(note),
       split: review?.split || "",
       interpretive: normalizeInterpretive(review?.interpretive),
     };
+  }
+
+  function extractLiteralWordingFromNote(note) {
+    const match = String(note || "").match(/(?:^|\n)\s*literal:\s*([^\n]+)/i);
+    return match ? match[1].trim() : "";
   }
 
   function normalizeInterpretive(interpretive) {
@@ -645,11 +657,11 @@
 
     function getCurrentReview(pair) {
       const reviewId = pair.current?.review_id || pair.pair_id;
-      return compareReviews[reviewId] || { status: "", preferred_question: "", note: "", split: "" };
+      return compareReviews[reviewId] || { status: "", preferred_question: "", literal_wording: "", note: "", split: "" };
     }
 
     function getPreviousReview(pair) {
-      return pair.previous?.review || { status: "", preferred_question: "", note: "", split: "" };
+      return pair.previous?.review || { status: "", preferred_question: "", literal_wording: "", note: "", split: "" };
     }
 
     function getFilteredCompareRecords() {
@@ -779,6 +791,7 @@
         compareReviews[currentReviewId] = {
           status: previousReview.status || "",
           preferred_question: previousReview.preferred_question || "",
+          literal_wording: previousReview.literal_wording || "",
           note: previousReview.note || "",
           split: "",
           copied_from_review_id: pair.previous?.review_id || null,
@@ -797,6 +810,7 @@
         compareReviews[currentReviewId] = {
           status: previousReview.status || "",
           preferred_question: previousReview.preferred_question || "",
+          literal_wording: previousReview.literal_wording || "",
           note: previousReview.note || "",
           split: "",
           copied_from_review_id: pair.previous?.review_id || null,
@@ -830,6 +844,9 @@
       });
       document.getElementById("comparePreferredInput")?.addEventListener("input", () => {
         updateCompareReview(currentReviewId, { preferred_question: document.getElementById("comparePreferredInput").value.trim() }, false);
+      });
+      document.getElementById("compareLiteralInput")?.addEventListener("input", () => {
+        updateCompareReview(currentReviewId, { literal_wording: document.getElementById("compareLiteralInput").value.trim() }, false);
       });
       document.getElementById("compareNoteInput")?.addEventListener("input", () => {
         updateCompareReview(currentReviewId, { note: document.getElementById("compareNoteInput").value.trim() }, false);
@@ -902,6 +919,12 @@
             </div>
             <div class="compare-review-note">
             <div class="compare-note-head">
+              <p class="section-label">Literal wording</p>
+            </div>
+            <p>${escapeHtml(review.literal_wording || "No literal wording")}</p>
+            </div>
+            <div class="compare-review-note">
+            <div class="compare-note-head">
               <p class="section-label">Note</p>
               <button id="usePreviousNoteInlineBtn" class="btn small">Reuse Note</button>
             </div>
@@ -940,6 +963,10 @@
             <label>
               <span>Preferred / corrected NL question</span>
               <textarea id="comparePreferredInput" rows="2" placeholder="Optional better wording">${escapeHtml(review.preferred_question || "")}</textarea>
+            </label>
+            <label>
+              <span>Literal SPARQL wording</span>
+              <textarea id="compareLiteralInput" rows="2" placeholder="Optional literal wording for exact query semantics">${escapeHtml(review.literal_wording || "")}</textarea>
             </label>
             <label>
               <span>Reviewer note</span>
@@ -998,7 +1025,7 @@
     }
 
     function updateCompareReview(reviewId, patch, rerender = true) {
-      const existing = compareReviews[reviewId] || { status: "", preferred_question: "", note: "", split: "" };
+      const existing = compareReviews[reviewId] || { status: "", preferred_question: "", literal_wording: "", note: "", split: "" };
       compareReviews[reviewId] = {
         ...existing,
         ...patch,
@@ -1011,7 +1038,7 @@
 
     function cleanupEmptyCompareReview(reviewId) {
       const review = compareReviews[reviewId];
-      if (review && !review.status && !review.preferred_question && !review.note && !review.split) {
+      if (review && !review.status && !review.preferred_question && !review.literal_wording && !review.note && !review.split) {
         delete compareReviews[reviewId];
       }
     }
