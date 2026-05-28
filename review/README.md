@@ -93,6 +93,11 @@ The normal review form also exports optional interpretive dimensions
 copy these into `benchmark/vN/ambiguity.jsonl`, not into the scoring
 `benchmark.jsonl`.
 
+The form also exports optional literal SPARQL wording in `literal_wording`.
+Use this for wording that follows the SPARQL more exactly than the preferred
+natural-language question. Older exports that stored these as `Literal:` note
+lines are still supported by the benchmark builders.
+
 ## Review labels
 
 - `approve`
@@ -123,6 +128,8 @@ copy these into `benchmark/vN/ambiguity.jsonl`, not into the scoring
 - Review exports can be shared with other evaluators without changing the original model output files.
 - Compare-mode exports contain the reviewer decisions for the current run, while
   the imported previous review remains read-only context.
+- Literal SPARQL wording is preserved as an accepted alternative in
+  `benchmark/vN/ambiguity.jsonl` with source type `literal_sparql_wording`.
 - Private holdout records are excluded from normal benchmark snapshots,
   compare-review queues, future prompt-input generation, and automatic
   evaluation by default. Do not paste or print holdout labels in model-visible

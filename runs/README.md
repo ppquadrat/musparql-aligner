@@ -43,6 +43,10 @@ Typical contents:
 - `examples.jsonl` (if used)
 - optional source snapshots such as `kgs.jsonl` and `kg_queries.jsonl`
 
+`llm_outputs.jsonl` records may include `citation_validation`, a generation
+runner report for retained evidence citation repairs and warnings. This is
+provenance metadata added by the runner, not model-authored output.
+
 ## Build a run snapshot
 
 ```bash

@@ -1,5 +1,6 @@
 ## Musparql: automatically extracting human language question - sparql query pairs from KGs
 
-Following the workflow described in WORKFLOW.md. See the "Data model (schemas)" section there for the JSONL schemas.
+Following the workflow described in WORKFLOW.md. See Appendix A there for the
+JSONL data model reference.
 
 This project uses OpenAI API with input/output sharing enabled to save costs.

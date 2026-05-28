@@ -65,6 +65,11 @@ retained in `ambiguity.jsonl` as an accepted rephrasing if it is distinct.
 When a later approved rewrite replaces an older canonical wording, the older
 canonical wording is also retained there.
 
+Reviewer-provided literal SPARQL wordings are also preserved in
+`ambiguity.jsonl` with `source_type: "literal_sparql_wording"` when they are
+distinct from the canonical question. They are intended for exact semantic
+traceability, not as the most likely natural-language phrasing.
+
 ## Builder
 
 Build a benchmark snapshot from a review bundle and an exported review file:
