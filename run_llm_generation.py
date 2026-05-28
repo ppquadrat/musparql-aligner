@@ -6,13 +6,21 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
+import unicodedata
 
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except ImportError:  # pragma: no cover - exercised only in minimal test envs
+    OpenAI = None  # type: ignore[assignment]
 
-SCRIPT_VERSION = "run_llm_generation.py@v3"
+SCRIPT_VERSION = "run_llm_generation.py@v4"
+REPAIR_MIN_SCORE = 0.80
+REPAIR_MIN_MARGIN = 0.35
+REPAIR_TIE_MARGIN = 0.05
 
 
 def load_json(path: Path) -> Dict[str, Any]:
@@ -194,6 +202,159 @@ def validate_output(obj: Dict[str, Any], schema: Dict[str, Any]) -> Tuple[bool, 
         return False, str(e)
 
 
+def normalize_citation_text(text: Any) -> str:
+    value = unicodedata.normalize("NFKC", str(text or ""))
+    value = value.replace("\u2018", "'").replace("\u2019", "'")
+    value = value.replace("\u201c", '"').replace("\u201d", '"')
+    value = re.sub(r"[\u2010-\u2015]", "-", value)
+    value = re.sub(r"(\w)-\s+(\w)", r"\1\2", value)
+    value = re.sub(r"\s+", " ", value)
+    return value.strip().casefold()
+
+
+def citation_tokens(text: Any) -> List[str]:
+    normalized = normalize_citation_text(text)
+    return [
+        token
+        for token in re.split(r"[^a-z0-9_:.]+", normalized)
+        if len(token) > 1 and not re.fullmatch(r"cq\d+", token)
+    ]
+
+
+def citation_match_score(phrase: Any, snippet: Any) -> float:
+    phrase_norm = normalize_citation_text(phrase)
+    snippet_norm = normalize_citation_text(snippet)
+    if not phrase_norm or not snippet_norm:
+        return 0.0
+    if phrase_norm in snippet_norm:
+        return 1.0
+
+    phrase_compact = re.sub(r"\s+", "", phrase_norm)
+    snippet_compact = re.sub(r"\s+", "", snippet_norm)
+    if phrase_compact and phrase_compact in snippet_compact:
+        return 1.0
+
+    phrase_tokens = citation_tokens(phrase)
+    if not phrase_tokens:
+        return 0.0
+    snippet_tokens = set(citation_tokens(snippet))
+    if not snippet_tokens:
+        return 0.0
+    return sum(1 for token in phrase_tokens if token in snippet_tokens) / len(phrase_tokens)
+
+
+def best_evidence_match(phrase_text: Any, evidence: List[Dict[str, Any]]) -> Tuple[Optional[Dict[str, Any]], float, bool]:
+    scored = [
+        (citation_match_score(phrase_text, item.get("snippet")), item)
+        for item in evidence
+        if isinstance(item, dict)
+    ]
+    if not scored:
+        return None, 0.0, False
+    scored.sort(key=lambda row: row[0], reverse=True)
+    best_score, best_item = scored[0]
+    tied = len(scored) > 1 and best_score - scored[1][0] < REPAIR_TIE_MARGIN
+    return best_item, best_score, tied
+
+
+def validate_and_repair_citations(output: Dict[str, Any], payload: Dict[str, Any]) -> Dict[str, Any]:
+    evidence = [item for item in (payload.get("evidence") or []) if isinstance(item, dict)]
+    evidence_by_id = {str(item.get("evidence_id") or ""): item for item in evidence}
+    repairs: List[Dict[str, Any]] = []
+    warnings: List[Dict[str, Any]] = []
+    id_repairs: Dict[str, str] = {}
+
+    for idx, phrase in enumerate(output.get("ranked_evidence_phrases") or []):
+        if not isinstance(phrase, dict):
+            continue
+        phrase_text = phrase.get("text") or ""
+        cited_id = str(phrase.get("evidence_id") or "")
+        cited = evidence_by_id.get(cited_id)
+        cited_score = citation_match_score(phrase_text, cited.get("snippet") if cited else "")
+        best_item, best_score, tied = best_evidence_match(phrase_text, evidence)
+        best_id = str(best_item.get("evidence_id") or "") if best_item else ""
+
+        if cited is None:
+            warnings.append(
+                {
+                    "rank": phrase.get("rank") or idx + 1,
+                    "type": "missing_evidence_id",
+                    "evidence_id": cited_id,
+                    "text": phrase_text,
+                }
+            )
+        elif phrase.get("source_type") and phrase.get("source_type") != cited.get("type"):
+            old_type = phrase.get("source_type")
+            phrase["source_type"] = cited.get("type") or old_type
+            repairs.append(
+                {
+                    "rank": phrase.get("rank") or idx + 1,
+                    "type": "source_type_repaired",
+                    "evidence_id": cited_id,
+                    "from": old_type,
+                    "to": phrase["source_type"],
+                }
+            )
+
+        should_repair = (
+            best_item is not None
+            and best_id
+            and best_id != cited_id
+            and best_score >= REPAIR_MIN_SCORE
+            and best_score - cited_score >= REPAIR_MIN_MARGIN
+            and not tied
+        )
+        if should_repair:
+            old_id = cited_id
+            phrase["evidence_id"] = best_id
+            phrase["source_type"] = best_item.get("type") or phrase.get("source_type") or ""
+            id_repairs[old_id] = best_id
+            repairs.append(
+                {
+                    "rank": phrase.get("rank") or idx + 1,
+                    "type": "evidence_id_repaired",
+                    "from": old_id,
+                    "to": best_id,
+                    "cited_score": round(cited_score, 3),
+                    "best_score": round(best_score, 3),
+                    "text": phrase_text,
+                }
+            )
+        elif phrase.get("verbatim") is True and cited_score < REPAIR_MIN_SCORE:
+            warnings.append(
+                {
+                    "rank": phrase.get("rank") or idx + 1,
+                    "type": "weak_verbatim_match",
+                    "evidence_id": cited_id,
+                    "cited_score": round(cited_score, 3),
+                    "best_evidence_id": best_id or None,
+                    "best_score": round(best_score, 3),
+                    "text": phrase_text,
+                }
+            )
+
+    origin = output.get("nl_question_origin")
+    if isinstance(origin, dict) and id_repairs:
+        evidence_ids = origin.get("evidence_ids")
+        if isinstance(evidence_ids, list):
+            repaired_ids: List[str] = []
+            for evidence_id in evidence_ids:
+                repaired = id_repairs.get(str(evidence_id), str(evidence_id))
+                if repaired not in repaired_ids:
+                    repaired_ids.append(repaired)
+            origin["evidence_ids"] = repaired_ids
+        primary = origin.get("primary_evidence_id")
+        if primary is not None and str(primary) in id_repairs:
+            origin["primary_evidence_id"] = id_repairs[str(primary)]
+
+    return {
+        "repairs": repairs,
+        "warnings": warnings,
+        "repair_count": len(repairs),
+        "warning_count": len(warnings),
+    }
+
+
 def build_system_prompt(
     base_prompt: str,
     schema: Dict[str, Any],
@@ -281,7 +442,7 @@ def resolve_client_config(args: argparse.Namespace) -> Tuple[Dict[str, Any], Opt
 
 def run_model_request(
     *,
-    client: OpenAI,
+    client: Any,
     args: argparse.Namespace,
     response_create_kwargs: Dict[str, Any],
     chat_completion_kwargs: Dict[str, Any],
@@ -387,6 +548,8 @@ def main() -> None:
     response_create_kwargs = build_response_create_kwargs(args)
     chat_completion_kwargs = build_chat_completion_kwargs(args)
 
+    if OpenAI is None:
+        raise RuntimeError("The openai package is required to run model generation.")
     client = OpenAI(**client_kwargs)
     ok_count = 0
     err_count = 0
@@ -425,6 +588,7 @@ def main() -> None:
                 parsed = extract_first_json_object(text)
                 if parsed is None:
                     raise ValueError("No JSON object found in model output")
+                citation_validation = validate_and_repair_citations(parsed, payload)
                 valid, validation_error = validate_output(parsed, schema)
                 if not valid:
                     raise ValueError(f"Schema validation failed: {validation_error}")
@@ -445,6 +609,7 @@ def main() -> None:
                     },
                     "request_config": request_config,
                     "response_metadata": response_metadata,
+                    "citation_validation": citation_validation,
                     "elapsed_ms": int((time.time() - started) * 1000),
                     "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                 }
