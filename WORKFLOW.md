@@ -519,6 +519,115 @@ Private holdout records are carried forward separately in `holdout.jsonl`.
 Accepted alternative phrasings and interpretive annotations are carried forward
 in `ambiguity.jsonl`.
 
+### Benchmark Updates From Normal Review
+
+Normal review exports can also update an existing benchmark snapshot. This is
+the appropriate path when a reviewer has examined additional pairs from the same
+or a later run, but the review was not a side-by-side comparison of old and new
+outputs.
+
+Apply an additive normal-review export to a previous benchmark snapshot:
+
+```bash
+.venv/bin/python benchmark/update_from_normal_review.py \
+  --previous-benchmark benchmark/vN \
+  --bundle review/review_data.js \
+  --reviews review/exports/<normal-review-export>.json \
+  --outdir benchmark/vN_plus_1
+```
+
+For a normal-review update:
+
+- Carry forward all records from the previous benchmark snapshot.
+- Add newly reviewed pairs that were not already present.
+- Preserve dismissed and private holdout records according to the usual split
+  policy.
+- Preserve accepted non-canonical phrasings, literal SPARQL wordings, and
+  interpretive annotations in `ambiguity.jsonl`.
+- Record the update source in the new benchmark manifest.
+
+If a normal-review export only covers pairs that were absent from the previous
+benchmark, the update is additive and requires no conflict resolution.
+
+If a normal-review export covers a pair that is already present in the
+benchmark, treat the new review as an additional judgment, not as an automatic
+replacement. The benchmark must keep one canonical decision for scoring, but it
+should preserve all review evidence in sidecar/provenance records.
+
+The additive updater fails fast on overlapping already-reviewed pairs. Use that
+failure as a cue to perform an explicit conflict-aware merge or adjudication
+step, rather than silently replacing the previous benchmark decision.
+
+### Curated Source Additions
+
+Some public sources already provide both natural-language prompts and SPARQL
+queries. These can enter the public benchmark as source-authored pairs without a
+review UI pass when their provenance is clear and the pairing has been checked.
+
+For LinkedMusic curated examples:
+
+```bash
+.venv/bin/python benchmark/add_linkedmusic_curated.py \
+  --previous-benchmark benchmark/vN \
+  --source curated_sources/LinkedMusic_Queries_Corrected.md \
+  --outdir benchmark/vN_plus_1
+```
+
+Curated-source records use the source prompt as `gold_question` and record
+`gold_question_source: "source_prompt"`. Query execution status should be
+recorded separately from pair validity: a source-authored NL-SPARQL pair can be
+valid benchmark material even when a live federated query is temporarily
+unrunnable or dependent on external endpoint limits.
+
+### Multiple Reviews And Conflict Resolution
+
+Multiple reviews of the same pair are methodologically useful: they can support
+quality control, inter-reviewer agreement, and intra-reviewer variation checks.
+They should not be collapsed silently.
+
+The benchmark curation policy is:
+
+- Preserve every review separately, including reviewer status, preferred
+  wording, literal wording, notes, split, interpretive annotations, timestamp,
+  review export, and run provenance.
+- Keep exactly one canonical `gold_question` in `benchmark.jsonl`.
+- Store accepted alternative wordings and literal formulations in
+  `ambiguity.jsonl`, with provenance for each formulation.
+- Track whether a canonical benchmark decision came from a single review,
+  consensus, wording variation, status conflict, or adjudication.
+
+When review statuses agree:
+
+- `approve` + `approve`: include the pair as approved.
+- Matching non-approve statuses: keep that shared status.
+- If only one review supplies a preferred wording, use it as the canonical
+  `gold_question`.
+- If multiple reviews supply preferred wordings, use the latest as the default
+  canonical wording and store the others in `ambiguity.jsonl`.
+- If multiple literal wordings are supplied, retain all distinct literal
+  formulations in `ambiguity.jsonl`; do not force a single public literal
+  wording unless a downstream export format requires one.
+
+When review statuses differ:
+
+- `approve` versus `needs_prompt_fix`: include only if there is a usable gold
+  question; prefer a reviewer correction when one exists, and mark the record as
+  having status disagreement.
+- `approve` versus `needs_data_fix`: require adjudication unless the data issue
+  is explicitly about model context or evidence and not about validity of the
+  NL-SPARQL pair itself.
+- Any status versus `dismiss`: require adjudication before including the pair in
+  the strict public benchmark.
+- Multiple non-approve statuses: include only when no reviewer dismissed the
+  pair and a reviewer-supplied gold question is available; otherwise keep it out
+  of the scoring benchmark until adjudicated.
+
+For public releases and paper results, use the strict benchmark: unresolved
+status conflicts involving dismissal or pair validity should be excluded from
+`benchmark.jsonl` or explicitly adjudicated. Lenient inclusion is acceptable for
+internal prompt iteration, but it must be marked as such and should not be
+reported as the main curated benchmark.
+
 ### Ambiguity Sidecar
 
 `ambiguity.jsonl` is a public sidecar for interpretive annotations and accepted

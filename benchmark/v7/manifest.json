@@ -1,0 +1,48 @@
+{
+  "benchmark_version": "v7",
+  "built_at": "2026-07-14T14:26:47+00:00",
+  "update_type": "curated_linkedmusic_addition",
+  "previous_benchmark": "benchmark/v6",
+  "previous_benchmark_version": "v6",
+  "source_curated_file": "curated_sources/LinkedMusic_Queries_Corrected.md",
+  "dataset_id": "linkedmusic-curated-2026-07-14",
+  "counts": {
+    "benchmark": 100,
+    "approved": 87,
+    "pending": 13,
+    "dismissed": 5,
+    "holdout": 0,
+    "ambiguity": 60,
+    "added_curated_linkedmusic": 20,
+    "linkedmusic_dataset_counts": {
+      "DIAMM": 3,
+      "The Session": 3,
+      "MusicBrainz": 3,
+      "The Global Jukebox": 3,
+      "Dig That Lick": 3,
+      "The Global Jukebox, The Session": 1,
+      "MusicBrainz, Dig That Lick": 1,
+      "MusicBrainz, Dig That Lick, The Session, DIAMM, The Global Jukebox": 1,
+      "MusicBrainz, The Global Jukebox": 1,
+      "MusicBrainz, The Session": 1
+    }
+  },
+  "files": {
+    "benchmark": "benchmark.jsonl",
+    "approved": "approved.jsonl",
+    "pending": "pending.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "holdout": "holdout.jsonl",
+    "ambiguity": "ambiguity.jsonl"
+  },
+  "gold_question_policy": {
+    "benchmark_includes_approved": true,
+    "benchmark_includes_pending_with_reviewer_rewrite": true,
+    "preferred_question_used_when_present": true,
+    "approved_model_output_used_otherwise": true,
+    "source_prompt_used_for_curated_linkedmusic": true,
+    "unchanged_previous_items_carried_forward": true,
+    "corrected_linkedmusic_sparql_used": true
+  },
+  "curation_note": "LinkedMusic prompts are public challenge prompts; SPARQL queries are manually corrected in the local curated source file."
+}

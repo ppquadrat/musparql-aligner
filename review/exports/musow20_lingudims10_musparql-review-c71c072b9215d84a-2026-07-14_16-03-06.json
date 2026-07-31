@@ -1,0 +1,299 @@
+{
+  "dataset_id": "c71c072b9215d84a",
+  "run_id": "2026-05-22-graphia-minimax-m25",
+  "run_ids": [
+    "2026-05-22-graphia-minimax-m25"
+  ],
+  "runs": [
+    {
+      "run_id": "2026-05-22-graphia-minimax-m25",
+      "generation_run_id": "2026-05-22-graphia-minimax-m25",
+      "manifest_path": "/Users/polina/Musparql/runs/2026-05-22-graphia-minimax-m25/manifest.json",
+      "purpose": "Graphia MiniMax-M2.5 generation round",
+      "created_at": "2026-05-22T01:39:18+00:00"
+    }
+  ],
+  "exported_at": "2026-07-14T14:03:06.105Z",
+  "reviews": {
+    "musow::musow-0001::5ab7437647ba": {
+      "status": "approve",
+      "preferred_question": "How many resources have been included in the survey?",
+      "literal_wording": "How many resources have a homepage in the musow survey?",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": 100,
+        "pragmatism": 81,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T10:54:43.357Z"
+    },
+    "musow::musow-0002::815ef7f9ad23": {
+      "status": "approve",
+      "preferred_question": "",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": 70,
+        "pragmatism": null,
+        "room_for_interpretation": 22,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T10:57:31.086Z"
+    },
+    "musow::musow-0003::adfe9262100f": {
+      "status": "approve",
+      "preferred_question": "",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": 76,
+        "pragmatism": null,
+        "room_for_interpretation": 29,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T10:59:48.763Z"
+    },
+    "musow::musow-0004::278b70463247": {
+      "status": "approve",
+      "preferred_question": "What is the extent of gathered resources?",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": 15,
+        "pragmatism": 0,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T11:02:44.432Z"
+    },
+    "musow::musow-0005::0564364d02ac": {
+      "status": "approve",
+      "preferred_question": "What is the main data source of gathered resources?",
+      "literal_wording": "How many resources belong to each category?",
+      "note": "Results refer to the original musical object described in the resource i.e. audio files, metadata or symbolic notations.",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": 34,
+        "room_for_interpretation": 0,
+        "requires_graph_context_knowledge": true
+      },
+      "updated_at": "2026-07-14T11:07:49.801Z"
+    },
+    "musow::musow-0006::93683fcc59cc": {
+      "status": "approve",
+      "preferred_question": "",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": 100,
+        "pragmatism": 100,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T11:09:07.151Z"
+    },
+    "musow::musow-0007::5e6e4134194b": {
+      "status": "approve",
+      "preferred_question": "In which kind of sources are researchers interested?",
+      "literal_wording": "For each category, how many resources are available for researchers?",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": 20,
+        "pragmatism": 24,
+        "room_for_interpretation": 30,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T11:17:32.955Z"
+    },
+    "musow::musow-0008::9275c166a1a8": {
+      "status": "approve",
+      "preferred_question": "",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": 83,
+        "pragmatism": 77,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T11:18:25.566Z"
+    },
+    "musow::musow-0009::35f04b955a07": {
+      "status": "approve",
+      "preferred_question": "",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": 76,
+        "pragmatism": 77,
+        "room_for_interpretation": 30,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T11:19:24.168Z"
+    },
+    "musow::musow-0010::d52d6bc544fc": {
+      "status": "approve",
+      "preferred_question": "How many resources have been gathered by means of catalogs?",
+      "literal_wording": "How many resources were collected for each catalogue?",
+      "note": "Among the resources gathered in the survey there are catalogs of online resources for musicologists, musicians and researchers in general. These ones have been used as sources for retrieving most of of the resources described in musoW.",
+      "split": "",
+      "interpretive": {
+        "naturalness": 40,
+        "pragmatism": 39,
+        "room_for_interpretation": 35,
+        "requires_graph_context_knowledge": true
+      },
+      "updated_at": "2026-07-14T11:33:27.274Z"
+    },
+    "musow::musow-0011::98e05c50ed6a": {
+      "status": "approve",
+      "preferred_question": "What's the focus of resources gathered by means of catalogs?",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": null,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T13:46:15.610Z"
+    },
+    "musow::musow-0012::e42c9055a48c": {
+      "status": "approve",
+      "preferred_question": "What types of resources were collected through catalogs, and how many of each?",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": null,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T13:47:44.995Z"
+    },
+    "musow::musow-0013::192eccf41f91": {
+      "status": "approve",
+      "preferred_question": "What is the target audience of resources collected through catalogues?",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": null,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T13:49:15.904Z"
+    },
+    "musow::musow-0014::c6988359bf38": {
+      "status": "approve",
+      "preferred_question": "",
+      "literal_wording": "",
+      "note": "No idea what the difference is between researchers and scholars",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": null,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T13:52:05.038Z"
+    },
+    "musow::musow-0015::194eafcdbe28": {
+      "status": "approve",
+      "preferred_question": "",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": null,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T13:52:53.456Z"
+    },
+    "musow::musow-0016::a8d35f28212b": {
+      "status": "approve",
+      "preferred_question": "",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": null,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T13:53:13.518Z"
+    },
+    "musow::musow-0017::f0591de4a5f1": {
+      "status": "approve",
+      "preferred_question": "What is the size of repositories and digital libraries?",
+      "literal_wording": "For each extent (size), how many repositories and digital libraries are there?",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": null,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T13:56:38.155Z"
+    },
+    "musow::musow-0018::c3de8e2013bf": {
+      "status": "approve",
+      "preferred_question": "",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": null,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T13:57:14.418Z"
+    },
+    "musow::musow-0019::c0e1ab4bdc02": {
+      "status": "approve",
+      "preferred_question": "For each size of the resource, how many resources are there in each format",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": null,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T14:02:46.681Z"
+    },
+    "musow::musow-0020::0ac0d8b2d0a3": {
+      "status": "approve",
+      "preferred_question": "",
+      "literal_wording": "",
+      "note": "",
+      "split": "",
+      "interpretive": {
+        "naturalness": null,
+        "pragmatism": null,
+        "room_for_interpretation": null,
+        "requires_graph_context_knowledge": false
+      },
+      "updated_at": "2026-07-14T14:03:00.692Z"
+    }
+  }
+}

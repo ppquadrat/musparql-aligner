@@ -1,0 +1,48 @@
+{
+  "benchmark_version": "v6",
+  "built_at": "2026-07-14T14:26:42+00:00",
+  "update_type": "normal_review_additive_update",
+  "previous_benchmark": "benchmark/v5",
+  "previous_benchmark_version": "v5",
+  "source_bundle": "review/review_data.js",
+  "source_review_export": "review/exports/musow20_lingudims10_musparql-review-c71c072b9215d84a-2026-07-14_16-03-06.json",
+  "dataset_id": "c71c072b9215d84a",
+  "current_run": {
+    "run_id": "2026-05-22-graphia-minimax-m25",
+    "generation_run_id": "2026-05-22-graphia-minimax-m25",
+    "manifest_path": "/Users/polina/Musparql/runs/2026-05-22-graphia-minimax-m25/manifest.json",
+    "purpose": "Graphia MiniMax-M2.5 generation round",
+    "created_at": "2026-05-22T01:39:18+00:00"
+  },
+  "counts": {
+    "benchmark": 80,
+    "approved": 67,
+    "pending": 13,
+    "dismissed": 5,
+    "holdout": 0,
+    "ambiguity": 60,
+    "applied_normal_reviews": 20,
+    "applied_status_counts": {
+      "approve": 20
+    },
+    "overlapping_reviewed_pairs": 0
+  },
+  "files": {
+    "benchmark": "benchmark.jsonl",
+    "approved": "approved.jsonl",
+    "pending": "pending.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "holdout": "holdout.jsonl",
+    "ambiguity": "ambiguity.jsonl"
+  },
+  "gold_question_policy": {
+    "benchmark_includes_approved": true,
+    "benchmark_includes_pending_with_reviewer_rewrite": true,
+    "preferred_question_used_when_present": true,
+    "approved_model_output_used_otherwise": true,
+    "unchanged_previous_items_carried_forward": true
+  },
+  "conflict_policy": {
+    "overlapping_normal_reviews": "fail_until_adjudicated"
+  }
+}
