@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import time
@@ -611,6 +612,35 @@ def is_endpoint_healthy(endpoint: KGEndpoint) -> bool:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Execute extracted SPARQL queries.")
+    parser.add_argument(
+        "--kg-id",
+        action="append",
+        dest="kg_ids",
+        help="Only execute queries for this KG ID; may be repeated.",
+    )
+    parser.add_argument(
+        "--source-id",
+        action="append",
+        dest="source_ids",
+        help="Only execute queries carrying evidence from this source ID; may be repeated.",
+    )
+    args = parser.parse_args()
+    selected_kg_ids = set(args.kg_ids or [])
+    selected_source_ids = set(args.source_ids or [])
+
+    def record_is_selected(record: Dict[str, object]) -> bool:
+        kg_id = record.get("kg_id")
+        if selected_kg_ids and kg_id not in selected_kg_ids:
+            return False
+        if not selected_source_ids:
+            return True
+        evidence = record.get("evidence")
+        return isinstance(evidence, list) and any(
+            isinstance(item, dict) and item.get("source_id") in selected_source_ids
+            for item in evidence
+        )
+
     seeds_path = Path("seeds.yaml")
     queries_path = Path("kg_queries.jsonl")
     out_path = queries_path
@@ -618,6 +648,9 @@ def main() -> None:
 
     endpoints = load_endpoints(seeds_path)
     datasets = load_datasets(seeds_path)
+    if selected_kg_ids:
+        endpoints = {kg_id: value for kg_id, value in endpoints.items() if kg_id in selected_kg_ids}
+        datasets = {kg_id: value for kg_id, value in datasets.items() if kg_id in selected_kg_ids}
     raw_queries = load_query_records(queries_path)
 
     unhealthy_endpoints = set()
@@ -631,6 +664,14 @@ def main() -> None:
     skipped_no_endpoint = 0
     kept = 0
     failures: List[Dict[str, object]] = []
+    if selected_kg_ids and fail_path.exists():
+        for line in fail_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            previous = json.loads(line)
+            if previous.get("kg_id") not in selected_kg_ids:
+                failures.append(previous)
+    preserved_failure_count = len(failures)
     endpoint_success: Dict[str, int] = {}
     stats: Dict[str, Dict[str, int]] = {}
     graphs: Dict[str, Graph] = {}
@@ -638,7 +679,7 @@ def main() -> None:
     totals: Dict[str, int] = {}
     for rec in raw_queries:
         kg_id = rec.get("kg_id")
-        if isinstance(kg_id, str):
+        if isinstance(kg_id, str) and record_is_selected(rec):
             totals[kg_id] = totals.get(kg_id, 0) + 1
     processed: Dict[str, int] = {}
     current_kg = None
@@ -646,6 +687,8 @@ def main() -> None:
         kg_id = rec.get("kg_id")
         query = rec.get("sparql_clean")
         if not isinstance(kg_id, str) or not isinstance(query, str):
+            continue
+        if not record_is_selected(rec):
             continue
         if kg_id.lower() == "musow":
             time.sleep(0.25)
@@ -835,7 +878,8 @@ def main() -> None:
                     print(f"- {count}x {line}")
     print(
         f"Wrote {len(records)} records to {out_path.resolve()} "
-        f"(skipped_no_endpoint={skipped_no_endpoint}, kept={kept}, failed={len(failures)})"
+        f"(skipped_no_endpoint={skipped_no_endpoint}, kept={kept}, "
+        f"failed={len(failures) - preserved_failure_count})"
     )
 
 

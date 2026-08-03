@@ -93,9 +93,49 @@ sources:
     title: "SESEMMI for LinkedMusic: Democratizing Access to Musical Archives via Large Language Models"
     url: https://openreview.net/forum?id=hSDeNeUzcy
 
+  - source_id: linkedmusic-datalake-repository
+    type: repository
+    title: LinkedMusic Data Lake repository
+    url: https://github.com/DDMAL/linkedmusic-datalake
+
+  - source_id: linkedmusic-queries-repository
+    type: repository
+    title: LinkedMusic natural-language-to-SPARQL experiments repository
+    url: https://github.com/DDMAL/linkedmusic-queries
+
+  - source_id: linkedmusic-project-website
+    type: web_document
+    title: LinkedMusic project website
+    url: https://linkedmusic.ca/
+
+  - source_id: linkedmusic-sample-queries
+    type: web_document
+    title: Sample LinkedMusic Queries
+    url: https://github.com/DDMAL/linkedmusic-datalake/wiki/Sample-LinkedMusic-Queries
+
+  - source_id: linkedmusic-prefix-catalogue
+    type: web_document
+    title: LinkedMusic graph and entity prefix catalogue
+    url: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-SPARQL-Queries
+
+  - source_id: linkedmusic-public-query-database
+    type: web_document
+    title: Public LinkedMusic Query Database
+    url: https://docs.google.com/spreadsheets/d/1Bsb1fZXPUGgqAMfNQeCf4J5l0p5rLhTQMCwRc0ZVrFs/edit?gid=1479578801#gid=1479578801
+
+  - source_id: linkedmusic-integrating-databases-2025-article
+    type: publication
+    title: "Integrating Online Music Databases: The LinkedMusic Project"
+    url: https://brainfood.musicology.org/vol-9-no-1-2025/integrating-online-music-databases/
+
+  - source_id: linkedmusic-sustainable-archiving-2025-paper
+    type: publication
+    title: Sustainable Archiving of Music Databases through RDF and NLQ2SPARQL
+    url: https://doi.org/10.1145/3748336.3748353
+
   - source_id: linkedmusic-corrected-examples-working-copy
     type: derivative
     title: Musparql-corrected working copy of the LinkedMusic examples
     local_path: curated_sources/LinkedMusic_Queries_Corrected.md
-    derived_from: [sesemmi-linkedmusic-2025-paper]
-    description: Temporary corrected examples awaiting the dedicated LinkedMusic pipeline import and review run.
+    derived_from: [linkedmusic-public-query-database, sesemmi-linkedmusic-2025-paper]
+    description: Corrected working copy retained for reproducible query extraction and validation against the live endpoint.

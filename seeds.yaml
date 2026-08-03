@@ -99,3 +99,36 @@
     priority: medium
     notes: >
       RDF data dump (TTL) referenced at https://osf.io/bwg42/files/qnb4k.
+
+  - kg_id: linkedmusic
+    name: LinkedMusic Data Lake
+    project: LinkedMusic
+    description_hint: >
+      Integrated music knowledge graph that reconciles metadata through Wikidata
+      and exposes named RDF graphs for DIAMM, Dig That Lick, the Weimar Jazz
+      Database, The Global Jukebox, the University of Tennessee Song Index,
+      MusicBrainz, The Session, RISM, Cantus Database, Cantus Index, SIMSSA DB,
+      and the NFDI4Culture APSearch, Detmolder Hoftheater, and
+      musiconn.performance knowledge graphs.
+    sparql:
+      endpoint: https://virtuoso.simssa.ca/sparql/
+      auth: none
+      expected_namespaces:
+        - https://linkedmusic.ca/graphs/
+        - http://www.wikidata.org/prop/direct/
+    source_ids:
+      - linkedmusic-datalake-repository
+      - linkedmusic-queries-repository
+      - linkedmusic-project-website
+      - linkedmusic-sample-queries
+      - linkedmusic-prefix-catalogue
+      - linkedmusic-public-query-database
+      - sesemmi-linkedmusic-2025-paper
+      - linkedmusic-integrating-databases-2025-article
+      - linkedmusic-sustainable-archiving-2025-paper
+      - linkedmusic-corrected-examples-working-copy
+    priority: high
+    notes: >
+      Official sources provide twenty public NLQ-SPARQL benchmark pairs across
+      four challenge levels, plus repository and wiki documentation for the
+      constituent named graphs and cross-graph querying.
