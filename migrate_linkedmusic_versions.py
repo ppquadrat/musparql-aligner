@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Migrate LinkedMusic's corrected standalone queries into versioned official records."""
+"""Migrate LinkedMusic's edited standalone queries into versioned official records."""
 from __future__ import annotations
 
 import argparse
@@ -149,7 +149,7 @@ def build_canonical_record(
     first_edit = {
         "version": 1,
         "sparql": edit_sparql,
-        "note": "Musparql correction retained in curated_sources/LinkedMusic_Queries_Corrected.md.",
+        "note": "Musparql edit retained in curated_sources/LinkedMusic_Queries_Corrected.md; live comparison found no improvement in coarse execution outcomes.",
         "source_id": EDIT_SOURCE_ID,
     }
     previous_edits = previous.get("sparql_edits")
@@ -160,6 +160,7 @@ def build_canonical_record(
             raise ValueError(f"Existing version 1 no longer matches corrected source for {label}")
         retained_edits = deepcopy(previous_edits)
         retained_edits[0]["source_id"] = EDIT_SOURCE_ID
+        retained_edits[0]["note"] = first_edit["note"]
         record["sparql_edits"] = retained_edits
     else:
         record["sparql_edits"] = [first_edit]

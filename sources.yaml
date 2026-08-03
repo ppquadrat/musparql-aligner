@@ -155,4 +155,4 @@ sources:
     local_path: curated_sources/LinkedMusic_Queries_Corrected.md
     derived_from: [linkedmusic-public-query-database, sesemmi-linkedmusic-2025-paper]
     query_role: edit_source
-    description: Corrected working copy retained as append-only SPARQL edits and for validation against the live endpoint.
+    description: Working copy retained as append-only SPARQL edits. Fifteen queries are principally self-contained normalizations and five contain substantive federated-query rewrites; live comparison found no improvement in coarse execution outcomes.

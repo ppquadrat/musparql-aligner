@@ -684,8 +684,12 @@ valid benchmark material even when a live federated query is temporarily
 unrunnable or dependent on external endpoint limits.
 
 Current LinkedMusic pipeline records instead use the public query database as
-version `0` and attach the Musparql-corrected working copy as version `1`. The
-corrected document is catalogued with `query_role: edit_source`, so extraction
+version `0` and attach the Musparql-edited working copy as version `1`. For
+fifteen queries, the edits principally make endpoint-specific examples
+self-contained; five federated queries contain substantive rewrites. Live tests
+found the same coarse outcomes at both versions—fourteen successes, five HTTP
+errors, and one timeout—so version `1` is not claimed to improve executability.
+The edited document is catalogued with `query_role: edit_source`, so extraction
 does not recreate it as twenty independent query records. The checked migration
 is idempotent:
 

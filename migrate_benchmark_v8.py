@@ -138,7 +138,8 @@ def update_identity(row: dict[str, Any], query: Mapping[str, Any]) -> None:
             review["review_id"] = new_id
             review["internal_comment"] = (
                 "Public LinkedMusic prompt paired with canonical source SPARQL version 0 "
-                "and the attributed Musparql correction selected as version 1."
+                "and the attributed Musparql edit selected as version 1; live "
+                "comparison found no improvement in coarse execution outcomes."
             )
         run = row.get("run")
         if isinstance(run, dict):
@@ -204,7 +205,15 @@ def migrate(*, dry_run: bool = False) -> None:
         and row.get("sparql_edits")
     }
 
-    adjudicated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    existing_manifest_path = TARGET_SNAPSHOT / "manifest.json"
+    existing_manifest = (
+        json.loads(existing_manifest_path.read_text(encoding="utf-8"))
+        if existing_manifest_path.exists()
+        else {}
+    )
+    adjudicated_at = str(existing_manifest.get("built_at") or "")
+    if existing_manifest.get("benchmark_version") != "v8" or not adjudicated_at:
+        adjudicated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     included = read_jsonl(SOURCE_SNAPSHOT / "included.jsonl")
     for row in included:
         query = canonical_query(
@@ -267,7 +276,7 @@ def migrate(*, dry_run: bool = False) -> None:
             "update_type": "versioned_sparql_and_nl_alignment",
             "previous_benchmark": "benchmark/v7",
             "previous_benchmark_version": "v7",
-            "curation_note": "All benchmark pairs are pinned to the latest retained SPARQL version. LinkedMusic uses the canonical official-source identities and corrected version 1 queries. Concrete organ VALUES instances are named in canonical questions and illustrative lists are reduced to one organ.",
+            "curation_note": "All benchmark pairs are pinned to the latest retained SPARQL version. LinkedMusic uses canonical official-source identities and edited version 1 queries; live comparison found no improvement in coarse execution outcomes. Concrete organ VALUES instances are named in canonical questions and illustrative lists are reduced to one organ.",
             "sparql_version_policy": "latest_retained",
             "execution_snapshot": {
                 "source": "kg_queries.jsonl",

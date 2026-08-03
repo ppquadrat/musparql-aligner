@@ -1,4 +1,9 @@
-# LinkedMusic Queries (corrected SPARQL)
+# LinkedMusic Queries (edited SPARQL working copy)
+
+This working copy makes fifteen endpoint-specific examples self-contained and
+contains substantive federated-query rewrites for the five Challenge 3 queries.
+A live comparison found the same coarse execution outcomes for the official and
+edited versions; these edits are therefore not claimed to improve executability.
 
 
 # Challenge 1: Find anything you can find via the database's website.
@@ -823,4 +828,3 @@ SELECT DISTINCT ?event WHERE {
   FILTER (?eventDate = ?dissolutionDate)
 }
 ```
-

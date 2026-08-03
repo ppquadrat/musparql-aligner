@@ -1,10 +1,10 @@
-# LinkedMusic Source vs Corrected SPARQL Comparison
+# LinkedMusic Source vs Edited SPARQL Comparison
 
 Date: 2026-08-03
 
 ## Question
 
-Do the twenty Musparql-corrected LinkedMusic queries execute more successfully
+Do the twenty Musparql-edited LinkedMusic queries execute more successfully
 than the corresponding official public examples, and can both outcomes be
 retained without replacing source-authored SPARQL?
 
@@ -13,7 +13,7 @@ retained without replacing source-authored SPARQL?
 - Implementation commit: `61a4c94`
 - Endpoint: `https://virtuoso.simssa.ca/sparql/`
 - Official public queries: retained version `0`
-- Musparql-corrected working copy: retained version `1`
+- Musparql-edited working copy: retained version `1`
 - Command:
 
   ```bash
@@ -32,7 +32,7 @@ the skipped observations did not overwrite earlier successful executions.
 
 Forty live jobs were executed: twenty queries at each version.
 
-| Outcome | Version 0: official | Version 1: corrected |
+| Outcome | Version 0: official | Version 1: edited |
 | --- | ---: | ---: |
 | `ok` | 14 | 14 |
 | `http_error` | 5 | 5 |
@@ -47,9 +47,11 @@ The same six query labels failed at both versions:
   the other HTTP failures returned 500.
 - `linkedmusic-0068`: read timeout at both versions.
 
-Thus the corrected text did not improve the coarse executable/non-executable
+Thus the edited text did not improve the coarse executable/non-executable
 outcome in this endpoint snapshot. It remains valuable as a separately
-attributed retained version rather than a replacement for the official source.
+attributed retained version rather than a replacement for the official source:
+fifteen edits make the examples self-contained, while the five substantive
+federated-query rewrites remain unvalidated by successful execution.
 
 ## Review and decision
 
@@ -60,6 +62,6 @@ live rerun.
 
 Adopt the versioned representation and retain both query texts and their
 execution histories. The experiment itself did not update the benchmark. A
-subsequent human-adjudicated migration selected the corrected version 1 queries
+subsequent human-adjudicated migration selected the edited version 1 queries
 and canonical LinkedMusic identities for benchmark v8; its manifest points back
 to the execution ledger and records the observation cutoff and outcome counts.
