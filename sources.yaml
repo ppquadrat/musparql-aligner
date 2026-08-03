@@ -122,6 +122,22 @@ sources:
     type: web_document
     title: Public LinkedMusic Query Database
     url: https://docs.google.com/spreadsheets/d/1Bsb1fZXPUGgqAMfNQeCf4J5l0p5rLhTQMCwRc0ZVrFs/edit?gid=1479578801#gid=1479578801
+    local_path: curated_sources/LinkedMusic_Queries_Official.jsonl
+    query_role: canonical
+
+  - source_id: linkedmusic-public-query-database-capture-metadata
+    type: derivative
+    title: Capture metadata for the Public LinkedMusic Query Database export
+    local_path: curated_sources/LinkedMusic_Queries_Official.meta.json
+    derived_from: [linkedmusic-public-query-database]
+    query_role: none
+
+  - source_id: linkedmusic-public-query-database-xlsx-snapshot
+    type: derivative
+    title: Captured XLSX export of the Public LinkedMusic Query Database
+    local_path: curated_sources/LinkedMusic_Public_Query_Database_2026-08-03.xlsx
+    derived_from: [linkedmusic-public-query-database]
+    query_role: none
 
   - source_id: linkedmusic-integrating-databases-2025-article
     type: publication
@@ -138,4 +154,5 @@ sources:
     title: Musparql-corrected working copy of the LinkedMusic examples
     local_path: curated_sources/LinkedMusic_Queries_Corrected.md
     derived_from: [linkedmusic-public-query-database, sesemmi-linkedmusic-2025-paper]
-    description: Corrected working copy retained for reproducible query extraction and validation against the live endpoint.
+    query_role: edit_source
+    description: Corrected working copy retained as append-only SPARQL edits and for validation against the live endpoint.

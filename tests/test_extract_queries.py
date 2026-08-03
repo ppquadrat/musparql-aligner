@@ -59,6 +59,14 @@ SELECT ?o WHERE {
         self.assertTrue(normalized.startswith("PREFIX rdf:"))
         self.assertIn("rdf:type", normalized)
 
+    def test_normalize_can_preserve_missing_source_prefixes(self) -> None:
+        normalized = extract_queries.normalize_query(
+            "SELECT ?s WHERE { GRAPH dtl: { ?s a dtl:Solo . } }",
+            inject_missing_prefixes=False,
+        )
+        self.assertTrue(normalized.startswith("SELECT"))
+        self.assertNotIn("PREFIX dtl:", normalized)
+
     def test_rejects_non_select_and_malformed_queries(self) -> None:
         self.assertFalse(extract_queries.is_select_query("ASK WHERE { ?s ?p ?o }"))
         malformed = "SELECT ?s WHERE { ?s ?p ?o ."
@@ -79,6 +87,38 @@ WHERE {
         self.assertEqual(len(normalized), 1)
         self.assertIn("PREFIX ex: <http://example.org/>", normalized[0])
         self.assertTrue(extract_queries.is_well_formed_query(normalized[0]))
+
+    def test_loads_curated_query_jsonl(self) -> None:
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "queries.jsonl"
+            path.write_text(
+                '{"prompt":"Question?","sparql":"SELECT ?s WHERE { ?s ?p ?o . }"}\n',
+                encoding="utf-8",
+            )
+            records = extract_queries.load_curated_query_records(path)
+        self.assertEqual(records[0]["prompt"], "Question?")
+
+    def test_reextraction_preserves_version_state(self) -> None:
+        original = "SELECT * WHERE { ?s ?p ?o }"
+        digest = extract_queries.sha256_hash(original)
+        record = extract_queries.build_query_record(
+            "kg", "kg-0001", "select", original, original, digest, digest
+        )
+        previous = {
+            "sparql_edits": [
+                {"version": 1, "sparql": "SELECT ?s WHERE { ?s ?p ?o }", "note": "Edit."}
+            ],
+            "execution_history": [
+                {"status": "ok", "sparql_version": 1, "sparql_hash": "sha256:test"}
+            ],
+        }
+        extract_queries.preserve_version_state(record, previous)
+        self.assertEqual(record["sparql_edits"], previous["sparql_edits"])
+        self.assertEqual(record["execution_history"], previous["execution_history"])
+        self.assertIsNot(record["execution_history"], previous["execution_history"])
 
 
 if __name__ == "__main__":

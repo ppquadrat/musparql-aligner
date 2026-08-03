@@ -223,10 +223,38 @@ For each query, the pipeline records:
 - result count
 - optional sample row
 - duration and error text when relevant
+- retained SPARQL version and hash selected for the execution
+- hash of the effective submitted query and configured graph, when execution
+  preparation changed the retained text
 
 Current records use `latest_execution`, `latest_successful_execution`, and
 `execution_history`. Legacy aliases `latest_run`, `latest_successful_run`, and
 `run_history` are preserved for compatibility.
+
+The source query is immutable version `0`. Manual corrections are append-only
+entries in `sparql_edits`; they do not replace or become competing copies of the
+source query. Each execution links to one retained version through both
+`sparql_version` and `sparql_hash`. Therefore a later failure does not obscure
+which retained text produced an earlier successful result. `sparql_hash` links
+to that retained version; `effective_sparql_hash` fingerprints the exact query
+after runner-only preparation such as outer-comment removal or graph injection.
+Skipped attempts are also recorded as the latest observation, while
+`latest_successful_execution` continues to point to the last success.
+
+The runner selects the latest version by default. Use an explicit selector to
+compare retained versions:
+
+```bash
+.venv/bin/python run_queries.py --source-id linkedmusic-public-query-database --sparql-version original
+.venv/bin/python run_queries.py --source-id linkedmusic-corrected-examples-working-copy --sparql-version 1
+.venv/bin/python run_queries.py --source-id linkedmusic-corrected-examples-working-copy --sparql-version all
+```
+
+The official LinkedMusic JSONL is reproducible from its retained workbook:
+
+```bash
+.venv/bin/python extract_linkedmusic_official.py curated_sources/LinkedMusic_Public_Query_Database_2026-08-03.xlsx --check
+```
 
 This step establishes whether a query is runnable before LLM generation and
 benchmark curation.
@@ -633,6 +661,17 @@ recorded separately from pair validity: a source-authored NL-SPARQL pair can be
 valid benchmark material even when a live federated query is temporarily
 unrunnable or dependent on external endpoint limits.
 
+Current LinkedMusic pipeline records instead use the public query database as
+version `0` and attach the Musparql-corrected working copy as version `1`. The
+corrected document is catalogued with `query_role: edit_source`, so extraction
+does not recreate it as twenty independent query records. The checked migration
+is idempotent:
+
+```bash
+.venv/bin/python migrate_linkedmusic_versions.py --dry-run
+.venv/bin/python migrate_linkedmusic_versions.py
+```
+
 ### Multiple Reviews And Conflict Resolution
 
 Multiple reviews of the same pair are methodologically useful: they can support
@@ -879,6 +918,14 @@ One record per query:
   "sparql_raw": "...as extracted...",
   "sparql_clean": "...normalized...",
   "sparql_hash": "sha256:...",
+  "sparql_edits": [
+    {
+      "version": 1,
+      "sparql": "...first corrected version...",
+      "note": "Added the required named graph.",
+      "source_id": "musow-corrected-query-review"
+    }
+  ],
   "raw_hash": "sha256:...",
   "evidence": [
     {
@@ -896,6 +943,10 @@ One record per query:
   ],
   "latest_execution": {
     "ran_at": "2026-01-30T12:10:00Z",
+    "sparql_version": 1,
+    "sparql_hash": "sha256:...",
+    "effective_sparql_hash": "sha256:...",
+    "graph": null,
     "status": "ok",
     "endpoint": "https://...",
     "result_count": 14,
@@ -905,6 +956,8 @@ One record per query:
   },
   "latest_successful_execution": {
     "ran_at": "2026-01-30T12:10:00Z",
+    "sparql_version": 1,
+    "sparql_hash": "sha256:...",
     "status": "ok",
     "endpoint": "https://...",
     "result_count": 14
@@ -924,6 +977,22 @@ One record per query:
   }
 }
 ```
+
+Versioning invariants:
+
+- `sparql_raw`, `sparql_clean`, and the top-level `sparql_hash` describe the
+  source-authored version `0` and are never replaced by a correction.
+- `sparql_edits` versions start at `1`, are contiguous, and are appended rather
+  than edited in place.
+- Every edit requires its SPARQL text and a short note. When an edit derives
+  from a catalogued artifact, `source_id` links that artifact.
+- `latest_execution`, `latest_successful_execution`, and every
+  `execution_history` entry contain a resolvable version and matching hash.
+- Prompt inputs, review bundles, and new benchmark snapshots retain the selected
+  `sparql_version` and `sparql_hash` alongside the selected SPARQL text.
+- A prior benchmark decision is reused only when its version/hash (or legacy
+  SPARQL text) matches the current input. Historical query IDs may be resolved
+  during evaluation only through a unique exact SPARQL match.
 
 ### `runs/<run-id>/manifest.json`
 

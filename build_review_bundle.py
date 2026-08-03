@@ -77,8 +77,35 @@ def load_previous_benchmark(path: Optional[Path]) -> Dict[Tuple[str, str], Dict[
                 "pipeline_assessment": assessment,
                 "split": split,
                 "source_benchmark": str(path),
+                "sparql": rec.get("sparql"),
+                "sparql_version": rec.get("sparql_version"),
+                "sparql_hash": rec.get("sparql_hash"),
             }
     return records
+
+
+def canonical_sparql(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    return "\n".join(line.rstrip() for line in value.replace("\r\n", "\n").split("\n")).strip()
+
+
+def previous_review_matches(previous: Dict[str, Any], source_input: Dict[str, Any]) -> bool:
+    """Only reuse a prior decision when it assessed the same retained SPARQL."""
+    previous_hash = previous.get("sparql_hash")
+    current_hash = source_input.get("sparql_hash")
+    if isinstance(previous_hash, str) and isinstance(current_hash, str):
+        if previous_hash != current_hash:
+            return False
+        previous_version = previous.get("sparql_version")
+        current_version = source_input.get("sparql_version")
+        return previous_version is None or current_version is None or previous_version == current_version
+    previous_text = canonical_sparql(previous.get("sparql"))
+    if previous_text:
+        return previous_text == canonical_sparql(source_input.get("sparql_clean"))
+    # Old snapshots that stored neither text nor hashes cannot be disambiguated;
+    # retain their historical ID-based behavior.
+    return previous_hash is None
 
 
 def signature_token(record: Dict[str, Any], idx: int) -> str:
@@ -301,10 +328,15 @@ def main() -> None:
             query_label = str(rec.get("query_label") or "")
             key = (kg_id, query_id, query_label)
             source_input = input_index.get(key, {})
-            previous_review = previous_benchmark.get((kg_id, query_id))
-            if previous_review and previous_review.get("split") == HOLDOUT_SPLIT:
+            previous_candidate = previous_benchmark.get((kg_id, query_id))
+            if previous_candidate and previous_candidate.get("split") == HOLDOUT_SPLIT:
                 scope_counts["holdout_excluded"] += 1
                 continue
+            previous_review = (
+                previous_candidate
+                if previous_candidate and previous_review_matches(previous_candidate, source_input)
+                else None
+            )
             if previous_review and not args.include_reviewed:
                 scope_counts["previously_reviewed_excluded"] += 1
                 continue
@@ -343,6 +375,8 @@ def main() -> None:
                 "query_label": query_label,
                 "input": {
                     "sparql_clean": source_input.get("sparql_clean"),
+                    "sparql_version": source_input.get("sparql_version"),
+                    "sparql_hash": source_input.get("sparql_hash"),
                     "schema_ref": source_input.get("schema_ref"),
                     "evidence": source_input.get("evidence", []),
                 },

@@ -16,6 +16,15 @@ import requests
 import yaml
 from rdflib import Graph
 
+from sparql_versions import (
+    SparqlVersionError,
+    add_execution_version,
+    backfill_legacy_execution_versions,
+    select_sparql_versions,
+    sparql_hash as compute_sparql_hash,
+    validate_execution_versions,
+)
+
 REPO_ROOT = Path(__file__).resolve().parent
 DUMPS_DIR = (REPO_ROOT / "dumps").resolve()
 
@@ -455,6 +464,10 @@ def run_local_select_query(graph: Graph, query: str) -> Dict[str, object]:
 
 def record_query_execution(rec: Dict[str, object], execution: Dict[str, object]) -> None:
     """Write execution fields plus legacy run fields for existing consumers."""
+    if not isinstance(execution.get("sparql_version"), int) or not isinstance(
+        execution.get("sparql_hash"), str
+    ):
+        raise ValueError("Every recorded execution must identify its SPARQL version and hash")
     rec["latest_execution"] = execution
     rec["latest_run"] = execution
     execution_history = rec.get("execution_history")
@@ -464,6 +477,48 @@ def record_query_execution(rec: Dict[str, object], execution: Dict[str, object])
     execution_history.append(execution)
     rec["execution_history"] = execution_history
     rec["run_history"] = execution_history
+
+
+def record_matches_sources(record: Dict[str, object], selected_source_ids: set[str]) -> bool:
+    if not selected_source_ids:
+        return True
+    evidence = record.get("evidence")
+    if isinstance(evidence, list) and any(
+        isinstance(item, dict) and item.get("source_id") in selected_source_ids
+        for item in evidence
+    ):
+        return True
+    edits = record.get("sparql_edits")
+    return isinstance(edits, list) and any(
+        isinstance(item, dict) and item.get("source_id") in selected_source_ids
+        for item in edits
+    )
+
+
+def failure_matches_job(
+    failure: Dict[str, object], job_keys: set[tuple[str, int]]
+) -> bool:
+    query_id = str(failure.get("query_id") or "")
+    if not query_id:
+        return False
+    version = failure.get("sparql_version")
+    # Versionless sidecar entries predate versioning and refer to source v0.
+    normalized_version = version if isinstance(version, int) else 0
+    return (query_id, normalized_version) in job_keys
+
+
+def build_query_jobs(
+    records: List[Dict[str, object]], selector: object
+) -> List[tuple[Dict[str, object], Dict[str, object]]]:
+    jobs: List[tuple[Dict[str, object], Dict[str, object]]] = []
+    for record in records:
+        try:
+            resolved_versions = select_sparql_versions(record, selector)
+        except SparqlVersionError as exc:
+            label = record.get("query_label") or record.get("query_id")
+            raise SparqlVersionError(f"{label}: {exc}") from exc
+        jobs.extend((record, resolved) for resolved in resolved_versions)
+    return jobs
 
 
 def clean_query(query: str) -> str:
@@ -535,17 +590,16 @@ def apply_graph(query: str, graph: Optional[str]) -> str:
     if not graph:
         return query
     # Avoid rewriting if the query already declares a dataset.
-    if re.search(r"(?im)^\s*from\b", query):
+    if re.search(r"(?i)\bfrom\s+(?:named\s+)?<", query):
         return query
-    lines = query.splitlines()
-    insert_at = 0
-    for i, line in enumerate(lines):
-        if re.match(r"(?im)^\s*(prefix|base)\b", line):
-            insert_at = i + 1
-        elif line.strip() and not line.lstrip().startswith("#"):
-            break
-    lines.insert(insert_at, f"FROM <{graph}>")
-    return "\n".join(lines)
+    # A dataset clause belongs after the SELECT projection and before WHERE.
+    where_match = re.search(r"(?i)\bwhere\b", query)
+    if where_match:
+        return query[: where_match.start()] + f"FROM <{graph}>\n" + query[where_match.start() :]
+    group_match = re.search(r"\{", query)
+    if group_match:
+        return query[: group_match.start()] + f"FROM <{graph}>\n" + query[group_match.start() :]
+    return query
 
 
 def is_remote_executable(query: str) -> bool:
@@ -625,6 +679,11 @@ def main() -> None:
         dest="source_ids",
         help="Only execute queries carrying evidence from this source ID; may be repeated.",
     )
+    parser.add_argument(
+        "--sparql-version",
+        default="latest",
+        help="SPARQL version to execute: original, latest, all, or a non-negative integer (default: latest).",
+    )
     args = parser.parse_args()
     selected_kg_ids = set(args.kg_ids or [])
     selected_source_ids = set(args.source_ids or [])
@@ -635,11 +694,7 @@ def main() -> None:
             return False
         if not selected_source_ids:
             return True
-        evidence = record.get("evidence")
-        return isinstance(evidence, list) and any(
-            isinstance(item, dict) and item.get("source_id") in selected_source_ids
-            for item in evidence
-        )
+        return record_matches_sources(record, selected_source_ids)
 
     seeds_path = Path("seeds.yaml")
     queries_path = Path("kg_queries.jsonl")
@@ -652,6 +707,16 @@ def main() -> None:
         endpoints = {kg_id: value for kg_id, value in endpoints.items() if kg_id in selected_kg_ids}
         datasets = {kg_id: value for kg_id, value in datasets.items() if kg_id in selected_kg_ids}
     raw_queries = load_query_records(queries_path)
+    for record in raw_queries:
+        if isinstance(record.get("sparql_clean"), str):
+            backfill_legacy_execution_versions(record)
+            validate_execution_versions(record)
+
+    selected_records = [record for record in raw_queries if record_is_selected(record)]
+    try:
+        jobs = build_query_jobs(selected_records, args.sparql_version)
+    except SparqlVersionError as exc:
+        raise ValueError(f"Cannot select requested SPARQL version: {exc}") from exc
 
     unhealthy_endpoints = set()
     for endpoint in endpoints.values():
@@ -664,12 +729,21 @@ def main() -> None:
     skipped_no_endpoint = 0
     kept = 0
     failures: List[Dict[str, object]] = []
-    if selected_kg_ids and fail_path.exists():
+    job_keys = {
+        (str(record.get("query_id")), int(resolved["sparql_version"]))
+        for record, resolved in jobs
+        if record.get("query_id") is not None
+    }
+    selected_query_ids = {query_id for query_id, _version in job_keys}
+    if fail_path.exists():
         for line in fail_path.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
             previous = json.loads(line)
-            if previous.get("kg_id") not in selected_kg_ids:
+            previous_query_id = str(previous.get("query_id") or "")
+            if previous_query_id not in selected_query_ids or not failure_matches_job(
+                previous, job_keys
+            ):
                 failures.append(previous)
     preserved_failure_count = len(failures)
     endpoint_success: Dict[str, int] = {}
@@ -677,18 +751,16 @@ def main() -> None:
     graphs: Dict[str, Graph] = {}
     max_dump_mb = int(os.environ.get("KG_DUMP_MAX_MB", "550"))
     totals: Dict[str, int] = {}
-    for rec in raw_queries:
+    for rec, _resolved in jobs:
         kg_id = rec.get("kg_id")
-        if isinstance(kg_id, str) and record_is_selected(rec):
+        if isinstance(kg_id, str):
             totals[kg_id] = totals.get(kg_id, 0) + 1
     processed: Dict[str, int] = {}
     current_kg = None
-    for rec in raw_queries:
+    for rec, resolved in jobs:
         kg_id = rec.get("kg_id")
-        query = rec.get("sparql_clean")
+        query = resolved.get("sparql")
         if not isinstance(kg_id, str) or not isinstance(query, str):
-            continue
-        if not record_is_selected(rec):
             continue
         if kg_id.lower() == "musow":
             time.sleep(0.25)
@@ -697,7 +769,8 @@ def main() -> None:
             print(f"\nRunning queries for {kg_id} ({totals.get(kg_id, 0)} total)")
         processed[kg_id] = processed.get(kg_id, 0) + 1
         label = rec.get("query_label") or rec.get("query_id")
-        print(f"[{kg_id}] {processed[kg_id]}/{totals.get(kg_id, 0)} {label}")
+        version = resolved["sparql_version"]
+        print(f"[{kg_id}] {processed[kg_id]}/{totals.get(kg_id, 0)} {label}@v{version}")
         stat = stats.setdefault(
             kg_id,
             {
@@ -715,6 +788,16 @@ def main() -> None:
         endpoint = endpoints.get(kg_id)
         dataset = datasets.get(kg_id)
         if endpoint is not None and kg_id in unhealthy_endpoints and not (endpoint.fallbacks or []):
+            skipped_execution = add_execution_version({
+                "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                "status": "skipped_endpoint_unavailable",
+                "endpoint": endpoint.primary.endpoint,
+                "result_count": None,
+                "sample_row": None,
+                "duration_ms": 0,
+                "error": "Endpoint preflight failed.",
+            }, resolved)
+            record_query_execution(rec, skipped_execution)
             failures.append(
                 {
                     "kg_id": kg_id,
@@ -722,12 +805,32 @@ def main() -> None:
                     "status": "skipped_endpoint_unavailable",
                     "query_id": rec.get("query_id"),
                     "query_label": rec.get("query_label"),
-                    "sparql_hash": rec.get("sparql_hash"),
+                    "sparql_version": version,
+                    "sparql_hash": resolved["sparql_hash"],
                 }
             )
             stat["skipped_endpoint_unavailable"] += 1
             continue
         if endpoint is None and dataset is None:
+            skipped_execution = add_execution_version({
+                "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                "status": "skipped_no_endpoint",
+                "endpoint": None,
+                "result_count": None,
+                "sample_row": None,
+                "duration_ms": 0,
+                "error": "No SPARQL endpoint or local dataset is configured.",
+            }, resolved)
+            record_query_execution(rec, skipped_execution)
+            failures.append({
+                "kg_id": kg_id,
+                "endpoint": None,
+                "status": "skipped_no_endpoint",
+                "query_id": rec.get("query_id"),
+                "query_label": rec.get("query_label"),
+                "sparql_version": version,
+                "sparql_hash": resolved["sparql_hash"],
+            })
             skipped_no_endpoint += 1
             stat["skipped_no_endpoint"] += 1
             continue
@@ -742,11 +845,12 @@ def main() -> None:
                         "status": "skipped_local_query",
                         "query_id": rec.get("query_id"),
                         "query_label": rec.get("query_label"),
-                        "sparql_hash": rec.get("sparql_hash"),
+                        "sparql_version": version,
+                        "sparql_hash": resolved["sparql_hash"],
                     }
                 )
                 stat["skipped_local"] += 1
-                skipped_execution = {
+                skipped_execution = add_execution_version({
                     "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                     "status": "skipped_local_query",
                     "endpoint": endpoint.primary.endpoint,
@@ -754,18 +858,24 @@ def main() -> None:
                     "sample_row": None,
                     "duration_ms": 0,
                     "error": None,
-                }
+                    "effective_sparql_hash": compute_sparql_hash(query_to_run),
+                    "graph": None,
+                }, resolved)
                 record_query_execution(rec, skipped_execution)
                 continue
         stat["ran"] += 1
         start = time.time()
         endpoint_used = None
         target_used: Optional[SparqlTarget] = None
+        effective_query = query_to_run
+        effective_graph: Optional[str] = None
         if endpoint is not None:
             endpoint_list = [endpoint.primary] + (endpoint.fallbacks or [])
             result = {"status": "request_error", "error": "No endpoint tried"}
             for target in endpoint_list:
                 query_with_graph = apply_graph(query_to_run, target.graph)
+                effective_query = query_with_graph
+                effective_graph = target.graph
                 result = run_select_query(target.endpoint, query_with_graph)
                 endpoint_used = target.endpoint
                 target_used = target
@@ -792,6 +902,8 @@ def main() -> None:
                     retry_start = time.time()
                     retry_target = target_used or endpoint.primary
                     retry_query = apply_graph(query_to_run, retry_target.graph)
+                    effective_query = retry_query
+                    effective_graph = retry_target.graph
                     retry = run_select_query(retry_target.endpoint, retry_query)
                     endpoint_used = retry_target.endpoint
                     duration_ms = int((time.time() - retry_start) * 1000)
@@ -801,7 +913,7 @@ def main() -> None:
                         break
                     result = retry
         status = result.get("status")
-        latest_execution = {
+        latest_execution = add_execution_version({
             "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "status": status,
             "endpoint": endpoint_used if endpoint is not None else None,
@@ -809,7 +921,9 @@ def main() -> None:
             "sample_row": result.get("sample_row"),
             "duration_ms": duration_ms,
             "error": result.get("error"),
-        }
+            "effective_sparql_hash": compute_sparql_hash(effective_query),
+            "graph": effective_graph,
+        }, resolved)
         if result.get("error_line") is not None:
             latest_execution["error_line"] = result.get("error_line")
         if result.get("http_status") is not None:
@@ -829,7 +943,10 @@ def main() -> None:
                     "error_line": result.get("error_line"),
                     "query_id": rec.get("query_id"),
                     "query_label": rec.get("query_label"),
-                    "sparql_hash": rec.get("sparql_hash"),
+                    "sparql_version": version,
+                    "sparql_hash": resolved["sparql_hash"],
+                    "effective_sparql_hash": compute_sparql_hash(effective_query),
+                    "graph": effective_graph,
                     "body_snippet": result.get("body_snippet"),
                 }
             )

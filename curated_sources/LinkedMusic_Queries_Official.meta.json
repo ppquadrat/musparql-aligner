@@ -1,0 +1,11 @@
+{
+  "source_url": "https://docs.google.com/spreadsheets/d/1Bsb1fZXPUGgqAMfNQeCf4J5l0p5rLhTQMCwRc0ZVrFs/edit?gid=1479578801#gid=1479578801",
+  "worksheet": "Queries per Challenge",
+  "captured_at": "2026-08-03",
+  "source_export_filename": "Public LinkedMusic Query Database(1).xlsx",
+  "source_snapshot_path": "curated_sources/LinkedMusic_Public_Query_Database_2026-08-03.xlsx",
+  "source_export_sha256": "62b54fc14b1d28f6ea19b9e3423b91517620e6c6caec28bfa78474f1d4ddc01c",
+  "source_export_size_bytes": 208321,
+  "record_count": 20,
+  "conversion_script": "extract_linkedmusic_official.py@v1"
+}

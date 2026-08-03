@@ -136,8 +136,47 @@ def extract_first_json_object(text: str) -> Optional[Dict[str, Any]]:
 def canonical_sparql(text: Any) -> str:
     if not isinstance(text, str):
         return ""
-    lines = [re.sub(r"[ \t]+$", "", line) for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
-    return "\n".join(lines).strip()
+    output: List[str] = []
+    pending_space = False
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char.isspace():
+            pending_space = True
+            index += 1
+            continue
+        if char == "#":
+            while index < len(text) and text[index] not in "\r\n":
+                index += 1
+            pending_space = True
+            continue
+        if pending_space and output:
+            output.append(" ")
+        pending_space = False
+        if char in {'"', "'"}:
+            quote = char * 3 if text[index : index + 3] == char * 3 else char
+            end = index + len(quote)
+            escaped = False
+            while end < len(text):
+                if not escaped and text.startswith(quote, end):
+                    end += len(quote)
+                    break
+                escaped = not escaped and text[end] == "\\"
+                if text[end] != "\\":
+                    escaped = False
+                end += 1
+            output.append(text[index:end])
+            index = end
+            continue
+        if char == "<":
+            end = text.find(">", index + 1)
+            end = len(text) if end < 0 else end + 1
+            output.append(text[index:end])
+            index = end
+            continue
+        output.append(char)
+        index += 1
+    return "".join(output).strip()
 
 
 def normalize_question(text: Any) -> str:
@@ -279,6 +318,25 @@ def load_run(run_path: Path) -> Dict[str, Any]:
     }
 
 
+def resolve_run_query_id(run: Dict[str, Any], benchmark_item: Dict[str, Any]) -> Tuple[str, bool]:
+    """Resolve historical benchmark IDs through a unique canonical-SPARQL match."""
+    query_id = str(benchmark_item.get("query_id") or "")
+    if query_id in run["inputs"]:
+        return query_id, False
+    benchmark_sparql = canonical_sparql(benchmark_item.get("sparql"))
+    matches = [
+        candidate_id
+        for candidate_id, record in run["inputs"].items()
+        if benchmark_sparql
+        and str(record.get("kg_id") or "") == str(benchmark_item.get("kg_id") or "")
+        and canonical_sparql(record.get("sparql_clean") if isinstance(record, dict) else "")
+        == benchmark_sparql
+    ]
+    if len(matches) == 1:
+        return matches[0], True
+    return query_id, False
+
+
 def load_judge_cache(path: Path) -> Dict[str, Dict[str, Any]]:
     cache: Dict[str, Dict[str, Any]] = {}
     for rec in load_json_records(path):
@@ -354,8 +412,9 @@ def score_item(
 ) -> Dict[str, Any]:
     query_id = str(benchmark_item.get("query_id") or "")
     run_id = run["run_id"]
-    output_record = run["outputs"].get(query_id)
-    input_record = run["inputs"].get(query_id)
+    resolved_query_id, used_alias = resolve_run_query_id(run, benchmark_item)
+    output_record = run["outputs"].get(resolved_query_id)
+    input_record = run["inputs"].get(resolved_query_id)
     payload = output_payload(output_record)
     question = normalize_question(payload.get("nl_question"))
     gold_question = normalize_question(benchmark_item.get("gold_question"))
@@ -366,6 +425,8 @@ def score_item(
         errors.append("missing_output")
     if input_record is None:
         warnings.append("missing_input")
+    if used_alias:
+        warnings.append("query_id_alias_match")
 
     errors.extend(validate_output_shape(payload) if output_record is not None else [])
     warnings.extend(placeholder_warnings(question))
@@ -376,18 +437,30 @@ def score_item(
     sparql_match = bool(input_sparql) and benchmark_sparql == input_sparql
     if input_record is not None and not sparql_match:
         warnings.append("sparql_mismatch")
+    benchmark_version = benchmark_item.get("sparql_version")
+    input_version = input_record.get("sparql_version") if isinstance(input_record, dict) else None
+    if benchmark_version is not None and input_version != benchmark_version:
+        warnings.append("sparql_version_mismatch")
+    benchmark_hash = benchmark_item.get("sparql_hash")
+    input_hash = input_record.get("sparql_hash") if isinstance(input_record, dict) else None
+    if benchmark_hash is not None and input_hash != benchmark_hash:
+        warnings.append("sparql_hash_mismatch")
 
     baseline_question = ""
     question_changed_from_baseline: Optional[bool] = None
     if baseline_run is not None:
-        baseline_payload = output_payload(baseline_run["outputs"].get(query_id))
+        baseline_query_id, _ = resolve_run_query_id(baseline_run, benchmark_item)
+        baseline_payload = output_payload(baseline_run["outputs"].get(baseline_query_id))
         baseline_question = normalize_question(baseline_payload.get("nl_question"))
         question_changed_from_baseline = question != baseline_question if baseline_question and question else None
 
     judge: Optional[Dict[str, Any]] = None
     judge_status = "not_run"
     deterministic_blockers = set(errors)
-    incompatible = "missing_input" in warnings or "sparql_mismatch" in warnings
+    incompatible = any(
+        warning in warnings
+        for warning in ("missing_input", "sparql_mismatch", "sparql_version_mismatch", "sparql_hash_mismatch")
+    )
     if deterministic_blockers:
         judge_status = "skipped_output_invalid"
     elif incompatible:
@@ -440,6 +513,7 @@ def score_item(
         "benchmark_id": benchmark_item.get("benchmark_id"),
         "kg_id": benchmark_item.get("kg_id"),
         "query_id": query_id,
+        "run_query_id": resolved_query_id,
         "query_label": benchmark_item.get("query_label"),
         "sparql_match": sparql_match,
         "candidate_question": question,

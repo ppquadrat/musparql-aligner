@@ -451,7 +451,15 @@ def fetch_sources_for_kg(kg: KGSeed) -> List[Dict[str, Any]]:
         fetched["source_id"] = source_id
         fetched["catalog_provenance"] = {
             field: source_record.get(field)
-            for field in ("type", "title", "url", "local_path", "derived_from", "description")
+            for field in (
+                "type",
+                "title",
+                "url",
+                "local_path",
+                "derived_from",
+                "description",
+                "query_role",
+            )
             if source_record.get(field) not in (None, "", [])
         }
         sources.append(fetched)

@@ -205,6 +205,8 @@ def record_payload(
         "query_label": query_label,
         "input": {
             "sparql_clean": source_input.get("sparql_clean"),
+            "sparql_version": source_input.get("sparql_version"),
+            "sparql_hash": source_input.get("sparql_hash"),
             "schema_ref": source_input.get("schema_ref"),
             "evidence": source_input.get("evidence", []),
         },
@@ -225,6 +227,8 @@ def comparable_record(record: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         return {}
     return {
         "sparql": record.get("input", {}).get("sparql_clean"),
+        "sparql_version": record.get("input", {}).get("sparql_version"),
+        "sparql_hash": record.get("input", {}).get("sparql_hash"),
         "evidence": record.get("input", {}).get("evidence", []),
         "output": record.get("output"),
         "model": record.get("output_meta", {}).get("model"),
@@ -266,6 +270,8 @@ def change_flags(previous: Optional[Dict[str, Any]], current: Optional[Dict[str,
         flags.append("retained_evidence_changed")
     if previous.get("input", {}).get("sparql_clean") != current.get("input", {}).get("sparql_clean"):
         flags.append("sparql_changed")
+    if previous.get("input", {}).get("sparql_version") != current.get("input", {}).get("sparql_version"):
+        flags.append("sparql_version_changed")
     if previous.get("output_meta", {}).get("model") != current.get("output_meta", {}).get("model"):
         flags.append("model_changed")
 

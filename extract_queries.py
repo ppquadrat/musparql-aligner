@@ -16,16 +16,18 @@ import html
 import json
 import re
 import subprocess
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 from urllib.parse import urlparse
 
 import yaml
 from pypdf import PdfReader
 
 from source_catalog import load_hydrated_seeds
+from sparql_versions import backfill_legacy_execution_versions, validate_execution_versions
 
 
 @dataclass
@@ -129,7 +131,7 @@ def iter_repo_files(repo_dir: Path) -> Iterable[Path]:
             yield path
 
 
-def normalize_query(text: str) -> str:
+def normalize_query(text: str, *, inject_missing_prefixes: bool = True) -> str:
     normalized = text.strip()
     while normalized.endswith(";"):
         normalized = normalized[:-1].rstrip()
@@ -169,7 +171,7 @@ def normalize_query(text: str) -> str:
             continue
         if re.search(rf"\b{re.escape(prefix)}:", normalized):
             needed.append(f"PREFIX {prefix}: <{iri}>")
-    if needed:
+    if needed and inject_missing_prefixes:
         normalized = "\n".join(needed) + "\n" + normalized
         # Re-dedupe after injection.
         lines = normalized.splitlines()
@@ -570,6 +572,7 @@ def build_query_record(
         "sparql_raw": raw_query,
         "sparql_clean": clean_query,
         "sparql_hash": clean_hash,
+        "sparql_edits": [],
         "raw_hash": raw_hash,
         "evidence": [],
         "cq_items": [],
@@ -582,10 +585,55 @@ def build_query_record(
         "justification": None,
         "comments": None,
         "verification": {"status": "unverified", "notes": None},
+        "latest_execution": None,
+        "latest_successful_execution": None,
+        "execution_history": [],
         "latest_run": None,
         "latest_successful_run": None,
         "run_history": [],
     }
+
+
+def load_curated_query_records(path: Path) -> List[Dict[str, Any]]:
+    if path.suffix.lower() != ".jsonl":
+        return []
+    records: List[Dict[str, Any]] = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid curated query JSON at {path}:{line_number}: {exc}") from exc
+        if not isinstance(record, dict) or not isinstance(record.get("sparql"), str):
+            raise ValueError(f"Curated query record at {path}:{line_number} requires string sparql")
+        records.append(record)
+    return records
+
+
+VERSION_STATE_FIELDS = (
+    "sparql_edits",
+    "latest_execution",
+    "latest_successful_execution",
+    "execution_history",
+    "latest_run",
+    "latest_successful_run",
+    "run_history",
+)
+
+
+def preserve_version_state(record: Dict[str, object], existing: Optional[Dict[str, object]]) -> None:
+    if not existing:
+        return
+    for field in VERSION_STATE_FIELDS:
+        if field in existing:
+            record[field] = deepcopy(existing[field])
+
+
+def validate_preserved_version_state(record: Dict[str, object]) -> None:
+    """Backfill legacy observations, then reject dangling version links."""
+    backfill_legacy_execution_versions(record)
+    validate_execution_versions(record)
 
 
 def append_unique_source(kg_sources: Dict[str, List[str]], kg_id: str, source_path: str) -> None:
@@ -604,6 +652,13 @@ def main() -> None:
 
     raw_kgs = load_seeds(seeds_path)
     kgs = [parse_kg_seed(r) for r in raw_kgs]
+
+    existing_by_query_id: Dict[str, Dict[str, object]] = {}
+    if out_path.exists():
+        for existing in load_kgs_jsonl(out_path):
+            query_id = existing.get("query_id")
+            if isinstance(query_id, str):
+                existing_by_query_id[query_id] = existing
 
     records: List[Dict[str, object]] = []
     record_by_key: Dict[tuple[str, str], Dict[str, object]] = {}
@@ -762,6 +817,74 @@ def main() -> None:
                     src_path = Path("kg_sources") / src_path
             if not src_path.exists():
                 continue
+            source_provenance = source_provenance_by_path.get(str(src_path), {})
+            catalog_provenance = source_provenance.get("catalog_provenance")
+            if isinstance(catalog_provenance, dict) and catalog_provenance.get("query_role") in {
+                "edit_source",
+                "none",
+            }:
+                continue
+
+            curated_records = load_curated_query_records(src_path)
+            for curated in curated_records:
+                raw_query = str(curated["sparql"]).strip()
+                normalized = normalize_query(raw_query, inject_missing_prefixes=False)
+                if not normalized or not is_select_query(normalized) or not is_well_formed_query(normalized):
+                    raise ValueError(f"Invalid curated SELECT query in {src_path}")
+                clean_hash = sha256_hash(normalized)
+                raw_hash = sha256_hash(raw_query)
+                key = (kg.kg_id, clean_hash)
+                if key not in record_by_key:
+                    label_counters[kg.kg_id] = label_counters.get(kg.kg_id, 0) + 1
+                    query_label = f"{kg.kg_id}-{label_counters[kg.kg_id]:04d}"
+                    record_by_key[key] = build_query_record(
+                        kg_id=kg.kg_id,
+                        query_label=query_label,
+                        query_type="select",
+                        raw_query=raw_query,
+                        clean_query=normalized,
+                        raw_hash=raw_hash,
+                        clean_hash=clean_hash,
+                    )
+                    records.append(record_by_key[key])
+                record = record_by_key[key]
+                source = curated.get("source") if isinstance(curated.get("source"), dict) else {}
+                prompt = curated.get("prompt")
+                if isinstance(prompt, str) and prompt.strip():
+                    record["nl_question"] = {
+                        "text": prompt.strip(),
+                        "source": source_provenance.get("source_id") or source.get("source_id"),
+                        "generated_at": None,
+                        "generator": None,
+                    }
+                record["curated_query"] = {
+                    field: curated.get(field)
+                    for field in ("challenge", "cq", "databases", "reported_result_rows")
+                }
+                record["evidence"].append(
+                    {
+                        "evidence_id": f"e{len(record['evidence']) + 1}",
+                        "type": "curated_query",
+                        "source_url": source_provenance.get("source_url")
+                        or source_provenance.get("resolved_url")
+                        or source.get("url")
+                        or "",
+                        "source_path": str(src_path),
+                        "source_id": source_provenance.get("source_id") or source.get("source_id"),
+                        "repo_commit": "",
+                        "snippet": raw_query,
+                        "extracted_at": extracted_at,
+                        "extractor_version": "extract_queries.py@v2",
+                        **(
+                            {"source_snapshot_metadata": str(src_path.with_suffix(".meta.json"))}
+                            if src_path.with_suffix(".meta.json").exists()
+                            else {}
+                        ),
+                    }
+                )
+            if curated_records:
+                continue
+
             parsed = parse_source_file(src_path)
             body = parsed["text"]
             raw_body = parsed["raw"]
@@ -797,7 +920,6 @@ def main() -> None:
                         )
                         records.append(record_by_key[key])
                     record = record_by_key[key]
-                    source_provenance = source_provenance_by_path.get(str(src_path), {})
                     record["evidence"].append(
                         {
                             "evidence_id": f"e{len(record['evidence']) + 1}",
@@ -811,6 +933,14 @@ def main() -> None:
                             "extractor_version": "extract_queries.py@v1",
                         }
                     )
+
+    for record in records:
+        query_id = record.get("query_id")
+        preserve_version_state(
+            record,
+            existing_by_query_id.get(query_id) if isinstance(query_id, str) else None,
+        )
+        validate_preserved_version_state(record)
 
     with out_path.open("w", encoding="utf-8") as f:
         for rec in records:

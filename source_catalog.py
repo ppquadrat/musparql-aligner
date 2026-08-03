@@ -9,6 +9,7 @@ import yaml
 
 
 SOURCE_TYPES = {"repository", "web_document", "publication", "local_document", "derivative"}
+QUERY_ROLES = {"canonical", "edit_source", "none"}
 
 
 def _nonempty(value: Any) -> bool:
@@ -52,6 +53,9 @@ def load_source_catalog(path: Path) -> Dict[str, Dict[str, Any]]:
             raise ValueError(f"Duplicate source_id: {source_id}")
         if source_type not in SOURCE_TYPES:
             raise ValueError(f"{source_id}: unsupported source type {source_type!r}")
+        query_role = raw.get("query_role")
+        if query_role is not None and query_role not in QUERY_ROLES:
+            raise ValueError(f"{source_id}: unsupported query_role {query_role!r}")
         if not _nonempty(title):
             raise ValueError(f"{source_id}: title must be non-empty")
         if raw.get("url") is not None:

@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Dict, List
 
+from sparql_versions import resolve_sparql_version
+
 
 def main() -> None:
     src = Path("kg_queries.jsonl")
@@ -47,9 +49,10 @@ def main() -> None:
             query_label = rec.get("query_label", "")
             w.write(f"=== {i} | {kg_id} | {query_label} | {query_id} ===\n")
             w.write(json.dumps(rec, ensure_ascii=False, indent=2))
-            sparql = rec.get("sparql_clean")
+            resolved = resolve_sparql_version(rec)
+            sparql = resolved["sparql"]
             if isinstance(sparql, str) and sparql.strip():
-                w.write("\n\nSPARQL (formatted)\n")
+                w.write(f"\n\nSPARQL v{resolved['sparql_version']} (formatted)\n")
                 w.write(format_sparql(sparql) + "\n")
             w.write("\n\n")
 
