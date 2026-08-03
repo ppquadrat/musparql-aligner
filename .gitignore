@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# Generated data
+raw_queries.jsonl
+runnable_queries.jsonl
+
+# OS
+.DS_Store
+
+# Local paper working files
+papers/
