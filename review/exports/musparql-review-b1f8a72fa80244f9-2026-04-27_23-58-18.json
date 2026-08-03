@@ -16,381 +16,435 @@
   "reviews": {
     "jazzontology::jazzontology-0001::60ee523572cf": {
       "preferred_question": "For the given album, disk and track number, find the track",
-      "note": "",
       "updated_at": "2026-04-26T10:43:06.822Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "jazzontology::jazzontology-0002::ca8d9dbf2d94": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T10:43:34.375Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "jazzontology::jazzontology-0003::0a834b918811": {
       "preferred_question": "",
-      "note": "The wording is fine but the concept of ReleaseEvent is not very NL friendly. It is probably used here to find the label that released the album. But on its own, this query does not make much sense to anyone not intimately familiar witht he ontology",
       "updated_at": "2026-04-26T10:49:02.193Z",
       "benchmark_disposition": "excluded",
-      "pipeline_assessment": null
+      "pipeline_assessment": null,
+      "public_comment": "",
+      "internal_comment": "The wording is fine but the concept of ReleaseEvent is not very NL friendly. It is probably used here to find the label that released the album. But on its own, this query does not make much sense to anyone not intimately familiar witht he ontology"
     },
     "jazzontology::jazzontology-0004::b80118126798": {
       "preferred_question": "Find the label given its name",
-      "note": "",
       "updated_at": "2026-04-26T10:50:55.420Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "jazzontology::jazzontology-0005::2f270d2dd98b": {
       "preferred_question": "Given the album title and the number of records, find the release",
-      "note": "It would be great if the model would be able to learn that in NL release is usually called album. But in this specific example, it's the album title that is given but what we are looking for is a release - the connection from the album to the date and label. This is not a very NL friendly concept.",
       "updated_at": "2026-04-26T11:00:03.330Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": "It would be great if the model would be able to learn that in NL release is usually called album. But in this specific example, it's the album title that is given but what we are looking for is a release - the connection from the album to the date and label. This is not a very NL friendly concept."
     },
     "jazzontology::jazzontology-0006::e5382425ea60": {
       "preferred_question": "",
-      "note": "This one is looking for a specific disk within a larger release (usually a large compilation), by the disk title and number. The model would not be able to know it without knowing more about the ontology. The generated NL is not wrong, it just misses the context",
       "updated_at": "2026-04-26T11:02:40.328Z",
       "benchmark_disposition": "excluded",
-      "pipeline_assessment": null
+      "pipeline_assessment": null,
+      "public_comment": "",
+      "internal_comment": "This one is looking for a specific disk within a larger release (usually a large compilation), by the disk title and number. The model would not be able to know it without knowing more about the ontology. The generated NL is not wrong, it just misses the context"
     },
     "jazzontology::jazzontology-0007::2a605d621964": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T11:03:29.025Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "jazzontology::jazzontology-0008::2b7daed4eaf9": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T11:03:49.643Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "jazzontology::jazzontology-0009::4582022d20cc": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T11:04:04.254Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "jazzontology::jazzontology-0010::86b7a633958e": {
       "preferred_question": "Did this composer write the given tune?",
-      "note": "Given the composer name and the tune object, find the composer object. The previous one would return all composer objects whereas this one differentiates by name so should hopefully return one or none. The question is not about who, we already have the name, rather it is about whether the composer is associated with the tune.",
       "updated_at": "2026-04-26T11:08:58.689Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": "Given the composer name and the tune object, find the composer object. The previous one would return all composer objects whereas this one differentiates by name so should hopefully return one or none. The question is not about who, we already have the name, rather it is about whether the composer is associated with the tune."
     },
     "jazzontology::jazzontology-0011::d38d1e2073e2": {
       "preferred_question": "Is there more than one arranger with this name in the graph?",
-      "note": "This could be name disambiguation on the one hand - is there more than one arranger with this name in the dataset. Or, on the other hand, it could be a check whether there is an arranger with this name (this is what was generated), or whether this musician did any arrangements. The presence of 'distinct' suggests the former I would say.",
       "updated_at": "2026-04-26T13:14:04.079Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": "This could be name disambiguation on the one hand - is there more than one arranger with this name in the dataset. Or, on the other hand, it could be a check whether there is an arranger with this name (this is what was generated), or whether this musician did any arrangements. The presence of 'distinct' suggests the former I would say."
     },
     "jazzontology::jazzontology-0012::f08e42a2554a": {
       "preferred_question": "Find the band by its name",
-      "note": "",
       "updated_at": "2026-04-26T13:14:53.430Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "jazzontology::jazzontology-0013::1ff32a0c0665": {
       "preferred_question": "Find the musician by name who played in a session with the given performer",
-      "note": "This seems to be a disambiguation query rather then search, since we already have the name. I would dismiss it",
       "updated_at": "2026-04-26T13:18:21.452Z",
       "benchmark_disposition": "excluded",
-      "pipeline_assessment": null
+      "pipeline_assessment": null,
+      "public_comment": "",
+      "internal_comment": "This seems to be a disambiguation query rather then search, since we already have the name. I would dismiss it"
     },
     "jazzontology::jazzontology-0014::9d7838cc9612": {
       "preferred_question": "Given the album title, disk number and track number, find the track title and the associated signal",
-      "note": "My main concern here is the album vs release difference - in NL we would talk about album title rather than release title; in the ontology, release was chosen rather than album to indicate the relation to time",
       "updated_at": "2026-04-26T13:22:29.525Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": "My main concern here is the album vs release difference - in NL we would talk about album title rather than release title; in the ontology, release was chosen rather than album to indicate the relation to time"
     },
     "jazzontology::jazzontology-0015::0c04aa0ba9ca": {
       "preferred_question": "Which musicians performed together with the given performer?",
-      "note": "Missing context - the Jazz Ontology models all performances as part of a session, therefore this query is for all musicians who ever performed together with the given one",
       "updated_at": "2026-04-26T13:26:25.038Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": "Missing context - the Jazz Ontology models all performances as part of a session, therefore this query is for all musicians who ever performed together with the given one"
     },
     "jazzontology::jazzontology-0016::cf071ce53b31": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T13:29:45.451Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "jazzontology::jazzontology-0017::78e49bdd8791": {
       "preferred_question": "",
-      "note": "Just a remark on the context - the dataset only contains information about recorded sessions, though the ontology allows for non-recorded sessions to be modelled, therefore the generated NL is correct",
       "updated_at": "2026-04-26T13:32:59.933Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": "Just a remark on the context - the dataset only contains information about recorded sessions, though the ontology allows for non-recorded sessions to be modelled, therefore the generated NL is correct"
     },
     "jazzontology::jazzontology-0018::1ce665602261": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T13:33:17.918Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "jazzontology::jazzontology-0019::dc2eb1adf7f2": {
       "preferred_question": "Which pairs of recordings have the same audio fingerprint?",
-      "note": "This again seems to be a disambiguation query, looking for distinct signal objects with the same fingerprint",
       "updated_at": "2026-04-26T13:35:42.848Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": "This again seems to be a disambiguation query, looking for distinct signal objects with the same fingerprint"
     },
     "meetups::meetups-0001::4335885377cd": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T15:38:43.967Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0002::f50b43e95de4": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T15:40:20.109Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0003::913f92213429": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T15:48:30.800Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0004::a24d9404e3d6": {
       "preferred_question": "",
-      "note": "This in fact is quite good, and the paraphrasing mode is probably justified",
       "updated_at": "2026-04-26T16:03:01.145Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": "This in fact is quite good, and the paraphrasing mode is probably justified"
     },
     "meetups::meetups-0005::0803e0a11b9b": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T16:06:33.129Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0006::46609e87a654": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T16:07:32.997Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0007::c6485bb7e1da": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T16:08:33.908Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0008::e4e55ac1b6b5": {
       "preferred_question": "List all places in the graph with their coordinates",
-      "note": "The generated phrase is factually accurate but highly improbable in NL.",
       "updated_at": "2026-04-26T23:16:35.570Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": "The generated phrase is factually accurate but highly improbable in NL."
     },
     "meetups::meetups-0009::7e51a917f0c3": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T23:21:05.281Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0010::ff48c2ed74d8": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T23:22:16.216Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0011::f6d524dc4df1": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T23:25:16.508Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0012::b6828cce70b8": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T23:26:32.823Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0013::050bc918a318": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T23:43:05.178Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0014::20810cf83c68": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T23:46:15.385Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0015::96affcb6eced": {
       "preferred_question": "For meetups involving Niccolò Paganini, how is their time or duration recorded in the graph?",
-      "note": "TimeExpression is not NL friendly. They can be time points, time ranges or time mentions.",
       "updated_at": "2026-04-26T23:52:26.052Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": "TimeExpression is not NL friendly. They can be time points, time ranges or time mentions."
     },
     "meetups::meetups-0016::70cb14b43d3d": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T23:55:18.605Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0017::fb53332edb19": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-26T23:56:10.932Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0018::4d70551a84c6": {
       "preferred_question": "How many historical meetups are in the graph?",
-      "note": "",
       "updated_at": "2026-04-26T23:58:05.508Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0019::20a1278d8b58": {
       "preferred_question": "How many distinct people are mentioned across all historical meetups in the graph?",
-      "note": "",
       "updated_at": "2026-04-27T00:00:29.833Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0020::a8f94e5563f0": {
       "preferred_question": "How many distinct places are mentioned across all historical meetups in the graph?",
-      "note": "",
       "updated_at": "2026-04-27T00:01:11.139Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0021::bb2a1a4facdd": {
       "preferred_question": "How many different time points, time ranges or time mentions are recorded for all meetups in the graph?",
-      "note": "",
       "updated_at": "2026-04-27T00:02:57.111Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0022::da97f3dfd893": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-27T00:03:51.740Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0023::c77f64b8a18e": {
       "preferred_question": "Which performers did Clara Schumann meet in her career and where did she meet them?",
-      "note": "",
       "updated_at": "2026-04-27T00:08:48.345Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0024::1fd8e2caab70": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-27T00:13:13.016Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0025::5cb67cc1a253": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-27T00:14:33.064Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0026::ba13cd18d40c": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-27T00:18:19.308Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0027::c8ed312c2b76": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-27T00:21:17.512Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0028::a17289db1b1c": {
       "preferred_question": "",
-      "note": "This is not sparql",
       "updated_at": "2026-04-27T00:27:41.013Z",
       "benchmark_disposition": "excluded",
-      "pipeline_assessment": null
+      "pipeline_assessment": null,
+      "public_comment": "",
+      "internal_comment": "This is not sparql"
     },
     "organs::organs-0001::9a881f085c9f": {
       "preferred_question": "List all organs in the graph",
-      "note": "",
       "updated_at": "2026-04-27T13:52:35.755Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "organs::organs-0002::4e7bb094ec79": {
       "preferred_question": "List the descriptions of the specified organs",
-      "note": "",
       "updated_at": "2026-04-27T13:53:19.997Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "organs::organs-0003::7a7d343f145e": {
       "preferred_question": "When was each of the listed organs or organ parts built?",
-      "note": "",
       "updated_at": "2026-04-27T22:46:50.954Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "organs::organs-0004::1eea18a3f2e5": {
       "preferred_question": "Which of the listed organs have an external website?",
-      "note": "",
       "updated_at": "2026-04-27T22:49:05.663Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "organs::organs-0005::418bbf56b82c": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-27T22:51:12.548Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "organs::organs-0006::3bcc01933cfb": {
       "preferred_question": "For the given organ or organ part, where was is most recently located?",
-      "note": "",
       "updated_at": "2026-04-27T22:54:21.868Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "organs::organs-0008::be9da9202d65": {
       "preferred_question": "For each of the listed organs or organ parts, find their picture online and its caption",
-      "note": "",
       "updated_at": "2026-04-27T22:58:10.967Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     }
   }
 }

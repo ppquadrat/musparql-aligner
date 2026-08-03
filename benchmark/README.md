@@ -17,9 +17,11 @@ smaller publication boundary.
   - the compact scoring dataset
   - one canonical `gold_question` and SPARQL query per record
   - benchmark membership is implicit: every record in this file is included
+  - optional public reviewer rationale is stored as `provenance.reviewer_comment`
 - `benchmark/vN/included.jsonl`
   - detailed internal curation records for the included pairs
   - preserves generation provenance and `pipeline_assessment`
+  - keeps `review.public_comment` and `review.internal_comment` separate
 - `benchmark/vN/alternatives.jsonl`
   - public sidecar containing human-accepted non-canonical formulations
   - `accepted_alternatives` contains accepted model outputs and previous canonical questions
@@ -70,6 +72,18 @@ For each included pair:
 
 Alternative accepted wordings remain in `alternatives.jsonl`; exploratory
 linguistic ratings remain in the internal annotation file.
+
+Reviewer comments are not alternative formulations. Public comments explain
+semantic or wording decisions and are copied into compact benchmark provenance.
+Internal comments are working notes and are excluded by the public release
+allowlist. Literal formulations remain exclusively in `literal_formulations`.
+The normalization tool removes a legacy `Literal: ...` note line only when it
+matches the dedicated `literal_wording` value. Other legacy note text defaults
+to `internal_comment` and requires an explicit later review before publication:
+
+```bash
+.venv/bin/python benchmark/normalize_review_comments.py
+```
 
 ## Build and update
 

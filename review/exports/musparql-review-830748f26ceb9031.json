@@ -4,87 +4,99 @@
   "reviews": {
     "jazzontology::jazzontology-0001::60ee523572cf": {
       "preferred_question": "For the given album, disk and track number, find the track and its title",
-      "note": "this is acceptable, but 'For the given album and track number, find the track and its title' would be better",
       "updated_at": "2026-04-25T20:26:31.065Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": "this is acceptable, but 'For the given album and track number, find the track and its title' would be better"
     },
     "jazzontology::jazzontology-0002::ca8d9dbf2d94": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-25T20:26:50.371Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "jazzontology::jazzontology-0003::0a834b918811": {
       "preferred_question": "Find the album given its title and release date",
-      "note": "",
       "updated_at": "2026-04-25T20:28:51.352Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "prompt_improvement_recommended"
+      "pipeline_assessment": "prompt_improvement_recommended",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0001::4335885377cd": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-25T20:30:11.797Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0002::f50b43e95de4": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-25T20:31:35.460Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "meetups::meetups-0003::913f92213429": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-25T20:32:26.662Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "musow::musow-0001::83eb4e218cc7": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-25T20:33:26.745Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "musow::musow-0002::d27926d9e847": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-25T20:34:50.199Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "musow::musow-0003::efe8ee2e1797": {
       "preferred_question": "",
-      "note": "",
       "updated_at": "2026-04-25T20:36:40.095Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "organs::organs-0001::9a881f085c9f": {
       "preferred_question": "List all organs",
-      "note": "",
       "updated_at": "2026-04-25T20:37:34.239Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "organs::organs-0002::4e7bb094ec79": {
       "preferred_question": "List the descriptions of specified organs",
-      "note": "",
       "updated_at": "2026-04-25T20:38:42.658Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     },
     "organs::organs-0003::7a7d343f145e": {
       "preferred_question": "When were the listed organs or organ parts built?",
-      "note": "",
       "updated_at": "2026-04-25T20:40:24.728Z",
       "benchmark_disposition": "included",
-      "pipeline_assessment": "accepted"
+      "pipeline_assessment": "accepted",
+      "public_comment": "",
+      "internal_comment": ""
     }
   },
   "run_id": "2026-04-25-sample-review-gpt5",

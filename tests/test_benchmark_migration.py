@@ -18,6 +18,8 @@ import build_benchmark  # noqa: E402
 import build_public_release  # noqa: E402
 import update_from_initial_review  # noqa: E402
 
+import build_review_diff_bundle  # noqa: E402
+
 
 def write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
@@ -81,6 +83,7 @@ class DecisionSchemaTests(unittest.TestCase):
         self.assertEqual(rows[0]["provenance"]["source_type"], "human_review")
         self.assertEqual(rows[1]["provenance"]["source_type"], "curated_example")
         self.assertEqual(rows[1]["provenance"]["challenge"], "Challenge 1")
+        self.assertNotIn("reviewer_comment", rows[0]["provenance"])
         self.assertNotIn("review", rows[0])
         self.assertNotIn("run", rows[0])
 
@@ -108,9 +111,11 @@ const internal = schema.internalReviews({x: {
   benchmark_disposition: "included",
   pipeline_assessment: "accepted",
   status: "",
-  note: "kept",
+  note: "Literal: Exact wording?\nkept",
+  literal_wording: "Exact wording?",
 }}).x;
 if ("benchmark_disposition" in internal || "pipeline_assessment" in internal) process.exit(2);
+if (internal.public_comment !== "" || internal.internal_comment !== "kept") process.exit(8);
 const exported = schema.exportableReview({ status: "excluded" });
 if (exported.benchmark_disposition !== "excluded" || exported.pipeline_assessment !== null) process.exit(3);
 let legacyRejected = false;
@@ -226,7 +231,11 @@ if (!conflictRejected) process.exit(7);
                 "gold_question_source": "reviewer_rewrite",
                 "benchmark_disposition": "included",
                 "pipeline_assessment": "accepted",
-                "review": {"note": "private", "review_export": "/Users/name/review.json"},
+                "review": {
+                    "public_comment": "Public rationale",
+                    "internal_comment": "private",
+                    "review_export": "/Users/name/review.json",
+                },
                 "run": {"request_config": {"api_key_env": "SECRET"}},
             }
             write_json(
@@ -328,6 +337,61 @@ if (!conflictRejected) process.exit(7);
             build_public_release.assert_public_safe(
                 {"provenance": {"prompt_source": "/home/alice/private-review.json"}}
             )
+
+    def test_review_comments_remove_only_matching_literal_duplication(self) -> None:
+        review = {
+            "note": "Semantic explanation.\nLiteral:\u00a0Which labels are returned?",
+            "literal_wording": "Which labels are returned?",
+        }
+        self.assertEqual(build_benchmark.review_comments(review), ("", "Semantic explanation."))
+        mismatch = {
+            "note": "Literal: A different formulation?",
+            "literal_wording": "Canonical literal formulation?",
+        }
+        self.assertEqual(
+            build_benchmark.review_comments(mismatch)[1],
+            "Literal: A different formulation?",
+        )
+
+    def test_compare_bundle_keeps_legacy_notes_private_and_extracts_literal(self) -> None:
+        review = build_review_diff_bundle.benchmark_review_for_record(
+            {
+                "gold_question_source": "reviewer_rewrite",
+                "gold_question": "Preferred?",
+                "pipeline_assessment": "accepted",
+                "review": {"note": "Literal: Exact wording?\nWorking note"},
+            },
+            "included",
+            Path("benchmark/v1"),
+        )
+        self.assertEqual(review["literal_wording"], "Exact wording?")
+        self.assertEqual(review["public_comment"], "")
+        self.assertEqual(review["internal_comment"], "Working note")
+
+        explicitly_cleared = build_review_diff_bundle.benchmark_review_for_record(
+            {"review": {"note": "stale", "public_comment": "", "internal_comment": "private"}},
+            "excluded",
+            Path("benchmark/v1"),
+        )
+        self.assertEqual(explicitly_cleared["public_comment"], "")
+        self.assertEqual(explicitly_cleared["internal_comment"], "private")
+
+    def test_current_snapshot_has_normalized_public_comments(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        included = build_benchmark.read_jsonl(repository / "benchmark/v7/included.jsonl")
+        for record in included:
+            review = record.get("review", {})
+            self.assertNotIn("note", review)
+            self.assertIn("public_comment", review)
+            self.assertIn("internal_comment", review)
+            literal = build_benchmark.normalize_rephrasing_text(review.get("literal_wording"))
+            if literal:
+                for line in str(review.get("public_comment") or "").splitlines():
+                    if line.strip().lower().startswith("literal:"):
+                        self.assertNotEqual(
+                            build_benchmark.normalize_rephrasing_text(line.split(":", 1)[1]),
+                            literal,
+                        )
 
 
 if __name__ == "__main__":

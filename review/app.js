@@ -37,7 +37,8 @@
     allEvidenceList: document.getElementById("allEvidenceList"),
     preferredQuestionInput: document.getElementById("preferredQuestionInput"),
     literalWordingInput: document.getElementById("literalWordingInput"),
-    reviewNoteInput: document.getElementById("reviewNoteInput"),
+    publicCommentInput: document.getElementById("publicCommentInput"),
+    internalCommentInput: document.getElementById("internalCommentInput"),
     holdoutSplitInput: document.getElementById("holdoutSplitInput"),
     naturalnessInput: document.getElementById("naturalnessInput"),
     pragmatismInput: document.getElementById("pragmatismInput"),
@@ -67,7 +68,7 @@
     return;
   }
 
-  const reviewStorageKey = `musparql-review:schema2:${data.dataset_id}`;
+  const reviewStorageKey = `musparql-review:schema3:${data.dataset_id}`;
   let reviews = loadReviews();
   const state = {
     selectedReviewId: data.records[0].review_id,
@@ -90,11 +91,9 @@
 
   function loadReviews() {
     try {
-      const raw = window.localStorage.getItem(reviewStorageKey);
-      const previousRaw = window.localStorage.getItem(`musparql-review:${data.dataset_id}`);
-      if (!raw && previousRaw) {
-        window.alert("Review data from an earlier schema is still preserved in browser storage. Export it with the earlier workbench before clearing it; it cannot be imported automatically.");
-      }
+      const raw = window.localStorage.getItem(reviewStorageKey)
+        || window.localStorage.getItem(`musparql-review:schema2:${data.dataset_id}`)
+        || window.localStorage.getItem(`musparql-review:${data.dataset_id}`);
       if (!raw) return {};
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === "object" ? parsed : {};
@@ -163,7 +162,8 @@
     els.nextBtn.addEventListener("click", () => moveSelection(1));
     els.preferredQuestionInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.literalWordingInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
-    els.reviewNoteInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
+    els.publicCommentInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
+    els.internalCommentInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.holdoutSplitInput.addEventListener("change", () => updateCurrentReview({ rerender: true }));
     [els.naturalnessInput, els.pragmatismInput, els.roomForInterpretationInput].forEach((input) => {
       input.addEventListener("input", () => {
@@ -310,7 +310,8 @@
 
     els.preferredQuestionInput.value = review.preferred_question || "";
     els.literalWordingInput.value = review.literal_wording || "";
-    els.reviewNoteInput.value = review.note || "";
+    els.publicCommentInput.value = review.public_comment || "";
+    els.internalCommentInput.value = review.internal_comment || "";
     els.holdoutSplitInput.checked = isHoldoutReview(review);
     setInterpretiveInputs(review.interpretive);
     els.decisionButtons.forEach((btn) => {
@@ -384,7 +385,8 @@
       status: nextStatus,
       preferred_question: els.preferredQuestionInput.value.trim(),
       literal_wording: els.literalWordingInput.value.trim(),
-      note: els.reviewNoteInput.value.trim(),
+      public_comment: els.publicCommentInput.value.trim(),
+      internal_comment: els.internalCommentInput.value.trim(),
       split: els.holdoutSplitInput.checked ? HOLDOUT_SPLIT : "",
       interpretive,
       updated_at: new Date().toISOString(),
@@ -393,7 +395,8 @@
       !reviews[reviewId].status &&
       !reviews[reviewId].preferred_question &&
       !reviews[reviewId].literal_wording &&
-      !reviews[reviewId].note &&
+      !reviews[reviewId].public_comment &&
+      !reviews[reviewId].internal_comment &&
       !reviews[reviewId].split &&
       isEmptyInterpretive(interpretive)
     ) {
@@ -410,7 +413,7 @@
   }
 
   function normalizeReview(review) {
-    const note = review?.note || "";
+    const legacyNote = review?.note || "";
     const allowedStatuses = new Set([
       "accepted",
       "prompt_improvement_recommended",
@@ -422,11 +425,17 @@
       || (review?.benchmark_disposition === "excluded" ? "excluded" : review?.pipeline_assessment)
       || "";
     const status = allowedStatuses.has(rawStatus) ? rawStatus : "";
+    const literalWording = review?.literal_wording || extractLiteralWordingFromNote(legacyNote);
+    const hasPublicComment = review != null
+      && Object.prototype.hasOwnProperty.call(review, "public_comment");
     return {
       status,
-      note,
       preferred_question: review?.preferred_question || "",
-      literal_wording: review?.literal_wording || extractLiteralWordingFromNote(note),
+      literal_wording: literalWording,
+      public_comment: hasPublicComment ? (review?.public_comment || "") : "",
+      internal_comment: hasPublicComment
+        ? (review?.internal_comment || "")
+        : removeLiteralFromComment(review?.internal_comment || legacyNote, literalWording),
       split: review?.split || (review?.benchmark_disposition === "withheld" ? HOLDOUT_SPLIT : ""),
       interpretive: normalizeInterpretive(review?.interpretive),
     };
@@ -446,7 +455,8 @@
       pipeline_assessment: normalized.status && normalized.status !== "excluded" ? normalized.status : null,
       preferred_question: normalized.preferred_question,
       literal_wording: normalized.literal_wording,
-      note: normalized.note,
+      public_comment: normalized.public_comment,
+      internal_comment: normalized.internal_comment,
       split: normalized.split,
       interpretive: normalized.interpretive,
       updated_at: review?.updated_at || null,
@@ -527,6 +537,19 @@
   function extractLiteralWordingFromNote(note) {
     const match = String(note || "").match(/(?:^|\n)\s*literal:\s*([^\n]+)/i);
     return match ? match[1].trim() : "";
+  }
+
+  function removeLiteralFromComment(comment, literal) {
+    const expected = String(literal || "").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+    if (!expected) return String(comment || "").trim();
+    return String(comment || "")
+      .split(/\r?\n/)
+      .filter((line) => {
+        const match = line.replace(/\u00a0/g, " ").trim().match(/^literal:\s*(.*)$/i);
+        return !match || match[1].trim().replace(/\s+/g, " ").toLocaleLowerCase() !== expected;
+      })
+      .join("\n")
+      .trim();
   }
 
   function normalizeInterpretive(interpretive) {
@@ -692,7 +715,7 @@
   }
 
   function initCompareMode() {
-    const compareStorageKey = `musparql-review-compare:schema2:${data.dataset_id}`;
+    const compareStorageKey = `musparql-review-compare:schema3:${data.dataset_id}`;
     let compareReviews = loadCompareReviews();
     const compareState = {
       selectedPairId: data.records[0].pair_id,
@@ -759,11 +782,9 @@
 
     function loadCompareReviews() {
       try {
-        const raw = window.localStorage.getItem(compareStorageKey);
-        const previousRaw = window.localStorage.getItem(`musparql-review-compare:${data.dataset_id}`);
-        if (!raw && previousRaw) {
-          window.alert("Comparison-review data from an earlier schema is still preserved in browser storage. Export it with the earlier workbench before clearing it; it cannot be imported automatically.");
-        }
+        const raw = window.localStorage.getItem(compareStorageKey)
+          || window.localStorage.getItem(`musparql-review-compare:schema2:${data.dataset_id}`)
+          || window.localStorage.getItem(`musparql-review-compare:${data.dataset_id}`);
         if (!raw) return {};
         const parsed = JSON.parse(raw);
         return parsed && typeof parsed === "object" ? parsed : {};
@@ -913,7 +934,8 @@
           status: previousReview.status || "",
           preferred_question: previousReview.preferred_question || "",
           literal_wording: previousReview.literal_wording || "",
-          note: previousReview.note || "",
+          public_comment: previousReview.public_comment || "",
+          internal_comment: previousReview.internal_comment || "",
           split: "",
           copied_from_review_id: pair.previous?.review_id || null,
           updated_at: new Date().toISOString(),
@@ -932,7 +954,8 @@
           status: previousReview.status || "",
           preferred_question: previousReview.preferred_question || "",
           literal_wording: previousReview.literal_wording || "",
-          note: previousReview.note || "",
+          public_comment: previousReview.public_comment || "",
+          internal_comment: previousReview.internal_comment || "",
           split: "",
           copied_from_review_id: pair.previous?.review_id || null,
           updated_at: new Date().toISOString(),
@@ -946,9 +969,9 @@
           preferred_question: previousReview.preferred_question || previousRecord?.output?.nl_question || "",
         });
       });
-      document.getElementById("usePreviousNoteInlineBtn")?.addEventListener("click", () => {
+      document.getElementById("usePreviousPublicCommentInlineBtn")?.addEventListener("click", () => {
         updateCompareReview(currentReviewId, {
-          note: previousReview.note || "",
+          public_comment: previousReview.public_comment || "",
         });
       });
       document.getElementById("acceptNewBtn").addEventListener("click", () => {
@@ -969,8 +992,11 @@
       document.getElementById("compareLiteralInput")?.addEventListener("input", () => {
         updateCompareReview(currentReviewId, { literal_wording: document.getElementById("compareLiteralInput").value.trim() }, false);
       });
-      document.getElementById("compareNoteInput")?.addEventListener("input", () => {
-        updateCompareReview(currentReviewId, { note: document.getElementById("compareNoteInput").value.trim() }, false);
+      document.getElementById("comparePublicCommentInput")?.addEventListener("input", () => {
+        updateCompareReview(currentReviewId, { public_comment: document.getElementById("comparePublicCommentInput").value.trim() }, false);
+      });
+      document.getElementById("compareInternalCommentInput")?.addEventListener("input", () => {
+        updateCompareReview(currentReviewId, { internal_comment: document.getElementById("compareInternalCommentInput").value.trim() }, false);
       });
       document.getElementById("compareHoldoutInput")?.addEventListener("change", () => {
         updateCompareReview(
@@ -1046,10 +1072,16 @@
             </div>
             <div class="compare-review-note">
             <div class="compare-note-head">
-              <p class="section-label">Note</p>
-              <button id="usePreviousNoteInlineBtn" class="btn small">Reuse Note</button>
+              <p class="section-label">Public comment</p>
+              <button id="usePreviousPublicCommentInlineBtn" class="btn small">Reuse Comment</button>
             </div>
-            <p>${escapeHtml(review.note || "No note")}</p>
+            <p>${escapeHtml(review.public_comment || "No public comment")}</p>
+            </div>
+            <div class="compare-review-note">
+            <div class="compare-note-head">
+              <p class="section-label">Internal comment</p>
+            </div>
+            <p>${escapeHtml(review.internal_comment || "No internal comment")}</p>
             </div>
           </div>
         </section>
@@ -1090,8 +1122,14 @@
               <textarea id="compareLiteralInput" rows="2" placeholder="Optional literal wording for exact query semantics">${escapeHtml(review.literal_wording || "")}</textarea>
             </label>
             <label>
-              <span>Reviewer note</span>
-              <textarea id="compareNoteInput" rows="4" placeholder="Why this is good, bad, or needs a fix">${escapeHtml(review.note || "")}</textarea>
+              <span>Public reviewer comment</span>
+              <small>Published with the benchmark.</small>
+              <textarea id="comparePublicCommentInput" rows="4" placeholder="Why this decision was made">${escapeHtml(review.public_comment || "")}</textarea>
+            </label>
+            <label>
+              <span>Internal reviewer comment</span>
+              <small>Excluded from the public release.</small>
+              <textarea id="compareInternalCommentInput" rows="3" placeholder="Private operational note">${escapeHtml(review.internal_comment || "")}</textarea>
             </label>
           </div>
         </section>
@@ -1146,7 +1184,7 @@
     }
 
     function updateCompareReview(reviewId, patch, rerender = true) {
-      const existing = compareReviews[reviewId] || { status: "", preferred_question: "", literal_wording: "", note: "", split: "" };
+      const existing = compareReviews[reviewId] || { status: "", preferred_question: "", literal_wording: "", public_comment: "", internal_comment: "", split: "" };
       compareReviews[reviewId] = {
         ...existing,
         ...patch,
@@ -1159,7 +1197,7 @@
 
     function cleanupEmptyCompareReview(reviewId) {
       const review = compareReviews[reviewId];
-      if (review && !review.status && !review.preferred_question && !review.literal_wording && !review.note && !review.split) {
+      if (review && !review.status && !review.preferred_question && !review.literal_wording && !review.public_comment && !review.internal_comment && !review.split) {
         delete compareReviews[reviewId];
       }
     }

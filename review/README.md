@@ -97,6 +97,19 @@ Use this for wording that follows the SPARQL more exactly than the preferred
 natural-language question. Older exports that stored these as `Literal:` note
 lines are still supported by the benchmark builders.
 
+Reviewer comments use two deliberately simple fields:
+
+- `public_comment` is published with the benchmark and should explain semantic
+  or wording decisions that are useful to benchmark users.
+- `internal_comment` is an operational working note and is excluded from the
+  public release.
+
+Legacy `note` fields are imported as internal comments because they predate the
+public/private contract. A later review round can explicitly promote selected
+text to `public_comment`. If a legacy comment also contains a `Literal: ...`
+line that matches `literal_wording`, that duplicate line is removed while the
+rest of the comment is retained privately.
+
 ## Review fields
 
 - `benchmark_disposition: included`

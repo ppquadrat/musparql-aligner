@@ -20,6 +20,8 @@
     },
     "preferred_question": {"type": "string"},
     "literal_wording": {"type": "string"},
+    "public_comment": {"type": "string"},
+    "internal_comment": {"type": "string"},
     "split": {"type": "string"}
   },
   "required": ["benchmark_disposition"],

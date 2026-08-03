@@ -120,6 +120,27 @@ def normalize_rephrasing_text(text: Any) -> str:
     return " ".join(str(text or "").split()).casefold()
 
 
+def remove_literal_from_comment(comment: Any, literal: Any) -> str:
+    """Remove a legacy ``Literal: ...`` line once it is stored separately."""
+    text = str(comment or "").replace("\r\n", "\n").replace("\r", "\n")
+    expected = normalize_rephrasing_text(literal)
+    if not text.strip() or not expected:
+        return text.strip()
+    kept: List[str] = []
+    for line in text.splitlines():
+        cleaned = line.strip().lstrip("\ufeff").replace("\xa0", " ")
+        if cleaned.casefold().startswith("literal:"):
+            candidate = cleaned.split(":", 1)[1]
+            if normalize_rephrasing_text(candidate) == expected:
+                continue
+        kept.append(line.rstrip())
+    while kept and not kept[0].strip():
+        kept.pop(0)
+    while kept and not kept[-1].strip():
+        kept.pop()
+    return "\n".join(kept)
+
+
 def literal_wording(review: Dict[str, Any]) -> str:
     explicit = " ".join(str(review.get("literal_wording") or "").split())
     if explicit:
@@ -130,6 +151,23 @@ def literal_wording(review: Dict[str, Any]) -> str:
         if stripped.casefold().startswith("literal:"):
             return " ".join(stripped.split(":", 1)[1].split())
     return ""
+
+
+def review_comments(review: Dict[str, Any]) -> Tuple[str, str]:
+    """Return normalized public/internal comments with legacy-note support."""
+    literal = literal_wording(review)
+    if "public_comment" in review:
+        public = review.get("public_comment") or ""
+        internal = review.get("internal_comment") or ""
+    else:
+        # The legacy note field predated the public/private contract and was
+        # excluded from public releases, so migration must fail closed.
+        public = ""
+        internal = review.get("internal_comment") or review.get("note") or ""
+    return (
+        remove_literal_from_comment(public, literal),
+        remove_literal_from_comment(internal, literal),
+    )
 
 
 def normalize_interpretive(review: Dict[str, Any]) -> Dict[str, Any]:
@@ -395,6 +433,10 @@ def benchmark_gold_records(
             "question_source": rec.get("gold_question_source"),
             "source_type": source.get("source_type") or "human_review",
         }
+        review = rec.get("review") if isinstance(rec.get("review"), dict) else {}
+        public_comment, _ = review_comments(review)
+        if public_comment:
+            provenance["reviewer_comment"] = public_comment
         for field in ("prompt_source", "challenge", "cq", "dataset", "reported_result_rows"):
             if source.get(field) not in (None, ""):
                 provenance[field] = source.get(field)
@@ -498,8 +540,9 @@ def main() -> None:
                 "dataset_id": review_dataset_id or bundle_dataset_id,
                 "run_id": review_run_id or record.get("run_id"),
                 "generation_run_id": review_run_id or record.get("generation_run_id") or record.get("run_id"),
-                "note": review.get("note") or "",
                 "literal_wording": literal_wording(review),
+                "public_comment": review_comments(review)[0],
+                "internal_comment": review_comments(review)[1],
                 "updated_at": review.get("updated_at"),
             },
             "run": {

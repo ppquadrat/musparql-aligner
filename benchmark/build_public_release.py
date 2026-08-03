@@ -48,9 +48,11 @@ PROVENANCE_FIELDS = (
     "cq",
     "dataset",
     "reported_result_rows",
+    "reviewer_comment",
 )
 FORBIDDEN_KEYS = {
     "note",
+    "internal_comment",
     "review_export",
     "request_config",
     "response_metadata",

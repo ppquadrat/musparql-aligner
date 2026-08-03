@@ -16,6 +16,7 @@ from build_review_bundle import (
     signature_token,
     stable_json_dumps,
 )
+from benchmark.build_benchmark import literal_wording, review_comments
 
 
 PairKey = Tuple[str, str]
@@ -84,11 +85,14 @@ def load_jsonl(path: Path) -> List[Dict[str, Any]]:
 def benchmark_review_for_record(record: Dict[str, Any], group: str, source_benchmark: Path) -> Dict[str, Any]:
     review = record.get("review") if isinstance(record.get("review"), dict) else {}
     gold_source = str(record.get("gold_question_source") or "")
+    public_comment, internal_comment = review_comments(review)
     return {
         "benchmark_disposition": group,
         "pipeline_assessment": str(record.get("pipeline_assessment") or ""),
         "preferred_question": record.get("gold_question") if gold_source == "reviewer_rewrite" else "",
-        "note": review.get("note") or "",
+        "literal_wording": literal_wording(review),
+        "public_comment": public_comment,
+        "internal_comment": internal_comment,
         "updated_at": review.get("updated_at"),
         "benchmark_id": record.get("benchmark_id"),
         "source_benchmark": str(source_benchmark),
