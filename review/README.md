@@ -31,8 +31,10 @@ For later initial-review rounds, pass the latest benchmark snapshot:
   --previous-benchmark benchmark/vN
 ```
 
-With `--previous-benchmark`, initial review excludes already reviewed pairs by
-default and always excludes private holdout pairs. Use `--include-reviewed` only
+With `--previous-benchmark`, initial review excludes already reviewed SPARQL
+versions by default and always excludes private holdout query IDs. Previous
+decisions match by version/hash, with legacy SPARQL text as a compatibility
+fallback. Use `--include-reviewed` only
 for a deliberate audit pass over non-holdout reviewed pairs. Previous decisions
 and pipeline assessments are not included unless `--reveal-previous-decision` is passed.
 

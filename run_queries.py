@@ -677,7 +677,7 @@ def main() -> None:
         "--source-id",
         action="append",
         dest="source_ids",
-        help="Only execute queries carrying evidence from this source ID; may be repeated.",
+        help="Only execute queries carrying evidence or edit provenance from this source ID; may be repeated.",
     )
     parser.add_argument(
         "--sparql-version",

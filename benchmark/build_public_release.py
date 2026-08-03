@@ -20,6 +20,8 @@ BENCHMARK_FIELDS = (
     "query_id",
     "query_label",
     "sparql",
+    "sparql_version",
+    "sparql_hash",
     "gold_question",
     "gold_question_source",
 )
@@ -30,6 +32,8 @@ ALTERNATIVE_FIELDS = (
     "query_id",
     "query_label",
     "sparql",
+    "sparql_version",
+    "sparql_hash",
     "canonical_question",
     "canonical_question_source",
 )
@@ -163,7 +167,7 @@ def main() -> None:
     write_jsonl(alternatives_path, alternatives)
     manifest = {
         "benchmark_version": source_manifest.get("benchmark_version") or snapshot.name,
-        "release_schema_version": "1.0",
+        "release_schema_version": "1.1",
         "counts": {"benchmark": len(benchmark), "alternatives": len(alternatives)},
         "files": {
             "benchmark.jsonl": {"sha256": sha256(benchmark_path)},

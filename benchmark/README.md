@@ -16,6 +16,7 @@ smaller publication boundary.
 - `benchmark/vN/benchmark.jsonl`
   - the compact scoring dataset
   - one canonical `gold_question` and SPARQL query per record
+  - `sparql_version` and `sparql_hash` identify the retained query text
   - benchmark membership is implicit: every record in this file is included
   - optional public reviewer rationale is stored as `provenance.reviewer_comment`
 - `benchmark/vN/included.jsonl`
@@ -133,6 +134,12 @@ The evaluator reads every record in `benchmark.jsonl`:
   --judge-model gpt-5 \
   --out evals/reports/<eval-id>
 ```
+
+New working snapshots and public releases (release schema `1.1`) retain `sparql_version` and
+`sparql_hash`. Evaluation rejects version/hash mismatches. For snapshots that
+predate these fields, a missing historical query ID may be mapped only to a
+unique normalized-SPARQL match within the same KG; the score records both the
+benchmark `query_id` and resolved `run_query_id`.
 
 Regenerate all compact scoring files, accepted alternatives, and manifest counts
 from the detailed snapshots, auditing each version as it is written:

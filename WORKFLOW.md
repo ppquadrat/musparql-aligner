@@ -240,6 +240,10 @@ to that retained version; `effective_sparql_hash` fingerprints the exact query
 after runner-only preparation such as outer-comment removal or graph injection.
 Skipped attempts are also recorded as the latest observation, while
 `latest_successful_execution` continues to point to the last success.
+`runnable_queries.failures.jsonl` is updated at the same `(query_id,
+sparql_version)` scope as the requested jobs. A version-scoped rerun therefore
+replaces failures only for that version and preserves failures for other
+retained versions. Legacy versionless failure rows are treated as version `0`.
 
 The runner selects the latest version by default. Use an explicit selector to
 compare retained versions:
@@ -282,6 +286,14 @@ Process:
    .venv/bin/python build_llm_inputs.py
    ```
 
+   Prompt inputs use the latest retained SPARQL version by default. Select the
+   source text or a particular edit explicitly when needed:
+
+   ```bash
+   .venv/bin/python build_llm_inputs.py --sparql-version original
+   .venv/bin/python build_llm_inputs.py --sparql-version 1
+   ```
+
 2. Run generation or alignment:
 
    ```bash
@@ -307,6 +319,10 @@ from future generation inputs:
 .venv/bin/python build_llm_inputs.py \
   --exclude-dismissed-benchmark benchmark/vN
 ```
+
+Dismissed decisions apply only when their stored version/hash—or legacy SPARQL
+text—matches the selected prompt input. Private holdouts remain excluded by
+stable query ID across every SPARQL version.
 
 ### Generation Output
 
@@ -460,8 +476,10 @@ For later initial-review rounds, pass the latest benchmark snapshot:
   --previous-benchmark benchmark/vN
 ```
 
-With `--previous-benchmark`, initial review excludes already reviewed pairs by
-default and always excludes private holdout pairs. Use `--include-reviewed` only
+With `--previous-benchmark`, initial review excludes already reviewed versions
+by default and always excludes private holdout query IDs. A previous decision
+is reused only when its version/hash, or legacy SPARQL text, matches the current
+input. Use `--include-reviewed` only
 for deliberate audit passes over non-holdout reviewed pairs. Previous decisions
 remain hidden unless `--reveal-previous-decision` is explicitly passed.
 
@@ -992,7 +1010,8 @@ Versioning invariants:
   `sparql_version` and `sparql_hash` alongside the selected SPARQL text.
 - A prior benchmark decision is reused only when its version/hash (or legacy
   SPARQL text) matches the current input. Historical query IDs may be resolved
-  during evaluation only through a unique exact SPARQL match.
+  during evaluation only through a unique normalized-SPARQL match within the
+  same KG.
 
 ### `runs/<run-id>/manifest.json`
 
@@ -1104,6 +1123,8 @@ Benchmark snapshots include:
   "query_id": "meetups__sha256:...",
   "query_label": "meetups-0002",
   "sparql": "...normalized SPARQL...",
+  "sparql_version": 1,
+  "sparql_hash": "sha256:...",
   "gold_question": "Who are the two people who most frequently participated in meetups with Edward Elgar?",
   "gold_question_source": "approved_model_output",
   "evidence_summary": {
@@ -1136,6 +1157,8 @@ confused with the compact scoring schema above.
   "query_id": "meetups__sha256:...",
   "query_label": "meetups-0002",
   "sparql": "...normalized SPARQL...",
+  "sparql_version": 1,
+  "sparql_hash": "sha256:...",
   "canonical_question": "Canonical reviewed wording?",
   "canonical_question_source": "reviewer_rewrite",
   "accepted_alternatives": [
@@ -1173,6 +1196,8 @@ Score records include:
 
 - deterministic errors and warnings
 - `sparql_match`
+- the benchmark `query_id` and resolved `run_query_id`; a differing run ID is
+  accepted only after a unique normalized-SPARQL match within the same KG
 - candidate, gold, and baseline questions
 - judge status and judge result when semantic judging is enabled
 - generation run signature and request config when available

@@ -147,6 +147,8 @@ if (!conflictRejected) process.exit(7);
                 "query_id": "old",
                 "query_label": "old",
                 "sparql": "ASK {}",
+                "sparql_version": 1,
+                "sparql_hash": "sha256:abc",
                 "gold_question": "Old question?",
                 "gold_question_source": "approved_model_output",
                 "benchmark_disposition": "included",
@@ -269,6 +271,8 @@ if (!conflictRejected) process.exit(7);
                         "query_id": "q1",
                         "query_label": "one",
                         "sparql": "ASK {}",
+                        "sparql_version": 1,
+                        "sparql_hash": "sha256:abc",
                         "gold_question": "Question?",
                         "gold_question_source": "reviewer_rewrite",
                         "review": {"note": "private", "review_export": "/Users/name/review.json"},
@@ -284,6 +288,8 @@ if (!conflictRejected) process.exit(7);
                         "benchmark_id": "b1",
                         "kg_id": "kg",
                         "query_id": "q1",
+                        "sparql_version": 1,
+                        "sparql_hash": "sha256:abc",
                         "accepted_alternatives": [
                             {
                                 "text": "Alternative?",
@@ -316,11 +322,21 @@ if (!conflictRejected) process.exit(7);
             self.assertNotIn("review_export", public_text)
             self.assertNotIn("request_config", public_text)
             self.assertNotIn("response_metadata", public_text)
+            public_benchmark = build_benchmark.read_jsonl(releases[0] / "benchmark.jsonl")[0]
+            public_alternatives = build_benchmark.read_jsonl(releases[0] / "alternatives.jsonl")[0]
+            public_manifest = json.loads((releases[0] / "manifest.json").read_text())
+            self.assertEqual(public_benchmark["sparql_version"], 1)
+            self.assertEqual(public_benchmark["sparql_hash"], "sha256:abc")
+            self.assertEqual(public_alternatives["sparql_version"], 1)
+            self.assertEqual(public_alternatives["sparql_hash"], "sha256:abc")
+            self.assertEqual(public_manifest["release_schema_version"], "1.1")
 
     def test_public_nested_provenance_is_allowlisted_and_private_paths_fail(self) -> None:
         record = {
             "benchmark_id": "b1",
             "gold_question": "Question?",
+            "sparql_version": 1,
+            "sparql_hash": "sha256:abc",
             "provenance": {
                 "question_source": "reviewer_rewrite",
                 "source_type": "human_review",
@@ -329,6 +345,8 @@ if (!conflictRejected) process.exit(7);
             },
         }
         public = build_public_release.public_benchmark_record(record)
+        self.assertEqual(public["sparql_version"], 1)
+        self.assertEqual(public["sparql_hash"], "sha256:abc")
         self.assertEqual(
             public["provenance"],
             {"question_source": "reviewer_rewrite", "source_type": "human_review"},
