@@ -4,14 +4,9 @@
   "benchmark": "benchmark/v3",
   "benchmark_counts": {
     "benchmark": 61,
-    "approved": 50,
-    "pending": 11,
-    "dismissed": 4
+    "dismissed": 4,
+    "included": 61
   },
-  "scored_status_groups": [
-    "approved",
-    "pending"
-  ],
   "dismissed_excluded": 4,
   "runs": [
     {
@@ -111,7 +106,7 @@
                 "script_version": "run_llm_generation.py@v2",
                 "api_method": "responses.create",
                 "requested_model": "gpt-5",
-                "timeout_s": 180.0,
+                "timeout_s": 180,
                 "max_records": 0,
                 "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
                 "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -195,7 +190,7 @@
     "enabled": true,
     "model": "gpt-5",
     "prompt_hash": "c648717da89461547309ff4881948849d95d81f8b1f7b3e6f94a4a17fe63cfd2",
-    "timeout_s": 120.0
+    "timeout_s": 120
   },
   "summary": {
     "dismissed_excluded": 4,
@@ -231,5 +226,6 @@
         "improvements_vs_baseline": 1
       }
     }
-  }
+  },
+  "scored_dataset": "all records in benchmark.jsonl"
 }

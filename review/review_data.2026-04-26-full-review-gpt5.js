@@ -18,11 +18,10 @@ window.REVIEW_DATA = {
     }
   ],
   "record_count": 149,
-  "review_status_definitions": {
-    "approve": "Keep this example in the benchmark as-is.",
-    "dismiss": "Exclude this example from the benchmark going forward.",
-    "needs_prompt_fix": "The example is valid, but the model behavior should improve through prompt changes.",
-    "needs_data_fix": "The example may be valid, but the model inputs are wrong, incomplete, noisy, or missing key signals."
+  "pipeline_assessment_definitions": {
+    "accepted": "Keep this example in the benchmark as-is.",
+    "prompt_improvement_recommended": "The example is valid, but the model behavior should improve through prompt changes.",
+    "input_data_improvement_recommended": "The example may be valid, but the model inputs are wrong, incomplete, noisy, or missing key signals."
   },
   "records": [
     {

@@ -51,10 +51,10 @@ the enrichment as a default method.
 
 The review decisions were applied separately to create `benchmark/v4`:
 
-- Approved: 46
-- Pending: 15
-- Dismissed: 4
-- Applied compare-review decisions: 31
+- Pipeline assessment accepted: 46
+- Pipeline improvement recommended: 15
+- Excluded: 4
+- Applied comparative-review decisions: 31
 
 ## Observations
 
@@ -78,6 +78,6 @@ SPARQL automatically.
 
 Do not adopt ontology/graph-shape enrichment as a default pipeline step.
 
-Keep the generated run, comparison review, evaluation report, and `benchmark/v4`
+Keep the generated run, comparative review, evaluation report, and `benchmark/v4`
 as history. Revisit the idea only with more constrained prompt guidance or a
 smaller, query-shape-specific diagnostic that does not rewrite SPARQL broadly.

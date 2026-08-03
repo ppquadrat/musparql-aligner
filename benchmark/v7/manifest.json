@@ -8,11 +8,8 @@
   "dataset_id": "linkedmusic-curated-2026-07-14",
   "counts": {
     "benchmark": 100,
-    "approved": 87,
-    "pending": 13,
     "dismissed": 5,
     "holdout": 0,
-    "ambiguity": 60,
     "added_curated_linkedmusic": 20,
     "linkedmusic_dataset_counts": {
       "DIAMM": 3,
@@ -25,24 +22,50 @@
       "MusicBrainz, Dig That Lick, The Session, DIAMM, The Global Jukebox": 1,
       "MusicBrainz, The Global Jukebox": 1,
       "MusicBrainz, The Session": 1
+    },
+    "included": 100,
+    "alternatives": 55,
+    "linguistic_annotations": 10,
+    "pipeline_assessment_counts": {
+      "accepted": 67,
+      "not_applicable": 20,
+      "prompt_improvement_recommended": 13
+    },
+    "benchmark_disposition_counts": {
+      "excluded": 5,
+      "included": 100
     }
   },
   "files": {
     "benchmark": "benchmark.jsonl",
-    "approved": "approved.jsonl",
-    "pending": "pending.jsonl",
+    "included": "included.jsonl",
     "dismissed": "dismissed.jsonl",
     "holdout": "holdout.jsonl",
-    "ambiguity": "ambiguity.jsonl"
+    "alternatives": "alternatives.jsonl",
+    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
   },
   "gold_question_policy": {
-    "benchmark_includes_approved": true,
-    "benchmark_includes_pending_with_reviewer_rewrite": true,
     "preferred_question_used_when_present": true,
     "approved_model_output_used_otherwise": true,
     "source_prompt_used_for_curated_linkedmusic": true,
     "unchanged_previous_items_carried_forward": true,
-    "corrected_linkedmusic_sparql_used": true
+    "corrected_linkedmusic_sparql_used": true,
+    "benchmark_contains_all_human_confirmed_included_pairs": true
   },
-  "curation_note": "LinkedMusic prompts are public challenge prompts; SPARQL queries are manually corrected in the local curated source file."
+  "curation_note": "LinkedMusic prompts are public challenge prompts; SPARQL queries are manually corrected in the local curated source file.",
+  "release_boundary": {
+    "public_release_builder": "benchmark/build_public_release.py",
+    "working_snapshot_is_not_a_release_archive": true,
+    "public_release_files": [
+      "manifest.json",
+      "benchmark.jsonl",
+      "alternatives.jsonl"
+    ],
+    "internal_only_files": [
+      "included.jsonl",
+      "linguistic_annotations.jsonl",
+      "dismissed.jsonl",
+      "holdout.jsonl"
+    ]
+  }
 }

@@ -16,7 +16,7 @@ def output_path(value: str) -> Path:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build the next compare-review bundle from a previous reviewed run and current outputs.")
+    parser = argparse.ArgumentParser(description="Build the next comparative-review bundle from a previous reviewed run and current outputs.")
     parser.add_argument("--previous-run", required=True, help="Previous run directory or previous llm_outputs.jsonl.")
     parser.add_argument("--previous-reviews", required=True, help="Previous review export JSON.")
     parser.add_argument(

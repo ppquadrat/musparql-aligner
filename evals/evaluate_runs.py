@@ -235,30 +235,12 @@ def placeholder_warnings(question: str) -> List[str]:
 
 def load_benchmark(benchmark_dir: Path) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, int]]:
     manifest = load_json(benchmark_dir / "manifest.json")
-    new_layout = (benchmark_dir / "approved.jsonl").exists() or "approved" in manifest.get("files", {})
     benchmark = load_json_records(benchmark_dir / "benchmark.jsonl")
-    approved = load_json_records(benchmark_dir / "approved.jsonl") if new_layout else benchmark
-    pending = load_json_records(benchmark_dir / "pending.jsonl")
     dismissed = load_json_records(benchmark_dir / "dismissed.jsonl")
-    items: List[Dict[str, Any]] = []
-    if new_layout:
-        for rec in benchmark:
-            item = dict(rec)
-            item["_benchmark_status_group"] = str(rec.get("benchmark_status_group") or rec.get("_benchmark_status_group") or "")
-            items.append(item)
-    else:
-        for rec in approved:
-            item = dict(rec)
-            item["_benchmark_status_group"] = "approved"
-            items.append(item)
-        for rec in pending:
-            item = dict(rec)
-            item["_benchmark_status_group"] = "pending"
-            items.append(item)
+    items = [dict(rec) for rec in benchmark]
     counts = {
         "benchmark": len(items),
-        "approved": len(approved),
-        "pending": len(pending),
+        "included": len(items),
         "dismissed": len(dismissed),
         "holdout": int(manifest.get("counts", {}).get("holdout", 0)) if isinstance(manifest.get("counts"), dict) else 0,
     }
@@ -456,8 +438,6 @@ def score_item(
         "run_id": run_id,
         "generation_run_id": run_id,
         "benchmark_id": benchmark_item.get("benchmark_id"),
-        "benchmark_status_group": benchmark_item.get("_benchmark_status_group"),
-        "review_status": benchmark_item.get("review_status"),
         "kg_id": benchmark_item.get("kg_id"),
         "query_id": query_id,
         "query_label": benchmark_item.get("query_label"),
@@ -637,7 +617,7 @@ def main() -> None:
         "script_version": SCRIPT_VERSION,
         "benchmark": str(benchmark_dir),
         "benchmark_counts": benchmark_counts,
-        "scored_status_groups": ["approved", "pending"],
+        "scored_dataset": "all records in benchmark.jsonl",
         "dismissed_excluded": len(dismissed_items),
         "holdout_excluded": benchmark_counts.get("holdout", 0),
         "runs": [

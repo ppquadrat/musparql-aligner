@@ -51,18 +51,18 @@ class DismissedExclusionTests(unittest.TestCase):
                 {"kg_id": "kg", "query_id": "q3", "query_label": "label-3", "sparql_clean": "SELECT {}", "evidence": []},
             ]
             outputs = [
-                {"kg_id": "kg", "query_id": "q1", "query_label": "label-1", "llm_output": {"nl_question": "Old approved?"}, "model": "model"},
+                {"kg_id": "kg", "query_id": "q1", "query_label": "label-1", "llm_output": {"nl_question": "Old included?"}, "model": "model"},
                 {"kg_id": "kg", "query_id": "q2", "query_label": "label-2", "llm_output": {"nl_question": "Private holdout?"}, "model": "model"},
                 {"kg_id": "kg", "query_id": "q3", "query_label": "label-3", "llm_output": {"nl_question": "New?"}, "model": "model"},
             ]
             inputs_path.write_text("\n".join(json.dumps(row) for row in inputs) + "\n", encoding="utf-8")
             outputs_path.write_text("\n".join(json.dumps(row) for row in outputs) + "\n", encoding="utf-8")
-            (benchmark_dir / "approved.jsonl").write_text(
-                json.dumps({"kg_id": "kg", "query_id": "q1", "query_label": "label-1", "review_status": "approve"}) + "\n",
+            (benchmark_dir / "included.jsonl").write_text(
+                json.dumps({"kg_id": "kg", "query_id": "q1", "query_label": "label-1", "pipeline_assessment": "accepted"}) + "\n",
                 encoding="utf-8",
             )
             (benchmark_dir / "holdout.jsonl").write_text(
-                json.dumps({"kg_id": "kg", "query_id": "q2", "query_label": "label-2", "review_status": "approve"}) + "\n",
+                json.dumps({"kg_id": "kg", "query_id": "q2", "query_label": "label-2", "pipeline_assessment": "accepted"}) + "\n",
                 encoding="utf-8",
             )
 
@@ -106,8 +106,8 @@ class DismissedExclusionTests(unittest.TestCase):
             output_row = {"kg_id": "kg", "query_id": "q1", "query_label": "label-1", "llm_output": {"nl_question": "Question?"}, "model": "model"}
             inputs_path.write_text(json.dumps(input_row) + "\n", encoding="utf-8")
             outputs_path.write_text(json.dumps(output_row) + "\n", encoding="utf-8")
-            (benchmark_dir / "pending.jsonl").write_text(
-                json.dumps({"benchmark_id": "b1", "kg_id": "kg", "query_id": "q1", "query_label": "label-1", "review_status": "needs_prompt_fix"}) + "\n",
+            (benchmark_dir / "included.jsonl").write_text(
+                json.dumps({"benchmark_id": "b1", "kg_id": "kg", "query_id": "q1", "query_label": "label-1", "pipeline_assessment": "prompt_improvement_recommended"}) + "\n",
                 encoding="utf-8",
             )
 
@@ -136,7 +136,7 @@ class DismissedExclusionTests(unittest.TestCase):
 
             self.assertEqual(record["review_scope"], "previously_reviewed")
             self.assertEqual(record["previous_review"], {"reviewed": True, "source_benchmark": str(benchmark_dir)})
-            self.assertNotIn("status", record["previous_review"])
+            self.assertNotIn("pipeline_assessment", record["previous_review"])
 
             with patch.object(
                 sys,
@@ -150,7 +150,7 @@ class DismissedExclusionTests(unittest.TestCase):
                     "--previous-benchmark",
                     str(benchmark_dir),
                     "--include-reviewed",
-                    "--reveal-previous-status",
+                    "--reveal-previous-decision",
                     "--out",
                     str(out_path),
                     "--no-freeze",
@@ -160,9 +160,12 @@ class DismissedExclusionTests(unittest.TestCase):
                     build_review_bundle.main()
 
             data = json.loads(out_path.read_text(encoding="utf-8")[len("window.REVIEW_DATA = ") :].rstrip().rstrip(";"))
-            self.assertEqual(data["records"][0]["previous_review"]["status"], "needs_prompt_fix")
+            self.assertEqual(
+                data["records"][0]["previous_review"]["pipeline_assessment"],
+                "prompt_improvement_recommended",
+            )
 
-    def test_previous_review_status_by_pair_maps_dismissed_records(self) -> None:
+    def test_previous_pipeline_assessment_by_pair_maps_dismissed_records(self) -> None:
         output = {
             "kg_id": "kg",
             "query_id": "q1",
@@ -172,12 +175,12 @@ class DismissedExclusionTests(unittest.TestCase):
         previous_outputs = {("kg", "q1"): (1, output)}
         review_id = build_review_diff_bundle.review_id_for(output, 1)
 
-        statuses = build_review_diff_bundle.previous_review_status_by_pair(
+        assessments = build_review_diff_bundle.previous_pipeline_assessment_by_pair(
             previous_outputs,
-            {review_id: {"status": "dismiss"}},
+            {review_id: {"benchmark_disposition": "excluded"}},
         )
 
-        self.assertEqual(statuses, {("kg", "q1"): "dismiss"})
+        self.assertEqual(assessments, {})
 
     def test_previous_review_split_by_pair_maps_holdout_records(self) -> None:
         output = {
@@ -191,7 +194,7 @@ class DismissedExclusionTests(unittest.TestCase):
 
         splits = build_review_diff_bundle.previous_review_split_by_pair(
             previous_outputs,
-            {review_id: {"status": "approve", "split": "private_holdout"}},
+            {review_id: {"benchmark_disposition": "included", "pipeline_assessment": "accepted", "split": "private_holdout"}},
         )
 
         self.assertEqual(splits, {("kg", "q1"): "private_holdout"})
@@ -232,9 +235,9 @@ class DismissedExclusionTests(unittest.TestCase):
                 "dataset_id": "ds",
                 "run_id": "run",
                 "reviews": {
-                    "kg::q1::a": {"status": "approve", "preferred_question": "", "note": ""},
+                    "kg::q1::a": {"benchmark_disposition": "included", "pipeline_assessment": "accepted", "preferred_question": "", "note": ""},
                     "kg::q2::b": {
-                        "status": "approve",
+                        "benchmark_disposition": "included", "pipeline_assessment": "accepted",
                         "preferred_question": "Hidden preferred?",
                         "note": "",
                         "split": "private_holdout",
@@ -274,7 +277,7 @@ class DismissedExclusionTests(unittest.TestCase):
             self.assertEqual([rec["query_id"] for rec in public_records], ["q1"])
             self.assertEqual([rec["query_id"] for rec in holdout_records], ["q2"])
 
-    def test_build_benchmark_writes_ambiguity_sidecar(self) -> None:
+    def test_build_benchmark_separates_alternatives_and_linguistic_annotations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             bundle_path = tmp_path / "review_data.js"
@@ -311,7 +314,7 @@ class DismissedExclusionTests(unittest.TestCase):
                 "run_id": "run",
                 "reviews": {
                     "kg::q1::a": {
-                        "status": "approve",
+                        "benchmark_disposition": "included", "pipeline_assessment": "accepted",
                         "preferred_question": "Human wording?",
                         "note": "",
                         "interpretive": {
@@ -322,8 +325,8 @@ class DismissedExclusionTests(unittest.TestCase):
                         },
                     },
                     "kg::q2::b": {
-                        "status": "needs_prompt_fix",
-                        "preferred_question": "Pending human wording?",
+                        "benchmark_disposition": "included", "pipeline_assessment": "prompt_improvement_recommended",
+                        "preferred_question": "Human-corrected wording?",
                         "note": "",
                     },
                 },
@@ -352,21 +355,26 @@ class DismissedExclusionTests(unittest.TestCase):
                 for line in (outdir / "benchmark.jsonl").read_text(encoding="utf-8").splitlines()
                 if line.strip()
             ]
-            ambiguity_records = [
+            alternative_records = [
                 json.loads(line)
-                for line in (outdir / "ambiguity.jsonl").read_text(encoding="utf-8").splitlines()
+                for line in (outdir / "alternatives.jsonl").read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            annotation_records = [
+                json.loads(line)
+                for line in (outdir / "linguistic_annotations.jsonl").read_text(encoding="utf-8").splitlines()
                 if line.strip()
             ]
 
             self.assertEqual(benchmark_records[0]["gold_question"], "Human wording?")
-            self.assertNotIn("accepted_rephrasings", benchmark_records[0])
-            self.assertEqual(len(ambiguity_records), 1)
-            ambiguity = ambiguity_records[0]
-            self.assertEqual(ambiguity["canonical_question"], "Human wording?")
-            self.assertEqual(ambiguity["accepted_rephrasings"][0]["text"], "Model wording?")
-            self.assertEqual(ambiguity["accepted_rephrasings"][0]["source_type"], "model_output")
+            self.assertNotIn("accepted_alternatives", benchmark_records[0])
+            self.assertEqual(len(alternative_records), 1)
+            alternatives = alternative_records[0]
+            self.assertEqual(alternatives["canonical_question"], "Human wording?")
+            self.assertEqual(alternatives["accepted_alternatives"][0]["text"], "Model wording?")
+            self.assertEqual(alternatives["accepted_alternatives"][0]["source_type"], "model_output")
             self.assertEqual(
-                ambiguity["interpretive_annotations"][0]["interpretive"],
+                annotation_records[0]["interpretive_annotations"][0]["interpretive"],
                 {
                     "naturalness": 88,
                     "pragmatism": 70,
@@ -375,7 +383,7 @@ class DismissedExclusionTests(unittest.TestCase):
                 },
             )
 
-    def test_update_benchmark_carries_forward_ambiguity_and_adds_rephrasings(self) -> None:
+    def test_update_benchmark_carries_forward_alternatives_and_adds_rephrasings(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             previous_dir = tmp_path / "previous"
@@ -392,7 +400,7 @@ class DismissedExclusionTests(unittest.TestCase):
                 "sparql": "SELECT * WHERE {}",
                 "gold_question": "Old canonical?",
                 "gold_question_source": "reviewer_rewrite",
-                "review_status": "approve",
+                "pipeline_assessment": "accepted",
                 "split": "public",
                 "review": {
                     "review_id": "old-review",
@@ -403,13 +411,13 @@ class DismissedExclusionTests(unittest.TestCase):
                 },
                 "run": {"run_id": "old-run", "model": "old-model"},
             }
-            previous_ambiguity = {
+            previous_alternatives = {
                 "benchmark_id": "old-review",
                 "kg_id": "kg",
                 "query_id": "q1",
                 "query_label": "q1",
                 "canonical_question": "Old canonical?",
-                "accepted_rephrasings": [
+                "accepted_alternatives": [
                     {
                         "text": "Earlier alternate?",
                         "normalized_text": "earlier alternate?",
@@ -417,14 +425,14 @@ class DismissedExclusionTests(unittest.TestCase):
                         "review_id": "older-review",
                     }
                 ],
-                "interpretive_annotations": [],
+                "literal_formulations": [],
             }
             (previous_dir / "manifest.json").write_text(json.dumps({"benchmark_version": "previous"}), encoding="utf-8")
-            (previous_dir / "approved.jsonl").write_text(json.dumps(previous_record) + "\n", encoding="utf-8")
-            (previous_dir / "pending.jsonl").write_text("", encoding="utf-8")
+            (previous_dir / "included.jsonl").write_text(json.dumps(previous_record) + "\n", encoding="utf-8")
             (previous_dir / "dismissed.jsonl").write_text("", encoding="utf-8")
             (previous_dir / "holdout.jsonl").write_text("", encoding="utf-8")
-            (previous_dir / "ambiguity.jsonl").write_text(json.dumps(previous_ambiguity) + "\n", encoding="utf-8")
+            (previous_dir / "alternatives.jsonl").write_text(json.dumps(previous_alternatives) + "\n", encoding="utf-8")
+            (previous_dir / "linguistic_annotations.jsonl").write_text("", encoding="utf-8")
 
             current_record = {
                 "review_id": "new-review",
@@ -450,7 +458,7 @@ class DismissedExclusionTests(unittest.TestCase):
                         "query_id": "q1",
                         "query_label": "q1",
                         "current": {"review_id": "new-review", "record": current_record},
-                        "previous": {"review": {"status": "approve"}, "record": {}},
+                        "previous": {"review": {"benchmark_disposition": "included", "pipeline_assessment": "accepted"}, "record": {}},
                         "change_flags": ["question_changed"],
                     }
                 ],
@@ -460,7 +468,7 @@ class DismissedExclusionTests(unittest.TestCase):
                 "mode": "compare",
                 "reviews": {
                     "new-review": {
-                        "status": "approve",
+                        "benchmark_disposition": "included", "pipeline_assessment": "accepted",
                         "preferred_question": "New human canonical?",
                         "note": "",
                         "updated_at": "2026-02-01T00:00:00Z",
@@ -488,21 +496,21 @@ class DismissedExclusionTests(unittest.TestCase):
                 with redirect_stdout(StringIO()):
                     update_benchmark.main()
 
-            ambiguity_records = [
+            alternative_records = [
                 json.loads(line)
-                for line in (outdir / "ambiguity.jsonl").read_text(encoding="utf-8").splitlines()
+                for line in (outdir / "alternatives.jsonl").read_text(encoding="utf-8").splitlines()
                 if line.strip()
             ]
-            self.assertEqual(len(ambiguity_records), 1)
-            ambiguity = ambiguity_records[0]
-            self.assertEqual(ambiguity["canonical_question"], "New human canonical?")
-            rephrasings = {item["text"]: item["source_type"] for item in ambiguity["accepted_rephrasings"]}
+            self.assertEqual(len(alternative_records), 1)
+            alternatives = alternative_records[0]
+            self.assertEqual(alternatives["canonical_question"], "New human canonical?")
+            rephrasings = {item["text"]: item["source_type"] for item in alternatives["accepted_alternatives"]}
             self.assertEqual(rephrasings["Earlier alternate?"], "model_output")
-            self.assertEqual(rephrasings["Old canonical?"], "previous_gold_question")
+            self.assertEqual(rephrasings["Old canonical?"], "previous_canonical_question")
             self.assertEqual(rephrasings["New model wording?"], "model_output")
-            self.assertEqual(len(ambiguity["accepted_rephrasings"]), 3)
+            self.assertEqual(len(alternatives["accepted_alternatives"]), 3)
 
-    def test_benchmark_only_compare_uses_carried_forward_benchmark_statuses(self) -> None:
+    def test_benchmark_only_compare_uses_carried_forward_pipeline_assessments(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             previous_outputs = tmp_path / "previous_outputs.jsonl"
@@ -530,12 +538,12 @@ class DismissedExclusionTests(unittest.TestCase):
                 }
 
             previous_rows = [
-                output("q1", "label-1", "Old approved?"),
+                output("q1", "label-1", "Old included?"),
                 output("q2", "label-2", "Old prompt fix?"),
                 output("q3", "label-3", "Old non benchmark?"),
             ]
             current_rows = [
-                output("q1", "label-1", "New approved?"),
+                output("q1", "label-1", "New included?"),
                 output("q2", "label-2", "New prompt fix?"),
                 output("q3", "label-3", "New non benchmark?"),
             ]
@@ -551,18 +559,18 @@ class DismissedExclusionTests(unittest.TestCase):
             ):
                 path.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
 
-            approved = {
+            included = {
                 "benchmark_id": "kg::label-1::old",
                 "kg_id": "kg",
                 "query_id": "q1",
                 "query_label": "label-1",
                 "sparql": "SELECT * WHERE { ?s ?p ?o } # 1",
-                "gold_question": "Old approved?",
+                "gold_question": "Old included?",
                 "gold_question_source": "approved_model_output",
-                "review_status": "approve",
-                "review": {"note": "approved note"},
+                "pipeline_assessment": "accepted",
+                "review": {"note": "included note"},
             }
-            pending = {
+            improvement_recommended = {
                 "benchmark_id": "kg::label-2::old",
                 "kg_id": "kg",
                 "query_id": "q2",
@@ -570,11 +578,13 @@ class DismissedExclusionTests(unittest.TestCase):
                 "sparql": "SELECT * WHERE { ?s ?p ?o } # 2",
                 "gold_question": "Corrected prompt fix?",
                 "gold_question_source": "reviewer_rewrite",
-                "review_status": "needs_prompt_fix",
+                "pipeline_assessment": "prompt_improvement_recommended",
                 "review": {"note": "prompt note"},
             }
-            (benchmark_dir / "approved.jsonl").write_text(json.dumps(approved) + "\n", encoding="utf-8")
-            (benchmark_dir / "pending.jsonl").write_text(json.dumps(pending) + "\n", encoding="utf-8")
+            (benchmark_dir / "included.jsonl").write_text(
+                json.dumps(included) + "\n" + json.dumps(improvement_recommended) + "\n",
+                encoding="utf-8",
+            )
             (benchmark_dir / "dismissed.jsonl").write_text("", encoding="utf-8")
 
             with patch.object(
@@ -602,16 +612,15 @@ class DismissedExclusionTests(unittest.TestCase):
 
             text = out_path.read_text(encoding="utf-8")
             data = json.loads(text[len("window.REVIEW_DATA = ") :].rstrip().rstrip(";"))
-            statuses = {
-                record["query_id"]: record["previous"]["review"]["status"]
+            assessments = {
+                record["query_id"]: record["previous"]["review"]["pipeline_assessment"]
                 for record in data["records"]
             }
 
             self.assertEqual(data["record_count"], 2)
-            self.assertEqual(data["summary"]["benchmark_approved"], 1)
-            self.assertEqual(data["summary"]["benchmark_pending"], 1)
+            self.assertEqual(data["summary"]["benchmark_included"], 2)
             self.assertEqual(data["summary"]["non_benchmark_excluded"], 1)
-            self.assertEqual(statuses, {"q1": "approve", "q2": "needs_prompt_fix"})
+            self.assertEqual(assessments, {"q1": "accepted", "q2": "prompt_improvement_recommended"})
             self.assertEqual(data["records"][1]["previous"]["review"]["preferred_question"], "Corrected prompt fix?")
 
     def test_rationale_only_change_is_not_review_worthy(self) -> None:

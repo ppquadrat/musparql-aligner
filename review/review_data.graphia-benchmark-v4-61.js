@@ -34,8 +34,7 @@ window.REVIEW_DATA = {
     "holdout_excluded": 0,
     "non_benchmark_excluded": 99,
     "metadata_only_excluded": 0,
-    "benchmark_approved": 46,
-    "benchmark_pending": 15
+    "benchmark_included": 61
   },
   "records": [
     {
@@ -249,7 +248,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -281,12 +280,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-05-19T21:47:46.191Z",
           "benchmark_id": "jazzontology::jazzontology-0021::62d7e6119f28",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -455,7 +454,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -687,7 +686,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -719,12 +718,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "On Peter Appleyard’s album “The Lost 1974 Sessions,” which instruments take solos on each track, and who are the soloists?",
           "note": "",
           "updated_at": "2026-05-19T21:49:09.584Z",
           "benchmark_id": "jazzontology::jazzontology-0024::2da45d018775",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -901,7 +900,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -1123,7 +1122,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -1155,12 +1154,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "Find the band by its name",
           "note": "",
           "updated_at": "2026-05-19T21:33:18.535Z",
           "benchmark_id": "jazzontology::jazzontology-0012::528781470f62",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -1304,7 +1303,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -1533,7 +1532,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -1565,12 +1564,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "Which release has the given title and number of records?",
           "note": "It would be great if the model would be able to learn that in NL release is usually called album. But in this specific example, it's the album title that is given but what we are looking for is a release - the connection from the album to the date and label. This is not a very NL friendly concept.",
           "updated_at": "2026-05-19T21:53:11.660Z",
           "benchmark_id": "jazzontology::jazzontology-0005::998d57ace5b6",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -1714,7 +1713,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -1947,7 +1946,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -1979,12 +1978,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "Which bands performed \"Caravan\" and when?",
           "note": "",
           "updated_at": "2026-05-14T19:10:06.364Z",
           "benchmark_id": "jazzontology::jazzontology-0018::ac75eac894f8",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -2145,7 +2144,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -2386,7 +2385,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -2418,12 +2417,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "Find all solos by Dizzy Gillespie before 1950 and list the band name, the track title, the date of recording and the solo timestamp",
           "note": "Solos don't 'take place' in NL",
           "updated_at": "2026-05-19T21:56:12.699Z",
           "benchmark_id": "jazzontology::jazzontology-0023::30ca1e9e4487",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -2592,7 +2591,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -2826,7 +2825,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -2858,12 +2857,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "Here the retained evidence is probably more relevant than previously (no CQ fits here).",
           "updated_at": "2026-05-19T22:01:45.752Z",
           "benchmark_id": "jazzontology::jazzontology-0007::5948cc0df65c",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -3025,7 +3024,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -3257,7 +3256,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -3289,12 +3288,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "Who played which instruments on the track \"Zealot\"?",
           "note": "",
           "updated_at": "2026-05-14T21:45:36.414Z",
           "benchmark_id": "jazzontology::jazzontology-0017::465cf3bf665f",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -3463,7 +3462,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -3710,7 +3709,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -3742,12 +3741,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "Given the album title, disk number and track number, find the track title and the associated signal",
           "note": "My main concern here is the album vs release difference - in NL we would talk about album title rather than release title; in the ontology, release was chosen rather than album to indicate the relation to time",
           "updated_at": "2026-05-19T21:34:20.817Z",
           "benchmark_id": "jazzontology::jazzontology-0014::755f9bd16b8f",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -3891,7 +3890,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -4131,7 +4130,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -4163,12 +4162,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "List all solos with attributed solo performers, with the track title and date, solo timestamp and instrument",
           "note": "This generated version lost the soloist, which is important because not solos have soloists attributed to them",
           "updated_at": "2026-05-19T21:36:30.485Z",
           "benchmark_id": "jazzontology::jazzontology-0022::79cb35c4d493",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -4337,7 +4336,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -4570,7 +4569,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -4602,12 +4601,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "Find duplicate audio signals in the graph",
           "note": "This is too detailed for NL even though it is more exact then previously\nI have rewritten towards intent",
           "updated_at": "2026-05-19T22:05:10.742Z",
           "benchmark_id": "jazzontology::jazzontology-0020::a3f0bfe9da2b",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -4775,7 +4774,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -4981,7 +4980,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -5013,12 +5012,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "Is there more than one composer with this name in the graph?",
           "note": "",
           "updated_at": "2026-05-19T21:37:31.614Z",
           "benchmark_id": "jazzontology::jazzontology-0010::c4f00005a66f",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -5162,7 +5161,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -5368,7 +5367,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -5400,12 +5399,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "Is there more than one arranger with this name in the graph?",
           "note": "This could be name disambiguation on the one hand - is there more than one arranger with this name in the dataset. Or, on the other hand, it could be a check whether there is an arranger with this name (this is what was generated), or whether this musician did any arrangements. The presence of 'distinct' suggests the former I would say.",
           "updated_at": "2026-05-19T21:37:56.049Z",
           "benchmark_id": "jazzontology::jazzontology-0011::6091d8f88f22",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -5549,7 +5548,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -5782,7 +5781,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -5814,12 +5813,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-05-19T22:06:47.185Z",
           "benchmark_id": "jazzontology::jazzontology-0016::fe7118e78c55",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -5980,7 +5979,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -6202,7 +6201,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -6234,12 +6233,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-05-19T22:07:21.621Z",
           "benchmark_id": "jazzontology::jazzontology-0002::ad6cf3319865",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -6383,7 +6382,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -6622,7 +6621,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -6654,12 +6653,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-05-14T22:52:08.458Z",
           "benchmark_id": "jazzontology::jazzontology-0019::b437385c893a",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -6828,7 +6827,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -7016,7 +7015,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -7048,12 +7047,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-05-19T22:07:45.727Z",
           "benchmark_id": "jazzontology::jazzontology-0009::68f875249199",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -7197,7 +7196,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -7429,7 +7428,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -7461,12 +7460,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-05-19T22:08:12.321Z",
           "benchmark_id": "jazzontology::jazzontology-0008::ff552eec04b3",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -7610,7 +7609,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -7853,7 +7852,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -7885,12 +7884,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "For the given album, disk and track number, find the track",
           "note": "The generated wording is correct but probably too wordy for real life",
           "updated_at": "2026-05-19T22:10:17.636Z",
           "benchmark_id": "jazzontology::jazzontology-0001::8ff86c52ed51",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -8034,7 +8033,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -8268,7 +8267,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -8300,12 +8299,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "Which musicians performed together with the given performer?",
           "note": "Missing context - the Jazz Ontology models all performances as part of a session, therefore this query is for all musicians who ever performed together with the given one",
           "updated_at": "2026-05-19T21:39:41.741Z",
           "benchmark_id": "jazzontology::jazzontology-0015::fb17cb8bd3aa",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -8457,7 +8456,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -8679,7 +8678,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -8711,12 +8710,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "Find the label given its name",
           "note": "",
           "updated_at": "2026-05-19T22:10:36.602Z",
           "benchmark_id": "jazzontology::jazzontology-0004::5a2de09e7773",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -8860,7 +8859,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -9393,7 +9392,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -9425,12 +9424,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T16:07:32.997Z",
           "benchmark_id": "meetups::meetups-0006::46609e87a654",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -9899,7 +9898,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -10005,7 +10004,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -10037,12 +10036,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "Give me ten examples of subjects from the graph?",
           "note": "",
           "updated_at": "2026-05-19T21:40:48.193Z",
           "benchmark_id": "meetups::meetups-0028::b1cde591ff43",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -10112,7 +10111,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -10652,7 +10651,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -10684,12 +10683,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-27T00:03:51.740Z",
           "benchmark_id": "meetups::meetups-0022::da97f3dfd893",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -11174,7 +11173,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -11723,7 +11722,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -11755,12 +11754,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-05-19T22:11:52.258Z",
           "benchmark_id": "meetups::meetups-0004::8f03e36e7a39",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -12219,7 +12218,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -12743,7 +12742,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -12775,12 +12774,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "How many distinct places are mentioned in the meetup records?",
           "note": "Meetup type is not part of the ontology so can probably be ignored in the nl wording",
           "updated_at": "2026-05-19T22:12:42.636Z",
           "benchmark_id": "meetups::meetups-0020::3acead6596c3",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -13263,7 +13262,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -13796,7 +13795,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -13828,12 +13827,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T23:55:18.605Z",
           "benchmark_id": "meetups::meetups-0016::70cb14b43d3d",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -14317,7 +14316,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -14858,7 +14857,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -14890,12 +14889,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-27T00:18:19.308Z",
           "benchmark_id": "meetups::meetups-0026::ba13cd18d40c",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -15378,7 +15377,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -15925,7 +15924,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -15957,12 +15956,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-27T00:14:33.064Z",
           "benchmark_id": "meetups::meetups-0025::5cb67cc1a253",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -16455,7 +16454,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -16970,7 +16969,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -17002,12 +17001,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T16:06:33.129Z",
           "benchmark_id": "meetups::meetups-0005::0803e0a11b9b",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -17481,7 +17480,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -17994,7 +17993,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -18026,12 +18025,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T16:08:33.908Z",
           "benchmark_id": "meetups::meetups-0007::c6485bb7e1da",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -18500,7 +18499,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -18652,7 +18651,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -18684,12 +18683,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "This surfaces the evidence text which might be important, particularly if not all meetups have documented evidence in the graph",
           "updated_at": "2026-05-19T22:15:40.987Z",
           "benchmark_id": "meetups::meetups-0031::d5039ff1310e",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -18759,7 +18758,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -19292,7 +19291,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -19324,12 +19323,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "For meetups involving Niccolò Paganini, how is their time or duration recorded in the graph?",
           "note": "TimeExpression is not NL friendly. They can be time points, time ranges or time mentions.",
           "updated_at": "2026-04-26T23:52:26.052Z",
           "benchmark_id": "meetups::meetups-0015::96affcb6eced",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -19814,7 +19813,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -20310,7 +20309,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -20342,12 +20341,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-05-19T22:44:34.330Z",
           "benchmark_id": "meetups::meetups-0014::0ba68ce305f8",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -20799,7 +20798,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -21340,7 +21339,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -21372,12 +21371,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T23:26:32.823Z",
           "benchmark_id": "meetups::meetups-0012::b6828cce70b8",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -21877,7 +21876,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -22420,7 +22419,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -22452,12 +22451,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T15:38:43.967Z",
           "benchmark_id": "meetups::meetups-0001::4335885377cd",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -22909,7 +22908,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -23438,7 +23437,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -23470,12 +23469,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T15:40:20.109Z",
           "benchmark_id": "meetups::meetups-0002::f50b43e95de4",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -23934,7 +23933,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -24475,7 +24474,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -24507,12 +24506,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T15:48:30.800Z",
           "benchmark_id": "meetups::meetups-0003::913f92213429",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -24997,7 +24996,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -25510,7 +25509,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -25542,12 +25541,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "How many historical meetups are in the graph?",
           "note": "",
           "updated_at": "2026-04-26T23:58:05.508Z",
           "benchmark_id": "meetups::meetups-0018::4d70551a84c6",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -26016,7 +26015,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -26549,7 +26548,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -26581,12 +26580,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T23:43:05.178Z",
           "benchmark_id": "meetups::meetups-0013::050bc918a318",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -27071,7 +27070,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -27584,7 +27583,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -27616,12 +27615,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T23:56:10.932Z",
           "benchmark_id": "meetups::meetups-0017::fb53332edb19",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -28090,7 +28089,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -28241,7 +28240,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -28273,12 +28272,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "What meetups about Edward Elgar are recorded, and for each one, what was the purpose, who else participated, where did it take place (with coordinates), and when, along with the evidence text?",
           "note": "The evidence text was dropped. Without knowing the graph and whether other fields can exist without evidence I cannot say whether the evidence text was returned purely for provenance or if it was the intent of the search",
           "updated_at": "2026-05-19T22:57:30.679Z",
           "benchmark_id": "meetups::meetups-0029::a8cc2f10555c",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -28346,7 +28345,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -28886,7 +28885,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -28918,12 +28917,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-27T00:13:13.016Z",
           "benchmark_id": "meetups::meetups-0024::1fd8e2caab70",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -29408,7 +29407,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -29948,7 +29947,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -29980,12 +29979,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "How many different time points, time ranges or time mentions are recorded for all meetups in the graph?",
           "note": "",
           "updated_at": "2026-04-27T00:02:57.111Z",
           "benchmark_id": "meetups::meetups-0021::bb2a1a4facdd",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -30454,7 +30453,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -30569,7 +30568,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -30601,12 +30600,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "For meetups involving a participant named \"Django\", list their subject, supporting evidence text, purpose, locations (with coordinates), other participants, and the associated time span",
           "note": "This was not specific enough",
           "updated_at": "2026-05-19T23:06:54.331Z",
           "benchmark_id": "meetups::meetups-0030::ccd2db793234",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -30676,7 +30675,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -31189,7 +31188,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -31221,12 +31220,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "List all places in the graph with their coordinates",
           "note": "The generated phrase is factually accurate but highly improbable in NL.",
           "updated_at": "2026-05-19T21:41:39.068Z",
           "benchmark_id": "meetups::meetups-0008::91f59437264a",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -31716,7 +31715,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -32257,7 +32256,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -32289,12 +32288,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-27T00:21:17.512Z",
           "benchmark_id": "meetups::meetups-0027::c8ed312c2b76",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -32778,7 +32777,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -33311,7 +33310,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -33343,12 +33342,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "How many distinct people are mentioned across all historical meetups in the graph?",
           "note": "",
           "updated_at": "2026-04-27T00:00:29.833Z",
           "benchmark_id": "meetups::meetups-0019::20a1278d8b58",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -33817,7 +33816,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -34358,7 +34357,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -34390,12 +34389,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-05-19T23:07:51.897Z",
           "benchmark_id": "meetups::meetups-0011::cffed0405aa5",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -34888,7 +34887,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -35421,7 +35420,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -35453,12 +35452,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T23:21:05.281Z",
           "benchmark_id": "meetups::meetups-0009::7e51a917f0c3",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -35942,7 +35941,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -36483,7 +36482,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -36515,12 +36514,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-26T23:22:16.216Z",
           "benchmark_id": "meetups::meetups-0010::ff48c2ed74d8",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -37012,7 +37011,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -37553,7 +37552,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -37585,12 +37584,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "Which performers did Clara Schumann meet in her career and where did she meet them?",
           "note": "",
           "updated_at": "2026-04-27T00:08:48.345Z",
           "benchmark_id": "meetups::meetups-0023::c77f64b8a18e",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -38083,7 +38082,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -38252,7 +38251,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -38284,12 +38283,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "When was each of the listed organs or organ parts built?",
           "note": "",
           "updated_at": "2026-04-27T22:46:50.954Z",
           "benchmark_id": "organs::organs-0003::7a7d343f145e",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -38430,7 +38429,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -38617,7 +38616,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -38649,12 +38648,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "For the given organ or organ part, where was is most recently located?",
           "note": "",
           "updated_at": "2026-04-27T22:54:21.868Z",
           "benchmark_id": "organs::organs-0006::3bcc01933cfb",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -38795,7 +38794,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -38910,7 +38909,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -38942,12 +38941,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "For all organs in the graph, what are their original locations?",
           "note": "",
           "updated_at": "2026-05-19T23:09:02.513Z",
           "benchmark_id": "organs::organs-0011::2b261c328ab1",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -39017,7 +39016,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -39184,7 +39183,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -39216,12 +39215,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "",
           "note": "",
           "updated_at": "2026-04-27T22:51:12.548Z",
           "benchmark_id": "organs::organs-0005::418bbf56b82c",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -39344,7 +39343,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -39511,7 +39510,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -39543,12 +39542,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "Which of the listed organs have an external website?",
           "note": "",
           "updated_at": "2026-05-19T21:43:46.996Z",
           "benchmark_id": "organs::organs-0004::25584737d583",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -39671,7 +39670,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -39838,7 +39837,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -39870,12 +39869,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "List the descriptions of the specified organs",
           "note": "",
           "updated_at": "2026-05-19T21:44:17.726Z",
           "benchmark_id": "organs::organs-0002::3debf1b0b783",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -39998,7 +39997,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -40197,7 +40196,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -40229,12 +40228,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "List all organ builders in the graph",
           "note": "",
           "updated_at": "2026-05-14T23:15:12.769Z",
           "benchmark_id": "organs::organs-0009::a2e4dfc1c276",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -40389,7 +40388,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -40556,7 +40555,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -40588,12 +40587,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "approve",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "accepted",
           "preferred_question": "For each of the listed organs or organ parts, find their picture online and its caption",
           "note": "",
           "updated_at": "2026-04-27T22:58:10.967Z",
           "benchmark_id": "organs::organs-0008::be9da9202d65",
-          "benchmark_status_group": "approved",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -40716,7 +40715,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -40883,7 +40882,7 @@ window.REVIEW_DATA = {
               "script_version": "run_llm_generation.py@v2",
               "api_method": "responses.create",
               "requested_model": "gpt-5",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-llm_inputs-ontology-shape-2026-05-19.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",
@@ -40915,12 +40914,12 @@ window.REVIEW_DATA = {
           }
         },
         "review": {
-          "status": "needs_prompt_fix",
+          "benchmark_disposition": "included",
+          "pipeline_assessment": "prompt_improvement_recommended",
           "preferred_question": "List all organs in the graph",
           "note": "",
           "updated_at": "2026-05-19T21:44:31.721Z",
           "benchmark_id": "organs::organs-0001::f8e025134ee5",
-          "benchmark_status_group": "pending",
           "source_benchmark": "benchmark/v4"
         }
       },
@@ -41043,7 +41042,7 @@ window.REVIEW_DATA = {
               "requested_model": "MiniMax-M2.5",
               "api_key_env": "GRAPHIA_API_KEY",
               "base_url": "https://llm.graphia-ssh.eu/v1",
-              "timeout_s": 180.0,
+              "timeout_s": 180,
               "max_records": 0,
               "input_path": "/private/tmp/musparql-2026-05-22-graphia-minimax-m25-inputs.jsonl",
               "prompt_path": "prompts/llm_nl_generation.prompt.txt",

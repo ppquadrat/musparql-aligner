@@ -9,23 +9,27 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from build_benchmark import (
-    AMBIGUITY_FILE,
+    ALTERNATIVES_FILE,
     HOLDOUT_SPLIT,
+    INCLUDED_FILE,
+    LINGUISTIC_ANNOTATIONS_FILE,
     add_interpretive_annotation,
-    add_rephrasing,
-    ambiguity_record_has_content,
+    add_formulation,
+    alternatives_record_has_content,
+    benchmark_disposition,
     benchmark_gold_records,
     has_query_specific_evidence,
     is_private_holdout,
     literal_wording,
     make_rephrasing_entry,
     normalize_rephrasing_text,
+    pipeline_assessment,
     read_json,
     read_review_bundle,
     run_metadata,
-    sort_ambiguity_records,
+    sort_sidecar_records,
     source_evidence_types,
-    update_ambiguity_identity,
+    update_sidecar_identity,
     write_json,
     write_jsonl,
 )
@@ -49,8 +53,8 @@ def pair_key(record: Dict[str, Any]) -> Tuple[str, str]:
     return (str(record.get("kg_id") or ""), str(record.get("query_id") or ""))
 
 
-def approved_records_path(benchmark_dir: Path) -> Path:
-    preferred = benchmark_dir / "approved.jsonl"
+def included_records_path(benchmark_dir: Path) -> Path:
+    preferred = benchmark_dir / INCLUDED_FILE
     if preferred.exists():
         return preferred
     return benchmark_dir / "benchmark.jsonl"
@@ -73,7 +77,7 @@ def previous_gold_rephrasing(record: Dict[str, Any], dataset_id: str) -> Dict[st
     return {
         "text": text,
         "normalized_text": normalize_rephrasing_text(text),
-        "source_type": "previous_gold_question",
+        "source_type": "previous_canonical_question",
         "review_id": review.get("review_id") or record.get("benchmark_id"),
         "review_export": review.get("review_export"),
         "dataset_id": review.get("dataset_id") or dataset_id,
@@ -85,7 +89,7 @@ def previous_gold_rephrasing(record: Dict[str, Any], dataset_id: str) -> Dict[st
     }
 
 
-def merge_ambiguity_records(
+def merge_alternative_records(
     target: Dict[str, Any] | None,
     source: Dict[str, Any] | None,
 ) -> Dict[str, Any] | None:
@@ -93,9 +97,21 @@ def merge_ambiguity_records(
         return target
     if not target:
         return source
-    for entry in source.get("accepted_rephrasings", []):
-        if isinstance(entry, dict):
-            add_rephrasing(target, entry)
+    for field in ("accepted_alternatives", "literal_formulations"):
+        for entry in source.get(field, []):
+            if isinstance(entry, dict):
+                add_formulation(target, field, entry)
+    return target
+
+
+def merge_annotation_records(
+    target: Dict[str, Any] | None,
+    source: Dict[str, Any] | None,
+) -> Dict[str, Any] | None:
+    if not source:
+        return target
+    if not target:
+        return source
     annotations = target.setdefault("interpretive_annotations", [])
     for annotation in source.get("interpretive_annotations", []):
         if isinstance(annotation, dict) and annotation not in annotations:
@@ -120,7 +136,8 @@ def make_benchmark_record(
     model_question = str(record.get("output", {}).get("nl_question") or "").strip()
     gold_question = preferred or model_question
     gold_source = "reviewer_rewrite" if preferred else "approved_model_output"
-    status = str(review.get("status") or "")
+    disposition = benchmark_disposition(review)
+    assessment = pipeline_assessment(review)
 
     return {
         "benchmark_id": review_id,
@@ -130,7 +147,8 @@ def make_benchmark_record(
         "sparql": record.get("input", {}).get("sparql_clean"),
         "gold_question": gold_question,
         "gold_question_source": gold_source,
-        "review_status": status,
+        "benchmark_disposition": disposition,
+        "pipeline_assessment": assessment or None,
         "split": HOLDOUT_SPLIT if is_private_holdout(review) else "public",
         "review": {
             "review_id": review_id,
@@ -204,13 +222,12 @@ def replacement_sparql_key(text: Any) -> str:
 
 def pop_key_from_all(
     key: Tuple[str, str],
-    approved_by_key: Dict[Tuple[str, str], Dict[str, Any]],
-    pending_by_key: Dict[Tuple[str, str], Dict[str, Any]],
+    included_by_key: Dict[Tuple[str, str], Dict[str, Any]],
     dismissed_by_key: Dict[Tuple[str, str], Dict[str, Any]],
     holdout_by_key: Dict[Tuple[str, str], Dict[str, Any]],
 ) -> bool:
     removed = False
-    for records in (approved_by_key, pending_by_key, dismissed_by_key, holdout_by_key):
+    for records in (included_by_key, dismissed_by_key, holdout_by_key):
         if key in records:
             records.pop(key, None)
             removed = True
@@ -218,10 +235,10 @@ def pop_key_from_all(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Apply compare-review decisions to a previous benchmark snapshot.")
+    parser = argparse.ArgumentParser(description="Apply comparative-review decisions to a previous benchmark snapshot.")
     parser.add_argument("--previous-benchmark", required=True, help="Previous benchmark/vN directory.")
-    parser.add_argument("--bundle", default="review/review_data.js", help="Compare review bundle.")
-    parser.add_argument("--reviews", required=True, help="Exported compare-review decisions.")
+    parser.add_argument("--bundle", default="review/review_data.js", help="Comparative-review bundle.")
+    parser.add_argument("--reviews", required=True, help="Exported comparative-review decisions.")
     parser.add_argument("--outdir", required=True, help="Output benchmark/vN directory.")
     args = parser.parse_args()
 
@@ -249,11 +266,11 @@ def main() -> None:
     if not isinstance(pairs, list):
         raise ValueError("Compare bundle missing records list")
 
-    approved_by_key = {pair_key(rec): rec for rec in read_jsonl(approved_records_path(previous_dir))}
-    pending_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "pending.jsonl")}
+    included_by_key = {pair_key(rec): rec for rec in read_jsonl(included_records_path(previous_dir))}
     dismissed_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "dismissed.jsonl")}
     holdout_by_key = {pair_key(rec): rec for rec in read_jsonl(holdout_records_path(previous_dir))}
-    ambiguity_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / AMBIGUITY_FILE)}
+    alternatives_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / ALTERNATIVES_FILE)}
+    annotations_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / LINGUISTIC_ANNOTATIONS_FILE)}
     removed_records: List[Dict[str, Any]] = []
     removed_by_label: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
     removed_by_sparql: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
@@ -271,7 +288,8 @@ def main() -> None:
             removed_by_sparql.setdefault((str(record.get("kg_id") or ""), sparql_key), []).append(record)
     current_run = bundle.get("current_run") if isinstance(bundle.get("current_run"), dict) else {}
     dataset_id = str(review_export.get("dataset_id") or bundle.get("dataset_id") or "")
-    status_counts: Counter[str] = Counter()
+    assessment_counts: Counter[str] = Counter()
+    disposition_counts: Counter[str] = Counter()
     applied = 0
     superseded_removed = 0
 
@@ -282,28 +300,32 @@ def main() -> None:
         review = reviews.get(review_id)
         if not isinstance(review, dict):
             continue
-        status = str(review.get("status") or "")
-        if not status:
+        disposition = benchmark_disposition(review)
+        assessment = pipeline_assessment(review)
+        if not disposition:
             continue
         record = current_record(pair)
         key = (str(pair.get("kg_id") or ""), str(pair.get("query_id") or ""))
-        previous_public_record = approved_by_key.get(key) or pending_by_key.get(key)
-        current_ambiguity = ambiguity_by_key.pop(key, None)
-        approved_by_key.pop(key, None)
-        pending_by_key.pop(key, None)
+        previous_public_record = included_by_key.get(key)
+        current_alternatives = alternatives_by_key.pop(key, None)
+        current_annotations = annotations_by_key.pop(key, None)
+        included_by_key.pop(key, None)
         dismissed_by_key.pop(key, None)
         holdout_by_key.pop(key, None)
-        status_counts[status] += 1
+        disposition_counts[disposition] += 1
+        if assessment:
+            assessment_counts[assessment] += 1
         applied += 1
 
         if record is None:
-            if status == "dismiss":
+            if disposition == "excluded":
                 dismissed_by_key[key] = {
                     "benchmark_id": review_id,
                     "kg_id": pair.get("kg_id"),
                     "query_id": pair.get("query_id"),
                     "query_label": pair.get("query_label"),
-                    "review_status": status,
+                    "benchmark_disposition": "excluded",
+                    "pipeline_assessment": None,
                     "review": {
                         "review_id": review_id,
                         "review_export": str(review_path),
@@ -329,9 +351,10 @@ def main() -> None:
                 seen_candidate_keys.add(candidate_key)
                 if candidate_key == key:
                     continue
-                if pop_key_from_all(candidate_key, approved_by_key, pending_by_key, dismissed_by_key, holdout_by_key):
+                if pop_key_from_all(candidate_key, included_by_key, dismissed_by_key, holdout_by_key):
                     superseded_removed += 1
-                    current_ambiguity = merge_ambiguity_records(current_ambiguity, ambiguity_by_key.pop(candidate_key, None))
+                    current_alternatives = merge_alternative_records(current_alternatives, alternatives_by_key.pop(candidate_key, None))
+                    current_annotations = merge_annotation_records(current_annotations, annotations_by_key.pop(candidate_key, None))
 
         next_record = make_benchmark_record(
             record=record,
@@ -341,36 +364,36 @@ def main() -> None:
             dataset_id=dataset_id,
             current_run=current_run,
         )
-        if is_private_holdout(review):
+        if disposition == "withheld":
             holdout_by_key[key] = next_record
-        elif status == "approve":
-            approved_by_key[key] = next_record
-        elif status == "dismiss":
+        elif disposition == "excluded":
             dismissed_by_key[key] = next_record
         else:
-            pending_by_key[key] = next_record
+            included_by_key[key] = next_record
 
-        if not is_private_holdout(review) and status != "dismiss":
-            current_ambiguity = current_ambiguity or {}
-            if previous_public_record and status == "approve":
+        if disposition == "included":
+            current_alternatives = current_alternatives or {}
+            current_annotations = current_annotations or {}
+            if previous_public_record:
                 old_gold = str(previous_public_record.get("gold_question") or "").strip()
                 new_gold = str(next_record.get("gold_question") or "").strip()
                 if old_gold and normalize_rephrasing_text(old_gold) != normalize_rephrasing_text(new_gold):
-                    add_rephrasing(current_ambiguity, previous_gold_rephrasing(previous_public_record, dataset_id))
+                    add_formulation(current_alternatives, "accepted_alternatives", previous_gold_rephrasing(previous_public_record, dataset_id))
             add_interpretive_annotation(
-                current_ambiguity,
+                current_annotations,
                 review=review,
                 review_id=review_id,
                 review_path=review_path,
                 dataset_id=dataset_id,
                 record=record,
             )
-            if status == "approve":
+            if assessment == "accepted":
                 preferred = str(review.get("preferred_question") or "").strip()
                 model_question = str(record.get("output", {}).get("nl_question") or "").strip()
                 if preferred and normalize_rephrasing_text(preferred) != normalize_rephrasing_text(model_question):
-                    add_rephrasing(
-                        current_ambiguity,
+                    add_formulation(
+                        current_alternatives,
+                        "accepted_alternatives",
                         make_rephrasing_entry(
                             text=model_question,
                             source_type="model_output",
@@ -381,8 +404,9 @@ def main() -> None:
                             record=record,
                         ),
                     )
-            add_rephrasing(
-                current_ambiguity,
+            add_formulation(
+                current_alternatives,
+                "literal_formulations",
                 make_rephrasing_entry(
                     text=literal_wording(review),
                     source_type="literal_sparql_wording",
@@ -393,35 +417,39 @@ def main() -> None:
                     record=record,
                 ),
             )
-            update_ambiguity_identity(
-                current_ambiguity,
+            update_sidecar_identity(
+                current_alternatives,
                 benchmark_record=next_record,
                 benchmark_version=outdir.name,
                 built_at="",
             )
-            if ambiguity_record_has_content(current_ambiguity):
-                ambiguity_by_key[key] = current_ambiguity
+            update_sidecar_identity(
+                current_annotations,
+                benchmark_record=next_record,
+                benchmark_version=outdir.name,
+                built_at="",
+            )
+            if alternatives_record_has_content(current_alternatives):
+                alternatives_by_key[key] = current_alternatives
+            if current_annotations.get("interpretive_annotations"):
+                annotations_by_key[key] = current_annotations
 
-    approved = sort_records(approved_by_key.values())
-    pending = sort_records(pending_by_key.values())
+    included = sort_records(included_by_key.values())
     dismissed = sort_records(dismissed_by_key.values())
     holdout = sort_records(holdout_by_key.values())
     previous_manifest = read_json(previous_dir / "manifest.json") if (previous_dir / "manifest.json").exists() else {}
 
     built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     benchmark_version = outdir.name
-    ambiguity_records = sort_ambiguity_records(list(ambiguity_by_key.values()))
-    for ambiguity in ambiguity_records:
-        ambiguity["benchmark_version"] = benchmark_version
-        ambiguity["benchmark_built_at"] = built_at
+    alternatives_records = sort_sidecar_records(list(alternatives_by_key.values()))
+    linguistic_annotation_records = sort_sidecar_records(list(annotations_by_key.values()))
+    for sidecar in alternatives_records + linguistic_annotation_records:
+        sidecar["benchmark_version"] = benchmark_version
+        sidecar["benchmark_built_at"] = built_at
     benchmark_records = benchmark_gold_records(
-        approved=approved,
-        pending=pending,
+        included=included,
         benchmark_version=benchmark_version,
         built_at=built_at,
-        source_bundle=str(bundle_path),
-        source_review_export=str(review_path),
-        dataset_id=dataset_id,
     )
 
     manifest = {
@@ -437,26 +465,28 @@ def main() -> None:
         "current_run": bundle.get("current_run"),
         "counts": {
             "benchmark": len(benchmark_records),
-            "approved": len(approved),
-            "pending": len(pending),
+            "included": len(included),
             "dismissed": len(dismissed),
             "holdout": len(holdout),
-            "ambiguity": len(ambiguity_records),
+            "alternatives": len(alternatives_records),
+            "linguistic_annotations": len(linguistic_annotation_records),
+            "pipeline_assessment_counts": dict(Counter(str(row.get("pipeline_assessment")) for row in included)),
+            "benchmark_disposition_counts": dict(Counter(str(row.get("benchmark_disposition")) for row in included + dismissed + holdout)),
             "applied_compare_reviews": applied,
-            "applied_status_counts": dict(status_counts),
+            "applied_pipeline_assessment_counts": dict(assessment_counts),
+            "applied_benchmark_disposition_counts": dict(disposition_counts),
             "superseded_removed_previous_items": superseded_removed,
         },
         "files": {
             "benchmark": "benchmark.jsonl",
-            "approved": "approved.jsonl",
-            "pending": "pending.jsonl",
+            "included": INCLUDED_FILE,
             "dismissed": "dismissed.jsonl",
             "holdout": "holdout.jsonl",
-            "ambiguity": AMBIGUITY_FILE,
+            "alternatives": ALTERNATIVES_FILE,
+            "linguistic_annotations_internal": LINGUISTIC_ANNOTATIONS_FILE,
         },
         "gold_question_policy": {
-            "benchmark_includes_approved": True,
-            "benchmark_includes_pending_with_reviewer_rewrite": True,
+            "benchmark_contains_all_human_confirmed_included_pairs": True,
             "preferred_question_used_when_present": True,
             "approved_model_output_used_otherwise": True,
             "unchanged_previous_items_carried_forward": True,
@@ -468,24 +498,28 @@ def main() -> None:
             "excluded_from_future_generation_inputs": True,
             "unchanged_previous_holdout_items_carried_forward": True,
         },
+        "release_boundary": {
+            "public_release_files": ["manifest.json", "benchmark.jsonl", ALTERNATIVES_FILE],
+            "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl", "holdout.jsonl"],
+        },
     }
 
     write_json(outdir / "manifest.json", manifest)
     write_jsonl(outdir / "benchmark.jsonl", benchmark_records)
-    write_jsonl(outdir / "approved.jsonl", approved)
-    write_jsonl(outdir / "pending.jsonl", pending)
+    write_jsonl(outdir / INCLUDED_FILE, included)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
     write_jsonl(outdir / "holdout.jsonl", holdout)
-    write_jsonl(outdir / AMBIGUITY_FILE, ambiguity_records)
+    write_jsonl(outdir / ALTERNATIVES_FILE, alternatives_records)
+    write_jsonl(outdir / LINGUISTIC_ANNOTATIONS_FILE, linguistic_annotation_records)
 
     print(f"Wrote manifest to {outdir / 'manifest.json'}")
     print(f"Wrote {len(benchmark_records)} benchmark records to {outdir / 'benchmark.jsonl'}")
-    print(f"Wrote {len(approved)} approved records to {outdir / 'approved.jsonl'}")
-    print(f"Wrote {len(pending)} pending records to {outdir / 'pending.jsonl'}")
+    print(f"Wrote {len(included)} included records to {outdir / INCLUDED_FILE}")
     print(f"Wrote {len(dismissed)} dismissed records to {outdir / 'dismissed.jsonl'}")
     print(f"Wrote {len(holdout)} private holdout records to {outdir / 'holdout.jsonl'}")
-    print(f"Wrote {len(ambiguity_records)} ambiguity records to {outdir / AMBIGUITY_FILE}")
-    print(f"Applied {applied} compare-review decisions")
+    print(f"Wrote {len(alternatives_records)} alternative-formulation records to {outdir / ALTERNATIVES_FILE}")
+    print(f"Wrote {len(linguistic_annotation_records)} internal linguistic-annotation records to {outdir / LINGUISTIC_ANNOTATIONS_FILE}")
+    print(f"Applied {applied} comparative-review decisions")
 
 
 if __name__ == "__main__":

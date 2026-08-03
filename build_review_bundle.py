@@ -12,10 +12,9 @@ from runs.build_run_snapshot import create_run_snapshot
 
 HOLDOUT_SPLIT = "private_holdout"
 BENCHMARK_FILES = {
-    "approved": "approved.jsonl",
-    "pending": "pending.jsonl",
-    "dismissed": "dismissed.jsonl",
-    "holdout": "holdout.jsonl",
+    "included": "included.jsonl",
+    "excluded": "dismissed.jsonl",
+    "withheld": "holdout.jsonl",
 }
 
 
@@ -61,21 +60,21 @@ def load_previous_benchmark(path: Optional[Path]) -> Dict[Tuple[str, str], Dict[
     if path is None:
         return {}
     records: Dict[Tuple[str, str], Dict[str, Any]] = {}
-    for status_group, filename in BENCHMARK_FILES.items():
+    for disposition, filename in BENCHMARK_FILES.items():
         for rec in load_optional_json_records(path / filename):
             kg_id = str(rec.get("kg_id") or "")
             query_id = str(rec.get("query_id") or "")
             if not kg_id or not query_id:
                 continue
-            status = str(rec.get("review_status") or "")
+            assessment = str(rec.get("pipeline_assessment") or "")
             split = str(rec.get("split") or "")
-            if status_group == "holdout":
+            if disposition == "withheld":
                 split = HOLDOUT_SPLIT
             records[(kg_id, query_id)] = {
                 "reviewed": True,
                 "benchmark_id": rec.get("benchmark_id"),
-                "benchmark_status_group": status_group,
-                "status": status,
+                "benchmark_disposition": disposition,
+                "pipeline_assessment": assessment,
                 "split": split,
                 "source_benchmark": str(path),
             }
@@ -228,7 +227,7 @@ def main() -> None:
     parser.add_argument(
         "--previous-benchmark",
         default="",
-        help="Optional benchmark directory used to exclude previously reviewed pairs from normal review.",
+        help="Optional benchmark directory used to exclude previously reviewed pairs from initial review.",
     )
     parser.add_argument(
         "--include-reviewed",
@@ -236,7 +235,7 @@ def main() -> None:
         help="Include non-holdout pairs already present in the previous benchmark.",
     )
     parser.add_argument(
-        "--reveal-previous-status",
+        "--reveal-previous-decision",
         action="store_true",
         help="When reviewed pairs are included, expose their previous judgement in the UI bundle.",
     )
@@ -320,12 +319,12 @@ def main() -> None:
                     "reviewed": True,
                     "source_benchmark": previous_review.get("source_benchmark"),
                 }
-                if args.reveal_previous_status:
+                if args.reveal_previous_decision:
                     previous_review_payload.update(
                         {
                             "benchmark_id": previous_review.get("benchmark_id"),
-                            "benchmark_status_group": previous_review.get("benchmark_status_group"),
-                            "status": previous_review.get("status"),
+                            "benchmark_disposition": previous_review.get("benchmark_disposition"),
+                            "pipeline_assessment": previous_review.get("pipeline_assessment"),
                             "split": previous_review.get("split"),
                         }
                     )
@@ -370,7 +369,7 @@ def main() -> None:
                     "outputs": [str(p) for p in output_paths],
                     "previous_benchmark": str(previous_benchmark_path) if previous_benchmark_path is not None else "",
                     "include_reviewed": args.include_reviewed,
-                    "reveal_previous_status": args.reveal_previous_status,
+                    "reveal_previous_decision": args.reveal_previous_decision,
                     "records": [
                         {
                             "review_id": rec["review_id"],
@@ -394,15 +393,15 @@ def main() -> None:
         "review_scope_policy": {
             "previous_benchmark_path": str(previous_benchmark_path) if previous_benchmark_path is not None else None,
             "include_reviewed": bool(args.include_reviewed),
-            "reveal_previous_status": bool(args.reveal_previous_status),
+            "reveal_previous_decision": bool(args.reveal_previous_decision),
             "default_scope": "new" if previous_benchmark_path is not None else "all",
             "counts": scope_counts,
         },
-        "review_status_definitions": {
-            "approve": "Keep this example in the benchmark as-is.",
-            "dismiss": "Exclude this example from the benchmark going forward.",
-            "needs_prompt_fix": "The example is valid, but the model behavior should improve through prompt changes.",
-            "needs_data_fix": "The example may be valid, but the model inputs are wrong, incomplete, noisy, or missing key signals.",
+        "pipeline_assessment_definitions": {
+            "accepted": "The candidate formulation is acceptable.",
+            "prompt_improvement_recommended": "The canonical pair is valid, but prompt or model behaviour should improve.",
+            "input_data_improvement_recommended": "The canonical pair is valid, but generation inputs are wrong, incomplete, noisy, or missing key signals.",
+            "not_applicable": "No generated formulation was assessed.",
         },
         "records": review_records,
     }

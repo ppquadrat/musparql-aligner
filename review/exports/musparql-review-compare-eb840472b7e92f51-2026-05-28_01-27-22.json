@@ -22,431 +22,492 @@
   "exported_at": "2026-05-28T00:27:22.947Z",
   "reviews": {
     "jazzontology::jazzontology-0021::69ee193e0f72": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Who performed solos in Curtis Fuller's recording of \"Scrapple from the apple\", what instruments did they play, and when did their solos occur?",
       "note": "Missed the band name",
       "split": "",
-      "updated_at": "2026-05-27T16:11:23.077Z"
+      "updated_at": "2026-05-27T16:11:23.077Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0005::427469e99b31": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T16:13:07.094Z"
+      "updated_at": "2026-05-27T16:13:07.094Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0018::5836ea76757f": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T16:14:48.300Z"
+      "updated_at": "2026-05-27T16:14:48.300Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0007::ea4a076897e3": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T16:15:21.698Z"
+      "updated_at": "2026-05-27T16:15:21.698Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0017::2388b5ac0acc": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T16:16:09.907Z"
+      "updated_at": "2026-05-27T16:16:09.907Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0016::cf303036c0c1": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Where, when and by whom were the tracks on the album 'On Broadway, Vol. 1' recorded??",
       "note": "It has missed the band again",
       "split": "",
-      "updated_at": "2026-05-27T16:17:37.811Z"
+      "updated_at": "2026-05-27T16:17:37.811Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0002::c252e86e95a3": {
-      "status": "approve",
       "preferred_question": "Which album has the given title?",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T16:18:05.865Z"
+      "updated_at": "2026-05-27T16:18:05.865Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0019::294a9eb06c4e": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T16:18:58.041Z"
+      "updated_at": "2026-05-27T16:18:58.041Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0009::0ece0215cddd": {
-      "status": "approve",
       "preferred_question": "Who composed the given tune?",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T16:19:25.387Z"
+      "updated_at": "2026-05-27T16:19:25.387Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0008::531b35b18ff2": {
-      "status": "approve",
       "preferred_question": "What is the band lineup for the given performance?",
       "note": "Missed evidence e5",
       "split": "",
-      "updated_at": "2026-05-27T16:20:25.320Z"
+      "updated_at": "2026-05-27T16:20:25.320Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0001::22d25d278299": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Literal: Given a release title, record number, and track number, which performance is associated with that track, and what is the track's title?",
       "split": "",
-      "updated_at": "2026-05-27T16:23:22.292Z"
+      "updated_at": "2026-05-27T16:23:22.292Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0004::7fde100f972a": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Literal: Which labels have the given title?",
       "split": "",
-      "updated_at": "2026-05-27T16:25:06.796Z"
+      "updated_at": "2026-05-27T16:25:06.796Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0006::9629a8857d70": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T18:14:37.544Z"
+      "updated_at": "2026-05-27T18:14:37.544Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0022::3a62da051cd6": {
-      "status": "approve",
       "preferred_question": "Which places did Clara Schumann visit during her career?",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T18:17:07.842Z"
+      "updated_at": "2026-05-27T18:17:07.842Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0004::169f54434545": {
-      "status": "approve",
       "preferred_question": "For meetups involving Edward Elgar, how many were for each purpose?",
       "note": "It didn't retain any evidence, should have beenat least e54, but also e8, e20",
       "split": "",
-      "updated_at": "2026-05-27T18:22:05.737Z"
+      "updated_at": "2026-05-27T18:22:05.737Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0020::23c0cd84e989": {
-      "status": "approve",
       "preferred_question": "How many distinct places are mentioned in the meetup records?",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T18:22:47.785Z"
+      "updated_at": "2026-05-27T18:22:47.785Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0016::aa7edcd06eb9": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Which meetups involving Niccolò Paganini took place on or after January 1, 1900?",
       "note": "It should include 1900",
       "split": "",
-      "updated_at": "2026-05-27T18:25:21.496Z"
+      "updated_at": "2026-05-27T18:25:21.496Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "meetups::meetups-0026::fce13f9b64a6": {
-      "status": "approve",
       "preferred_question": "Which other musicians were working at the same time as Clara Schumann?",
       "note": "This is not proper English, but this is what's in the CQ, so we can keep it as an alternative",
       "split": "",
-      "updated_at": "2026-05-27T18:27:42.529Z"
+      "updated_at": "2026-05-27T18:27:42.529Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0025::538dbefcf6ae": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T18:30:21.133Z"
+      "updated_at": "2026-05-27T18:30:21.133Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0005::b9e90ba54216": {
-      "status": "dismiss",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T18:38:20.043Z"
+      "updated_at": "2026-05-27T18:38:20.043Z",
+      "benchmark_disposition": "excluded",
+      "pipeline_assessment": null
     },
     "meetups::meetups-0007::8641267fd0c5": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T18:39:52.446Z"
+      "updated_at": "2026-05-27T18:39:52.446Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0031::99c65c37aebd": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Collect all information about meetups that took place in Vienna",
       "note": "Literal: Which meetups took place in Vienna, and who participated, when and where did they occur, what was their purpose, and what is the supporting evidence text?\nThis is a KG of historic evidence, therefore 'took place' in Vienna\nThis prompt misses the additional info returned by the query",
       "split": "",
-      "updated_at": "2026-05-27T18:43:22.136Z"
+      "updated_at": "2026-05-27T18:43:22.136Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "meetups::meetups-0015::83829d73df6e": {
-      "status": "approve",
       "preferred_question": "For meetups involving Niccolò Paganini, how is their time or duration recorded in the graph?",
       "note": "Literal: When did Niccolò Paganini’s meetups occur? List the time expressions and, if available, their start and end dates.",
       "split": "",
-      "updated_at": "2026-05-27T18:45:06.494Z"
+      "updated_at": "2026-05-27T18:45:06.494Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0014::e821df4dd3b6": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Literal: How many meetups, excerpts, persons mentioned, subjects, place mentions, and time expressions are there?",
       "split": "",
-      "updated_at": "2026-05-27T18:45:48.768Z"
+      "updated_at": "2026-05-27T18:45:48.768Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0012::3fae7f1c0cbf": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Literal: For Al Wilson (singer), where did his meetups take place, when did they happen, for what purpose, and who were the other participants?\n\nMissed evidence e31",
       "split": "",
-      "updated_at": "2026-05-27T18:48:21.545Z"
+      "updated_at": "2026-05-27T18:48:21.545Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0001::f03b21e282e9": {
-      "status": "approve",
       "preferred_question": "What are the statistics of this knowledge graph (counts of meetups, excerpts, participants, subjects, places, and time expressions)?",
       "note": "literal: What are the counts in the Meetups knowledge graph for meetups, excerpts (evidence texts), persons mentioned, distinct subjects, distinct places mentioned, and time expressions?",
       "split": "",
-      "updated_at": "2026-05-27T18:52:10.972Z"
+      "updated_at": "2026-05-27T18:52:10.972Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0002::a4bee7342893": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Missed evidence e31",
       "split": "",
-      "updated_at": "2026-05-27T18:53:15.992Z"
+      "updated_at": "2026-05-27T18:53:15.992Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0003::5913b4b3b124": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Literal: What are the two places where Edward Elgar had the most meetups, and how many at each?",
       "split": "",
-      "updated_at": "2026-05-27T18:54:22.040Z"
+      "updated_at": "2026-05-27T18:54:22.040Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0018::2358d886a163": {
-      "status": "approve",
       "preferred_question": "How many historical meetups are in the graph?",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T18:54:53.279Z"
+      "updated_at": "2026-05-27T18:54:53.279Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0013::d81bc4eb021c": {
-      "status": "approve",
       "preferred_question": "Collect all information for meetups involving Al Wilson (singer)",
       "note": "Literal: For all meetups involving Al Wilson (singer), where and when did they take place, who participated, what was its purpose and what is the evidence?",
       "split": "",
-      "updated_at": "2026-05-27T19:03:49.044Z"
+      "updated_at": "2026-05-27T19:03:49.044Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0017::3a3ebfda21bb": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T19:04:31.698Z"
+      "updated_at": "2026-05-27T19:04:31.698Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0029::112f3236f753": {
-      "status": "approve",
       "preferred_question": "Collect all information about meetups involving Edward Elgar",
       "note": "This version is a bit bare. Previous is a mouthful",
       "split": "",
-      "updated_at": "2026-05-27T19:08:00.439Z"
+      "updated_at": "2026-05-27T19:08:00.439Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0024::85dbfd9759b6": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T19:10:28.567Z"
+      "updated_at": "2026-05-27T19:10:28.567Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0021::87eee05b8ef5": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Literal: How many different time points, time ranges or time mentions are recorded for historical meetups in the graph?",
       "split": "",
-      "updated_at": "2026-05-27T19:14:59.056Z"
+      "updated_at": "2026-05-27T19:14:59.056Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0027::336ffe39ab94": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T19:15:17.867Z"
+      "updated_at": "2026-05-27T19:15:17.867Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0019::ca2943e381a8": {
-      "status": "approve",
       "preferred_question": "How many distinct people are mentioned across all historical meetups in the graph?",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T19:15:47.822Z"
+      "updated_at": "2026-05-27T19:15:47.822Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0011::e7dfeb35a495": {
-      "status": "approve",
       "preferred_question": "Collect all information about Edward Elgar's meetups",
       "note": "Literal: For Edward Elgar, which meetups are recorded, and for each one who else participated, where (with coordinates) and when it happened, why it happened, and what is the supporting evidence text?",
       "split": "",
-      "updated_at": "2026-05-27T19:18:17.806Z"
+      "updated_at": "2026-05-27T19:18:17.806Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0009::9f19ae078fd9": {
-      "status": "approve",
       "preferred_question": "",
       "note": "It missed evidence e31 - why? \ne34 is not really relevant",
       "split": "",
-      "updated_at": "2026-05-27T19:19:56.186Z"
+      "updated_at": "2026-05-27T19:19:56.186Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0010::7a6700533c89": {
-      "status": "approve",
       "preferred_question": "Which places did Yehudi Menuhin visit during his career?",
       "note": "missed e31",
       "split": "",
-      "updated_at": "2026-05-27T19:20:49.804Z"
+      "updated_at": "2026-05-27T19:20:49.804Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0023::3a1287d782ce": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Which performers did Clara Schumann meet in her career and where did she meet them?",
       "note": "Participants doesn't fit here, should be performers, musicians",
       "split": "",
-      "updated_at": "2026-05-27T19:22:32.363Z"
+      "updated_at": "2026-05-27T19:22:32.363Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "organs::organs-0003::789b1880d16d": {
-      "status": "needs_prompt_fix",
       "preferred_question": "When were the given organs built?",
       "note": "taskType: build -- I assume this does not include renovated.",
       "split": "",
-      "updated_at": "2026-05-27T21:55:02.914Z"
+      "updated_at": "2026-05-27T21:55:02.914Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "organs::organs-0006::252e5fcd1c2e": {
-      "status": "approve",
       "preferred_question": "Where and when was the given organ most recently located?",
       "note": "I have checked with the ontology, includesWhole has an inverse property isWholeIncludedIn, this seems to suggest that the query is looking for a whole organ, not a part, and the iri in the VALUES has a misleading name.\nIf that's the case, the generated phrase is correct even though it is too literal, and my previous preferred wording was wrong in that it allowed for a part.\nLiteral: What is the most recent location and time of the physical organ described by the record Part12_062RhenenGereformeerde?",
       "split": "",
-      "updated_at": "2026-05-27T22:33:45.726Z"
+      "updated_at": "2026-05-27T22:33:45.726Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "organs::organs-0011::d03a8c41fa11": {
-      "status": "needs_prompt_fix",
       "preferred_question": "For all organs in the graph, what are their original locations?",
       "note": "It is taking the evidence too literally, the organ in the query is not constrained. \nIt is an odd query, it's hard to understand why they use a boolean property to find the earliest date for an organ. Maybe the dates are of different form and cannot always be ordered. But there is no guarantee that there is only one FirstProject.",
       "split": "",
-      "updated_at": "2026-05-27T23:06:48.448Z"
+      "updated_at": "2026-05-27T23:06:48.448Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "organs::organs-0005::986f6d02016a": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Better wording than mine",
       "split": "",
-      "updated_at": "2026-05-27T23:08:53.929Z"
+      "updated_at": "2026-05-27T23:08:53.929Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "organs::organs-0009::173746b988d6": {
-      "status": "approve",
       "preferred_question": "List all organ builders in the graph",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T23:10:07.633Z"
+      "updated_at": "2026-05-27T23:10:07.633Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "organs::organs-0008::36dc9dc5d8d6": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Literal: For each of the given organ records, what is the URL of the primary picture and, if available, its caption?",
       "split": "",
-      "updated_at": "2026-05-27T23:12:29.220Z"
+      "updated_at": "2026-05-27T23:12:29.220Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "organs::organs-0004::9551f34100ce": {
-      "status": "approve",
       "preferred_question": "What external website URLs are recorded for the listed organs?",
       "note": "This is difficult because the external_uri name suggests that we are looking for websites but there is no indication in the ontologies, and I haven't seen any in the examples that core:description should be a url. So it's a borderline.",
       "split": "",
-      "updated_at": "2026-05-27T23:29:34.317Z"
+      "updated_at": "2026-05-27T23:29:34.317Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "organs::organs-0002::d7142e294be4": {
-      "status": "approve",
       "preferred_question": "What are the given organs called?",
       "note": "The previous one should have been approved.\nThe confusion here is because of the variable naming. A label is usually a humanly readable name, not a descriptive paragraph. Maybe the thinking was that an organ label like “St. Bavokerk, Haarlem” or “Rhenen Gereformeerde Kerk organ” is more than just a name. But description is confusing. It's on the ontologist rather than then on the model I would say.",
       "split": "",
-      "updated_at": "2026-05-27T23:37:53.533Z"
+      "updated_at": "2026-05-27T23:37:53.533Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "organs::organs-0001::ad7fd7ce814c": {
-      "status": "approve",
       "preferred_question": "List all organs in the graph",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T23:38:28.634Z"
+      "updated_at": "2026-05-27T23:38:28.634Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0028::b6023b96f84f": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Give me ten examples of subjects from the graph",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T23:39:53.032Z"
+      "updated_at": "2026-05-27T23:39:53.032Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "meetups::meetups-0030::19d0c0941856": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Collect all information about meetups that involve a participant named \"Django\"",
       "note": "This was not specific enough",
       "split": "",
-      "updated_at": "2026-05-27T23:41:20.250Z"
+      "updated_at": "2026-05-27T23:41:20.250Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "meetups::meetups-0008::92756ba42853": {
-      "status": "needs_prompt_fix",
       "preferred_question": "List all places in the graph with their coordinates",
       "note": "Not specific enough\nLiteral: Which places have latitude and longitude, and what are their names?",
       "split": "",
-      "updated_at": "2026-05-27T23:43:05.699Z"
+      "updated_at": "2026-05-27T23:43:05.699Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0024::a619703a2140": {
-      "status": "approve",
       "preferred_question": "On Peter Appleyard’s album “The Lost 1974 Sessions,” which instruments take solos on each track, and who are the soloists?",
       "note": "Literal: On the CD “The Lost 1974 Sessions,” for performances by the band led by Peter Appleyard, which instruments take solos on each track and who are the soloists?\nThe assumption in the preferred wording is that the lost 1974 sessions are all by Peter Appleyard's band\nThis generated wording is a bit awkward but it makes the same assumption. I think I'll accept it.",
       "split": "",
-      "updated_at": "2026-05-27T23:54:10.976Z"
+      "updated_at": "2026-05-27T23:54:10.976Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0012::56df276c78f0": {
-      "status": "approve",
       "preferred_question": "Find the band by its name",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-27T23:54:50.689Z"
+      "updated_at": "2026-05-27T23:54:50.689Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0023::5a096b198fa7": {
-      "status": "approve",
       "preferred_question": "Find all solos by Dizzy Gillespie before 1950 and list the band name, the track title, the date of recording and the solo timestamp",
       "note": "Literal: Which solos by Dizzy Gillespie took place before 1950, and for each, what are the performance title, the band name, the date, and the solo’s start and end times?",
       "split": "",
-      "updated_at": "2026-05-27T23:56:27.406Z"
+      "updated_at": "2026-05-27T23:56:27.406Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0014::d47117302723": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Literal: Given a release title, a record number, and a track number, what is the track’s title and which audio signal was published as that track?",
       "split": "",
-      "updated_at": "2026-05-27T23:58:26.955Z"
+      "updated_at": "2026-05-27T23:58:26.955Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0022::8f3e7de026be": {
-      "status": "approve",
       "preferred_question": "List all solos with attributed solo performers, with the track title and date, solo timestamp and instrument",
       "note": "Literal: Which performances include solos, and for each solo what is the start time, the soloist, and the instrument, along with the performance title, band name, and date?",
       "split": "",
-      "updated_at": "2026-05-28T00:02:28.645Z"
+      "updated_at": "2026-05-28T00:02:28.645Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0020::3112b58a3b0b": {
-      "status": "approve",
       "preferred_question": "Find duplicate audio signals in the graph",
       "note": "the evidence id is wrong, it should be e6",
       "split": "",
-      "updated_at": "2026-05-28T00:12:18.961Z"
+      "updated_at": "2026-05-28T00:12:18.961Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0010::ee53581c5732": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Is there more than one composer with this name in the graph?",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-28T00:13:07.812Z"
+      "updated_at": "2026-05-28T00:13:07.812Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0011::a28dc94fb5b1": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Is there more than one arranger with this name in the graph?",
       "note": "",
       "split": "",
-      "updated_at": "2026-05-28T00:13:42.266Z"
+      "updated_at": "2026-05-28T00:13:42.266Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0015::9cad13eff27e": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Which musicians performed together with the given performer?",
       "note": "Here the performer is fixed, all their sessions are collected and all musicians who played in them.  Both models got it wrong.",
       "split": "",
-      "updated_at": "2026-05-28T00:27:00.425Z"
+      "updated_at": "2026-05-28T00:27:00.425Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     }
   }
 }

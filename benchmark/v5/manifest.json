@@ -27,33 +27,43 @@
   },
   "counts": {
     "benchmark": 60,
-    "approved": 47,
-    "pending": 13,
     "dismissed": 5,
     "holdout": 0,
-    "ambiguity": 45,
     "applied_compare_reviews": 61,
-    "applied_status_counts": {
-      "needs_prompt_fix": 13,
-      "approve": 47,
-      "dismiss": 1
+    "applied_pipeline_assessment_counts": {
+      "prompt_improvement_recommended": 13,
+      "accepted": 47
     },
-    "superseded_removed_previous_items": 0
+    "superseded_removed_previous_items": 0,
+    "included": 60,
+    "alternatives": 45,
+    "linguistic_annotations": 0,
+    "pipeline_assessment_counts": {
+      "accepted": 47,
+      "prompt_improvement_recommended": 13
+    },
+    "benchmark_disposition_counts": {
+      "excluded": 5,
+      "included": 60
+    },
+    "applied_benchmark_disposition_counts": {
+      "included": 60,
+      "excluded": 1
+    }
   },
   "files": {
     "benchmark": "benchmark.jsonl",
-    "approved": "approved.jsonl",
-    "pending": "pending.jsonl",
+    "included": "included.jsonl",
     "dismissed": "dismissed.jsonl",
     "holdout": "holdout.jsonl",
-    "ambiguity": "ambiguity.jsonl"
+    "alternatives": "alternatives.jsonl",
+    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
   },
   "gold_question_policy": {
-    "benchmark_includes_approved": true,
-    "benchmark_includes_pending_with_reviewer_rewrite": true,
     "preferred_question_used_when_present": true,
     "approved_model_output_used_otherwise": true,
-    "unchanged_previous_items_carried_forward": true
+    "unchanged_previous_items_carried_forward": true,
+    "benchmark_contains_all_human_confirmed_included_pairs": true
   },
   "holdout_policy": {
     "review_split": "private_holdout",
@@ -61,5 +71,20 @@
     "excluded_from_normal_autoeval": true,
     "excluded_from_future_generation_inputs": true,
     "unchanged_previous_holdout_items_carried_forward": true
+  },
+  "release_boundary": {
+    "public_release_builder": "benchmark/build_public_release.py",
+    "working_snapshot_is_not_a_release_archive": true,
+    "public_release_files": [
+      "manifest.json",
+      "benchmark.jsonl",
+      "alternatives.jsonl"
+    ],
+    "internal_only_files": [
+      "included.jsonl",
+      "linguistic_annotations.jsonl",
+      "dismissed.jsonl",
+      "holdout.jsonl"
+    ]
   }
 }

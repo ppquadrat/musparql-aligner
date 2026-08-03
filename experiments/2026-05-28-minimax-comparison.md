@@ -1,10 +1,10 @@
-# GPT-5 Vs MiniMax-M2.5 Generation Review
+# GPT-5 (`gpt-5-2025-08-07`) Vs MiniMax-M2.5 Generation Review
 
 Date: 2026-05-28
 
 ## Question
 
-How does MiniMax-M2.5 compare with GPT-5 for generating natural-language
+How does MiniMax-M2.5 compare with `gpt-5-2025-08-07` for generating natural-language
 questions from SPARQL, evidence, and KG metadata?
 
 ## References
@@ -16,13 +16,23 @@ questions from SPARQL, evidence, and KG metadata?
 - Dataset review update: `benchmark/v5`
 - Reviewer writeup: `/Users/polina/Downloads/Review Musparql MiniMax 2.5.docx`
 
+## Model provenance
+
+The baseline run requested the OpenAI model alias `gpt-5`. Its run manifest and
+the response metadata stored with all 160 generation records identify the
+resolved response model as `gpt-5-2025-08-07`. The comparison run requested
+`MiniMax-M2.5` through Graphia's OpenAI-compatible endpoint, and both its run
+manifest and response metadata identify the returned model as `MiniMax-M2.5`.
+The exact identifiers are recorded in the `model_provenance` sections of the two
+run manifests and in each record's `response_metadata`.
+
 ## Method
 
 The MiniMax run used Graphia's OpenAI-compatible chat completions endpoint with
 `MiniMax-M2.5`. Inputs were rebuilt from `kg_queries.jsonl`, excluding dismissed
 and private-holdout records from `benchmark/v4`.
 
-The comparison review evaluated changed benchmark pairs between the GPT-5
+The comparative review evaluated changed benchmark pairs between the GPT-5
 ontology/shape run and the MiniMax run. The review was then applied to produce
 `benchmark/v5`.
 
@@ -33,29 +43,30 @@ Generation completed successfully:
 - Outputs: 156/156
 - Errors: 0
 
-The comparison review covered 61 changed benchmark pairs:
+The comparative review covered 61 changed benchmark pairs:
 
-- Approved: 47
-- Needs prompt fix: 13
-- Dismissed: 1
+- Pipeline assessment accepted: 47
+- Prompt improvement recommended: 13
+- Excluded: 1
 - Private holdout: 0
 
 Status movement relative to `benchmark/v4`:
 
-- 38 stayed approved
-- 9 moved from pending to approved
-- 7 moved from approved to needs prompt fix
-- 6 stayed needs prompt fix
-- 1 moved from approved to dismissed
+- 38 stayed accepted
+- 9 moved from an improvement recommendation to accepted
+- 7 moved from accepted to prompt improvement recommended
+- 6 retained the prompt improvement recommendation
+- 1 changed from included to excluded
 
 The review update produced `benchmark/v5`:
 
 - Benchmark records: 60
-- Approved: 47
-- Pending: 13
-- Dismissed: 5
+- Included: 60
+- Pipeline assessment accepted: 47
+- Prompt improvement recommended: 13
+- Excluded: 5
 - Holdout: 0
-- Ambiguity records: 45
+- Alternative-formulation records: 45
 
 ## Observations
 
@@ -137,16 +148,17 @@ Examples:
   `external_uri` suggests website URLs. The ontology did not clearly support the
   URL interpretation. The record was approved despite the ambiguity.
 
-## Ambiguity Records
+## Alternative Formulations
 
-The comparison review produced `benchmark/v5/ambiguity.jsonl`. It now preserves:
+The comparative review produced the records now stored in
+`benchmark/v5/alternatives.jsonl`. They preserve:
 
 - previous accepted gold questions,
 - accepted model outputs when different from preferred wording,
 - reviewer-provided literal SPARQL wordings from `literal_wording` or `Literal:`
   note lines.
 
-Literal SPARQL wordings are stored as accepted rephrasings with
+Literal SPARQL wordings are stored separately under `literal_formulations` with
 `source_type: "literal_sparql_wording"`. They are intended to capture exact
 query semantics when a more natural preferred wording is less literal.
 
@@ -163,5 +175,5 @@ GPT-5 in this review. However, it needs safeguards:
 - keep ambiguity records so literal, preferred, previous, and model-generated
   wordings can coexist.
 
-Keep the MiniMax run, comparison review export, and `benchmark/v5` as the
+Keep the MiniMax run, comparative-review export, and `benchmark/v5` as the
 preserved output of this experiment.

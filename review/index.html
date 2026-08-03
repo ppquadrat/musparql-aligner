@@ -138,10 +138,10 @@
             <section class="panel">
               <h2>Reviewer Decision</h2>
               <div class="decision-grid">
-                <button data-status="approve" class="decision-btn approve">Approve</button>
-                <button data-status="dismiss" class="decision-btn dismiss">Dismiss</button>
-                <button data-status="needs_prompt_fix" class="decision-btn prompt">Needs Prompt Fix</button>
-                <button data-status="needs_data_fix" class="decision-btn data">Needs Data Fix</button>
+                <button data-status="accepted" class="decision-btn accepted">Accept</button>
+                <button data-status="excluded" class="decision-btn excluded">Exclude</button>
+                <button data-status="prompt_improvement_recommended" class="decision-btn prompt">Recommend Prompt Improvement</button>
+                <button data-status="input_data_improvement_recommended" class="decision-btn data">Recommend Input-Data Improvement</button>
                 <button data-status="" class="decision-btn clear">Clear</button>
               </div>
               <div class="field-grid">
@@ -187,7 +187,7 @@
               </div>
               <div class="inline-note">
                 <strong>Labels:</strong>
-                <span>`dismiss` excludes an example from the benchmark. `needs_prompt_fix` means the example is valid but the model behavior should improve via prompt changes. `needs_data_fix` means the model inputs were wrong, incomplete, or missing important signals.</span>
+                <span>Exclude removes a candidate from the benchmark. The two improvement recommendations keep the human-confirmed canonical pair while recording whether the prompt/model behaviour or its input data should improve.</span>
               </div>
             </section>
 
@@ -203,7 +203,7 @@
       </section>
     </div>
 
-    <script src="review_data.js?v=review-workbench-20260526"></script>
-    <script src="app.js?v=review-workbench-20260526"></script>
+    <script src="review_data.js?v=review-workbench-20260531"></script>
+    <script src="app.js?v=review-workbench-20260531"></script>
   </body>
   </html>

@@ -13,7 +13,7 @@ Recommended fields:
 - implementation commit
 - rollback/superseding commit, if any
 - generation run
-- comparison review export
+- comparative-review export
 - evaluation report
 - benchmark baseline
 - resulting benchmark update, if applicable

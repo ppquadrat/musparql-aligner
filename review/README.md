@@ -22,7 +22,7 @@ If you want to review an already-frozen generation run explicitly:
   --run-manifest runs/<run-id>/manifest.json
 ```
 
-For later normal review rounds, pass the latest benchmark snapshot:
+For later initial-review rounds, pass the latest benchmark snapshot:
 
 ```bash
 .venv/bin/python build_review_bundle.py \
@@ -31,12 +31,12 @@ For later normal review rounds, pass the latest benchmark snapshot:
   --previous-benchmark benchmark/vN
 ```
 
-With `--previous-benchmark`, normal review excludes already reviewed pairs by
+With `--previous-benchmark`, initial review excludes already reviewed pairs by
 default and always excludes private holdout pairs. Use `--include-reviewed` only
-for a deliberate audit pass over non-holdout reviewed pairs. Previous statuses
-are not included in the bundle unless `--reveal-previous-status` is also passed.
+for a deliberate audit pass over non-holdout reviewed pairs. Previous decisions
+and pipeline assessments are not included unless `--reveal-previous-decision` is passed.
 
-To compare a previous reviewed run with a new run:
+To build a comparative review of a previous generation run and a new run:
 
 ```bash
 .venv/bin/python build_next_review_round.py \
@@ -50,21 +50,20 @@ To compare a previous reviewed run with a new run:
 `--current-run` defaults to `llm_outputs.jsonl`, so it can be omitted when the
 new outputs are in the repo-root current output file.
 
-The compare bundle shows only added, removed, and review-worthy changed pairs by
+The comparative-review bundle shows only added, removed, and review-worthy changed pairs by
 default. Use `--include-unchanged` if you want unchanged pairs visible too.
 Rationale, confidence, model, and full-input evidence changes are treated as
 metadata-only unless the question, origin, retained evidence, or SPARQL also
 changed. Use `--include-metadata-only` if you want those records visible.
-Pairs that were dismissed in the previous review export are excluded by default;
-use `--include-dismissed` only when intentionally revisiting those exclusions.
+Pairs previously excluded from the benchmark are omitted by default; use
+`--include-dismissed` only when intentionally revisiting those exclusions.
 
-For compare review rounds against a curated benchmark, pass
+For comparative-review rounds against a curated benchmark, pass
 `--previous-benchmark benchmark/vN --benchmark-only`. Review exports are
 incremental, so the latest export may only contain decisions from the latest
-review round; the benchmark snapshot contains the carried-forward approved and
-pending decisions.
+review round; the benchmark snapshot contains the carried-forward decisions.
 
-Compare mode shows the previous run and current run side by side. Previous
+Comparative mode shows the previous run and current run side by side. Previous
 review decisions are read-only context; current decisions are stored separately
 and exported as a new compare-mode review file.
 
@@ -87,32 +86,35 @@ http://localhost:8000/review/
 
 Reviewer decisions are stored in browser local storage and can be exported/imported as JSON.
 The recommended repo location for exported reviewer decisions is `review/exports/`.
-The normal review form also exports optional interpretive dimensions
+The initial-review form also exports optional interpretive dimensions
 (`naturalness`, `pragmatism`, `room_for_interpretation`) and the
 `requires_graph_context_knowledge` flag when you set them. Benchmark builders
-copy these into `benchmark/vN/ambiguity.jsonl`, not into the scoring
-`benchmark.jsonl`.
+copy these into the internal `benchmark/vN/linguistic_annotations.jsonl`, not
+into the scoring dataset or public release.
 
 The form also exports optional literal SPARQL wording in `literal_wording`.
 Use this for wording that follows the SPARQL more exactly than the preferred
 natural-language question. Older exports that stored these as `Literal:` note
 lines are still supported by the benchmark builders.
 
-## Review labels
+## Review fields
 
-- `approve`
-  - Keep this example in the benchmark as-is.
+- `benchmark_disposition: included`
+  - Publish the human-confirmed canonical pair.
 
-- `dismiss`
+- `benchmark_disposition: excluded`
   - Exclude this example from the benchmark going forward.
-  - Dismissed pairs are also omitted from future compare-review queues by default.
+  - Dismissed pairs are also omitted from future comparative-review queues by default.
   - Use when the underlying pair is bad benchmark material, not merely when the model behaved badly.
 
-- `needs_prompt_fix`
+- `pipeline_assessment: accepted`
+  - The presented formulation is acceptable.
+
+- `pipeline_assessment: prompt_improvement_recommended`
   - The example is valid, but the model behavior should improve through prompt changes.
   - Typical cases: wrong `generated` vs `paraphrased`, awkward wording, poor evidence selection by the model.
 
-- `needs_data_fix`
+- `pipeline_assessment: input_data_improvement_recommended`
   - The example may be valid, but the model inputs are wrong, incomplete, noisy, or missing important signals.
   - Typical cases: missing query-specific evidence, bad provenance matching, irrelevant evidence attached by enrichment.
 
@@ -128,9 +130,10 @@ lines are still supported by the benchmark builders.
 - Review exports can be shared with other evaluators without changing the original model output files.
 - Compare-mode exports contain the reviewer decisions for the current run, while
   the imported previous review remains read-only context.
-- Literal SPARQL wording is preserved as an accepted alternative in
-  `benchmark/vN/ambiguity.jsonl` with source type `literal_sparql_wording`.
+- Literal SPARQL wording is preserved separately in
+  `benchmark/vN/alternatives.jsonl` under `literal_formulations`, with source
+  type `literal_sparql_wording`.
 - Private holdout records are excluded from normal benchmark snapshots,
-  compare-review queues, future prompt-input generation, and automatic
+  comparative-review queues, future prompt-input generation, and automatic
   evaluation by default. Do not paste or print holdout labels in model-visible
   conversations if the goal is to keep them clean.

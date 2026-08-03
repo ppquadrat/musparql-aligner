@@ -10,7 +10,51 @@ from typing import Any, Dict, List, Tuple
 
 
 HOLDOUT_SPLIT = "private_holdout"
-AMBIGUITY_FILE = "ambiguity.jsonl"
+INCLUDED_FILE = "included.jsonl"
+ALTERNATIVES_FILE = "alternatives.jsonl"
+LINGUISTIC_ANNOTATIONS_FILE = "linguistic_annotations.jsonl"
+
+BENCHMARK_DISPOSITIONS = frozenset({"included", "excluded", "withheld"})
+PIPELINE_ASSESSMENTS = frozenset(
+    {
+        "accepted",
+        "prompt_improvement_recommended",
+        "input_data_improvement_recommended",
+        "not_applicable",
+    }
+)
+def normalized_review_decision(review: Dict[str, Any]) -> Tuple[str, str]:
+    """Return and validate the benchmark disposition and pipeline assessment."""
+    if review.get("status"):
+        raise ValueError("Legacy review decisions are not supported; migrate the export before building")
+    explicit_disposition = str(review.get("benchmark_disposition") or "")
+    explicit_assessment = str(review.get("pipeline_assessment") or "")
+
+    if review.get("split") == HOLDOUT_SPLIT:
+        if explicit_disposition and explicit_disposition not in {"included", "withheld"}:
+            raise ValueError("A private holdout cannot also be excluded")
+        explicit_disposition = "withheld"
+
+    if not explicit_disposition and explicit_assessment:
+        explicit_disposition = "included"
+    if explicit_disposition and explicit_disposition not in BENCHMARK_DISPOSITIONS:
+        raise ValueError(f"Unknown benchmark disposition: {explicit_disposition!r}")
+    if explicit_assessment and explicit_assessment not in PIPELINE_ASSESSMENTS:
+        raise ValueError(f"Unknown pipeline assessment: {explicit_assessment!r}")
+    if explicit_disposition == "included" and not explicit_assessment:
+        raise ValueError("An included decision requires a pipeline assessment")
+    if explicit_disposition == "excluded" and explicit_assessment:
+        raise ValueError("An excluded decision cannot carry a pipeline assessment")
+    if explicit_disposition in {"excluded", "withheld"} and explicit_assessment == "not_applicable":
+        raise ValueError(f"{explicit_disposition!r} cannot use the included-source assessment 'not_applicable'")
+    return explicit_disposition, explicit_assessment
+
+def benchmark_disposition(review: Dict[str, Any]) -> str:
+    return normalized_review_decision(review)[0]
+
+
+def pipeline_assessment(review: Dict[str, Any]) -> str:
+    return normalized_review_decision(review)[1]
 
 
 def read_review_bundle(path: Path) -> Dict[str, Any]:
@@ -65,7 +109,7 @@ def has_query_specific_evidence(evidence_types: List[str]) -> bool:
 
 
 def is_private_holdout(review: Dict[str, Any]) -> bool:
-    return review.get("split") == HOLDOUT_SPLIT
+    return review.get("split") == HOLDOUT_SPLIT or benchmark_disposition(review) == "withheld"
 
 
 def pair_key(record: Dict[str, Any]) -> Tuple[str, str]:
@@ -157,13 +201,9 @@ def review_provenance(
     run = run_metadata(record or {})
     return {
         "review_id": review_id,
-        "review_export": str(review_path) if review_path is not None else None,
         "dataset_id": dataset_id,
-        "run_id": review.get("run_id") or run.get("run_id"),
         "generation_run_id": review.get("generation_run_id") or run.get("generation_run_id"),
         "model": run.get("model"),
-        "updated_at": review.get("updated_at"),
-        "run": run,
     }
 
 
@@ -194,27 +234,31 @@ def make_rephrasing_entry(
     }
 
 
-def add_rephrasing(ambiguity: Dict[str, Any], entry: Dict[str, Any] | None) -> None:
+def add_formulation(record: Dict[str, Any], field: str, entry: Dict[str, Any] | None) -> None:
     if not entry:
         return
-    existing = {
-        normalize_rephrasing_text(item.get("text"))
-        for item in ambiguity.get("accepted_rephrasings", [])
-        if isinstance(item, dict)
-    }
-    if entry["normalized_text"] in existing:
+    if field == "accepted_alternatives":
+        entry["acceptance"] = "human_accepted"
+    for item in record.get(field, []):
+        if not isinstance(item, dict):
+            continue
+        if normalize_rephrasing_text(item.get("text")) != entry["normalized_text"]:
+            continue
+        for key in ("acceptance", "generation_run_id", "model"):
+            if item.get(key) in (None, "") and entry.get(key) not in (None, ""):
+                item[key] = entry[key]
         return
-    ambiguity.setdefault("accepted_rephrasings", []).append(entry)
+    record.setdefault(field, []).append(entry)
 
 
-def update_ambiguity_identity(
-    ambiguity: Dict[str, Any],
+def update_sidecar_identity(
+    sidecar: Dict[str, Any],
     *,
     benchmark_record: Dict[str, Any],
     benchmark_version: str,
     built_at: str,
 ) -> Dict[str, Any]:
-    ambiguity.update(
+    sidecar.update(
         {
             "benchmark_version": benchmark_version,
             "benchmark_built_at": built_at,
@@ -225,16 +269,13 @@ def update_ambiguity_identity(
             "sparql": benchmark_record.get("sparql"),
             "canonical_question": benchmark_record.get("gold_question"),
             "canonical_question_source": benchmark_record.get("gold_question_source"),
-            "review_status": benchmark_record.get("review_status"),
         }
     )
-    ambiguity.setdefault("accepted_rephrasings", [])
-    ambiguity.setdefault("interpretive_annotations", [])
-    return ambiguity
+    return sidecar
 
 
 def add_interpretive_annotation(
-    ambiguity: Dict[str, Any],
+    annotations_record: Dict[str, Any],
     *,
     review: Dict[str, Any],
     review_id: str,
@@ -255,20 +296,20 @@ def add_interpretive_annotation(
             record=record,
         ),
     }
-    existing = ambiguity.setdefault("interpretive_annotations", [])
+    existing = annotations_record.setdefault("interpretive_annotations", [])
     if annotation not in existing:
         existing.append(annotation)
 
 
-def ambiguity_record_has_content(record: Dict[str, Any]) -> bool:
-    return bool(record.get("accepted_rephrasings") or record.get("interpretive_annotations"))
+def alternatives_record_has_content(record: Dict[str, Any]) -> bool:
+    return bool(record.get("accepted_alternatives") or record.get("literal_formulations"))
 
 
-def sort_ambiguity_records(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def sort_sidecar_records(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return sorted(records, key=lambda rec: (str(rec.get("kg_id") or ""), str(rec.get("query_label") or "")))
 
 
-def ambiguity_from_benchmark_record(
+def sidecars_from_benchmark_record(
     *,
     benchmark_record: Dict[str, Any],
     review: Dict[str, Any],
@@ -278,29 +319,36 @@ def ambiguity_from_benchmark_record(
     dataset_id: str,
     benchmark_version: str,
     built_at: str,
-) -> Dict[str, Any] | None:
-    if benchmark_record.get("split") == HOLDOUT_SPLIT or benchmark_record.get("review_status") == "dismiss":
-        return None
-    ambiguity = update_ambiguity_identity(
+) -> Tuple[Dict[str, Any] | None, Dict[str, Any] | None]:
+    if benchmark_record.get("benchmark_disposition") != "included":
+        return None, None
+    alternatives = update_sidecar_identity(
+        {},
+        benchmark_record=benchmark_record,
+        benchmark_version=benchmark_version,
+        built_at=built_at,
+    )
+    linguistic_annotations = update_sidecar_identity(
         {},
         benchmark_record=benchmark_record,
         benchmark_version=benchmark_version,
         built_at=built_at,
     )
     add_interpretive_annotation(
-        ambiguity,
+        linguistic_annotations,
         review=review,
         review_id=review_id,
         review_path=review_path,
         dataset_id=dataset_id,
         record=source_record,
     )
-    if benchmark_record.get("review_status") == "approve":
+    if benchmark_record.get("pipeline_assessment") == "accepted":
         preferred = str(review.get("preferred_question") or "").strip()
         model_question = str(source_record.get("output", {}).get("nl_question") or "").strip()
         if preferred and normalize_rephrasing_text(preferred) != normalize_rephrasing_text(model_question):
-            add_rephrasing(
-                ambiguity,
+            add_formulation(
+                alternatives,
+                "accepted_alternatives",
                 make_rephrasing_entry(
                     text=model_question,
                     source_type="model_output",
@@ -311,8 +359,9 @@ def ambiguity_from_benchmark_record(
                     record=source_record,
                 ),
             )
-    add_rephrasing(
-        ambiguity,
+    add_formulation(
+        alternatives,
+        "literal_formulations",
         make_rephrasing_entry(
             text=literal_wording(review),
             source_type="literal_sparql_wording",
@@ -323,34 +372,36 @@ def ambiguity_from_benchmark_record(
             record=source_record,
         ),
     )
-    if not ambiguity_record_has_content(ambiguity):
-        return None
-    return ambiguity
+    if not alternatives_record_has_content(alternatives):
+        alternatives = None
+    if not linguistic_annotations.get("interpretive_annotations"):
+        linguistic_annotations = None
+    return alternatives, linguistic_annotations
 
 
 def benchmark_gold_records(
     *,
-    approved: List[Dict[str, Any]],
-    pending: List[Dict[str, Any]],
+    included: List[Dict[str, Any]],
     benchmark_version: str,
     built_at: str,
-    source_bundle: str,
-    source_review_export: str,
-    dataset_id: str,
 ) -> List[Dict[str, Any]]:
     records: List[Dict[str, Any]] = []
-    for status_group, source_records in (("approved", approved), ("pending", pending)):
-        for rec in source_records:
-            gold_question = str(rec.get("gold_question") or "").strip()
-            if not gold_question:
-                continue
-            if status_group == "pending" and rec.get("gold_question_source") != "reviewer_rewrite":
-                continue
-            records.append(
-                {
+    for rec in included:
+        gold_question = str(rec.get("gold_question") or "").strip()
+        if not gold_question:
+            raise ValueError(f"Included record has no canonical question: {rec.get('benchmark_id')}")
+        source = rec.get("source") if isinstance(rec.get("source"), dict) else {}
+        provenance = {
+            "question_source": rec.get("gold_question_source"),
+            "source_type": source.get("source_type") or "human_review",
+        }
+        for field in ("prompt_source", "challenge", "cq", "dataset", "reported_result_rows"):
+            if source.get(field) not in (None, ""):
+                provenance[field] = source.get(field)
+        records.append(
+            {
                     "benchmark_version": benchmark_version,
                     "benchmark_built_at": built_at,
-                    "benchmark_status_group": status_group,
                     "benchmark_id": rec.get("benchmark_id"),
                     "kg_id": rec.get("kg_id"),
                     "query_id": rec.get("query_id"),
@@ -358,16 +409,10 @@ def benchmark_gold_records(
                     "sparql": rec.get("sparql"),
                     "gold_question": gold_question,
                     "gold_question_source": rec.get("gold_question_source"),
-                    "review_status": rec.get("review_status"),
-                    "split": rec.get("split") or "public",
-                    "review": rec.get("review"),
-                    "run": rec.get("run"),
                     "evidence_summary": rec.get("evidence_summary"),
-                    "source_bundle": source_bundle,
-                    "source_review_export": source_review_export,
-                    "dataset_id": dataset_id,
+                    "provenance": provenance,
                 }
-            )
+        )
     return sorted(records, key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
 
 
@@ -403,13 +448,13 @@ def main() -> None:
     if not isinstance(review_map, dict):
         raise ValueError("Review export missing reviews object")
 
-    approved: List[Dict[str, Any]] = []
-    pending: List[Dict[str, Any]] = []
+    included: List[Dict[str, Any]] = []
     dismissed: List[Dict[str, Any]] = []
     holdout: List[Dict[str, Any]] = []
-    ambiguity_records: List[Dict[str, Any]] = []
-    status_counts: Counter[str] = Counter()
-    split_counts: Counter[str] = Counter()
+    alternatives_records: List[Dict[str, Any]] = []
+    linguistic_annotation_records: List[Dict[str, Any]] = []
+    assessment_counts: Counter[str] = Counter()
+    disposition_counts: Counter[str] = Counter()
 
     for record in bundle_records:
         if not isinstance(record, dict):
@@ -418,12 +463,14 @@ def main() -> None:
         review = review_map.get(review_id)
         if not isinstance(review, dict):
             continue
-        status = str(review.get("status") or "")
-        if not status:
+        disposition = benchmark_disposition(review)
+        assessment = pipeline_assessment(review)
+        if not disposition:
             continue
-        status_counts[status] += 1
+        disposition_counts[disposition] += 1
+        if assessment:
+            assessment_counts[assessment] += 1
         split = HOLDOUT_SPLIT if is_private_holdout(review) else "public"
-        split_counts[split] += 1
 
         evidence = record.get("input", {}).get("evidence", [])
         if not isinstance(evidence, list):
@@ -442,7 +489,8 @@ def main() -> None:
             "sparql": record.get("input", {}).get("sparql_clean"),
             "gold_question": gold_question,
             "gold_question_source": gold_source,
-            "review_status": status,
+            "benchmark_disposition": disposition,
+            "pipeline_assessment": assessment or None,
             "split": split,
             "review": {
                 "review_id": review_id,
@@ -473,16 +521,16 @@ def main() -> None:
             },
         }
 
-        if split == HOLDOUT_SPLIT:
+        if disposition == "withheld":
             holdout.append(base)
-        elif status == "approve":
-            approved.append(base)
-        elif status == "dismiss":
+        elif disposition == "excluded":
             dismissed.append(base)
         else:
-            pending.append(base)
+            if not gold_question:
+                raise ValueError(f"Included record has no canonical question: {review_id}")
+            included.append(base)
 
-        ambiguity = ambiguity_from_benchmark_record(
+        alternatives, linguistic_annotations = sidecars_from_benchmark_record(
             benchmark_record=base,
             review=review,
             source_record=record,
@@ -492,29 +540,27 @@ def main() -> None:
             benchmark_version=outdir.name,
             built_at="",
         )
-        if ambiguity:
-            ambiguity_records.append(ambiguity)
+        if alternatives:
+            alternatives_records.append(alternatives)
+        if linguistic_annotations:
+            linguistic_annotation_records.append(linguistic_annotations)
 
-    approved.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
-    pending.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
+    included.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
     dismissed.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
     holdout.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
 
     built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     benchmark_version = outdir.name
     dataset_id = review_dataset_id or bundle_dataset_id
-    for ambiguity in ambiguity_records:
-        ambiguity["benchmark_version"] = benchmark_version
-        ambiguity["benchmark_built_at"] = built_at
-    ambiguity_records = sort_ambiguity_records(ambiguity_records)
+    for sidecar in alternatives_records + linguistic_annotation_records:
+        sidecar["benchmark_version"] = benchmark_version
+        sidecar["benchmark_built_at"] = built_at
+    alternatives_records = sort_sidecar_records(alternatives_records)
+    linguistic_annotation_records = sort_sidecar_records(linguistic_annotation_records)
     benchmark_records = benchmark_gold_records(
-        approved=approved,
-        pending=pending,
+        included=included,
         benchmark_version=benchmark_version,
         built_at=built_at,
-        source_bundle=str(bundle_path),
-        source_review_export=str(review_path),
-        dataset_id=dataset_id,
     )
 
     manifest = {
@@ -526,26 +572,25 @@ def main() -> None:
         "run_id": review_run_id or (bundle_run_ids[0] if len(bundle_run_ids) == 1 else None),
         "counts": {
             "benchmark": len(benchmark_records),
-            "approved": len(approved),
-            "pending": len(pending),
+            "included": len(included),
             "dismissed": len(dismissed),
             "holdout": len(holdout),
-            "ambiguity": len(ambiguity_records),
-            "reviewed_total": sum(status_counts.values()),
-            "status_counts": dict(status_counts),
-            "split_counts": dict(split_counts),
+            "alternatives": len(alternatives_records),
+            "linguistic_annotations": len(linguistic_annotation_records),
+            "reviewed_total": sum(disposition_counts.values()),
+            "pipeline_assessment_counts": dict(assessment_counts),
+            "benchmark_disposition_counts": dict(disposition_counts),
         },
         "files": {
             "benchmark": "benchmark.jsonl",
-            "approved": "approved.jsonl",
-            "pending": "pending.jsonl",
+            "included": INCLUDED_FILE,
             "dismissed": "dismissed.jsonl",
             "holdout": "holdout.jsonl",
-            "ambiguity": AMBIGUITY_FILE,
+            "alternatives": ALTERNATIVES_FILE,
+            "linguistic_annotations_internal": LINGUISTIC_ANNOTATIONS_FILE,
         },
         "gold_question_policy": {
-            "benchmark_includes_approved": True,
-            "benchmark_includes_pending_with_reviewer_rewrite": True,
+            "benchmark_contains_all_human_confirmed_included_pairs": True,
             "preferred_question_used_when_present": True,
             "approved_model_output_used_otherwise": True,
         },
@@ -555,23 +600,27 @@ def main() -> None:
             "excluded_from_normal_autoeval": True,
             "excluded_from_future_generation_inputs": True,
         },
+        "release_boundary": {
+            "public_release_files": ["manifest.json", "benchmark.jsonl", ALTERNATIVES_FILE],
+            "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl", "holdout.jsonl"],
+        },
     }
 
     write_json(outdir / "manifest.json", manifest)
     write_jsonl(outdir / "benchmark.jsonl", benchmark_records)
-    write_jsonl(outdir / "approved.jsonl", approved)
-    write_jsonl(outdir / "pending.jsonl", pending)
+    write_jsonl(outdir / INCLUDED_FILE, included)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
     write_jsonl(outdir / "holdout.jsonl", holdout)
-    write_jsonl(outdir / AMBIGUITY_FILE, ambiguity_records)
+    write_jsonl(outdir / ALTERNATIVES_FILE, alternatives_records)
+    write_jsonl(outdir / LINGUISTIC_ANNOTATIONS_FILE, linguistic_annotation_records)
 
     print(f"Wrote manifest to {outdir / 'manifest.json'}")
     print(f"Wrote {len(benchmark_records)} benchmark records to {outdir / 'benchmark.jsonl'}")
-    print(f"Wrote {len(approved)} approved records to {outdir / 'approved.jsonl'}")
-    print(f"Wrote {len(pending)} pending records to {outdir / 'pending.jsonl'}")
+    print(f"Wrote {len(included)} included records to {outdir / INCLUDED_FILE}")
     print(f"Wrote {len(dismissed)} dismissed records to {outdir / 'dismissed.jsonl'}")
     print(f"Wrote {len(holdout)} private holdout records to {outdir / 'holdout.jsonl'}")
-    print(f"Wrote {len(ambiguity_records)} ambiguity records to {outdir / AMBIGUITY_FILE}")
+    print(f"Wrote {len(alternatives_records)} alternative-formulation records to {outdir / ALTERNATIVES_FILE}")
+    print(f"Wrote {len(linguistic_annotation_records)} internal linguistic-annotation records to {outdir / LINGUISTIC_ANNOTATIONS_FILE}")
 
 
 if __name__ == "__main__":

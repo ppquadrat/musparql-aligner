@@ -283,11 +283,11 @@ h1 {
   white-space: nowrap;
 }
 
-.compare-review-head .decision-btn.approve {
+.compare-review-head .decision-btn.accepted {
   grid-column: 1 / span 3;
 }
 
-.compare-review-head .decision-btn.dismiss {
+.compare-review-head .decision-btn.excluded {
   grid-column: 4 / span 3;
 }
 
@@ -523,11 +523,11 @@ textarea {
   margin: 0;
 }
 
-.decision-btn.approve {
+.decision-btn.accepted {
   border-color: rgba(22, 101, 52, 0.35);
 }
 
-.decision-btn.dismiss {
+.decision-btn.excluded {
   border-color: rgba(153, 27, 27, 0.35);
 }
 
@@ -543,11 +543,11 @@ textarea {
   color: white;
 }
 
-.decision-btn.approve.active {
+.decision-btn.accepted.active {
   background: var(--good);
 }
 
-.decision-btn.dismiss.active {
+.decision-btn.excluded.active {
   background: var(--bad);
 }
 

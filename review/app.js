@@ -50,6 +50,14 @@
     decisionButtons: Array.from(document.querySelectorAll(".decision-btn")),
   };
 
+  window.MUSPARQL_REVIEW_SCHEMA = {
+    normalizeReview,
+    exportableReview,
+    internalReviews,
+    validateCompareImportPayload,
+    validateImportedReviews,
+  };
+
   if (!data || !Array.isArray(data.records) || !data.records.length) {
     return;
   }
@@ -59,7 +67,7 @@
     return;
   }
 
-  const reviewStorageKey = `musparql-review:${data.dataset_id}`;
+  const reviewStorageKey = `musparql-review:schema2:${data.dataset_id}`;
   let reviews = loadReviews();
   const state = {
     selectedReviewId: data.records[0].review_id,
@@ -83,6 +91,10 @@
   function loadReviews() {
     try {
       const raw = window.localStorage.getItem(reviewStorageKey);
+      const previousRaw = window.localStorage.getItem(`musparql-review:${data.dataset_id}`);
+      if (!raw && previousRaw) {
+        window.alert("Review data from an earlier schema is still preserved in browser storage. Export it with the earlier workbench before clearing it; it cannot be imported automatically.");
+      }
       if (!raw) return {};
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === "object" ? parsed : {};
@@ -100,7 +112,7 @@
     fillSelect(els.modeFilter, ["all", ...uniqueValues(data.records.map((r) => getMode(r)))], "All modes");
     fillSelect(
       els.statusFilter,
-      ["all", "unreviewed", "approve", "dismiss", "needs_prompt_fix", "needs_data_fix"],
+      ["all", "unreviewed", "accepted", "excluded", "prompt_improvement_recommended", "input_data_improvement_recommended"],
       "All review states"
     );
     fillSelect(els.scopeFilter, ["all", "new", "previously_reviewed"], "All scopes");
@@ -399,14 +411,117 @@
 
   function normalizeReview(review) {
     const note = review?.note || "";
+    const allowedStatuses = new Set([
+      "accepted",
+      "prompt_improvement_recommended",
+      "input_data_improvement_recommended",
+      "not_applicable",
+      "excluded",
+    ]);
+    const rawStatus = review?.status
+      || (review?.benchmark_disposition === "excluded" ? "excluded" : review?.pipeline_assessment)
+      || "";
+    const status = allowedStatuses.has(rawStatus) ? rawStatus : "";
     return {
-      status: review?.status || "",
+      status,
       note,
       preferred_question: review?.preferred_question || "",
       literal_wording: review?.literal_wording || extractLiteralWordingFromNote(note),
-      split: review?.split || "",
+      split: review?.split || (review?.benchmark_disposition === "withheld" ? HOLDOUT_SPLIT : ""),
       interpretive: normalizeInterpretive(review?.interpretive),
     };
+  }
+
+  function exportableReview(review) {
+    const normalized = normalizeReview(review);
+    const benchmarkDisposition = normalized.split === HOLDOUT_SPLIT
+      ? "withheld"
+      : normalized.status === "excluded"
+        ? "excluded"
+        : normalized.status
+          ? "included"
+          : null;
+    return {
+      benchmark_disposition: benchmarkDisposition,
+      pipeline_assessment: normalized.status && normalized.status !== "excluded" ? normalized.status : null,
+      preferred_question: normalized.preferred_question,
+      literal_wording: normalized.literal_wording,
+      note: normalized.note,
+      split: normalized.split,
+      interpretive: normalized.interpretive,
+      updated_at: review?.updated_at || null,
+      ...(review?.copied_from_review_id ? { copied_from_review_id: review.copied_from_review_id } : {}),
+    };
+  }
+
+  function exportableReviews(reviewMap) {
+    return Object.fromEntries(
+      Object.entries(reviewMap).map(([reviewId, review]) => [reviewId, exportableReview(review)])
+    );
+  }
+
+  function internalReviews(reviewMap) {
+    return Object.fromEntries(
+      Object.entries(reviewMap).map(([reviewId, review]) => [reviewId, {
+        ...normalizeReview(review),
+        updated_at: review?.updated_at || null,
+        ...(review?.copied_from_review_id ? { copied_from_review_id: review.copied_from_review_id } : {}),
+      }])
+    );
+  }
+
+  function validateCompareImportPayload(payload, currentData = data) {
+    if (payload.mode !== "compare") {
+      throw new Error("This is not a comparison-review export.");
+    }
+    if (!payload.dataset_id || payload.dataset_id !== currentData?.dataset_id) {
+      throw new Error("This comparison export belongs to a different dataset.");
+    }
+    const runId = (run) => run?.generation_run_id || run?.run_id || "";
+    if (!runId(payload.previous_run) || runId(payload.previous_run) !== runId(currentData?.previous_run)) {
+      throw new Error("This comparison export has a different previous run.");
+    }
+    if (!runId(payload.current_run) || runId(payload.current_run) !== runId(currentData?.current_run)) {
+      throw new Error("This comparison export has a different current run.");
+    }
+  }
+
+  function validateImportedReviews(reviewMap) {
+    if (!reviewMap || typeof reviewMap !== "object" || Array.isArray(reviewMap)) {
+      throw new Error("Bad review file format.");
+    }
+    const internalStatuses = new Set([
+      "accepted",
+      "prompt_improvement_recommended",
+      "input_data_improvement_recommended",
+      "not_applicable",
+      "excluded",
+    ]);
+    const assessments = new Set([
+      "accepted",
+      "prompt_improvement_recommended",
+      "input_data_improvement_recommended",
+      "not_applicable",
+    ]);
+    const dispositions = new Set(["included", "excluded", "withheld"]);
+    for (const [reviewId, review] of Object.entries(reviewMap || {})) {
+      if (!review || typeof review !== "object") throw new Error(`Bad review record: ${reviewId}`);
+      if (review.status && !internalStatuses.has(review.status)) {
+        throw new Error(`Unsupported legacy decision in review ${reviewId}.`);
+      }
+      if (review.pipeline_assessment && !assessments.has(review.pipeline_assessment)) {
+        throw new Error(`Unknown pipeline assessment in review ${reviewId}.`);
+      }
+      if (review.benchmark_disposition && !dispositions.has(review.benchmark_disposition)) {
+        throw new Error(`Unknown benchmark disposition in review ${reviewId}.`);
+      }
+      if (review.benchmark_disposition === "included" && !review.pipeline_assessment) {
+        throw new Error(`Included review ${reviewId} has no pipeline assessment.`);
+      }
+      if (review.benchmark_disposition === "excluded" && review.pipeline_assessment) {
+        throw new Error(`Excluded review ${reviewId} cannot carry a pipeline assessment.`);
+      }
+    }
   }
 
   function extractLiteralWordingFromNote(note) {
@@ -490,7 +605,8 @@
   function scopeSummary(record) {
     if (getReviewScope(record) !== "previously_reviewed") return "";
     const previous = record.previous_review || {};
-    if (previous.status) return ` · prior ${escapeHtml(previous.status)}`;
+    const normalized = normalizeReview(previous);
+    if (normalized.status) return ` · prior ${escapeHtml(normalized.status)}`;
     return " · previously reviewed";
   }
 
@@ -507,7 +623,7 @@
       run_ids: data.run_ids || [],
       runs: data.runs || [],
       exported_at: new Date().toISOString(),
-      reviews,
+      reviews: exportableReviews(reviews),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -541,7 +657,8 @@
         if (!imported || typeof imported !== "object") {
           throw new Error("Bad review file format.");
         }
-        reviews = imported;
+        validateImportedReviews(imported);
+        reviews = internalReviews(imported);
         saveReviews();
         render();
       } catch (err) {
@@ -575,7 +692,7 @@
   }
 
   function initCompareMode() {
-    const compareStorageKey = `musparql-review-compare:${data.dataset_id}`;
+    const compareStorageKey = `musparql-review-compare:schema2:${data.dataset_id}`;
     let compareReviews = loadCompareReviews();
     const compareState = {
       selectedPairId: data.records[0].pair_id,
@@ -599,12 +716,12 @@
     fillSelect(els.modeFilter, ["all", "changed", "added", "removed", ...uniqueValues(data.records.flatMap((r) => r.change_flags || []))], "All changes");
     fillSelect(
       els.statusFilter,
-      ["all", "unreviewed", "approve", "dismiss", "needs_prompt_fix", "needs_data_fix"],
+      ["all", "unreviewed", "accepted", "excluded", "prompt_improvement_recommended", "input_data_improvement_recommended"],
       "All current states"
     );
     fillSelect(
       els.runFilter,
-      ["all", "unreviewed", "approve", "dismiss", "needs_prompt_fix", "needs_data_fix"],
+      ["all", "unreviewed", "accepted", "excluded", "prompt_improvement_recommended", "input_data_improvement_recommended"],
       "All previous states"
     );
 
@@ -643,6 +760,10 @@
     function loadCompareReviews() {
       try {
         const raw = window.localStorage.getItem(compareStorageKey);
+        const previousRaw = window.localStorage.getItem(`musparql-review-compare:${data.dataset_id}`);
+        if (!raw && previousRaw) {
+          window.alert("Comparison-review data from an earlier schema is still preserved in browser storage. Export it with the earlier workbench before clearing it; it cannot be imported automatically.");
+        }
         if (!raw) return {};
         const parsed = JSON.parse(raw);
         return parsed && typeof parsed === "object" ? parsed : {};
@@ -657,11 +778,11 @@
 
     function getCurrentReview(pair) {
       const reviewId = pair.current?.review_id || pair.pair_id;
-      return compareReviews[reviewId] || { status: "", preferred_question: "", literal_wording: "", note: "", split: "" };
+      return normalizeReview(compareReviews[reviewId]);
     }
 
     function getPreviousReview(pair) {
-      return pair.previous?.review || { status: "", preferred_question: "", literal_wording: "", note: "", split: "" };
+      return normalizeReview(pair.previous?.review);
     }
 
     function getFilteredCompareRecords() {
@@ -832,7 +953,7 @@
       });
       document.getElementById("acceptNewBtn").addEventListener("click", () => {
         updateCompareReview(currentReviewId, {
-          status: "approve",
+          status: "accepted",
           preferred_question: "",
         });
       });
@@ -942,11 +1063,11 @@
           <div class="panel-head compare-review-head">
             <h2>Current Review</h2>
             <div class="decision-grid">
-              <button data-status="approve" class="decision-btn approve ${review.status === "approve" ? "active" : ""}">Approve</button>
-              <button data-status="dismiss" class="decision-btn dismiss ${review.status === "dismiss" ? "active" : ""}">Dismiss</button>
+              <button data-status="accepted" class="decision-btn accepted ${review.status === "accepted" ? "active" : ""}">Accept</button>
+              <button data-status="excluded" class="decision-btn excluded ${review.status === "excluded" ? "active" : ""}">Exclude</button>
               <span class="decision-row-break" aria-hidden="true"></span>
-              <button data-status="needs_prompt_fix" class="decision-btn prompt ${review.status === "needs_prompt_fix" ? "active" : ""}">Needs Prompt Fix</button>
-              <button data-status="needs_data_fix" class="decision-btn data ${review.status === "needs_data_fix" ? "active" : ""}">Needs Data Fix</button>
+              <button data-status="prompt_improvement_recommended" class="decision-btn prompt ${review.status === "prompt_improvement_recommended" ? "active" : ""}">Recommend Prompt Improvement</button>
+              <button data-status="input_data_improvement_recommended" class="decision-btn data ${review.status === "input_data_improvement_recommended" ? "active" : ""}">Recommend Input-Data Improvement</button>
               <button data-status="" class="decision-btn clear ${!review.status ? "active" : ""}">Clear</button>
             </div>
           </div>
@@ -1059,7 +1180,7 @@
         previous_run: data.previous_run,
         current_run: data.current_run,
         exported_at: new Date().toISOString(),
-        reviews: compareReviews,
+        reviews: exportableReviews(compareReviews),
       };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -1077,9 +1198,10 @@
       reader.onload = () => {
         try {
           const payload = JSON.parse(String(reader.result || "{}"));
+          validateCompareImportPayload(payload);
           const imported = payload.reviews;
-          if (!imported || typeof imported !== "object") throw new Error("Bad review file format.");
-          compareReviews = imported;
+          validateImportedReviews(imported);
+          compareReviews = internalReviews(imported);
           saveCompareReviews();
           renderCompare();
         } catch (err) {

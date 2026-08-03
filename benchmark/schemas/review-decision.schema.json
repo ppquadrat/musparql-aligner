@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/review-decision.schema.json",
+  "title": "MuSPARQL review decision",
+  "type": "object",
+  "properties": {
+    "benchmark_disposition": {
+      "type": "string",
+      "enum": ["included", "excluded", "withheld"]
+    },
+    "pipeline_assessment": {
+      "type": ["string", "null"],
+      "enum": [
+        "accepted",
+        "prompt_improvement_recommended",
+        "input_data_improvement_recommended",
+        "not_applicable",
+        null
+      ]
+    },
+    "preferred_question": {"type": "string"},
+    "literal_wording": {"type": "string"},
+    "split": {"type": "string"}
+  },
+  "required": ["benchmark_disposition"],
+  "allOf": [
+    {
+      "if": {"properties": {"benchmark_disposition": {"const": "included"}}},
+      "then": {
+        "required": ["pipeline_assessment"],
+        "properties": {
+          "pipeline_assessment": {
+            "enum": [
+              "accepted",
+              "prompt_improvement_recommended",
+              "input_data_improvement_recommended",
+              "not_applicable"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"benchmark_disposition": {"const": "excluded"}}},
+      "then": {
+        "required": ["pipeline_assessment"],
+        "properties": {"pipeline_assessment": {"const": null}}
+      }
+    }
+  ],
+  "additionalProperties": true
+}

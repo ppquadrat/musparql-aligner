@@ -335,14 +335,14 @@ Run deterministic checks plus LLM judging:
 What the evaluator scores:
 
 - `benchmark.jsonl` only.
-- Approved benchmark items.
-- Pending benchmark items that have reviewer-supplied gold questions.
+- Every human-confirmed pair in that file.
 
 What the evaluator excludes:
 
 - `dismissed.jsonl`
 - `holdout.jsonl`
-- `ambiguity.jsonl`
+- `alternatives.jsonl`
+- `linguistic_annotations.jsonl`
 
 Deterministic checks cover:
 
@@ -376,11 +376,11 @@ Inputs:
 
 - one frozen generation run or current LLM output file
 - optional prior benchmark snapshot
-- optional previous review export when building comparison reviews
+- optional previous review export when building comparative reviews
 
-### Normal Review
+### Initial Review
 
-Build a normal review bundle:
+Build an initial-review bundle:
 
 ```bash
 .venv/bin/python build_review_bundle.py \
@@ -388,7 +388,7 @@ Build a normal review bundle:
   --run-manifest runs/<run-id>/manifest.json
 ```
 
-For later normal review rounds, pass the latest benchmark snapshot:
+For later initial-review rounds, pass the latest benchmark snapshot:
 
 ```bash
 .venv/bin/python build_review_bundle.py \
@@ -397,10 +397,10 @@ For later normal review rounds, pass the latest benchmark snapshot:
   --previous-benchmark benchmark/vN
 ```
 
-With `--previous-benchmark`, normal review excludes already reviewed pairs by
+With `--previous-benchmark`, initial review excludes already reviewed pairs by
 default and always excludes private holdout pairs. Use `--include-reviewed` only
-for deliberate audit passes over non-holdout reviewed pairs. Previous statuses
-remain hidden unless `--reveal-previous-status` is explicitly passed.
+for deliberate audit passes over non-holdout reviewed pairs. Previous decisions
+remain hidden unless `--reveal-previous-decision` is explicitly passed.
 
 Open the workbench through a local server:
 
@@ -412,7 +412,7 @@ python3 -m http.server 8000
 http://localhost:8000/review/
 ```
 
-Normal review captures:
+Initial review captures:
 
 - reviewer status
 - preferred/corrected wording
@@ -421,9 +421,9 @@ Normal review captures:
 - interpretive dimensions: naturalness, pragmatism, room for interpretation
 - whether graph/context knowledge is required
 
-### Compare Review
+### Comparative Review
 
-After changing extraction, enrichment, prompts, or models, build a comparison
+After changing extraction, enrichment, prompts, or models, build a comparative
 review bundle:
 
 ```bash
@@ -435,7 +435,7 @@ review bundle:
   --benchmark-only
 ```
 
-Compare mode shows previous and current records side by side. It is intended
+Comparative mode shows previous and current records side by side. It is intended
 for deciding whether changed or added outputs should update the benchmark.
 
 By default, compare mode focuses on added, removed, and review-worthy changed
@@ -449,12 +449,13 @@ Useful options:
 - `--include-metadata-only`: include metadata-only changes.
 - `--include-dismissed`: intentionally revisit previously dismissed pairs.
 
-Review labels:
+Review fields:
 
-- `approve`: keep this example in the benchmark. If there is a suggested rephrasing, use that in the benchmark, add the generated phrasing as an alternative in the ambiguity doc
-- `dismiss`: exclude this example from the benchmark and future generation inputs when dismissed exclusions are enabled - sparql queries not suited to natural language rephrasing, e.g. incomplete, purely technical like disambiguation, etc.
-- `needs_prompt_fix`: the pair is valid, but prompt/model behavior should improve.
-- `needs_data_fix`: the pair may be valid, but inputs or evidence are wrong, incomplete, noisy, or missing key signals.
+- `benchmark_disposition: included`: publish the human-confirmed canonical pair.
+- `benchmark_disposition: excluded`: exclude unsuitable benchmark material.
+- `pipeline_assessment: accepted`: the presented formulation is acceptable.
+- `pipeline_assessment: prompt_improvement_recommended`: the canonical pair is valid, but prompt/model behaviour should improve.
+- `pipeline_assessment: input_data_improvement_recommended`: the canonical pair is valid, but generation inputs or evidence should improve.
 
 Outputs:
 
@@ -479,77 +480,78 @@ Build a first benchmark snapshot:
   --outdir benchmark/v1
 ```
 
-The builder splits reviewed records into:
+The builder writes:
 
-- `approved.jsonl`
-- `pending.jsonl`
+- `included.jsonl`
 - `dismissed.jsonl`
 - `holdout.jsonl`
-- `ambiguity.jsonl`
+- `alternatives.jsonl`
+- `linguistic_annotations.jsonl` (internal only)
 
 It also creates the scoring dataset:
 
 - `benchmark.jsonl`
 
-`benchmark.jsonl` contains approved items plus pending items that have
-reviewer-supplied gold questions. Each item has exactly one canonical
-`gold_question`.
+`benchmark.jsonl` contains every included, human-confirmed pair. Each item has
+exactly one canonical `gold_question`; inclusion is implicit in presence.
 
 Gold question policy:
 
 - Use the reviewer rewrite when present.
 - Otherwise use the approved model output.
 
-### Benchmark Updates From Compare Review
+### Benchmark Updates From Comparative Review
 
-Apply a compare-review export to a previous benchmark snapshot:
+Apply a comparative-review export to a previous benchmark snapshot:
 
 ```bash
 .venv/bin/python benchmark/update_benchmark.py \
   --previous-benchmark benchmark/v1 \
   --bundle review/review_data.js \
-  --reviews review/exports/<compare-review-export>.json \
+  --reviews review/exports/<comparative-review-export>.json \
   --outdir benchmark/v2
 ```
 
 The update routine carries forward unchanged previous benchmark records and
-replaces only pairs that received decisions in the compare review.
+replaces only pairs that received decisions in the comparative review.
 
 Private holdout records are carried forward separately in `holdout.jsonl`.
-Accepted alternative phrasings and interpretive annotations are carried forward
-in `ambiguity.jsonl`.
+Accepted alternative phrasings are carried forward in `alternatives.jsonl`.
+Exploratory linguistic annotations are carried forward separately in the
+internal `linguistic_annotations.jsonl`.
 
-### Benchmark Updates From Normal Review
+### Benchmark Updates From Initial Review
 
-Normal review exports can also update an existing benchmark snapshot. This is
+Initial-review exports can also update an existing benchmark snapshot. This is
 the appropriate path when a reviewer has examined additional pairs from the same
 or a later run, but the review was not a side-by-side comparison of old and new
 outputs.
 
-Apply an additive normal-review export to a previous benchmark snapshot:
+Apply an additive initial-review export to a previous benchmark snapshot:
 
 ```bash
-.venv/bin/python benchmark/update_from_normal_review.py \
+.venv/bin/python benchmark/update_from_initial_review.py \
   --previous-benchmark benchmark/vN \
   --bundle review/review_data.js \
-  --reviews review/exports/<normal-review-export>.json \
+  --reviews review/exports/<initial-review-export>.json \
   --outdir benchmark/vN_plus_1
 ```
 
-For a normal-review update:
+For an initial-review update:
 
 - Carry forward all records from the previous benchmark snapshot.
 - Add newly reviewed pairs that were not already present.
 - Preserve dismissed and private holdout records according to the usual split
   policy.
-- Preserve accepted non-canonical phrasings, literal SPARQL wordings, and
-  interpretive annotations in `ambiguity.jsonl`.
+- Preserve accepted non-canonical phrasings and explicitly marked literal
+  SPARQL wordings in `alternatives.jsonl`; keep exploratory ratings separately
+  in internal `linguistic_annotations.jsonl`.
 - Record the update source in the new benchmark manifest.
 
-If a normal-review export only covers pairs that were absent from the previous
+If an initial-review export only covers pairs that were absent from the previous
 benchmark, the update is additive and requires no conflict resolution.
 
-If a normal-review export covers a pair that is already present in the
+If an initial-review export covers a pair that is already present in the
 benchmark, treat the new review as an additional judgment, not as an automatic
 replacement. The benchmark must keep one canonical decision for scoring, but it
 should preserve all review evidence in sidecar/provenance records.
@@ -587,40 +589,32 @@ They should not be collapsed silently.
 
 The benchmark curation policy is:
 
-- Preserve every review separately, including reviewer status, preferred
+- Preserve every review separately, including benchmark disposition, pipeline assessment, preferred
   wording, literal wording, notes, split, interpretive annotations, timestamp,
   review export, and run provenance.
 - Keep exactly one canonical `gold_question` in `benchmark.jsonl`.
-- Store accepted alternative wordings and literal formulations in
-  `ambiguity.jsonl`, with provenance for each formulation.
+- Store accepted alternative wordings and explicitly marked literal formulations
+  in `alternatives.jsonl`, with provenance for each formulation.
 - Track whether a canonical benchmark decision came from a single review,
   consensus, wording variation, status conflict, or adjudication.
 
-When review statuses agree:
+When review decisions agree:
 
-- `approve` + `approve`: include the pair as approved.
-- Matching non-approve statuses: keep that shared status.
+- Matching inclusion decisions: include the pair with the selected canonical wording.
 - If only one review supplies a preferred wording, use it as the canonical
   `gold_question`.
 - If multiple reviews supply preferred wordings, use the latest as the default
-  canonical wording and store the others in `ambiguity.jsonl`.
+  canonical wording and store the others in `alternatives.jsonl`.
 - If multiple literal wordings are supplied, retain all distinct literal
-  formulations in `ambiguity.jsonl`; do not force a single public literal
+  formulations under `literal_formulations` in `alternatives.jsonl`; do not force a single public literal
   wording unless a downstream export format requires one.
 
-When review statuses differ:
+When review decisions differ:
 
-- `approve` versus `needs_prompt_fix`: include only if there is a usable gold
-  question; prefer a reviewer correction when one exists, and mark the record as
-  having status disagreement.
-- `approve` versus `needs_data_fix`: require adjudication unless the data issue
-  is explicitly about model context or evidence and not about validity of the
-  NL-SPARQL pair itself.
-- Any status versus `dismiss`: require adjudication before including the pair in
+- Different pipeline assessments do not change inclusion when reviewers agree
+  on a human-confirmed canonical question.
+- Any inclusion decision versus exclusion: require adjudication before including the pair in
   the strict public benchmark.
-- Multiple non-approve statuses: include only when no reviewer dismissed the
-  pair and a reviewer-supplied gold question is available; otherwise keep it out
-  of the scoring benchmark until adjudicated.
 
 For public releases and paper results, use the strict benchmark: unresolved
 status conflicts involving dismissal or pair validity should be excluded from
@@ -628,21 +622,20 @@ status conflicts involving dismissal or pair validity should be excluded from
 internal prompt iteration, but it must be marked as such and should not be
 reported as the main curated benchmark.
 
-### Ambiguity Sidecar
+### Alternatives and Internal Linguistic Annotations
 
-`ambiguity.jsonl` is a public sidecar for interpretive annotations and accepted
-non-canonical phrasings. It is versioned with benchmark snapshots but excluded
-from normal automatic evaluation.
+`alternatives.jsonl` is the public sidecar for accepted non-canonical phrasings
+and explicitly marked literal formulations. `linguistic_annotations.jsonl`
+stores exploratory ratings internally and is excluded from the public release.
 
 The sidecar records:
 
 - pair identity
 - current canonical question
-- accepted alternative phrasings
+- accepted alternative phrasings and literal formulations in separate arrays
 - source type for each phrasing (`model_output`, `human_rewrite`,
-  `previous_gold_question`, `literal_sparql_wording`)
+  `previous_canonical_question`, `literal_sparql_wording`)
 - review/run/model provenance
-- interpretive annotations
 
 When an approved human rewrite becomes canonical, the generated model wording
 is retained as an accepted alternate if distinct. When a later approved rewrite
@@ -872,7 +865,8 @@ One exported human-review file:
   "exported_at": "2026-04-25T20:10:00Z",
   "reviews": {
     "meetups::meetups-0002::<token>": {
-      "status": "approve",
+      "benchmark_disposition": "withheld",
+      "pipeline_assessment": "accepted",
       "preferred_question": "",
       "literal_wording": "",
       "note": "",
@@ -895,11 +889,11 @@ Benchmark snapshots include:
 
 - `manifest.json`
 - `benchmark.jsonl`
-- `approved.jsonl`
-- `pending.jsonl`
+- `included.jsonl`
 - `dismissed.jsonl`
 - `holdout.jsonl`
-- `ambiguity.jsonl`
+- `alternatives.jsonl`
+- `linguistic_annotations.jsonl` (internal only)
 
 `benchmark.jsonl` is the compact scoring dataset:
 
@@ -907,7 +901,6 @@ Benchmark snapshots include:
 {
   "benchmark_version": "v3",
   "benchmark_built_at": "2026-05-19T12:00:00+00:00",
-  "benchmark_status_group": "approved",
   "benchmark_id": "meetups::meetups-0002::<token>",
   "kg_id": "meetups",
   "query_id": "meetups__sha256:...",
@@ -915,7 +908,6 @@ Benchmark snapshots include:
   "sparql": "...normalized SPARQL...",
   "gold_question": "Who are the two people who most frequently participated in meetups with Edward Elgar?",
   "gold_question_source": "approved_model_output",
-  "review_status": "approve",
   "review": {
     "review_id": "meetups::meetups-0002::<token>",
     "review_export": "review/exports/....json",
@@ -940,7 +932,7 @@ Benchmark snapshots include:
 }
 ```
 
-`ambiguity.jsonl` is a sidecar, not a scoring file:
+`alternatives.jsonl` is a public sidecar, not a scoring file:
 
 ```json
 {
@@ -953,8 +945,7 @@ Benchmark snapshots include:
   "sparql": "...normalized SPARQL...",
   "canonical_question": "Canonical reviewed wording?",
   "canonical_question_source": "reviewer_rewrite",
-  "review_status": "approve",
-  "accepted_rephrasings": [
+  "accepted_alternatives": [
     {
       "text": "Alternative accepted wording?",
       "normalized_text": "alternative accepted wording?",
@@ -968,22 +959,12 @@ Benchmark snapshots include:
       "updated_at": "2026-04-25T21:00:00Z"
     }
   ],
-  "interpretive_annotations": [
-    {
-      "interpretive": {
-        "naturalness": 88,
-        "pragmatism": 70,
-        "room_for_interpretation": 22,
-        "requires_graph_context_knowledge": true
-      },
-      "review_id": "meetups::meetups-0002::<token>",
-      "review_export": "review/exports/....json",
-      "dataset_id": "<review-dataset-id>",
-      "updated_at": "2026-04-25T21:00:00Z"
-    }
-  ]
+  "literal_formulations": []
 }
 ```
+
+Exploratory ratings use the same pair identity in the separate internal
+`linguistic_annotations.jsonl` file and are not part of the public release.
 
 ### `evals/reports/<eval-id>/`
 

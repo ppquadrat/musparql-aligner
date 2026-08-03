@@ -1,144 +1,150 @@
 # Benchmark
 
-This directory stores **curated benchmark snapshots** derived from:
+This directory stores versioned, human-curated NL–SPARQL benchmark snapshots.
+Every record in `benchmark.jsonl` is part of the benchmark and its canonical
+natural-language formulation has been confirmed by a human reviewer.
 
-- model outputs and their review bundle
-- exported human-review judgments
-- frozen LLM generation runs in `runs/<run-id>/`
+The `vN/` directories are data artifacts. The Python modules alongside them are
+maintenance tools for building, updating, auditing, and packaging those
+artifacts; they are part of the working repository but are not copied into the
+DOI dataset release. Keeping the tools next to the snapshots makes the
+reconstruction path visible, while `build_public_release.py` enforces the much
+smaller publication boundary.
 
-The benchmark is distinct from:
-
-- raw generation artefacts such as `llm_outputs.jsonl`
-- reviewer exports in `review/exports/`
-- the run snapshot itself
-
-## Structure
-
-- `benchmark/vN/manifest.json`
-  - metadata for a benchmark snapshot
-  - source files used to build it
-  - counts of approved / pending / dismissed items
+## Snapshot files
 
 - `benchmark/vN/benchmark.jsonl`
-  - the clean evaluation dataset
-  - approved items plus pending items that have a reviewer-supplied gold question
-  - one canonical `gold_question` per NL–SPARQL pair
-
-- `benchmark/vN/approved.jsonl`
-  - detailed approved records only
-  - preserves reviewed model output and provenance
-
-- `benchmark/vN/pending.jsonl`
-  - reviewed but not benchmark-approved items
-  - typically `needs_prompt_fix` or `needs_data_fix`
-  - records are included in `benchmark.jsonl` only when the reviewer supplied a gold question
-
+  - the compact scoring dataset
+  - one canonical `gold_question` and SPARQL query per record
+  - benchmark membership is implicit: every record in this file is included
+- `benchmark/vN/included.jsonl`
+  - detailed internal curation records for the included pairs
+  - preserves generation provenance and `pipeline_assessment`
+- `benchmark/vN/alternatives.jsonl`
+  - public sidecar containing human-accepted non-canonical formulations
+  - `accepted_alternatives` contains accepted model outputs and previous canonical questions
+  - `literal_formulations` contains reviewer-authored literal descriptions and marks each with
+    `source_type: "literal_sparql_wording"`
+- `benchmark/vN/linguistic_annotations.jsonl`
+  - internal exploratory ratings such as naturalness and pragmatism
+  - not part of the public release because the annotation scheme has not been validated
 - `benchmark/vN/dismissed.jsonl`
-  - reviewed items explicitly excluded from the benchmark
-  - useful for provenance/data-quality inspection, but not semantic scoring
-  - can be reused as an exclusion list when building future LLM prompt inputs
-
+  - candidates excluded during curation; never part of `benchmark.jsonl`
 - `benchmark/vN/holdout.jsonl`
-  - reviewer-marked private holdout items (`split: "private_holdout"`)
-  - excluded from `benchmark.jsonl`, `approved.jsonl`, `pending.jsonl`, and
-    `dismissed.jsonl`
-  - excluded from normal automatic evaluation and future generation inputs
-  - should not be printed, pasted into prompts, or used for prompt iteration
+  - reviewer-only records withheld from the public benchmark
+- `benchmark/vN/manifest.json`
+  - snapshot metadata, file inventory, and counts
+  - records the release builder and the intended public file set
 
-- `benchmark/vN/ambiguity.jsonl`
-  - public sidecar for interpretive annotations and accepted non-canonical phrasings
-  - one record per public pair that has interpretive data or accepted alternatives
-  - excluded from normal automatic evaluation
+The version directory is a working snapshot, not a DOI archive. A public release
+must be constructed with `build_public_release.py`, which serializes only allowed
+fields into `manifest.json`, `benchmark.jsonl`, and `alternatives.jsonl`.
+Detailed curation records, exploratory ratings, dismissed candidates, and
+holdout records remain internal.
 
-## Gold question policy
+## Pipeline assessment
 
-For each reviewed item:
+Pipeline assessment is independent of benchmark membership. It describes the
+pre-review formulation process, not the validity of the final canonical pair:
 
-- if the reviewer supplied a preferred rewrite, use that as `gold_question`
-- otherwise, if the model output was approved as-is, use the approved model output as `gold_question`
+- `accepted`: the presented candidate formulation was acceptable
+- `prompt_improvement_recommended`: the canonical pair is valid, but prompt or model behaviour should improve
+- `input_data_improvement_recommended`: the canonical pair is valid, but generation inputs should improve
+- `not_applicable`: no generated natural-language candidate was assessed, for example a source-authored prompt
 
-This keeps a single canonical wording per benchmark item, while preserving
-provenance about whether that wording came from the reviewer or the model.
-`benchmark.jsonl` intentionally omits accepted alternative wordings. When an
-approved human rewrite replaces a generated wording, the generated wording is
-retained in `ambiguity.jsonl` as an accepted rephrasing if it is distinct.
-When a later approved rewrite replaces an older canonical wording, the older
-canonical wording is also retained there.
+Excluded candidates use `benchmark_disposition: "excluded"`; private holdout
+records use `benchmark_disposition: "withheld"`. The compact scoring file omits
+both fields because its contents are uniformly included and human-confirmed.
 
-Reviewer-provided literal SPARQL wordings are also preserved in
-`ambiguity.jsonl` with `source_type: "literal_sparql_wording"` when they are
-distinct from the canonical question. They are intended for exact semantic
-traceability, not as the most likely natural-language phrasing.
+Generated formulations associated with an improvement recommendation are not
+published as accepted alternatives. Literal formulations are published only in
+the explicitly named `literal_formulations` array.
 
-## Builder
+## Canonical-question policy
 
-Build a benchmark snapshot from a review bundle and an exported review file:
+For each included pair:
+
+- use the reviewer-preferred formulation when supplied;
+- otherwise use the human-accepted model formulation;
+- for curated source prompts, retain the source-authored question.
+
+Alternative accepted wordings remain in `alternatives.jsonl`; exploratory
+linguistic ratings remain in the internal annotation file.
+
+## Build and update
+
+Review decisions follow `schemas/review-decision.schema.json`. Builders reject
+unknown disposition and assessment values instead of treating them as included.
+
+Build a snapshot from an initial-review bundle and export:
 
 ```bash
 .venv/bin/python benchmark/build_benchmark.py \
   --bundle review/review_data.js \
-  --reviews review/exports/musparql-review-830748f26ceb9031.json \
-  --outdir benchmark/v1
+  --reviews review/exports/<review-export>.json \
+  --outdir benchmark/vN
 ```
 
-Apply a compare-review export to an existing benchmark snapshot:
+A comparative-review bundle is constructed from the previous and current
+generation outputs. Previous decisions normally come from the latest benchmark
+snapshot; an earlier review export may also supply review context. Apply the new
+comparative-review decisions to that previous benchmark snapshot:
 
 ```bash
 .venv/bin/python benchmark/update_benchmark.py \
-  --previous-benchmark benchmark/v1 \
+  --previous-benchmark benchmark/vN \
   --bundle review/review_data.js \
-  --reviews review/exports/<compare-review-export>.json \
-  --outdir benchmark/v2
+  --reviews review/exports/<comparative-review-export>.json \
+  --outdir benchmark/vNext
 ```
 
-The update routine carries forward unchanged records from the previous benchmark
-and replaces only the pairs that received decisions in the compare review.
-Private holdout records are carried forward separately in `holdout.jsonl`.
-Accepted rephrasings and interpretive annotations are carried forward in
-`ambiguity.jsonl`.
+An initial review can also add newly reviewed pairs to an existing snapshot
+without comparing two generation runs side by side:
 
-## Record design
-
-Records in `benchmark.jsonl` are intentionally compact:
-
-- `sparql`
-- `gold_question`
-- traceability metadata (`query_id`, `query_label`, `kg_id`, source review file)
-- benchmark metadata (`benchmark_version`, `benchmark_built_at`, status group)
-- light analysis metadata (evidence type summary, review provenance)
-
-The benchmark should be easy to evaluate against, while still traceable back to the reviewed LLM generation run.
-Interpretive dimensions and accepted alternatives live in `ambiguity.jsonl` so
-they can support later ambiguity analysis without changing scoring semantics.
-
-In other words, the intended chain is:
-
-```text
-runs/<run-id>/ -> review/exports/<review-file>.json -> benchmark/vN/
+```bash
+.venv/bin/python benchmark/update_from_initial_review.py \
+  --previous-benchmark benchmark/vN \
+  --bundle review/review_data.js \
+  --reviews review/exports/<initial-review-export>.json \
+  --outdir benchmark/vNext
 ```
 
-## Automatic evaluation
-
-Use `evals/evaluate_runs.py` to compare frozen prompt/model generation runs against a
-benchmark snapshot:
+The evaluator reads every record in `benchmark.jsonl`:
 
 ```bash
 .venv/bin/python evals/evaluate_runs.py \
-  --benchmark benchmark/v2 \
-  --runs runs/<baseline-run> runs/<candidate-run> \
-  --baseline runs/<baseline-run> \
+  --benchmark benchmark/vN \
+  --runs runs/<run-id> \
+  --baseline runs/<baseline-run-id> \
   --judge-model gpt-5 \
   --out evals/reports/<eval-id>
 ```
 
-The evaluator scores `benchmark.jsonl`. That file already contains approved
-items plus pending items with reviewer-supplied gold questions. Dismissed items
-are excluded from semantic scoring.
-Private holdout items are also excluded because they are stored only in
-`holdout.jsonl`, not in `benchmark.jsonl`.
-Ambiguity records are excluded because they are stored only in
-`ambiguity.jsonl`, not in `benchmark.jsonl`.
+Regenerate all compact scoring files, accepted alternatives, and manifest counts
+from the detailed snapshots, auditing each version as it is written:
 
-SPARQL is treated as fixed input. If a run input's SPARQL differs from the
-benchmark SPARQL for the same `query_id`, the evaluator reports a deterministic
-`sparql_mismatch` warning and skips semantic judge scoring for that item.
+```bash
+.venv/bin/python benchmark/regenerate_snapshots.py
+```
+
+Run the snapshot and saved-evaluation consistency audits independently:
+
+```bash
+for snapshot in benchmark/v*; do
+  .venv/bin/python benchmark/audit_snapshot.py "$snapshot"
+done
+.venv/bin/python benchmark/audit_eval_reports.py
+```
+
+Build a new, empty public-release directory from a validated snapshot:
+
+```bash
+.venv/bin/python benchmark/build_public_release.py \
+  --snapshot benchmark/v7 \
+  --outdir build/public-v7
+```
+
+The release builder uses field allowlists and rejects private filesystem paths
+and internal review, API-response, and linguistic-annotation fields. It also
+writes SHA-256 checksums into the public manifest. Licensing and repository-level
+release documentation must still be completed before publishing the directory.

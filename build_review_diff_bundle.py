@@ -84,14 +84,13 @@ def load_jsonl(path: Path) -> List[Dict[str, Any]]:
 def benchmark_review_for_record(record: Dict[str, Any], group: str, source_benchmark: Path) -> Dict[str, Any]:
     review = record.get("review") if isinstance(record.get("review"), dict) else {}
     gold_source = str(record.get("gold_question_source") or "")
-    status = str(record.get("review_status") or "")
     return {
-        "status": status,
+        "benchmark_disposition": group,
+        "pipeline_assessment": str(record.get("pipeline_assessment") or ""),
         "preferred_question": record.get("gold_question") if gold_source == "reviewer_rewrite" else "",
         "note": review.get("note") or "",
         "updated_at": review.get("updated_at"),
         "benchmark_id": record.get("benchmark_id"),
-        "benchmark_status_group": group,
         "source_benchmark": str(source_benchmark),
     }
 
@@ -102,21 +101,20 @@ def load_benchmark_reviews(path: Optional[Path]) -> Tuple[Dict[PairKey, Dict[str
     review_by_pair: Dict[PairKey, Dict[str, Any]] = {}
     benchmark_pairs: set[PairKey] = set()
     for group, filename in (
-        ("approved", "approved.jsonl"),
-        ("pending", "pending.jsonl"),
-        ("dismissed", "dismissed.jsonl"),
-        ("holdout", "holdout.jsonl"),
+        ("included", "included.jsonl"),
+        ("excluded", "dismissed.jsonl"),
+        ("withheld", "holdout.jsonl"),
     ):
         for record in load_jsonl(path / filename):
             key = pair_key(record)
-            if group in {"approved", "pending"}:
+            if group == "included":
                 benchmark_pairs.add(key)
-            if group == "holdout":
+            if group == "withheld":
                 review_by_pair[key] = {
-                    "status": str(record.get("review_status") or ""),
+                    "benchmark_disposition": "withheld",
+                    "pipeline_assessment": str(record.get("pipeline_assessment") or ""),
                     "split": HOLDOUT_SPLIT,
                     "benchmark_id": record.get("benchmark_id"),
-                    "benchmark_status_group": group,
                     "source_benchmark": str(path),
                 }
             else:
@@ -124,19 +122,19 @@ def load_benchmark_reviews(path: Optional[Path]) -> Tuple[Dict[PairKey, Dict[str
     return review_by_pair, benchmark_pairs
 
 
-def previous_review_status_by_pair(
+def previous_pipeline_assessment_by_pair(
     previous_outputs: Dict[PairKey, Tuple[int, Dict[str, Any]]],
     previous_reviews: Dict[str, Any],
 ) -> Dict[PairKey, str]:
-    statuses: Dict[PairKey, str] = {}
+    assessments: Dict[PairKey, str] = {}
     for key, (idx, output) in previous_outputs.items():
         review = previous_reviews.get(review_id_for(output, idx))
         if not isinstance(review, dict):
             continue
-        status = review.get("status")
-        if isinstance(status, str) and status:
-            statuses[key] = status
-    return statuses
+        assessment = review.get("pipeline_assessment")
+        if isinstance(assessment, str) and assessment:
+            assessments[key] = assessment
+    return assessments
 
 
 def previous_review_by_pair(
@@ -338,7 +336,7 @@ def main() -> None:
     parser.add_argument(
         "--include-dismissed",
         action="store_true",
-        help="Include pairs that were dismissed in the previous review export. By default they are excluded from compare review.",
+        help="Include pairs that were dismissed in the previous review export. By default they are excluded from comparative review.",
     )
     parser.add_argument(
         "--include-metadata-only",
@@ -367,7 +365,11 @@ def main() -> None:
     benchmark_review_map, benchmark_pairs = load_benchmark_reviews(previous_benchmark_path)
     if benchmark_review_map:
         previous_review_map.update(benchmark_review_map)
-    previous_statuses = {key: str(review.get("status")) for key, review in previous_review_map.items() if review.get("status")}
+    previous_dispositions = {
+        key: str(review.get("benchmark_disposition"))
+        for key, review in previous_review_map.items()
+        if review.get("benchmark_disposition")
+    }
     previous_splits = {key: str(review.get("split")) for key, review in previous_review_map.items() if review.get("split")}
 
     records: List[Dict[str, Any]] = []
@@ -382,7 +384,7 @@ def main() -> None:
         if previous_splits.get(key) == HOLDOUT_SPLIT:
             holdout_excluded += 1
             continue
-        if previous_statuses.get(key) == "dismiss" and not args.include_dismissed:
+        if previous_dispositions.get(key) == "excluded" and not args.include_dismissed:
             dismissed_excluded += 1
             continue
 
@@ -467,8 +469,7 @@ def main() -> None:
             "holdout_excluded": holdout_excluded,
             "non_benchmark_excluded": non_benchmark_excluded,
             "metadata_only_excluded": metadata_only_excluded,
-            "benchmark_approved": sum(1 for rec in records if rec.get("previous", {}).get("review", {}).get("benchmark_status_group") == "approved"),
-            "benchmark_pending": sum(1 for rec in records if rec.get("previous", {}).get("review", {}).get("benchmark_status_group") == "pending"),
+            "benchmark_included": sum(1 for rec in records if rec.get("previous", {}).get("review", {}).get("benchmark_disposition") == "included"),
         },
         "records": records,
     }

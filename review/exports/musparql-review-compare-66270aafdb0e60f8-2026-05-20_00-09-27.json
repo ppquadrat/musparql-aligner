@@ -22,214 +22,244 @@
   "exported_at": "2026-05-19T23:09:27.675Z",
   "reviews": {
     "jazzontology::jazzontology-0012::528781470f62": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Find the band by its name",
       "note": "",
       "copied_from_review_id": "jazzontology::jazzontology-0012::f08e42a2554a",
-      "updated_at": "2026-05-19T21:33:18.535Z"
+      "updated_at": "2026-05-19T21:33:18.535Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0014::755f9bd16b8f": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Given the album title, disk number and track number, find the track title and the associated signal",
       "note": "My main concern here is the album vs release difference - in NL we would talk about album title rather than release title; in the ontology, release was chosen rather than album to indicate the relation to time",
       "copied_from_review_id": "jazzontology::jazzontology-0014::9d7838cc9612",
-      "updated_at": "2026-05-19T21:34:20.817Z"
+      "updated_at": "2026-05-19T21:34:20.817Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0022::79cb35c4d493": {
-      "status": "needs_prompt_fix",
       "preferred_question": "List all solos with attributed solo performers, with the track title and date, solo timestamp and instrument",
       "note": "This generated version lost the soloist, which is important because not solos have soloists attributed to them",
       "copied_from_review_id": "jazzontology::jazzontology-0022::9df78a7e16d9",
-      "updated_at": "2026-05-19T21:36:30.485Z"
+      "updated_at": "2026-05-19T21:36:30.485Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0010::c4f00005a66f": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Is there more than one composer with this name in the graph?",
       "note": "",
       "copied_from_review_id": "jazzontology::jazzontology-0010::86b7a633958e",
-      "updated_at": "2026-05-19T21:37:31.614Z"
+      "updated_at": "2026-05-19T21:37:31.614Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0011::6091d8f88f22": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Is there more than one arranger with this name in the graph?",
       "note": "This could be name disambiguation on the one hand - is there more than one arranger with this name in the dataset. Or, on the other hand, it could be a check whether there is an arranger with this name (this is what was generated), or whether this musician did any arrangements. The presence of 'distinct' suggests the former I would say.",
       "copied_from_review_id": "jazzontology::jazzontology-0011::d38d1e2073e2",
-      "updated_at": "2026-05-19T21:37:56.049Z"
+      "updated_at": "2026-05-19T21:37:56.049Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0015::fb17cb8bd3aa": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Which musicians performed together with the given performer?",
       "note": "Missing context - the Jazz Ontology models all performances as part of a session, therefore this query is for all musicians who ever performed together with the given one",
       "copied_from_review_id": "jazzontology::jazzontology-0015::0c04aa0ba9ca",
-      "updated_at": "2026-05-19T21:39:41.741Z"
+      "updated_at": "2026-05-19T21:39:41.741Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "meetups::meetups-0028::b1cde591ff43": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Give me ten examples of subjects from the graph?",
       "note": "",
       "copied_from_review_id": "meetups::meetups-0028::bd5412f2dad1",
-      "updated_at": "2026-05-19T21:40:48.193Z"
+      "updated_at": "2026-05-19T21:40:48.193Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "meetups::meetups-0008::91f59437264a": {
-      "status": "needs_prompt_fix",
       "preferred_question": "List all places in the graph with their coordinates",
       "note": "The generated phrase is factually accurate but highly improbable in NL.",
       "copied_from_review_id": "meetups::meetups-0008::61f0d197f91f",
-      "updated_at": "2026-05-19T21:41:39.068Z"
+      "updated_at": "2026-05-19T21:41:39.068Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "organs::organs-0004::25584737d583": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Which of the listed organs have an external website?",
       "note": "",
       "copied_from_review_id": "organs::organs-0004::feb8d2dba9dc",
-      "updated_at": "2026-05-19T21:43:46.996Z"
+      "updated_at": "2026-05-19T21:43:46.996Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "organs::organs-0002::3debf1b0b783": {
-      "status": "needs_prompt_fix",
       "preferred_question": "List the descriptions of the specified organs",
       "note": "",
       "copied_from_review_id": "organs::organs-0002::d0a7b6c47edb",
-      "updated_at": "2026-05-19T21:44:17.726Z"
+      "updated_at": "2026-05-19T21:44:17.726Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "organs::organs-0001::f8e025134ee5": {
-      "status": "needs_prompt_fix",
       "preferred_question": "List all organs in the graph",
       "note": "",
       "copied_from_review_id": "organs::organs-0001::d26440645ec6",
-      "updated_at": "2026-05-19T21:44:31.721Z"
+      "updated_at": "2026-05-19T21:44:31.721Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0021::62d7e6119f28": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
-      "updated_at": "2026-05-19T21:47:46.191Z"
+      "updated_at": "2026-05-19T21:47:46.191Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0024::2da45d018775": {
-      "status": "needs_prompt_fix",
       "preferred_question": "On Peter Appleyard’s album “The Lost 1974 Sessions,” which instruments take solos on each track, and who are the soloists?",
       "note": "",
       "copied_from_review_id": "jazzontology::jazzontology-0024::f55b5f47c6c9",
-      "updated_at": "2026-05-19T21:49:09.584Z"
+      "updated_at": "2026-05-19T21:49:09.584Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0005::998d57ace5b6": {
-      "status": "approve",
       "preferred_question": "Which release has the given title and number of records?",
       "note": "It would be great if the model would be able to learn that in NL release is usually called album. But in this specific example, it's the album title that is given but what we are looking for is a release - the connection from the album to the date and label. This is not a very NL friendly concept.",
-      "updated_at": "2026-05-19T21:53:11.660Z"
+      "updated_at": "2026-05-19T21:53:11.660Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0018::d3eadb592aa9": {
-      "status": "",
       "preferred_question": "Which bands performed \"Caravan\" and when?",
       "note": "",
       "updated_at": "2026-05-19T21:54:40.254Z"
     },
     "jazzontology::jazzontology-0023::30ca1e9e4487": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Find all solos by Dizzy Gillespie before 1950 and list the band name, the track title, the date of recording and the solo timestamp",
       "note": "Solos don't 'take place' in NL",
-      "updated_at": "2026-05-19T21:56:12.699Z"
+      "updated_at": "2026-05-19T21:56:12.699Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0007::5948cc0df65c": {
-      "status": "approve",
       "preferred_question": "",
       "note": "Here the retained evidence is probably more relevant than previously (no CQ fits here).",
-      "updated_at": "2026-05-19T22:01:45.752Z"
+      "updated_at": "2026-05-19T22:01:45.752Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0020::a3f0bfe9da2b": {
-      "status": "needs_prompt_fix",
       "preferred_question": "Find duplicate audio signals in the graph",
       "note": "This is too detailed for NL even though it is more exact then previously\nI have rewritten towards intent",
       "copied_from_review_id": "jazzontology::jazzontology-0020::032dbcff8dce",
-      "updated_at": "2026-05-19T22:05:10.742Z"
+      "updated_at": "2026-05-19T22:05:10.742Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "jazzontology::jazzontology-0016::fe7118e78c55": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "copied_from_review_id": "jazzontology::jazzontology-0016::79ff6d7a1135",
-      "updated_at": "2026-05-19T22:06:47.185Z"
+      "updated_at": "2026-05-19T22:06:47.185Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0002::ad6cf3319865": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
-      "updated_at": "2026-05-19T22:07:21.621Z"
+      "updated_at": "2026-05-19T22:07:21.621Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0009::68f875249199": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
-      "updated_at": "2026-05-19T22:07:45.727Z"
+      "updated_at": "2026-05-19T22:07:45.727Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0008::ff552eec04b3": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
-      "updated_at": "2026-05-19T22:08:12.321Z"
+      "updated_at": "2026-05-19T22:08:12.321Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0001::8ff86c52ed51": {
-      "status": "approve",
       "preferred_question": "For the given album, disk and track number, find the track",
       "note": "The generated wording is correct but probably too wordy for real life",
       "copied_from_review_id": "jazzontology::jazzontology-0001::60ee523572cf",
-      "updated_at": "2026-05-19T22:10:17.636Z"
+      "updated_at": "2026-05-19T22:10:17.636Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "jazzontology::jazzontology-0004::5a2de09e7773": {
-      "status": "approve",
       "preferred_question": "Find the label given its name",
       "note": "",
       "copied_from_review_id": "jazzontology::jazzontology-0004::b80118126798",
-      "updated_at": "2026-05-19T22:10:36.602Z"
+      "updated_at": "2026-05-19T22:10:36.602Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0004::8f03e36e7a39": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
-      "updated_at": "2026-05-19T22:11:52.258Z"
+      "updated_at": "2026-05-19T22:11:52.258Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0020::3acead6596c3": {
-      "status": "approve",
       "preferred_question": "How many distinct places are mentioned in the meetup records?",
       "note": "Meetup type is not part of the ontology so can probably be ignored in the nl wording",
       "copied_from_review_id": "meetups::meetups-0020::45ee7371d861",
-      "updated_at": "2026-05-19T22:12:42.636Z"
+      "updated_at": "2026-05-19T22:12:42.636Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0031::d5039ff1310e": {
-      "status": "approve",
       "preferred_question": "",
       "note": "This surfaces the evidence text which might be important, particularly if not all meetups have documented evidence in the graph",
-      "updated_at": "2026-05-19T22:15:40.987Z"
+      "updated_at": "2026-05-19T22:15:40.987Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0014::0ba68ce305f8": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
       "copied_from_review_id": "meetups::meetups-0014::bc1f05e1047e",
-      "updated_at": "2026-05-19T22:44:34.330Z"
+      "updated_at": "2026-05-19T22:44:34.330Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0029::a8cc2f10555c": {
-      "status": "approve",
       "preferred_question": "What meetups about Edward Elgar are recorded, and for each one, what was the purpose, who else participated, where did it take place (with coordinates), and when, along with the evidence text?",
       "note": "The evidence text was dropped. Without knowing the graph and whether other fields can exist without evidence I cannot say whether the evidence text was returned purely for provenance or if it was the intent of the search",
-      "updated_at": "2026-05-19T22:57:30.679Z"
+      "updated_at": "2026-05-19T22:57:30.679Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "meetups::meetups-0030::ccd2db793234": {
-      "status": "needs_prompt_fix",
       "preferred_question": "For meetups involving a participant named \"Django\", list their subject, supporting evidence text, purpose, locations (with coordinates), other participants, and the associated time span",
       "note": "This was not specific enough",
-      "updated_at": "2026-05-19T23:06:54.331Z"
+      "updated_at": "2026-05-19T23:06:54.331Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "prompt_improvement_recommended"
     },
     "meetups::meetups-0011::cffed0405aa5": {
-      "status": "approve",
       "preferred_question": "",
       "note": "",
-      "updated_at": "2026-05-19T23:07:51.897Z"
+      "updated_at": "2026-05-19T23:07:51.897Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     },
     "organs::organs-0011::2b261c328ab1": {
-      "status": "approve",
       "preferred_question": "For all organs in the graph, what are their original locations?",
       "note": "",
-      "updated_at": "2026-05-19T23:09:02.513Z"
+      "updated_at": "2026-05-19T23:09:02.513Z",
+      "benchmark_disposition": "included",
+      "pipeline_assessment": "accepted"
     }
   }
 }
