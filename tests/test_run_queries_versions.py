@@ -8,6 +8,8 @@ from run_queries import (
     build_query_jobs,
     clean_query,
     failure_matches_job,
+    is_remote_executable,
+    non_executable_reason,
     record_matches_sources,
     record_query_execution,
 )
@@ -77,6 +79,20 @@ def test_versionless_failure_is_source_version_zero():
     legacy = {"query_id": "q1", "status": "query_error"}
     assert failure_matches_job(legacy, {("q1", 0)})
     assert not failure_matches_job(legacy, {("q1", 1)})
+
+
+def test_unused_facade_x_prefix_does_not_make_query_local_only():
+    query = """PREFIX fx: <http://sparql.xyz/facade-x/ns/>
+SELECT * WHERE { ?s ?p ?o }"""
+    assert is_remote_executable(query)
+    assert not is_remote_executable(
+        query.replace("?s ?p ?o", "SERVICE <x-sparql-anything:> { fx:properties fx:location 'x.csv' }")
+    )
+
+
+def test_printf_query_templates_are_not_executed_as_literal_sparql():
+    assert non_executable_reason('SELECT * WHERE { ?s rdfs:label "%s" }') == "parameterized_template"
+    assert non_executable_reason("SELECT ?s\n## WHERE { <%s> ?p ?o }") == "parameterized_template"
 
 
 def test_effective_query_can_be_audited_separately_from_retained_text():

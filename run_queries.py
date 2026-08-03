@@ -602,15 +602,21 @@ def apply_graph(query: str, graph: Optional[str]) -> str:
     return query
 
 
-def is_remote_executable(query: str) -> bool:
+def non_executable_reason(query: str) -> Optional[str]:
     lowered = query.lower()
     if "x-sparql-anything" in lowered:
-        return False
-    if "fx:" in lowered and "sparql.xyz/facade-x" in lowered:
-        return False
+        return "requires_sparql_anything"
+    if re.search(r"\bfx:properties\b", lowered):
+        return "requires_sparql_anything"
     if "file://" in lowered:
-        return False
-    return True
+        return "requires_local_file"
+    if re.search(r"(?<!%)%(?:s|i|d|f)\b", query):
+        return "parameterized_template"
+    return None
+
+
+def is_remote_executable(query: str) -> bool:
+    return non_executable_reason(query) is None
 
 
 def preflight_endpoint(endpoint: KGEndpoint) -> None:
@@ -836,33 +842,36 @@ def main() -> None:
             continue
 
         query_to_run = clean_query(query)
-        if endpoint is not None:
-            if not is_remote_executable(query_to_run):
-                failures.append(
-                    {
-                        "kg_id": kg_id,
-                        "endpoint": endpoint.primary.endpoint,
-                        "status": "skipped_local_query",
-                        "query_id": rec.get("query_id"),
-                        "query_label": rec.get("query_label"),
-                        "sparql_version": version,
-                        "sparql_hash": resolved["sparql_hash"],
-                    }
-                )
-                stat["skipped_local"] += 1
-                skipped_execution = add_execution_version({
-                    "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        skip_reason = non_executable_reason(query) or non_executable_reason(query_to_run)
+        if skip_reason is not None:
+            configured_endpoint = endpoint.primary.endpoint if endpoint is not None else None
+            failures.append(
+                {
+                    "kg_id": kg_id,
+                    "endpoint": configured_endpoint,
                     "status": "skipped_local_query",
-                    "endpoint": endpoint.primary.endpoint,
-                    "result_count": None,
-                    "sample_row": None,
-                    "duration_ms": 0,
-                    "error": None,
-                    "effective_sparql_hash": compute_sparql_hash(query_to_run),
-                    "graph": None,
-                }, resolved)
-                record_query_execution(rec, skipped_execution)
-                continue
+                    "skip_reason": skip_reason,
+                    "query_id": rec.get("query_id"),
+                    "query_label": rec.get("query_label"),
+                    "sparql_version": version,
+                    "sparql_hash": resolved["sparql_hash"],
+                }
+            )
+            stat["skipped_local"] += 1
+            skipped_execution = add_execution_version({
+                "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                "status": "skipped_local_query",
+                "skip_reason": skip_reason,
+                "endpoint": configured_endpoint,
+                "result_count": None,
+                "sample_row": None,
+                "duration_ms": 0,
+                "error": None,
+                "effective_sparql_hash": compute_sparql_hash(query_to_run),
+                "graph": None,
+            }, resolved)
+            record_query_execution(rec, skipped_execution)
+            continue
         stat["ran"] += 1
         start = time.time()
         endpoint_used = None

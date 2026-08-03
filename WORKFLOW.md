@@ -240,6 +240,10 @@ to that retained version; `effective_sparql_hash` fingerprints the exact query
 after runner-only preparation such as outer-comment removal or graph injection.
 Skipped attempts are also recorded as the latest observation, while
 `latest_successful_execution` continues to point to the last success.
+Queries that require SPARQL Anything, local files, or runtime substitution are
+recorded as `skipped_local_query` with a machine-readable `skip_reason` such as
+`requires_sparql_anything`, `requires_local_file`, or
+`parameterized_template`; they are not counted as failed standalone SPARQL.
 `runnable_queries.failures.jsonl` is updated at the same `(query_id,
 sparql_version)` scope as the requested jobs. A version-scoped rerun therefore
 replaces failures only for that version and preserves failures for other
