@@ -146,7 +146,8 @@ rest of the comment is retained privately.
 - Literal SPARQL wording is preserved separately in
   `benchmark/vN/alternatives.jsonl` under `literal_formulations`, with source
   type `literal_sparql_wording`.
-- Private holdout records are excluded from normal benchmark snapshots,
+- Private holdout records are retained in the internal snapshot's
+  `holdout.jsonl`, but are excluded from compact scoring data, public releases,
   comparative-review queues, future prompt-input generation, and automatic
   evaluation by default. Do not paste or print holdout labels in model-visible
   conversations if the goal is to keep them clean.

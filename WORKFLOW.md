@@ -54,7 +54,9 @@ At a high level, the pipeline works like this:
 9. Use automatic evaluation for experiment triage against the current benchmark.
 10. Review selected outputs in the local review workbench.
 11. Build or update versioned benchmark snapshots under `benchmark/vN/`.
-12. Record targeted experiments under `experiments/`.
+12. Regenerate and audit snapshot-derived files and saved evaluation reports.
+13. Package a validated, allowlisted public release under `build/public-vN/`.
+14. Record targeted experiments under `experiments/`.
 
 The order is not strictly linear after generation. A candidate run can go to
 autoeval, human review, or both:
@@ -80,8 +82,9 @@ candidate generation run
 | `llm_outputs.jsonl` | Raw LLM generation/alignment outputs before merge or freezing |
 | `runs/<run-id>/` | Frozen generation runs with copied artefacts and model provenance |
 | `review/review_data.js` | Browser review bundle |
-| `review/exports/*.json` | Human review decisions, notes, rewrites, holdout flags, and interpretive annotations |
+| `review/exports/*.json` | Human review decisions, public/internal comments, rewrites, holdout flags, and interpretive annotations |
 | `benchmark/vN/` | Versioned benchmark snapshot and sidecar files |
+| `build/public-vN/` | Allowlisted public release with checksums |
 | `evals/reports/<eval-id>/` | Automatic evaluation reports |
 | `experiments/` | Targeted experiment notes and outcomes |
 
@@ -120,6 +123,30 @@ Process:
 Generated KG descriptions are optional downstream interpretation. They are not
 part of the deterministic `build_kgs.py` source-capture layer.
 
+Build the KG catalogue and captured source metadata with:
+
+```bash
+.venv/bin/python build_kgs.py
+```
+
+For existing artefacts created before normalized source IDs were introduced,
+attach catalogue identities without replacing commit-pinned evidence URLs:
+
+```bash
+.venv/bin/python normalize_source_provenance.py \
+  --query-catalog runs/<run-id>/kg_queries.jsonl
+```
+
+The immutable captured URL remains in `source_url`; the mutable catalogue URL
+is stored separately as `source_catalog_url`.
+
+Validate the catalogue, local source inventory, source-detail mapping, and
+captured URL preservation with:
+
+```bash
+.venv/bin/pytest -q tests/test_source_provenance.py
+```
+
 ### SPARQL Query Extraction
 
 Inputs:
@@ -135,8 +162,8 @@ Process:
 3. Extract embedded SPARQL from Markdown, HTML/pre blocks, source code, and PDFs.
 4. Normalize whitespace and prefixes.
 5. Deduplicate queries by normalized SPARQL hash.
-6. Record repository URL, source path, commit hash, checkout mode, default
-   branch, and line spans where available.
+6. Record repository URL, source path, commit hash, checkout mode, and default
+   branch where available.
 
 Output:
 
@@ -162,9 +189,11 @@ Evidence types include:
 - `cq_item`: competency questions from headings, lists, tables, or paper text.
 - `doc_pdf`: SPARQL or evidence extracted from academic PDFs.
 
-All evidence items carry `evidence_id`, source location, timestamps, and
-extractor version metadata. Repo-derived evidence also records commit and
-checkout information where available.
+All evidence items carry `evidence_id`, normalized `source_id` when matched,
+source location, timestamps, and extractor version metadata. `source_url`
+preserves the captured or commit-pinned locator; `source_catalog_url` records
+the catalogue locator separately. Repo-derived evidence also records commit
+and checkout information where available.
 
 Tests:
 
@@ -420,9 +449,10 @@ http://localhost:8000/review/
 
 Initial review captures:
 
-- reviewer status
+- benchmark disposition and pipeline assessment
 - preferred/corrected wording
-- reviewer notes
+- optional literal SPARQL wording
+- public reviewer comments and private operational comments as separate fields
 - private holdout flag
 - interpretive dimensions: naturalness, pragmatism, room for interpretation
 - whether graph/context knowledge is required
@@ -459,9 +489,25 @@ Review fields:
 
 - `benchmark_disposition: included`: publish the human-confirmed canonical pair.
 - `benchmark_disposition: excluded`: exclude unsuitable benchmark material.
+- `benchmark_disposition: withheld`: retain a private holdout outside scoring
+  and publication.
 - `pipeline_assessment: accepted`: the presented formulation is acceptable.
 - `pipeline_assessment: prompt_improvement_recommended`: the canonical pair is valid, but prompt/model behaviour should improve.
 - `pipeline_assessment: input_data_improvement_recommended`: the canonical pair is valid, but generation inputs or evidence should improve.
+- `pipeline_assessment: not_applicable`: no generated formulation was assessed,
+  for example a source-authored prompt.
+- `public_comment`: reviewer rationale intended for benchmark users.
+- `internal_comment`: operational text retained only in internal review and snapshot artefacts.
+- `literal_wording`: an exact SPARQL-oriented formulation retained separately from comments.
+
+Legacy `note` values default to `internal_comment`. Promote text to
+`public_comment` only through an explicit review decision.
+
+Normalize legacy exports and existing internal snapshots with:
+
+```bash
+.venv/bin/python benchmark/normalize_review_comments.py
+```
 
 Outputs:
 
@@ -596,7 +642,7 @@ They should not be collapsed silently.
 The benchmark curation policy is:
 
 - Preserve every review separately, including benchmark disposition, pipeline assessment, preferred
-  wording, literal wording, notes, split, interpretive annotations, timestamp,
+  wording, literal wording, public and internal comments, split, interpretive annotations, timestamp,
   review export, and run provenance.
 - Keep exactly one canonical `gold_question` in `benchmark.jsonl`.
 - Store accepted alternative wordings and explicitly marked literal formulations
@@ -650,6 +696,35 @@ an accepted alternate.
 
 Dismissed and private holdout records are not exposed through the public
 ambiguity sidecar.
+
+### Snapshot Audit And Public Release
+
+Version directories are working snapshots, not publication directories. After
+building or updating snapshots, regenerate derived compact files and audit the
+internal partitions:
+
+```bash
+.venv/bin/python benchmark/regenerate_snapshots.py
+
+for snapshot in benchmark/v*; do
+  .venv/bin/python benchmark/audit_snapshot.py "$snapshot"
+done
+.venv/bin/python benchmark/audit_eval_reports.py
+```
+
+Build a DOI/publication-ready directory from a validated snapshot with the
+allowlist-based release builder:
+
+```bash
+.venv/bin/python benchmark/build_public_release.py \
+  --snapshot benchmark/vN \
+  --outdir build/public-vN
+```
+
+The public release contains compact `benchmark.jsonl`, the accepted-alternatives
+sidecar `alternatives.jsonl`, and a checksum manifest. Detailed curation
+records, internal comments, dismissed candidates, holdouts, and exploratory
+linguistic annotations remain outside the release.
 
 ---
 
@@ -710,6 +785,44 @@ This appendix describes the main artefact families. The examples are indicative;
 tooling should remain tolerant of older records that omit newer provenance
 fields.
 
+### `sources.yaml` And `seeds.yaml`
+
+`sources.yaml` owns stable identities and provenance independently of KG
+selection. Supported source types are `repository`, `web_document`,
+`publication`, `local_document`, and `derivative`:
+
+```yaml
+sources:
+  - source_id: organs-ontology-readme
+    type: web_document
+    title: Polifonia Organs Ontology documentation
+    url: https://github.com/polifonia-project/organs-ontology/blob/main/README.md
+
+  - source_id: organs-ontology-curated-extract
+    type: derivative
+    title: Curated extract of the Organs Ontology documentation
+    local_path: curated_sources/organs__02__raw-githubusercontent-com_curated.txt
+    derived_from: [organs-ontology-readme]
+    description: Reproducible local evidence-selection extract.
+```
+
+Every source must have an external URL, a `derived_from` reference, or an
+explicit provenance description. Local paths are repository-relative. A
+derivative must identify at least one parent source.
+
+`seeds.yaml` selects catalogue IDs for each KG; hydrated `repos` and `docs`
+lists are derived by the loader rather than duplicated in the seed file:
+
+```yaml
+kgs:
+  - kg_id: organs
+    name: Polifonia Organs Knowledge Graph
+    source_ids:
+      - organs-knowledge-graph-repository
+      - organs-ontology-readme
+      - organs-ontology-curated-extract
+```
+
 ### `kgs.jsonl`
 
 One record per KG:
@@ -746,6 +859,7 @@ One record per KG:
       "resolved_url": "https://raw.githubusercontent.com/.../<commit>/README.md",
       "repo_commit": "<commit>",
       "source_path": "README.md",
+      "pipeline_path": "kg_sources/meetups__01__raw-githubusercontent-com.txt",
       "error": null
     }
   ]
@@ -770,7 +884,9 @@ One record per query:
     {
       "evidence_id": "e1",
       "type": "query_comment",
-      "source_url": "https://github.com/...",
+      "source_id": "musow-registry-data-repository",
+      "source_url": "https://raw.githubusercontent.com/.../<commit>/queries/example.rq",
+      "source_catalog_url": "https://github.com/polifonia-project/registry-data",
       "source_path": "queries/example.rq",
       "repo_commit": "abc123",
       "snippet": "Find all concerts...",
@@ -866,7 +982,6 @@ One exported human-review file:
 {
   "dataset_id": "830748f26ceb9031",
   "run_id": "2026-04-25-sample-review-gpt5",
-  "generation_run_id": "2026-04-25-sample-review-gpt5",
   "run_ids": ["2026-04-25-sample-review-gpt5"],
   "runs": [
     {
@@ -882,7 +997,8 @@ One exported human-review file:
       "pipeline_assessment": "accepted",
       "preferred_question": "",
       "literal_wording": "",
-      "note": "",
+      "public_comment": "",
+      "internal_comment": "Operational note retained privately.",
       "split": "private_holdout",
       "interpretive": {
         "naturalness": 88,
@@ -921,29 +1037,24 @@ Benchmark snapshots include:
   "sparql": "...normalized SPARQL...",
   "gold_question": "Who are the two people who most frequently participated in meetups with Edward Elgar?",
   "gold_question_source": "approved_model_output",
-  "review": {
-    "review_id": "meetups::meetups-0002::<token>",
-    "review_export": "review/exports/....json",
-    "dataset_id": "<review-dataset-id>",
-    "literal_wording": "",
-    "note": "",
-    "updated_at": "2026-04-25T21:00:00Z"
-  },
-  "run": {
-    "generation_run_id": "2026-04-25-sample-review-gpt5",
-    "run_label": "llm_outputs.sample_current",
-    "source_file": "llm_outputs.sample_current.jsonl",
-    "model": "gpt-5",
-    "run_signature": {"model": "gpt-5"}
-  },
   "evidence_summary": {
     "evidence_count": 41,
     "evidence_types": ["cq_item", "query_comment"],
     "has_source_evidence": true,
     "has_query_specific_evidence": true
+  },
+  "provenance": {
+    "question_source": "approved_model_output",
+    "source_type": "human_review",
+    "reviewer_comment": "Optional public rationale only."
   }
 }
 ```
+
+Detailed internal records live in `included.jsonl`, `dismissed.jsonl`, and
+`holdout.jsonl`. Those records retain review/run provenance, including separate
+`review.public_comment` and `review.internal_comment` fields; they must not be
+confused with the compact scoring schema above.
 
 `alternatives.jsonl` is a public sidecar, not a scoring file:
 
