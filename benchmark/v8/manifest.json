@@ -1,0 +1,72 @@
+{
+  "benchmark_version": "v8",
+  "built_at": "2026-08-03T20:33:35+00:00",
+  "update_type": "versioned_sparql_and_nl_alignment",
+  "previous_benchmark": "benchmark/v7",
+  "previous_benchmark_version": "v7",
+  "counts": {
+    "benchmark": 100,
+    "dismissed": 5,
+    "holdout": 0,
+    "included": 100,
+    "alternatives": 50,
+    "linguistic_annotations": 10,
+    "pipeline_assessment_counts": {
+      "accepted": 62,
+      "input_data_improvement_recommended": 6,
+      "not_applicable": 20,
+      "prompt_improvement_recommended": 12
+    },
+    "benchmark_disposition_counts": {
+      "excluded": 5,
+      "included": 100
+    }
+  },
+  "files": {
+    "benchmark": "benchmark.jsonl",
+    "included": "included.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "holdout": "holdout.jsonl",
+    "alternatives": "alternatives.jsonl",
+    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
+  },
+  "gold_question_policy": {
+    "preferred_question_used_when_present": true,
+    "approved_model_output_used_otherwise": true,
+    "source_prompt_used_for_curated_linkedmusic": true,
+    "unchanged_previous_items_carried_forward": true,
+    "benchmark_contains_all_human_confirmed_included_pairs": true,
+    "versioned_linkedmusic_sparql_used": true
+  },
+  "curation_note": "All benchmark pairs are pinned to the latest retained SPARQL version. LinkedMusic uses the canonical official-source identities and corrected version 1 queries. Concrete organ VALUES instances are named in canonical questions and illustrative lists are reduced to one organ.",
+  "release_boundary": {
+    "public_release_builder": "benchmark/build_public_release.py",
+    "working_snapshot_is_not_a_release_archive": true,
+    "public_release_files": [
+      "manifest.json",
+      "benchmark.jsonl",
+      "alternatives.jsonl"
+    ],
+    "internal_only_files": [
+      "included.jsonl",
+      "linguistic_annotations.jsonl",
+      "dismissed.jsonl",
+      "holdout.jsonl"
+    ]
+  },
+  "sparql_version_policy": "latest_retained",
+  "execution_snapshot": {
+    "source": "kg_queries.jsonl",
+    "captured_through": "2026-08-03T20:00:22+00:00",
+    "selected_queries": 100,
+    "selected_versions_with_execution": 100,
+    "status_counts": {
+      "empty": 38,
+      "http_error": 5,
+      "ok": 47,
+      "request_error": 1,
+      "skipped_local_query": 9
+    },
+    "note": "Execution history remains canonical in kg_queries.jsonl and is not duplicated in public NL-SPARQL records."
+  }
+}

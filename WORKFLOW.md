@@ -694,6 +694,18 @@ is idempotent:
 .venv/bin/python migrate_linkedmusic_versions.py
 ```
 
+Benchmark v8 resolves the legacy v7 LinkedMusic pairs to those canonical query
+records and selects version `1`; it also selects all other latest retained
+versions and records the exact version/hash on every pair. Its execution
+snapshot is a manifest summary and cutoff. The complete immutable observations
+remain in `kg_queries.jsonl`, so later executions do not change what was known
+when v8 was built. Rebuild and verify it with:
+
+```bash
+.venv/bin/python migrate_benchmark_v8.py
+.venv/bin/python benchmark/audit_snapshot.py benchmark/v8
+```
+
 ### Multiple Reviews And Conflict Resolution
 
 Multiple reviews of the same pair are methodologically useful: they can support

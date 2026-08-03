@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
@@ -17,6 +18,12 @@ from build_benchmark import (
     read_jsonl,
 )
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from sparql_versions import resolve_sparql_version, sparql_hash
+
 
 def key(record: Dict[str, Any]) -> Tuple[str, str]:
     return str(record.get("kg_id") or ""), str(record.get("query_id") or "")
@@ -25,6 +32,96 @@ def key(record: Dict[str, Any]) -> Tuple[str, str]:
 def duplicate_values(records: Iterable[Dict[str, Any]], field: str) -> List[str]:
     counts = Counter(str(record.get(field) or "") for record in records)
     return sorted(value for value, count in counts.items() if not value or count != 1)
+
+
+def snapshot_number(manifest: Dict[str, Any], snapshot: Path) -> int:
+    value = str(manifest.get("benchmark_version") or snapshot.name)
+    return int(value[1:]) if value.startswith("v") and value[1:].isdigit() else 0
+
+
+def audit_version_pins(
+    *,
+    snapshot: Path,
+    manifest: Dict[str, Any],
+    partitions: Iterable[Tuple[str, List[Dict[str, Any]]]],
+) -> List[str]:
+    if snapshot_number(manifest, snapshot) < 8:
+        return []
+    errors: List[str] = []
+    query_path = REPO_ROOT / "kg_queries.jsonl"
+    if not query_path.exists():
+        return ["cannot resolve v8 SPARQL pins because kg_queries.jsonl is missing"]
+    canonical = {
+        (str(row.get("kg_id") or ""), str(row.get("query_id") or "")): row
+        for row in read_jsonl(query_path)
+    }
+    latest_required = manifest.get("sparql_version_policy") == "latest_retained"
+    included: List[Dict[str, Any]] = []
+    for name, records in partitions:
+        if name == "included":
+            included = records
+        for row in records:
+            label = str(row.get("query_label") or row.get("benchmark_id") or "")
+            version = row.get("sparql_version")
+            digest = row.get("sparql_hash")
+            text = row.get("sparql")
+            if not isinstance(version, int) or not isinstance(digest, str) or not isinstance(text, str):
+                errors.append(f"{name} record lacks a complete SPARQL version pin: {label}")
+                continue
+            try:
+                if sparql_hash(text) != digest:
+                    errors.append(f"{name} SPARQL text/hash mismatch: {label}")
+                    continue
+            except ValueError as exc:
+                errors.append(f"{name} has invalid SPARQL: {label}: {exc}")
+                continue
+            query = canonical.get(key(row))
+            if query is None:
+                errors.append(f"{name} SPARQL pin has no canonical query record: {label}")
+                continue
+            try:
+                resolved = resolve_sparql_version(query, version)
+                latest = resolve_sparql_version(query, "latest")
+            except ValueError as exc:
+                errors.append(f"{name} SPARQL pin does not resolve: {label}: {exc}")
+                continue
+            if resolved["sparql_hash"] != digest or resolved["sparql"] != text:
+                errors.append(f"{name} SPARQL pin differs from the retained version: {label}")
+            if latest_required and latest["sparql_version"] != version:
+                errors.append(f"{name} does not select the latest retained SPARQL: {label}")
+
+    execution = manifest.get("execution_snapshot")
+    if not isinstance(execution, dict):
+        errors.append("manifest is missing execution_snapshot")
+        return errors
+    cutoff = str(execution.get("captured_through") or "")
+    statuses: Counter[str] = Counter()
+    matched = 0
+    for row in included:
+        query = canonical.get(key(row))
+        if query is None:
+            continue
+        observations = [
+            item
+            for item in query.get("execution_history") or []
+            if isinstance(item, dict)
+            and item.get("sparql_version") == row.get("sparql_version")
+            and item.get("sparql_hash") == row.get("sparql_hash")
+            and str(item.get("ran_at") or "") <= cutoff
+        ]
+        if not observations:
+            errors.append(f"execution snapshot has no matching observation: {row.get('query_label')}")
+            continue
+        observation = max(observations, key=lambda item: str(item.get("ran_at") or ""))
+        matched += 1
+        statuses[str(observation.get("status"))] += 1
+    if execution.get("selected_queries") != len(included):
+        errors.append("execution_snapshot selected_queries does not match included records")
+    if execution.get("selected_versions_with_execution") != matched:
+        errors.append("execution_snapshot selected_versions_with_execution is incorrect")
+    if execution.get("status_counts") != dict(sorted(statuses.items())):
+        errors.append("execution_snapshot status_counts do not match pinned observations")
+    return errors
 
 
 def audit_snapshot(snapshot: Path) -> List[str]:
@@ -103,6 +200,13 @@ def audit_snapshot(snapshot: Path) -> List[str]:
         errors.append("manifest pipeline_assessment_counts do not match included records")
     if counts.get("benchmark_disposition_counts") != disposition_counts:
         errors.append("manifest benchmark_disposition_counts do not match snapshot partitions")
+    errors.extend(
+        audit_version_pins(
+            snapshot=snapshot,
+            manifest=manifest,
+            partitions=(("included", included), ("dismissed", dismissed), ("holdout", holdout)),
+        )
+    )
     return errors
 
 

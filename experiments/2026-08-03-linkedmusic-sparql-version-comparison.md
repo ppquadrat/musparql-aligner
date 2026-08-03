@@ -59,5 +59,7 @@ All reported findings were fixed and the final suite passed 74 tests before the
 live rerun.
 
 Adopt the versioned representation and retain both query texts and their
-execution histories. This experiment did not update the benchmark; any future
-benchmark change still requires the normal human-review workflow.
+execution histories. The experiment itself did not update the benchmark. A
+subsequent human-adjudicated migration selected the corrected version 1 queries
+and canonical LinkedMusic identities for benchmark v8; its manifest points back
+to the execution ledger and records the observation cutoff and outcome counts.

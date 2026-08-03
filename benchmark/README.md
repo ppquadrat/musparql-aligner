@@ -161,11 +161,26 @@ Build a new, empty public-release directory from a validated snapshot:
 
 ```bash
 .venv/bin/python benchmark/build_public_release.py \
-  --snapshot benchmark/v7 \
-  --outdir build/public-v7
+  --snapshot benchmark/v8 \
+  --outdir build/public-v8
 ```
 
 The release builder uses field allowlists and rejects private filesystem paths
 and internal review, API-response, and linguistic-annotation fields. It also
 writes SHA-256 checksums into the public manifest. Licensing and repository-level
 release documentation must still be completed before publishing the directory.
+
+`benchmark/v8` is the first snapshot in which every query is explicitly pinned
+to a retained `sparql_version` and `sparql_hash`. Rebuild its adjudicated Organs
+questions, canonical LinkedMusic identities, and latest-version selections from
+v7 with:
+
+```bash
+.venv/bin/python migrate_benchmark_v8.py
+.venv/bin/python benchmark/audit_snapshot.py benchmark/v8
+```
+
+The v8 manifest summarizes the execution observations available for its 100
+selected SPARQL versions at build time. Full observations and histories remain
+in `kg_queries.jsonl`; they are deliberately not duplicated into the public
+NL–SPARQL release records.

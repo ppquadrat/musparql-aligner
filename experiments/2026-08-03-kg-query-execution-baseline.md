@@ -27,17 +27,19 @@ SPARQL.
 
 | KG | Extracted | Executed | `ok` | `empty` | Error | Non-standalone |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Organs | 11 | 11 | 0 | 10 | 1 | 0 |
+| Organs | 11 | 11 | 0 | 11 | 0 | 0 |
 | MEETUPS | 31 | 30 | 5 | 25 | 0 | 1 |
 | MUSOW | 94 | 92 | 90 | 2 | 0 | 2 |
-| Jazz Ontology | 24 | 9 | 8 | 1 | 0 | 15 |
+| Jazz Ontology | 24 | 12 | 8 | 4 | 0 | 12 |
 | MusicBO | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Total** | **160** | **142** | **103** | **38** | **1** | **18** |
+| **Total** | **160** | **145** | **103** | **42** | **0** | **15** |
 
-The 18 non-standalone records comprise one MEETUPS and two MUSOW SPARQL
-Anything/local-file queries, plus 15 Jazz Ontology Python `%s`/`%i`
-templates. The five MEETUPS `ok` results are aggregate rows whose totals are
-zero; they do not demonstrate that the intended data is present.
+The 15 non-standalone records comprise one MEETUPS and two MUSOW SPARQL
+Anything/local-file queries, plus 12 unresolved Jazz Ontology Python `%s`/`%i`
+templates. Three further Jazz templates now have concrete version 1 values and
+were executed, returning empty results. The five MEETUPS `ok` results are
+aggregate rows whose totals are zero; they do not demonstrate that the intended
+data is present.
 
 ## Dataset and endpoint caveats
 
@@ -63,7 +65,8 @@ availability, target-dataset presence, and required runtime context.
 | Query or group | Observation | Classification / next action |
 | --- | --- | --- |
 | `organs-0011` | The source query uses `xsd:Boolean(?isFirstProject) = True` and returned HTTP 400. A probe using `FILTER(?isFirstProject = true)` was accepted by the fallback endpoint, although it returned no rows. | Demonstrated SPARQL correction. The source remains version 0; the approved correction is retained as version 1. |
-| `jazzontology-0001`–`jazzontology-0015` | Queries contain Python runtime placeholders. | Extraction/runtime-context issue, not fifteen SPARQL corrections. |
+| Twelve Jazz Ontology templates | Queries still contain Python runtime placeholders. | Extraction/runtime-context issue, not twelve SPARQL corrections. |
+| `jazzontology-0009`–`jazzontology-0011` | Version 1 resolves the tune, composer, and arranger placeholders with concrete DTL resources and returns empty against the retained dump. | Valid parameter resolution; the empty result documents absent assertions rather than invalid SPARQL. |
 | `meetups-0005`, `musow-0093`, `musow-0094` | Queries depend on SPARQL Anything and local CSV input. | Execute in the required local environment; do not edit merely to make them remote-endpoint queries. |
 | `musow-0064`, `musow-0092`, `jazzontology-0020` | Standalone queries executed but returned empty. Variants probed for `musow-0064` also returned empty. | No demonstrated syntax correction. Investigate data and graph context before proposing an edit. |
 
@@ -75,6 +78,6 @@ extraction should still precede broad query editing.
 
 ## Benchmark decision
 
-This experiment records execution evidence only. It does not update the
-benchmark; corrected versions still require the normal provenance and human
-review workflow.
+The original baseline run recorded execution evidence only. Subsequent human
+adjudication added the approved versions above, recorded fresh version-linked
+executions, and incorporated the latest retained versions into benchmark v8.
