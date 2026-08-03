@@ -62,14 +62,16 @@ availability, target-dataset presence, and required runtime context.
 
 | Query or group | Observation | Classification / next action |
 | --- | --- | --- |
-| `organs-0011` | The source query uses `xsd:Boolean(?isFirstProject) = True` and returned HTTP 400. A probe using `FILTER(?isFirstProject = true)` was accepted by the fallback endpoint, although it returned no rows. | Demonstrated SPARQL correction candidate. Retain the source as version 0; append a corrected version only after a provenance-bearing correction decision. |
+| `organs-0011` | The source query uses `xsd:Boolean(?isFirstProject) = True` and returned HTTP 400. A probe using `FILTER(?isFirstProject = true)` was accepted by the fallback endpoint, although it returned no rows. | Demonstrated SPARQL correction. The source remains version 0; the approved correction is retained as version 1. |
 | `jazzontology-0001`–`jazzontology-0015` | Queries contain Python runtime placeholders. | Extraction/runtime-context issue, not fifteen SPARQL corrections. |
 | `meetups-0005`, `musow-0093`, `musow-0094` | Queries depend on SPARQL Anything and local CSV input. | Execute in the required local environment; do not edit merely to make them remote-endpoint queries. |
 | `musow-0064`, `musow-0092`, `jazzontology-0020` | Standalone queries executed but returned empty. Variants probed for `musow-0064` also returned empty. | No demonstrated syntax correction. Investigate data and graph context before proposing an edit. |
 
-No corrected SPARQL version was added by this run. Endpoint/dataset repair and
-runtime-aware extraction should precede broad query editing; only
-`organs-0011` currently has direct evidence for a textual correction.
+The baseline run itself did not add corrected SPARQL. In the subsequent release
+preparation step, `organs-0011` version 1 was added with
+`FILTER(?isFirstProject = true)` and executed successfully against the fallback
+endpoint with an empty result. Endpoint/dataset repair and runtime-aware
+extraction should still precede broad query editing.
 
 ## Benchmark decision
 
