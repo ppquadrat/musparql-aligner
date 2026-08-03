@@ -1,0 +1,101 @@
+sources:
+  - source_id: organs-knowledge-graph-repository
+    type: repository
+    title: Polifonia Organs Knowledge Graph repository
+    url: https://github.com/polifonia-project/organs-knowledge-graph
+
+  - source_id: organs-ontology-readme
+    type: web_document
+    title: Polifonia Organs Ontology documentation
+    url: https://github.com/polifonia-project/organs-ontology/blob/main/README.md
+
+  - source_id: organs-ontology-curated-extract
+    type: derivative
+    title: Curated extract of the Organs Ontology documentation
+    local_path: curated_sources/organs__02__raw-githubusercontent-com_curated.txt
+    derived_from: [organs-ontology-readme]
+    description: Locally curated extraction retained to make the evidence-selection step reproducible.
+
+  - source_id: meetups-knowledge-graph-repository
+    type: repository
+    title: Polifonia MEETUPS Knowledge Graph repository
+    url: https://github.com/polifonia-project/meetups-knowledge-graph
+
+  - source_id: meetups-query-examples
+    type: web_document
+    title: Polifonia MEETUPS example queries
+    url: https://polifonia.kmi.open.ac.uk/meetups/queries.php
+
+  - source_id: meetups-semmes-2023-paper
+    type: local_document
+    title: "Musical Meetups: a Knowledge Graph approach for Historical Social Network Analysis"
+    url: https://ceur-ws.org/Vol-3443/ESWC_2023_SEMMES_Meetups-CR.pdf
+    local_path: pdfs/2023_SEMMES_Meetups-CR.pdf
+    description: Downloaded SEMMES 2023 paper retained as a source of competency questions and domain context.
+
+  - source_id: meetups-eswc-2024-paper
+    type: publication
+    title: "Musical Meetups Knowledge Graph (MMKG): a collection of evidence for historical social network analysis"
+    url: https://doi.org/10.1007/978-3-031-60635-9_7
+    local_path: pdfs/Meetups_ESWC.pdf
+
+  - source_id: musow-registry-data-repository
+    type: repository
+    title: Polifonia registry-data repository
+    url: https://github.com/polifonia-project/registry-data
+
+  - source_id: musow-licence-experiments-repository
+    type: repository
+    title: MusOW licence experiments repository
+    url: https://github.com/polifonia-project/musow-licences-experiments-llm
+
+  - source_id: musow-project-page
+    type: web_document
+    title: MusOW project page
+    url: https://polifonia-project.eu/musow
+
+  - source_id: musicbo-knowledge-graph-repository
+    type: repository
+    title: Polifonia MusicBO Knowledge Graph repository
+    url: https://github.com/polifonia-project/musicbo-knowledge-graph
+
+  - source_id: jazz-ontology-repository
+    type: repository
+    title: Dig That Lick and Jazz Ontology repository
+    url: https://github.com/ppquadrat/DigThatLick
+
+  - source_id: jazz-ontology-2022-paper
+    type: publication
+    title: "The Jazz Ontology: A semantic model and large-scale RDF repositories for jazz"
+    url: https://doi.org/10.1016/j.websem.2022.100735
+
+  - source_id: jazz-ontology-supplement
+    type: local_document
+    title: Supplement to The Jazz Ontology
+    local_path: pdfs/Jazz Ontology supplement.pdf
+    derived_from: [jazz-ontology-2022-paper]
+    description: Downloaded supplementary material containing competency questions and example SPARQL queries.
+
+  - source_id: polifonia-d2-1-deliverable
+    type: publication
+    title: "Polifonia D2.1: Ontology-based knowledge graphs for music objects"
+    url: https://cordis.europa.eu/project/id/101004746/results
+    local_path: pdfs/Polifonia_D2.1_V1.0.pdf
+
+  - source_id: polifonia-ontology-network-2023-paper
+    type: publication
+    title: "The Polifonia Ontology Network: Building a Semantic Backbone for Musical Heritage"
+    url: https://doi.org/10.1007/978-3-031-47243-5_17
+    local_path: pdfs/Polifonia_ISWC.pdf
+
+  - source_id: sesemmi-linkedmusic-2025-paper
+    type: publication
+    title: "SESEMMI for LinkedMusic: Democratizing Access to Musical Archives via Large Language Models"
+    url: https://openreview.net/forum?id=hSDeNeUzcy
+
+  - source_id: linkedmusic-corrected-examples-working-copy
+    type: derivative
+    title: Musparql-corrected working copy of the LinkedMusic examples
+    local_path: curated_sources/LinkedMusic_Queries_Corrected.md
+    derived_from: [sesemmi-linkedmusic-2025-paper]
+    description: Temporary corrected examples awaiting the dedicated LinkedMusic pipeline import and review run.

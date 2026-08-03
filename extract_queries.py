@@ -25,26 +25,18 @@ from urllib.parse import urlparse
 import yaml
 from pypdf import PdfReader
 
+from source_catalog import load_hydrated_seeds
+
 
 @dataclass
 class KGSeed:
     kg_id: str
     repos: List[str]
+    repo_source_ids: Dict[str, str]
 
 
 def load_seeds(path: Path) -> List[Dict[str, object]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing seeds file: {path}")
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError("seeds.yaml must contain a top-level mapping (dictionary).")
-    kgs = data.get("kgs")
-    if not isinstance(kgs, list):
-        raise ValueError("seeds.yaml must have a top-level key 'kgs' containing a list.")
-    for i, item in enumerate(kgs):
-        if not isinstance(item, dict):
-            raise ValueError(f"seeds.yaml: kgs[{i}] must be a mapping (dict).")
-    return kgs
+    return load_hydrated_seeds(path)
 
 
 def load_kgs_jsonl(path: Path) -> List[Dict[str, object]]:
@@ -72,7 +64,17 @@ def parse_kg_seed(raw: Dict[str, object]) -> KGSeed:
     repos = raw.get("repos") or []
     if not isinstance(repos, list) or not all(isinstance(x, str) for x in repos):
         raise ValueError(f"KG '{kg_id}': 'repos' must be a list of strings.")
-    return KGSeed(kg_id=kg_id.strip(), repos=repos)
+    repo_source_ids: Dict[str, str] = {}
+    source_records = raw.get("source_records") or []
+    if isinstance(source_records, list):
+        for source in source_records:
+            if not isinstance(source, dict) or source.get("type") != "repository":
+                continue
+            url = source.get("url")
+            source_id = source.get("source_id")
+            if isinstance(url, str) and isinstance(source_id, str):
+                repo_source_ids[url] = source_id
+    return KGSeed(kg_id=kg_id.strip(), repos=repos, repo_source_ids=repo_source_ids)
 
 
 def repo_dir_from_url(repo_url: str) -> Path:
@@ -608,6 +610,7 @@ def main() -> None:
     label_counters: Dict[str, int] = {}
     extracted_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     kg_sources: Dict[str, List[str]] = {}
+    source_provenance_by_path: Dict[str, Dict[str, object]] = {}
     if kgs_path.exists():
         for kg in load_kgs_jsonl(kgs_path):
             kg_id = kg.get("kg_id")
@@ -628,6 +631,14 @@ def main() -> None:
                     doc_path = Path(doc)
                     if doc_path.exists():
                         append_unique_source(kg_sources, kg_id, str(doc_path))
+            source_details = kg.get("source_details")
+            if isinstance(source_details, list):
+                for detail in source_details:
+                    if not isinstance(detail, dict):
+                        continue
+                    for candidate in (detail.get("pipeline_path"), detail.get("source_path")):
+                        if isinstance(candidate, str) and candidate:
+                            source_provenance_by_path[candidate] = detail
 
     for kg in kgs:
         for repo_url in kg.repos:
@@ -671,6 +682,7 @@ def main() -> None:
                             "evidence_id": f"e{len(record['evidence']) + 1}",
                             "type": item["source_type"],
                             "source_url": repo_url,
+                            "source_id": kg.repo_source_ids.get(repo_url),
                             "source_path": rel_path,
                             "repo_commit": repo_commit,
                             "repo_checkout_mode": repo_checkout_mode,
@@ -724,12 +736,14 @@ def main() -> None:
                     )
                     records.append(record_by_key[key])
                 record = record_by_key[key]
+                source_provenance = source_provenance_by_path.get(str(pdf_path), {})
                 record["evidence"].append(
                     {
                         "evidence_id": f"e{len(record['evidence']) + 1}",
                         "type": "doc_pdf",
-                        "source_url": "",
+                        "source_url": source_provenance.get("source_url") or source_provenance.get("resolved_url") or "",
                         "source_path": str(pdf_path),
+                        "source_id": source_provenance.get("source_id"),
                         "repo_commit": "",
                         "snippet": q.strip(),
                         "extracted_at": extracted_at,
@@ -783,12 +797,14 @@ def main() -> None:
                         )
                         records.append(record_by_key[key])
                     record = record_by_key[key]
+                    source_provenance = source_provenance_by_path.get(str(src_path), {})
                     record["evidence"].append(
                         {
                             "evidence_id": f"e{len(record['evidence']) + 1}",
                             "type": "doc_pre" if "<pre" in raw_body.lower() else "doc_fence",
-                            "source_url": source_url,
+                            "source_url": source_provenance.get("source_url") or source_provenance.get("resolved_url") or source_url,
                             "source_path": str(src_path),
+                            "source_id": source_provenance.get("source_id"),
                             "repo_commit": "",
                             "snippet": q.strip(),
                             "extracted_at": extracted_at,

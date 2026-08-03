@@ -12,11 +12,10 @@
       fallbacks:
         - endpoint: https://data.open.ac.uk/sparql
           auth: none
-    repos:
-      - https://github.com/polifonia-project/organs-knowledge-graph
-    docs:
-      - https://github.com/polifonia-project/organs-ontology/blob/main/README.md
-      - curated_sources/organs__02__raw-githubusercontent-com_curated.txt
+    source_ids:
+      - organs-knowledge-graph-repository
+      - organs-ontology-readme
+      - organs-ontology-curated-extract
     priority: high
     notes: >
       Already partially curated manually. Use as baseline for automation tests.
@@ -33,12 +32,11 @@
       fallbacks:
         - endpoint: https://data.open.ac.uk/sparql
           auth: none
-    repos:
-      - https://github.com/polifonia-project/meetups-knowledge-graph
-    docs:
-      - https://polifonia.kmi.open.ac.uk/meetups/queries.php
-      - pdfs/2023_SEMMES_Meetups-CR.pdf
-      - pdfs/Meetups_ESWC.pdf
+    source_ids:
+      - meetups-knowledge-graph-repository
+      - meetups-query-examples
+      - meetups-semmes-2023-paper
+      - meetups-eswc-2024-paper
     priority: high
     notes: >
       Provides a page of example SPARQL queries – ideal for bootstrapping pairs.
@@ -56,11 +54,10 @@
       expected_namespaces:
         - http://w3id.org/polifonia/ontology/musow#
         - http://www.w3.org/2004/02/skos/core#
-    repos:
-      - https://github.com/polifonia-project/registry-data
-      - https://github.com/polifonia-project/musow-licences-experiments-llm
-    docs:
-      - https://polifonia-project.eu/musow
+    source_ids:
+      - musow-registry-data-repository
+      - musow-licence-experiments-repository
+      - musow-project-page
     priority: medium
     notes: >
       MUSOW is a conceptual and registry-style knowledge graph developed in the
@@ -79,8 +76,8 @@
     sparql:
       endpoint: https://polifonia.disi.unibo.it/musicbo/sparql
       auth: none
-    repos:
-      - https://github.com/polifonia-project/musicbo-knowledge-graph
+    source_ids:
+      - musicbo-knowledge-graph-repository
     priority: medium
     notes: >
       Repo contains SPARQL examples embedded in documentation rather than .rq files.
@@ -95,11 +92,10 @@
       dump_url: https://osf.io/qnb4k/download
       local_path: dumps/jazzontology.ttl
       format: turtle
-    repos:
-      - https://github.com/ppquadrat/DigThatLick
-    docs:
-      - pdfs/Jazz Ontology supplement.pdf
-      - https://www.sciencedirect.com/science/article/pii/S1570826822000245
+    source_ids:
+      - jazz-ontology-repository
+      - jazz-ontology-supplement
+      - jazz-ontology-2022-paper
     priority: medium
     notes: >
       RDF data dump (TTL) referenced at https://osf.io/bwg42/files/qnb4k.

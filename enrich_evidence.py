@@ -10,6 +10,8 @@ from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlparse
 from pypdf import PdfReader
 
+from source_catalog import load_source_catalog, source_for_locator
+
 
 def load_query_records(path: Path) -> List[Dict[str, object]]:
     if not path.exists():
@@ -1919,6 +1921,7 @@ def main() -> None:
 
     ensure_missing_source_query_descs(by_kg_hash, kg_sources, extracted_at)
 
+    source_catalogue = load_source_catalog(Path("sources.yaml")) if Path("sources.yaml").exists() else {}
     after_counts: Dict[str, int] = {}
     type_counts: Dict[str, int] = {}
     for rec in records:
@@ -1926,6 +1929,12 @@ def main() -> None:
         if isinstance(evidence, list):
             rec["evidence"] = renumber_evidence(dedupe_evidence(expand_cq_items(evidence)))
             for ev in rec["evidence"]:
+                if isinstance(ev, dict):
+                    source = source_for_locator(ev.get("source_path"), ev.get("source_url"), source_catalogue)
+                    if source is not None:
+                        ev["source_id"] = source.get("source_id")
+                        if source.get("url"):
+                            ev["source_catalog_url"] = source.get("url")
                 if isinstance(ev, dict) and ev.get("type"):
                     type_counts[ev["type"]] = type_counts.get(ev["type"], 0) + 1
             kg_id = rec.get("kg_id")

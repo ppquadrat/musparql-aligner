@@ -43,7 +43,7 @@ and normal automatic evaluation.
 
 At a high level, the pipeline works like this:
 
-1. Define KG selection and source locations in `seeds.yaml`.
+1. Define source provenance in `sources.yaml` and select source IDs in `seeds.yaml`.
 2. Capture KG source snapshots into `kgs.jsonl` and `kg_sources/`.
 3. Extract candidate SPARQL queries into `kg_queries.jsonl`.
 4. Enrich query records with nearby human-readable evidence.
@@ -71,7 +71,8 @@ candidate generation run
 
 | Artefact | Role |
 | --- | --- |
-| `seeds.yaml` | KG selection and source configuration |
+| `sources.yaml` | Stable source identities, external links, derivations, and justified local artefacts |
+| `seeds.yaml` | KG selection and references to normalized source IDs |
 | `kgs.jsonl` | KG catalogue, endpoint metadata, and captured source provenance |
 | `kg_sources/` | Deterministic text snapshots of KG source material |
 | `kg_queries.jsonl` | Working query records: SPARQL, evidence, execution metadata, and merged NL output |
@@ -97,6 +98,7 @@ query execution metadata without LLM interpretation.
 
 Inputs:
 
+- `sources.yaml`
 - `seeds.yaml`
 - KG README files
 - project websites
@@ -105,12 +107,14 @@ Inputs:
 
 Process:
 
-1. Resolve GitHub README and GitHub `blob/...` documentation URLs to
+1. Validate that each source has an external URL, a `derived_from` reference,
+   or a description justifying a local artefact.
+2. Resolve GitHub README and GitHub `blob/...` documentation URLs to
    commit-pinned raw URLs when possible.
-2. Save deterministic text snapshots under `kg_sources/`.
-3. Record provenance in `kgs.jsonl` through `source_urls`, `source_files`, and
-   `source_details`.
-4. Preserve curated local fixes as explicit sources rather than silently
+3. Save deterministic text snapshots under `kg_sources/`.
+4. Record source IDs and catalogue provenance in `kgs.jsonl` through
+   `source_ids`, `source_files`, and `source_details`.
+5. Preserve curated local fixes as explicit derivative sources rather than silently
    replacing upstream material.
 
 Generated KG descriptions are optional downstream interpretation. They are not
@@ -170,7 +174,9 @@ Tests:
 
 ### Academic Paper Integration
 
-Academic papers are part of the same source-acquisition layer. When a KG has a
+Academic papers are part of the same source-acquisition layer. Every downloaded
+paper or supplement must have a `sources.yaml` record preserving its public URL,
+its relationship to another source, or an explicit justification. When a KG has a
 canonical paper or supplement, the pipeline extracts SPARQL examples,
 competency questions, captions, and nearby explanatory text. Paper-derived
 queries and evidence enter `kg_queries.jsonl` through the same fields as
@@ -563,10 +569,10 @@ step, rather than silently replacing the previous benchmark decision.
 ### Curated Source Additions
 
 Some public sources already provide both natural-language prompts and SPARQL
-queries. These can enter the public benchmark as source-authored pairs without a
-review UI pass when their provenance is clear and the pairing has been checked.
-
-For LinkedMusic curated examples:
+queries. They should still pass through source capture, query extraction,
+pairing, and a lightweight human review. The command below documents the legacy
+LinkedMusic shortcut retained for reconstruction only; it must not be used for
+the final DOI release:
 
 ```bash
 .venv/bin/python benchmark/add_linkedmusic_curated.py \
@@ -575,7 +581,7 @@ For LinkedMusic curated examples:
   --outdir benchmark/vN_plus_1
 ```
 
-Curated-source records use the source prompt as `gold_question` and record
+Legacy curated-source records use the source prompt as `gold_question` and record
 `gold_question_source: "source_prompt"`. Query execution status should be
 recorded separately from pair validity: a source-authored NL-SPARQL pair can be
 valid benchmark material even when a live federated query is temporarily
@@ -726,10 +732,17 @@ One record per KG:
   },
   "repos": ["https://github.com/polifonia-project/meetups-knowledge-graph"],
   "docs": ["https://polifonia.kmi.open.ac.uk/meetups/queries.php"],
+  "source_ids": ["meetups-knowledge-graph-repository", "meetups-query-examples"],
   "source_files": ["kg_sources/meetups__01__raw-githubusercontent-com.txt"],
   "source_details": [
     {
       "source_url": "https://github.com/polifonia-project/meetups-knowledge-graph",
+      "source_id": "meetups-knowledge-graph-repository",
+      "catalog_provenance": {
+        "type": "repository",
+        "title": "Polifonia MEETUPS Knowledge Graph repository",
+        "url": "https://github.com/polifonia-project/meetups-knowledge-graph"
+      },
       "resolved_url": "https://raw.githubusercontent.com/.../<commit>/README.md",
       "repo_commit": "<commit>",
       "source_path": "README.md",

@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 import requests
 import yaml
 
+from source_catalog import load_hydrated_seeds
+
 
 @dataclass
 class SparqlConfig:
@@ -33,6 +35,8 @@ class KGSeed:
     priority: Optional[str] = None
     notes: Optional[str] = None
     dataset: Optional["KGDataset"] = None
+    source_ids: List[str] = None
+    source_records: List[Dict[str, Any]] = None
 
 
 @dataclass
@@ -301,22 +305,7 @@ def save_sources(kg_id: str, sources: List[Dict[str, Any]], out_dir: Path) -> Li
 
 
 def load_seeds(path: Path) -> List[Dict[str, Any]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing seeds file: {path}")
-
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError("seeds.yaml must contain a top-level mapping (dictionary).")
-
-    kgs = data.get("kgs")
-    if not isinstance(kgs, list):
-        raise ValueError("seeds.yaml must have a top-level key 'kgs' containing a list.")
-
-    for i, item in enumerate(kgs):
-        if not isinstance(item, dict):
-            raise ValueError(f"seeds.yaml: kgs[{i}] must be a mapping (dict).")
-
-    return kgs
+    return load_hydrated_seeds(path)
 
 
 def parse_kg_seed(raw: Dict[str, Any]) -> KGSeed:
@@ -390,6 +379,8 @@ def parse_kg_seed(raw: Dict[str, Any]) -> KGSeed:
         priority=raw.get("priority"),
         notes=raw.get("notes"),
         dataset=dataset_cfg,
+        source_ids=list(raw.get("source_ids") or []),
+        source_records=list(raw.get("source_records") or []),
     )
 
 
@@ -420,6 +411,7 @@ def kgseed_to_record(kg: KGSeed) -> Dict[str, Any]:
         "dataset": dataset_obj,
         "repos": list(kg.repos or []),
         "docs": list(kg.docs or []),
+        "source_ids": list(kg.source_ids or []),
         "notes": kg.notes,
         "created_at": today,
         "updated_at": today,
@@ -438,21 +430,31 @@ def fetch_sources_for_kg(kg: KGSeed) -> List[Dict[str, Any]]:
     """Fetch README + docs sources for a KG (deterministic, no OpenAI)."""
     sources: List[Dict[str, Any]] = []
 
-    for repo_url in (kg.repos or []):
-        if "github.com" in repo_url:
-            sources.append(fetch_github_readme(repo_url))
+    for source_record in (kg.source_records or []):
+        source_id = str(source_record.get("source_id") or "")
+        source_type = source_record.get("type")
+        url = source_record.get("url")
+        local_path = source_record.get("local_path")
+        if source_type == "repository" and isinstance(url, str):
+            fetched = fetch_github_readme(url) if "github.com" in url else fetch_url_text(url)
+        elif isinstance(local_path, str) and Path(local_path).exists():
+            fetched = load_local_text_source(local_path)
+            if isinstance(url, str):
+                fetched["url"] = url
+                fetched["resolved_url"] = url
+        elif isinstance(url, str) and "github.com/" in url and "/blob/" in url:
+            fetched = fetch_github_blob_text(url)
+        elif isinstance(url, str):
+            fetched = fetch_url_text(url)
         else:
-            sources.append(fetch_url_text(repo_url))
-
-    for doc_url in (kg.docs or []):
-        doc_path = Path(doc_url)
-        if doc_path.exists():
-            sources.append(load_local_text_source(doc_url))
-            continue
-        if "github.com/" in doc_url and "/blob/" in doc_url:
-            sources.append(fetch_github_blob_text(doc_url))
-        else:
-            sources.append(fetch_url_text(doc_url))
+            fetched = {"url": local_path or source_id, "text": "", "error": "missing_local_source"}
+        fetched["source_id"] = source_id
+        fetched["catalog_provenance"] = {
+            field: source_record.get(field)
+            for field in ("type", "title", "url", "local_path", "derived_from", "description")
+            if source_record.get(field) not in (None, "", [])
+        }
+        sources.append(fetched)
 
     return sources
 
@@ -519,8 +521,11 @@ def main() -> None:
             {
                 "source_url": s.get("url"),
                 "resolved_url": s.get("resolved_url") or s.get("url"),
+                "source_id": s.get("source_id"),
+                "catalog_provenance": s.get("catalog_provenance"),
                 "repo_commit": s.get("repo_commit"),
                 "source_path": s.get("source_path"),
+                "pipeline_path": s.get("source_path") if s.get("is_local_file") else s.get("cache_path"),
                 "error": s.get("error"),
                 "used_cached_copy": bool(s.get("used_cached_copy")),
                 "is_local_file": bool(s.get("is_local_file")),
