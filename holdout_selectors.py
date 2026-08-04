@@ -2,11 +2,48 @@
 from __future__ import annotations
 
 import re
+from argparse import ArgumentParser, ArgumentTypeError, Namespace
 from typing import Any, Mapping, Tuple
 
 
 ALLOWED_SELECTOR_FIELDS = {"kg_id", "query_id", "sparql_version", "sparql_hash"}
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
+
+
+def nonempty_selector_path(value: str) -> str:
+    if not value.strip():
+        raise ArgumentTypeError("holdout selector path must not be empty")
+    return value
+
+
+def add_holdout_filter_arguments(parser: ArgumentParser) -> None:
+    """Require an explicit holdout-handling choice on agent-facing builders."""
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "--holdout-selectors",
+        default=None,
+        metavar="PATH",
+        type=nonempty_selector_path,
+        help="Annotation-free selector JSON/JSONL for the identity-visible holdout policy.",
+    )
+    group.add_argument(
+        "--no-holdout",
+        action="store_true",
+        help="Human assertion that no holdout identities currently exist.",
+    )
+    group.add_argument(
+        "--holdout-filtered-upstream",
+        action="store_true",
+        help="Human assertion that an identity-private process already removed all holdout pairs from these inputs.",
+    )
+
+
+def holdout_input_policy(args: Namespace) -> str:
+    if getattr(args, "holdout_selectors", ""):
+        return "identity_visible_selectors"
+    if getattr(args, "holdout_filtered_upstream", False):
+        return "identity_private_filtered_upstream"
+    return "no_holdout"
 
 
 def validate_selector_record(record: Mapping[str, Any]) -> Tuple[str, str]:

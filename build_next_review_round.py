@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from typing import List
 
+from holdout_selectors import add_holdout_filter_arguments
+
 
 def output_path(value: str) -> Path:
     path = Path(value)
@@ -25,11 +27,7 @@ def main() -> None:
         help="Previous benchmark/vN directory. Use this for normal benchmark comparison rounds so carried-forward decisions are shown.",
     )
     parser.add_argument("--current-run", default="llm_outputs.jsonl", help="Current run directory or current llm_outputs.jsonl.")
-    parser.add_argument(
-        "--holdout-selectors",
-        default="",
-        help="Optional annotation-free selector JSONL for the identity-visible holdout policy.",
-    )
+    add_holdout_filter_arguments(parser)
     parser.add_argument("--out", default="review/review_data.js")
     parser.add_argument(
         "--benchmark-only",
@@ -70,6 +68,10 @@ def main() -> None:
         command.extend(["--previous-benchmark", args.previous_benchmark])
     if args.holdout_selectors:
         command.extend(["--holdout-selectors", args.holdout_selectors])
+    elif args.holdout_filtered_upstream:
+        command.append("--holdout-filtered-upstream")
+    else:
+        command.append("--no-holdout")
     if args.benchmark_only:
         command.append("--benchmark-only")
     if args.include_unchanged:

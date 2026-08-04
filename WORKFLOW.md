@@ -288,18 +288,23 @@ Inputs:
 
 Process:
 
+Every agent-facing input or review builder requires an explicit holdout choice:
+`--holdout-selectors <path>`, `--no-holdout`, or
+`--holdout-filtered-upstream`. Omission is an error. Examples that use
+`--no-holdout` assume that no holdout has yet been selected.
+
 1. Build prompt payloads:
 
    ```bash
-   .venv/bin/python build_llm_inputs.py
+   .venv/bin/python build_llm_inputs.py --no-holdout
    ```
 
    Prompt inputs use the latest retained SPARQL version by default. Select the
    source text or a particular edit explicitly when needed:
 
    ```bash
-   .venv/bin/python build_llm_inputs.py --sparql-version original
-   .venv/bin/python build_llm_inputs.py --sparql-version 1
+   .venv/bin/python build_llm_inputs.py --no-holdout --sparql-version original
+   .venv/bin/python build_llm_inputs.py --no-holdout --sparql-version 1
    ```
 
 2. Run generation or alignment:
@@ -325,6 +330,7 @@ from future generation inputs:
 
 ```bash
 .venv/bin/python build_llm_inputs.py \
+  --no-holdout \
   --exclude-dismissed-benchmark benchmark/vN
 ```
 
@@ -473,6 +479,7 @@ Build an initial-review bundle:
 
 ```bash
 .venv/bin/python build_review_bundle.py \
+  --no-holdout \
   --outputs runs/<run-id>/llm_outputs.jsonl \
   --run-manifest runs/<run-id>/manifest.json
 ```
@@ -481,6 +488,7 @@ For later initial-review rounds, pass the latest benchmark snapshot:
 
 ```bash
 .venv/bin/python build_review_bundle.py \
+  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl \
   --outputs runs/<run-id>/llm_outputs.jsonl \
   --run-manifest runs/<run-id>/manifest.json \
   --previous-benchmark benchmark/vN
@@ -539,6 +547,7 @@ review bundle:
 
 ```bash
 .venv/bin/python build_next_review_round.py \
+  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl \
   --previous-run runs/<old-run-id> \
   --current-run runs/<new-run-id> \
   --previous-reviews review/public_exports/<previous-non-holdout-export>.json \

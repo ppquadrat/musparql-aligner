@@ -18,6 +18,7 @@ from build_review_bundle import (
     stable_json_dumps,
 )
 from benchmark.build_benchmark import literal_wording, review_comments
+from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy
 
 
 PairKey = Tuple[str, str]
@@ -340,11 +341,7 @@ def main() -> None:
         default="",
         help="Previous benchmark/vN directory. When provided, carried-forward benchmark decisions are used as previous review context.",
     )
-    parser.add_argument(
-        "--holdout-selectors",
-        default="",
-        help="Optional annotation-free selector JSONL for the identity-visible holdout policy.",
-    )
+    add_holdout_filter_arguments(parser)
     parser.add_argument(
         "--benchmark-only",
         action="store_true",
@@ -489,6 +486,7 @@ def main() -> None:
         "previous_benchmark_path": str(previous_benchmark_path) if previous_benchmark_path else None,
         "benchmark_only": bool(args.benchmark_only),
         "holdout_review_provenance_complete": bool(args.assert_complete_review_provenance),
+        "holdout_input_policy": holdout_input_policy(args),
         "previous_inputs_path": str(previous_inputs_path),
         "current_inputs_path": str(current_inputs_path),
         "record_count": len(records),

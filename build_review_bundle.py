@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from holdout_selectors import validate_selector_record
+from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selector_record
 from runs.build_run_snapshot import create_run_snapshot
 
 BENCHMARK_FILES = {
@@ -268,11 +268,7 @@ def main() -> None:
         default="",
         help="Optional benchmark directory used to exclude previously reviewed pairs from initial review.",
     )
-    parser.add_argument(
-        "--holdout-selectors",
-        default="",
-        help="Optional annotation-free selector JSONL for the identity-visible holdout policy.",
-    )
+    add_holdout_filter_arguments(parser)
     parser.add_argument(
         "--include-reviewed",
         action="store_true",
@@ -457,6 +453,7 @@ def main() -> None:
             "counts": scope_counts,
         },
         "holdout_review_provenance_complete": bool(args.assert_complete_review_provenance),
+        "holdout_input_policy": holdout_input_policy(args),
         "pipeline_assessment_definitions": {
             "accepted": "The candidate formulation is acceptable.",
             "prompt_improvement_recommended": "The canonical pair is valid, but prompt or model behaviour should improve.",

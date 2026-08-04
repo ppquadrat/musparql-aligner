@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import argparse
 import pytest
 
 from build_llm_inputs import build_prompt_input, dismissed_record_matches, load_holdout_selectors
+from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy
 from sparql_versions import (
     SparqlVersionError,
     add_execution_version,
@@ -129,6 +131,20 @@ def test_holdout_selector_file_is_identity_scoped(tmp_path):
     path = tmp_path / "selectors.jsonl"
     path.write_text('{"kg_id":"kg","query_id":"q1"}\n', encoding="utf-8")
     assert load_holdout_selectors(path) == {("kg", "q1")}
+
+
+def test_holdout_handling_choice_is_required_and_exclusive():
+    parser = argparse.ArgumentParser()
+    add_holdout_filter_arguments(parser)
+    with pytest.raises(SystemExit):
+        parser.parse_args([])
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--no-holdout", "--holdout-filtered-upstream"])
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--holdout-selectors", ""])
+    assert holdout_input_policy(parser.parse_args(["--no-holdout"])) == "no_holdout"
+    assert holdout_input_policy(parser.parse_args(["--holdout-filtered-upstream"])) == "identity_private_filtered_upstream"
+    assert holdout_input_policy(parser.parse_args(["--holdout-selectors", "selectors.jsonl"])) == "identity_visible_selectors"
 
 
 def test_holdout_selector_rejects_reviewer_fields(tmp_path):

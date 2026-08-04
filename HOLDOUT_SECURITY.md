@@ -160,9 +160,16 @@ universe.
 
 ### Identity-visible selector implementation
 
-Before the first holdout review, confirm that every downstream command will be
-given the same selector through `--holdout-selectors <path>`. The repository
-implements and tests this path:
+The relevant builders require exactly one holdout-handling option:
+
+- `--holdout-selectors <path>` for identity-visible holdouts;
+- `--no-holdout` only when no holdout identities currently exist; or
+- `--holdout-filtered-upstream` when an identity-private human process has
+  already removed holdout pairs from the inputs.
+
+Omitting the choice or supplying conflicting choices is an error. Before the
+first holdout review, confirm which option every downstream command will use.
+The repository implements and tests this enforcement in:
 
 - `build_llm_inputs.py` excludes selected pairs before constructing prompt
   inputs;
@@ -170,9 +177,9 @@ implements and tests this path:
 - `build_review_diff_bundle.py` excludes them from comparison bundles; and
 - `build_next_review_round.py` forwards the selector to the comparison builder.
 
-The commands do not discover a selector automatically. Under the identity-visible
-policy, the human creates the selector after choosing the holdout identities and
-the same file must be supplied explicitly to every applicable downstream run.
+Under the identity-visible policy, the human creates the selector after choosing
+the holdout identities and the same file must be supplied explicitly to every
+applicable downstream run. Once a holdout exists, `--no-holdout` is not valid.
 Each JSON or JSONL record may contain only:
 
 ```json

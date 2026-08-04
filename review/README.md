@@ -8,10 +8,15 @@ Before selecting any holdout pairs, read the
 [holdout security overview](../HOLDOUT_SECURITY.md) and follow the
 [holdout review runbook](../HOLDOUT_RUNBOOK.md).
 
+Every bundle build requires exactly one of `--holdout-selectors <path>`,
+`--no-holdout`, or `--holdout-filtered-upstream`. The examples use
+`--no-holdout` only for a first review before any holdout exists; later
+identity-visible examples use the selector path.
+
 1. Build the browser data bundle:
 
 ```bash
-.venv/bin/python build_review_bundle.py
+.venv/bin/python build_review_bundle.py --no-holdout
 ```
 
 By default, the builder ensures the bundle points to exactly one frozen LLM generation run. If the
@@ -22,6 +27,7 @@ If you want to review an already-frozen generation run explicitly:
 
 ```bash
 .venv/bin/python build_review_bundle.py \
+  --no-holdout \
   --outputs runs/<run-id>/llm_outputs.jsonl \
   --run-manifest runs/<run-id>/manifest.json
 ```
@@ -30,6 +36,7 @@ For later initial-review rounds, pass the latest benchmark snapshot:
 
 ```bash
 .venv/bin/python build_review_bundle.py \
+  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl \
   --outputs runs/<run-id>/llm_outputs.jsonl \
   --run-manifest runs/<run-id>/manifest.json \
   --previous-benchmark benchmark/vN
@@ -48,6 +55,7 @@ To build a comparative review of a previous generation run and a new run:
 
 ```bash
 .venv/bin/python build_next_review_round.py \
+  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl \
   --previous-run runs/<old-run-id> \
   --current-run runs/<new-run-id> \
   --previous-reviews review/public_exports/<previous-non-holdout-export>.json \

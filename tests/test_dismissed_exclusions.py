@@ -26,11 +26,13 @@ class DismissedExclusionTests(unittest.TestCase):
             "--previous-run", "old",
             "--previous-reviews", "reviews.json",
             "--current-run", "new",
+            "--no-holdout",
             "--assert-complete-review-provenance",
         ]), patch("build_next_review_round.subprocess.run") as run:
             build_next_review_round.main()
         command = run.call_args.args[0]
         self.assertIn("--assert-complete-review-provenance", command)
+        self.assertIn("--no-holdout", command)
 
     def test_load_excluded_query_ids_from_benchmark_dir(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -136,6 +138,7 @@ class DismissedExclusionTests(unittest.TestCase):
                     "--previous-benchmark",
                     str(benchmark_dir),
                     "--include-reviewed",
+                    "--no-holdout",
                     "--out",
                     str(out_path),
                     "--no-freeze",
@@ -165,6 +168,7 @@ class DismissedExclusionTests(unittest.TestCase):
                     str(benchmark_dir),
                     "--include-reviewed",
                     "--reveal-previous-decision",
+                    "--no-holdout",
                     "--out",
                     str(out_path),
                     "--no-freeze",
@@ -202,6 +206,7 @@ class DismissedExclusionTests(unittest.TestCase):
             with patch.object(sys, "argv", [
                 "build_review_bundle.py", "--inputs", str(inputs_path), "--outputs", str(outputs_path),
                 "--previous-benchmark", str(benchmark_dir), "--assert-complete-review-provenance",
+                "--no-holdout",
                 "--out", str(out_path), "--no-freeze",
             ]):
                 with redirect_stdout(StringIO()):
@@ -210,6 +215,7 @@ class DismissedExclusionTests(unittest.TestCase):
             self.assertEqual(data["records"][0]["review_scope"], "new")
             self.assertTrue(data["records"][0]["has_prior_pair_review"])
             self.assertTrue(data["holdout_review_provenance_complete"])
+            self.assertEqual(data["holdout_input_policy"], "no_holdout")
 
     def test_compact_benchmark_is_loaded_as_review_provenance(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -654,6 +660,7 @@ class DismissedExclusionTests(unittest.TestCase):
                     "--previous-benchmark",
                     str(benchmark_dir),
                     "--benchmark-only",
+                    "--no-holdout",
                     "--out",
                     str(out_path),
                 ],

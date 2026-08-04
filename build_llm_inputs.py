@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Set, Tuple
 
-from holdout_selectors import validate_selector_record
+from holdout_selectors import add_holdout_filter_arguments, validate_selector_record
 from sparql_versions import resolve_sparql_version
 
 
@@ -183,11 +183,7 @@ def main() -> None:
         default="",
         help="Benchmark directory, or public dismissal JSONL file, whose dismissed records should be excluded from prompt inputs.",
     )
-    parser.add_argument(
-        "--holdout-selectors",
-        default="",
-        help="Optional annotation-free selector JSONL for the identity-visible holdout policy.",
-    )
+    add_holdout_filter_arguments(parser)
     parser.add_argument(
         "--sparql-version",
         default="latest",
