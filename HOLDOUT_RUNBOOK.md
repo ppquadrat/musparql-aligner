@@ -21,30 +21,7 @@ security model are in [HOLDOUT_SECURITY.md](HOLDOUT_SECURITY.md).
 
 ## Choose the holdout set
 
-Choose the holdout as a small, representative evaluation sample—not as a list of
-the easiest, hardest, or most memorable examples.
-
-A pair is eligible only if no reviewer decision or annotation was attached to it
-before the current review session. Merely generating the pair in an earlier run,
-including it in a comparison bundle, or displaying it in either review interface
-does not make it ineligible. If an earlier status, wording correction, rating, or
-comment is attached, do not select it. Build the review bundle with every
-applicable previous benchmark and sanitized previous-review export, then add
-`--assert-complete-review-provenance` only after a human confirms that those
-sources cover all earlier review decisions (or that no earlier decisions exist).
-Without that assertion, both interfaces disable holdout selection. With it,
-they enforce the pair-level rule and explain why an ineligible pair cannot be
-selected.
-
-For this benchmark, use about **10% of eligible pairs** as the default target.
-Treat 5% as a lower bound only. With roughly 100 pairs, five holdouts are usually
-too few to cover several KGs and query patterns; eight to ten is a more useful
-target while leaving most data available for development. If the benchmark
-grows substantially, revisit the percentage and report uncertainty around any
-holdout result. A set of eight to ten pairs is useful as a protected qualitative
-check, but it is not large enough for a precise aggregate performance claim.
-
-Select across:
+Select about **10% of eligible pairs** for the holdout across:
 
 - the represented KGs, roughly in proportion to their benchmark presence while
   ensuring that smaller KGs are not absent;
@@ -52,10 +29,6 @@ Select across:
 - different evidence and formulation origins;
 - straightforward, ambiguous, and graph-context-dependent cases; and
 - relevant execution outcomes or endpoint requirements.
-
-Make the selection before using its reviewer annotations to tune prompts or
-systems. Record the intended size and sampling rationale in a human-only note.
-Do not put that note into an agent-readable selector.
 
 ## During review
 
@@ -91,29 +64,6 @@ If you used more than one bundle or both modes, repeat the verified export-and-c
 procedure in each one. Clearing all site data is an optional blunt
 fallback that also deletes non-holdout review state; never do it before opening
 and verifying the private export.
-
-## Continue the public workflow
-
-Agent-facing benchmark tools may receive only a browser export whose kind is
-`non_holdout_review_export`, normally from `review/public_exports/`.
-
-Under the identity-visible policy, provide a separate selector-only JSON or
-JSONL file when filtering is required. Each record may contain only:
-
-```json
-{
-  "kg_id": "example-kg",
-  "query_id": "example-query",
-  "sparql_version": 1,
-  "sparql_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-}
-```
-
-The version and hash may both be omitted. Never add review decisions, comments,
-wording, ratings, timestamps, or provenance to the selector.
-
-Under the identity-private policy, do not create an agent-visible selector.
-Perform filtering in the human-only environment before agent-facing processing.
 
 ## Before committing or publishing
 

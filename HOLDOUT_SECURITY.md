@@ -84,15 +84,23 @@ private export and human confirmation that the file opens and has the expected
 count. Clearing also removes legacy browser-storage copies.
 
 Both review modes apply the same eligibility rule: a pair can enter the holdout
-only if the supplied review provenance contains no earlier reviewer decision or
-annotation for it. Prior generation or display is not a decision and does not
-make a pair ineligible. Initial review uses the previous-review scope in its
-bundle; comparison review checks the attached previous review. These checks
-depend on building the bundle with the applicable previous benchmark or
-sanitized non-holdout review export. Holdout selection fails closed unless a
-human adds `--assert-complete-review-provenance`, attesting that those inputs
-cover all earlier decisions or that no earlier decisions exist. Eligibility is
-pair-wide even when a changed SPARQL version prevents reuse of the old decision.
+only if no reviewer decision or annotation was attached to it before the current
+review session. Merely generating the pair in an earlier run, including it in a
+comparison bundle, or displaying it in either review interface does not make it
+ineligible. An earlier status, wording correction, rating, or comment does.
+
+Initial review uses pair-level provenance in its bundle; comparison review checks
+the attached previous review. Eligibility remains pair-wide even when a changed
+SPARQL version prevents reuse of the old decision. The initial interface disables
+the holdout checkbox for ineligible pairs. The comparison interface offers a
+selectable checkbox only for eligible current pairs. Both mutation paths also
+check eligibility rather than relying on presentation alone.
+
+These controls fail closed. Build the bundle with every applicable previous
+benchmark and sanitized previous-review export, then add
+`--assert-complete-review-provenance` only after a human confirms that those
+sources cover all earlier review decisions, or that no earlier decisions exist.
+Without that assertion, neither interface permits new holdout selections.
 
 ### Agent-facing tools fail closed
 
@@ -100,9 +108,8 @@ Benchmark and comparison tools accept only exports explicitly marked
 `non_holdout_review_export`. They reject private, mixed, legacy, or mislabeled
 review exports rather than trying to remove private records themselves.
 
-Where the identity-visible policy is chosen, tools may use an annotation-free
-selector containing only `kg_id`, `query_id`, `sparql_version`, and
-`sparql_hash`. Selector values are validated. Reviewer fields are forbidden.
+Where the identity-visible policy is chosen, tools use the annotation-free
+selector mechanism described below. Reviewer fields are forbidden.
 
 ### The repository excludes working and private data
 
@@ -150,6 +157,43 @@ Because the current workflow selects holdouts from candidates agents may already
 have seen, identity visible is the practical default. Identity private is a
 future option only when selection begins from a genuinely human-only candidate
 universe.
+
+### Identity-visible selector implementation
+
+Before the first holdout review, confirm that every downstream command will be
+given the same selector through `--holdout-selectors <path>`. The repository
+implements and tests this path:
+
+- `build_llm_inputs.py` excludes selected pairs before constructing prompt
+  inputs;
+- `build_review_bundle.py` excludes them from later initial-review bundles;
+- `build_review_diff_bundle.py` excludes them from comparison bundles; and
+- `build_next_review_round.py` forwards the selector to the comparison builder.
+
+The commands do not discover a selector automatically. Under the identity-visible
+policy, the human creates the selector after choosing the holdout identities and
+the same file must be supplied explicitly to every applicable downstream run.
+Each JSON or JSONL record may contain only:
+
+```json
+{
+  "kg_id": "example-kg",
+  "query_id": "example-query",
+  "sparql_version": 1,
+  "sparql_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+}
+```
+
+The version and hash may both be omitted. The shared validator rejects reviewer
+decisions, comments, wording, ratings, timestamps, provenance, and malformed
+version pins. Under the identity-private policy, do not create an agent-visible
+selector; filtering must occur in the human-only environment before any
+agent-facing processing.
+
+The intended holdout proportion and sampling rationale are methodology, not
+reviewer annotation, and may be documented publicly. Under an identity-private
+policy, that documentation must not identify selected pairs or otherwise reveal
+membership.
 
 ## Publication and incidents
 
