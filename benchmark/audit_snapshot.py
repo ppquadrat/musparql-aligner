@@ -135,6 +135,21 @@ def audit_snapshot(snapshot: Path) -> List[str]:
     if "holdout" in manifest_files or "holdout" in working_files:
         errors.append("snapshot manifest references a private holdout file")
     benchmark = read_jsonl(snapshot / "benchmark.jsonl")
+    alternatives = read_jsonl(snapshot / ALTERNATIVES_FILE)
+    for field in ("benchmark_id", "query_id"):
+        duplicates = duplicate_values(benchmark, field)
+        if duplicates:
+            errors.append(f"benchmark has missing or duplicate {field}: {duplicates[:5]}")
+    benchmark_keys = {key(row) for row in benchmark}
+    for row in alternatives:
+        if key(row) not in benchmark_keys:
+            errors.append(f"alternative has no benchmark referent: {row.get('benchmark_id')}")
+            continue
+        if row.get("interpretive_annotations") or row.get("interpretive"):
+            errors.append(f"alternative contains linguistic ratings: {row.get('benchmark_id')}")
+        for item in row.get("accepted_alternatives", []):
+            if not isinstance(item, dict) or item.get("acceptance") != "human_accepted":
+                errors.append(f"alternative lacks acceptance provenance: {row.get('benchmark_id')}")
     working_paths = [
         snapshot / INCLUDED_FILE,
         snapshot / "dismissed.jsonl",
@@ -142,15 +157,6 @@ def audit_snapshot(snapshot: Path) -> List[str]:
     ]
     present_working = [path.exists() for path in working_paths]
     if not any(present_working):
-        alternatives = read_jsonl(snapshot / ALTERNATIVES_FILE)
-        for field in ("benchmark_id", "query_id"):
-            duplicates = duplicate_values(benchmark, field)
-            if duplicates:
-                errors.append(f"benchmark has missing or duplicate {field}: {duplicates[:5]}")
-        benchmark_keys = {key(row) for row in benchmark}
-        for row in alternatives:
-            if key(row) not in benchmark_keys:
-                errors.append(f"alternative has no benchmark referent: {row.get('benchmark_id')}")
         if snapshot_number(manifest, snapshot) >= 8:
             for row in benchmark:
                 label = str(row.get("query_label") or row.get("benchmark_id") or "")
@@ -175,13 +181,7 @@ def audit_snapshot(snapshot: Path) -> List[str]:
         return errors
     included = read_jsonl(snapshot / INCLUDED_FILE)
     dismissed = read_jsonl(snapshot / "dismissed.jsonl")
-    alternatives = read_jsonl(snapshot / ALTERNATIVES_FILE)
     annotations = read_jsonl(snapshot / LINGUISTIC_ANNOTATIONS_FILE)
-
-    for field in ("benchmark_id", "query_id"):
-        duplicates = duplicate_values(benchmark, field)
-        if duplicates:
-            errors.append(f"benchmark has missing or duplicate {field}: {duplicates[:5]}")
     if len(benchmark) != len(included):
         errors.append(f"benchmark/included count mismatch: {len(benchmark)} != {len(included)}")
     if {key(row) for row in benchmark} != {key(row) for row in included}:
@@ -215,11 +215,6 @@ def audit_snapshot(snapshot: Path) -> List[str]:
         if included_row is None:
             errors.append(f"alternative has no included referent: {row.get('benchmark_id')}")
             continue
-        if row.get("interpretive_annotations") or row.get("interpretive"):
-            errors.append(f"alternative contains linguistic ratings: {row.get('benchmark_id')}")
-        for item in row.get("accepted_alternatives", []):
-            if not isinstance(item, dict) or item.get("acceptance") != "human_accepted":
-                errors.append(f"alternative lacks acceptance provenance: {row.get('benchmark_id')}")
 
     counts = manifest.get("counts") if isinstance(manifest.get("counts"), dict) else {}
     expected_counts = {

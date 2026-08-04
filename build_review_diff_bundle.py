@@ -114,9 +114,13 @@ def benchmark_review_for_record(record: Dict[str, Any], group: str, source_bench
 def load_benchmark_reviews(path: Optional[Path]) -> Tuple[Dict[PairKey, Dict[str, Any]], set[PairKey]]:
     if path is None:
         return {}, set()
+    expected_paths = [path / "benchmark.jsonl", path / "included.jsonl", path / "dismissed.jsonl"]
+    if not any(candidate.exists() for candidate in expected_paths):
+        raise FileNotFoundError(f"Previous benchmark has no review records: {path}")
     review_by_pair: Dict[PairKey, Dict[str, Any]] = {}
     benchmark_pairs: set[PairKey] = set()
     for group, filename in (
+        ("included", "benchmark.jsonl"),
         ("included", "included.jsonl"),
         ("excluded", "dismissed.jsonl"),
     ):
@@ -360,6 +364,11 @@ def main() -> None:
         action="store_true",
         help="Include pairs whose only changes are confidence, rationale, model, or full-input evidence metadata.",
     )
+    parser.add_argument(
+        "--assert-complete-review-provenance",
+        action="store_true",
+        help="Human assertion that supplied benchmark/review sources cover every prior reviewer decision; required to enable holdout selection.",
+    )
     args = parser.parse_args()
 
     previous_outputs_path = Path(args.previous_outputs)
@@ -479,6 +488,7 @@ def main() -> None:
         "previous_reviews_path": str(previous_reviews_path) if previous_reviews_path else None,
         "previous_benchmark_path": str(previous_benchmark_path) if previous_benchmark_path else None,
         "benchmark_only": bool(args.benchmark_only),
+        "holdout_review_provenance_complete": bool(args.assert_complete_review_provenance),
         "previous_inputs_path": str(previous_inputs_path),
         "current_inputs_path": str(current_inputs_path),
         "record_count": len(records),

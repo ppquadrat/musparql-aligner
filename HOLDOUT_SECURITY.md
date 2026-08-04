@@ -83,6 +83,17 @@ edit invalidates the previous export-ready state. Clearing requires a fresh
 private export and human confirmation that the file opens and has the expected
 count. Clearing also removes legacy browser-storage copies.
 
+Both review modes apply the same eligibility rule: a pair can enter the holdout
+only if the supplied review provenance contains no earlier reviewer decision or
+annotation for it. Prior generation or display is not a decision and does not
+make a pair ineligible. Initial review uses the previous-review scope in its
+bundle; comparison review checks the attached previous review. These checks
+depend on building the bundle with the applicable previous benchmark or
+sanitized non-holdout review export. Holdout selection fails closed unless a
+human adds `--assert-complete-review-provenance`, attesting that those inputs
+cover all earlier decisions or that no earlier decisions exist. Eligibility is
+pair-wide even when a changed SPARQL version prevents reuse of the old decision.
+
 ### Agent-facing tools fail closed
 
 Benchmark and comparison tools accept only exports explicitly marked

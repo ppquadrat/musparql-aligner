@@ -105,6 +105,28 @@ class UpdaterAndReleaseTests(unittest.TestCase):
             write_jsonl(snapshot / "alternatives.jsonl", [])
             self.assertEqual(audit_snapshot.audit_snapshot(snapshot), [])
 
+    def test_public_only_snapshot_rejects_unaccepted_or_interpretive_alternatives(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = Path(tmp) / "v1"
+            snapshot.mkdir()
+            write_json(snapshot / "manifest.json", {
+                "benchmark_version": "v1",
+                "counts": {"benchmark": 1, "alternatives": 1},
+                "files": {"benchmark": "benchmark.jsonl", "alternatives": "alternatives.jsonl"},
+            })
+            write_jsonl(snapshot / "benchmark.jsonl", [{
+                "benchmark_id": "synthetic::one", "kg_id": "synthetic",
+                "query_id": "synthetic-q1", "sparql": "ASK {}", "gold_question": "Synthetic?",
+            }])
+            write_jsonl(snapshot / "alternatives.jsonl", [{
+                "benchmark_id": "synthetic::one", "kg_id": "synthetic", "query_id": "synthetic-q1",
+                "accepted_alternatives": [{"text": "Unverified wording"}],
+                "interpretive": {"naturalness": 50},
+            }])
+            errors = audit_snapshot.audit_snapshot(snapshot)
+            self.assertTrue(any("acceptance provenance" in error for error in errors))
+            self.assertTrue(any("linguistic ratings" in error for error in errors))
+
     def test_updater_refuses_compact_snapshot_as_provenance_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             snapshot = Path(tmp)
@@ -168,6 +190,23 @@ if (!unidentifiedRejected) process.exit(6);
 let conflictRejected = false;
 try { schema.validateImportedReviews({x:{benchmark_disposition:"excluded", pipeline_assessment:"accepted"}}); } catch (_) { conflictRejected = true; }
 if (!conflictRejected) process.exit(7);
+if (schema.hasReviewerDecision({})) process.exit(14);
+if (schema.hasReviewerDecision({interpretive:{naturalness:null, requires_graph_context_knowledge:false}})) process.exit(15);
+if (!schema.hasReviewerDecision({status:"accepted"})) process.exit(16);
+if (!schema.hasReviewerDecision({public_comment:"reviewed earlier"})) process.exit(17);
+if (!schema.hasReviewerDecision({reviewed:true})) process.exit(18);
+if (schema.initialHoldoutEligibility({review_scope:"new"}).eligible) process.exit(19);
+if (!schema.initialHoldoutEligibility({review_scope:"new"}, true).eligible) process.exit(20);
+if (schema.initialHoldoutEligibility({review_scope:"new", has_prior_pair_review:true}, true).eligible) process.exit(24);
+if (schema.initialHoldoutEligibility({review_scope:"previously_reviewed", previous_review:{reviewed:true}}, true).eligible) process.exit(25);
+const unreviewedComparison = {previous:{record:{}, review:{}}, current:{record:{}}};
+if (schema.compareHoldoutEligibility(unreviewedComparison).eligible) process.exit(21);
+if (!schema.compareHoldoutEligibility(unreviewedComparison, true).eligible) process.exit(26);
+const reviewedComparison = {previous:{record:{}, review:{literal_wording:"Earlier wording"}}, current:{record:{}}};
+if (schema.compareHoldoutEligibility(reviewedComparison, true).eligible) process.exit(22);
+if (schema.compareHoldoutEligibility({previous:{review:{}}, current:{record:null}}, true).eligible) process.exit(23);
+const reusedPrivate = schema.reusedPreviousReview({status:"accepted"}, {split:"private_holdout"}, "old-review");
+if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_review_id !== "old-review") process.exit(27);
 '''
         subprocess.run(["node", "-e", script], check=True, cwd=Path(__file__).resolve().parents[1])
 

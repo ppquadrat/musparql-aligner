@@ -515,7 +515,24 @@ Initial review captures:
 - interpretive dimensions: naturalness, pragmatism, room for interpretation
 - whether graph/context knowledge is required
 
+The **Private holdout** control is available only when the bundle's review
+provenance has no earlier reviewer decision for the pair. Generation or display
+in an earlier run does not disqualify a pair. Build later rounds with the
+applicable `--previous-benchmark` so this eligibility check has complete public
+review provenance. Add `--assert-complete-review-provenance` only after a human
+confirms that all prior decisions are represented (or that none exist); without
+that assertion the UI disables holdout selection.
+
 ### Comparative Review
+
+Comparative review uses the same holdout eligibility policy. A current pair may
+be selected even if it appeared in the previous run, provided no previous
+review annotation is attached. A pair with any previous reviewer status,
+wording, rating, or comment is ineligible. Supply the applicable
+`--previous-reviews` and/or `--previous-benchmark`; without that provenance the
+interface cannot know that an earlier review occurred. As in initial review,
+holdout selection remains disabled unless a human supplies
+`--assert-complete-review-provenance` after confirming coverage.
 
 After changing extraction, enrichment, prompts, or models, build a comparative
 review bundle:

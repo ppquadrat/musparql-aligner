@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import build_llm_inputs
+import build_next_review_round
 import build_review_bundle
 import build_review_diff_bundle
 
@@ -19,6 +20,18 @@ import update_benchmark  # noqa: E402
 
 
 class DismissedExclusionTests(unittest.TestCase):
+    def test_next_review_wrapper_forwards_provenance_assertion(self) -> None:
+        with patch.object(sys, "argv", [
+            "build_next_review_round.py",
+            "--previous-run", "old",
+            "--previous-reviews", "reviews.json",
+            "--current-run", "new",
+            "--assert-complete-review-provenance",
+        ]), patch("build_next_review_round.subprocess.run") as run:
+            build_next_review_round.main()
+        command = run.call_args.args[0]
+        self.assertIn("--assert-complete-review-provenance", command)
+
     def test_load_excluded_query_ids_from_benchmark_dir(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             benchmark_dir = Path(tmp)
@@ -135,6 +148,7 @@ class DismissedExclusionTests(unittest.TestCase):
             record = data["records"][0]
 
             self.assertEqual(record["review_scope"], "previously_reviewed")
+            self.assertTrue(record["has_prior_pair_review"])
             self.assertEqual(record["previous_review"], {"reviewed": True, "source_benchmark": str(benchmark_dir)})
             self.assertNotIn("pipeline_assessment", record["previous_review"])
 
@@ -164,6 +178,51 @@ class DismissedExclusionTests(unittest.TestCase):
                 data["records"][0]["previous_review"]["pipeline_assessment"],
                 "prompt_improvement_recommended",
             )
+
+    def test_changed_sparql_remains_pair_wide_holdout_ineligible(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            inputs_path = tmp_path / "inputs.jsonl"
+            outputs_path = tmp_path / "outputs.jsonl"
+            benchmark_dir = tmp_path / "benchmark"
+            out_path = tmp_path / "review_data.js"
+            benchmark_dir.mkdir()
+            inputs_path.write_text(
+                json.dumps({"kg_id": "kg", "query_id": "q1", "query_label": "label", "sparql_clean": "SELECT { ?new ?p ?o }", "sparql_hash": "new", "evidence": []}) + "\n",
+                encoding="utf-8",
+            )
+            outputs_path.write_text(
+                json.dumps({"kg_id": "kg", "query_id": "q1", "query_label": "label", "llm_output": {"nl_question": "New version?"}, "model": "model"}) + "\n",
+                encoding="utf-8",
+            )
+            (benchmark_dir / "benchmark.jsonl").write_text(
+                json.dumps({"kg_id": "kg", "query_id": "q1", "query_label": "label", "sparql": "SELECT { ?old ?p ?o }", "sparql_hash": "old"}) + "\n",
+                encoding="utf-8",
+            )
+            with patch.object(sys, "argv", [
+                "build_review_bundle.py", "--inputs", str(inputs_path), "--outputs", str(outputs_path),
+                "--previous-benchmark", str(benchmark_dir), "--assert-complete-review-provenance",
+                "--out", str(out_path), "--no-freeze",
+            ]):
+                with redirect_stdout(StringIO()):
+                    build_review_bundle.main()
+            data = json.loads(out_path.read_text(encoding="utf-8")[len("window.REVIEW_DATA = ") :].rstrip().rstrip(";"))
+            self.assertEqual(data["records"][0]["review_scope"], "new")
+            self.assertTrue(data["records"][0]["has_prior_pair_review"])
+            self.assertTrue(data["holdout_review_provenance_complete"])
+
+    def test_compact_benchmark_is_loaded_as_review_provenance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            benchmark_dir = Path(tmp)
+            (benchmark_dir / "benchmark.jsonl").write_text(
+                json.dumps({"kg_id": "kg", "query_id": "q1", "query_label": "label"}) + "\n",
+                encoding="utf-8",
+            )
+            initial = build_review_bundle.load_previous_benchmark(benchmark_dir)
+            comparative, benchmark_pairs = build_review_diff_bundle.load_benchmark_reviews(benchmark_dir)
+            self.assertIn(("kg", "q1"), initial)
+            self.assertIn(("kg", "q1"), comparative)
+            self.assertEqual(benchmark_pairs, {("kg", "q1")})
 
     def test_previous_pipeline_assessment_by_pair_maps_dismissed_records(self) -> None:
         output = {

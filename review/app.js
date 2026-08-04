@@ -64,6 +64,10 @@
     validateImportedReviews,
     matchPrivateRecords,
     rejectPrivateImport,
+    hasReviewerDecision,
+    initialHoldoutEligibility,
+    compareHoldoutEligibility,
+    reusedPreviousReview,
   };
 
   if (!data || !Array.isArray(data.records) || !data.records.length) {
@@ -338,6 +342,12 @@
     els.publicCommentInput.value = review.public_comment || "";
     els.internalCommentInput.value = review.internal_comment || "";
     els.holdoutSplitInput.checked = isHoldoutReview(review);
+    const holdoutEligibility = initialHoldoutEligibility(record, data.holdout_review_provenance_complete);
+    const savedIneligibleHoldout = isHoldoutReview(review) && !holdoutEligibility.eligible;
+    els.holdoutSplitInput.disabled = !holdoutEligibility.eligible;
+    document.getElementById("holdoutEligibilityHelp").textContent = savedIneligibleHoldout
+      ? "This saved holdout is no longer eligible under current provenance. Keep it private, export and clear it, then retire it."
+      : holdoutEligibility.reason;
     setInterpretiveInputs(review.interpretive);
     els.decisionButtons.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.status === (review.status || ""));
@@ -407,13 +417,16 @@
       ? options.forcedStatus
       : current.status;
     const interpretive = readInterpretiveInputs();
+    const record = data.records.find((candidate) => candidate.review_id === reviewId);
+    const holdoutEligible = initialHoldoutEligibility(record, data.holdout_review_provenance_complete).eligible;
+    const keepExistingHoldout = isHoldoutReview(current) && els.holdoutSplitInput.checked;
     reviews[reviewId] = {
       status: nextStatus,
       preferred_question: els.preferredQuestionInput.value.trim(),
       literal_wording: els.literalWordingInput.value.trim(),
       public_comment: els.publicCommentInput.value.trim(),
       internal_comment: els.internalCommentInput.value.trim(),
-      split: els.holdoutSplitInput.checked ? HOLDOUT_SPLIT : "",
+      split: els.holdoutSplitInput.checked && (holdoutEligible || keepExistingHoldout) ? HOLDOUT_SPLIT : "",
       interpretive,
       updated_at: new Date().toISOString(),
     };
@@ -691,7 +704,91 @@
   }
 
   function getReviewScope(record) {
-    return record.review_scope || "new";
+    return record?.review_scope || "new";
+  }
+
+  function hasReviewerDecision(review) {
+    if (!review || typeof review !== "object") return false;
+    if (review.reviewed === true) return true;
+    const fields = [
+      "status",
+      "pipeline_assessment",
+      "benchmark_disposition",
+      "preferred_question",
+      "literal_wording",
+      "public_comment",
+      "internal_comment",
+      "note",
+      "split",
+      "updated_at",
+      "copied_from_review_id",
+    ];
+    if (fields.some((field) => review[field] !== null && review[field] !== undefined && review[field] !== "")) {
+      return true;
+    }
+    const interpretive = review.interpretive;
+    return Boolean(
+      interpretive &&
+      typeof interpretive === "object" &&
+      Object.values(interpretive).some((value) => value !== null && value !== undefined && value !== "" && value !== false)
+    );
+  }
+
+  function initialHoldoutEligibility(record, provenanceComplete = false) {
+    if (!provenanceComplete) {
+      return {
+        eligible: false,
+        reason: "Holdout selection is disabled: complete prior-review provenance was not attested when this bundle was built.",
+      };
+    }
+    if (!record) {
+      return { eligible: false, reason: "No current record is available for holdout selection." };
+    }
+    if (record.has_prior_pair_review === true || getReviewScope(record) === "previously_reviewed" || hasReviewerDecision(record.previous_review)) {
+      return {
+        eligible: false,
+        reason: "Ineligible for holdout: a reviewer decision was attached before this review session.",
+      };
+    }
+    return {
+      eligible: true,
+      reason: "Eligible while it has no decision from an earlier review; generation or display alone does not make it ineligible.",
+    };
+  }
+
+  function compareHoldoutEligibility(pair, provenanceComplete = false) {
+    if (!provenanceComplete) {
+      return {
+        eligible: false,
+        reason: "Holdout selection is disabled: complete prior-review provenance was not attested when this bundle was built.",
+      };
+    }
+    if (!pair?.current?.record) {
+      return { eligible: false, reason: "Ineligible for holdout: there is no current record." };
+    }
+    if (hasReviewerDecision(pair.previous?.review)) {
+      return {
+        eligible: false,
+        reason: "Ineligible for holdout: a reviewer decision was attached in an earlier review.",
+      };
+    }
+    return {
+      eligible: true,
+      reason: "Eligible because no earlier reviewer decision is attached; appearing in a previous run is allowed.",
+    };
+  }
+
+  function reusedPreviousReview(previousReview, currentReview, copiedFromReviewId) {
+    return {
+      status: previousReview.status || "",
+      preferred_question: previousReview.preferred_question || "",
+      literal_wording: previousReview.literal_wording || "",
+      public_comment: previousReview.public_comment || "",
+      internal_comment: previousReview.internal_comment || "",
+      split: isHoldoutReview(currentReview) ? HOLDOUT_SPLIT : "",
+      copied_from_review_id: copiedFromReviewId || null,
+      updated_at: new Date().toISOString(),
+    };
   }
 
   function scopeSummary(record) {
@@ -767,7 +864,7 @@
       window.alert("Export the private holdout with the separate Private Export button before clearing it.");
       return;
     }
-    if (!window.confirm(`Have you verified that the private export contains ${count} holdout annotation${count === 1 ? "" : "s"} and opens correctly? If yes, remove all private browser state now.`)) {
+    if (!window.confirm(`Have you verified that the private export contains ${count} holdout annotation${count === 1 ? "" : "s"} and opens correctly? If yes, remove private browser state for this dataset and initial-review mode now.`)) {
       return;
     }
     reviews = internalReviews(publicReviews);
@@ -1075,27 +1172,18 @@
         </section>
 
         <section class="compare-grid">
-          ${renderRunColumn("Previous", previousRecord, previousReview, pair.evidence_diff || {}, "previous", flags)}
-          ${renderRunColumn("Current", currentRecord, currentReview, pair.evidence_diff || {}, "current", flags)}
+          ${renderRunColumn("Previous", previousRecord, previousReview, pair.evidence_diff || {}, "previous", flags, pair)}
+          ${renderRunColumn("Current", currentRecord, currentReview, pair.evidence_diff || {}, "current", flags, pair)}
         </section>
       `;
 
       document.getElementById("comparePrevBtn").addEventListener("click", () => moveCompareSelection(-1));
       document.getElementById("compareNextBtn").addEventListener("click", () => moveCompareSelection(1));
       document.getElementById("reusePreviousBtn").addEventListener("click", () => {
-        compareReviews[currentReviewId] = {
-          status: previousReview.status || "",
-          preferred_question: previousReview.preferred_question || "",
-          literal_wording: previousReview.literal_wording || "",
-          public_comment: previousReview.public_comment || "",
-          internal_comment: previousReview.internal_comment || "",
-          split: "",
-          copied_from_review_id: pair.previous?.review_id || null,
-          updated_at: new Date().toISOString(),
-        };
-        cleanupEmptyCompareReview(currentReviewId);
-        saveCompareReviews();
-        renderCompare();
+        updateCompareReview(
+          currentReviewId,
+          reusedPreviousReview(previousReview, currentReview, pair.previous?.review_id)
+        );
       });
       document.getElementById("usePreviousWordingBtn").addEventListener("click", () => {
         updateCompareReview(currentReviewId, {
@@ -1103,19 +1191,10 @@
         });
       });
       document.getElementById("reusePreviousInlineBtn")?.addEventListener("click", () => {
-        compareReviews[currentReviewId] = {
-          status: previousReview.status || "",
-          preferred_question: previousReview.preferred_question || "",
-          literal_wording: previousReview.literal_wording || "",
-          public_comment: previousReview.public_comment || "",
-          internal_comment: previousReview.internal_comment || "",
-          split: "",
-          copied_from_review_id: pair.previous?.review_id || null,
-          updated_at: new Date().toISOString(),
-        };
-        cleanupEmptyCompareReview(currentReviewId);
-        saveCompareReviews();
-        renderCompare();
+        updateCompareReview(
+          currentReviewId,
+          reusedPreviousReview(previousReview, currentReview, pair.previous?.review_id)
+        );
       });
       document.getElementById("usePreviousWordingInlineBtn")?.addEventListener("click", () => {
         updateCompareReview(currentReviewId, {
@@ -1152,15 +1231,17 @@
         updateCompareReview(currentReviewId, { internal_comment: document.getElementById("compareInternalCommentInput").value.trim() }, false);
       });
       document.getElementById("compareHoldoutInput")?.addEventListener("change", () => {
+        const input = document.getElementById("compareHoldoutInput");
+        const keepExistingHoldout = isHoldoutReview(currentReview) && input.checked;
         updateCompareReview(
           currentReviewId,
-          { split: document.getElementById("compareHoldoutInput").checked ? HOLDOUT_SPLIT : "" },
+          { split: input.checked && (compareHoldoutEligibility(pair, data.holdout_review_provenance_complete).eligible || keepExistingHoldout) ? HOLDOUT_SPLIT : "" },
           true
         );
       });
     }
 
-    function renderRunColumn(title, record, review, evidenceDiff, side, flags) {
+    function renderRunColumn(title, record, review, evidenceDiff, side, flags, pair) {
       if (!record) {
         return `
           <section class="panel compare-column">
@@ -1191,7 +1272,7 @@
           </div>
           <p class="section-label">Retained evidence phrases</p>
           <div class="stack-list compact-list">${renderRankedEvidence(ranked)}</div>
-          ${side === "previous" ? renderPreviousReviewPanel(review, record) : renderCurrentReviewPanel(review, flags)}
+          ${side === "previous" ? renderPreviousReviewPanel(review, record) : renderCurrentReviewPanel(review, pair)}
           <div class="compare-rationale">
             <p class="section-label">Justification</p>
             <p>${escapeHtml(output.confidence_rationale || "-")}</p>
@@ -1241,8 +1322,9 @@
       `;
     }
 
-    function renderCurrentReviewPanel(review, flags) {
-      const canHoldout = (flags || []).includes("new_pair");
+    function renderCurrentReviewPanel(review, pair) {
+      const eligibility = compareHoldoutEligibility(pair, data.holdout_review_provenance_complete);
+      const savedIneligibleHoldout = isHoldoutReview(review) && !eligibility.eligible;
       return `
         <section class="compare-review-panel current-review-panel">
           <div class="panel-head compare-review-head">
@@ -1258,13 +1340,13 @@
           </div>
           <div class="compare-review-fields">
             ${
-              canHoldout || isHoldoutReview(review)
+              eligibility.eligible || isHoldoutReview(review)
                 ? `<label class="checkbox-field compare-holdout-field">
-                    <input id="compareHoldoutInput" type="checkbox" ${isHoldoutReview(review) ? "checked" : ""} />
+                    <input id="compareHoldoutInput" type="checkbox" ${isHoldoutReview(review) ? "checked" : ""} ${eligibility.eligible ? "" : "disabled"} />
                     <span>Private holdout</span>
-                    <small>Exclude this new pair from the public/dev benchmark, prompt work, and normal autoeval.</small>
+                    <small>${escapeHtml(savedIneligibleHoldout ? "This saved holdout is no longer eligible under current provenance. Keep it private, export and clear it, then retire it." : eligibility.reason)}</small>
                   </label>`
-                : ""
+                : `<p class="muted-meta compare-holdout-field">${escapeHtml(eligibility.reason)}</p>`
             }
             <label>
               <span>Preferred / corrected NL question</span>
@@ -1424,7 +1506,7 @@
         window.alert("Export the private holdout with the separate Private Export button before clearing it.");
         return;
       }
-      if (!window.confirm(`Have you verified that the private export contains ${count} holdout annotation${count === 1 ? "" : "s"} and opens correctly? If yes, remove all private browser state now.`)) {
+      if (!window.confirm(`Have you verified that the private export contains ${count} holdout annotation${count === 1 ? "" : "s"} and opens correctly? If yes, remove private browser state for this dataset and comparison mode now.`)) {
         return;
       }
       compareReviews = internalReviews(publicReviews);

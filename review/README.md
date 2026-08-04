@@ -86,6 +86,15 @@ inspect the selected set. After a private export starts, the workbench reports
 the exported count so the reviewer can compare it with the downloaded file
 before clearing browser state.
 
+A pair may be selected in either the initial or comparison interface only when
+no reviewer decision was attached before the current review session. Earlier
+generation, inclusion in another run, or passive display does not disqualify it.
+An earlier status, corrected wording, rating, or comment does. The workbench
+enables the control only for eligible pairs and explains ineligibility otherwise.
+The bundle must be built with all applicable prior-review sources and the human
+`--assert-complete-review-provenance` assertion; without it, eligibility is
+unknown and the control fails closed.
+
 2. Serve only the review application on loopback:
 
 ```bash
@@ -98,10 +107,11 @@ python3 -m http.server 8000 --bind 127.0.0.1 --directory review
 http://127.0.0.1:8000/
 ```
 
-Reviewer decisions are stored in browser local storage. After securely saving a
-private export, use **Clear Private State** and close the browser before resuming
-agent-assisted work. Move sanitized non-holdout exports to ignored,
-agent-readable `review/public_exports/`. Move the separately downloaded private
+Reviewer decisions are stored in persistent browser local storage, so closing a
+tab does not clear them and clearing the browser cache is not relevant. After
+securely saving and verifying a private export, use **Clear Private State**, then
+close the browser before resuming agent-assisted work. Move sanitized non-holdout
+exports to ignored, agent-readable `review/public_exports/`. Move the separately downloaded private
 export to ignored, agent-forbidden `review/private/` or outside the workspace;
 open it and verify its holdout count before using **Clear Private State**. Legacy
 or unsanitized exports belong only in agent-forbidden `review/exports/`.

@@ -24,6 +24,18 @@ security model are in [HOLDOUT_SECURITY.md](HOLDOUT_SECURITY.md).
 Choose the holdout as a small, representative evaluation sample—not as a list of
 the easiest, hardest, or most memorable examples.
 
+A pair is eligible only if no reviewer decision or annotation was attached to it
+before the current review session. Merely generating the pair in an earlier run,
+including it in a comparison bundle, or displaying it in either review interface
+does not make it ineligible. If an earlier status, wording correction, rating, or
+comment is attached, do not select it. Build the review bundle with every
+applicable previous benchmark and sanitized previous-review export, then add
+`--assert-complete-review-provenance` only after a human confirms that those
+sources cover all earlier review decisions (or that no earlier decisions exist).
+Without that assertion, both interfaces disable holdout selection. With it,
+they enforce the pair-level rule and explain why an ineligible pair cannot be
+selected.
+
 For this benchmark, use about **10% of eligible pairs** as the default target.
 Treat 5% as a lower bound only. With roughly 100 pairs, five holdouts are usually
 too few to cover several KGs and query patterns; eight to ten is a more useful
@@ -69,6 +81,16 @@ Do not put that note into an agent-readable selector.
 5. Select **Clear Private State** and confirm the deletion.
 6. Close the review browser tab or window.
 7. Only now resume agent-assisted work.
+
+Closing the tab or browser is not sufficient: review state is stored in the
+browser's persistent local storage and normally survives closing and reopening.
+Clearing the browser cache is unrelated and is not needed. **Clear Private
+State** removes the holdout annotations (and legacy private review storage) for
+the current dataset and review mode while retaining current non-holdout work.
+If you used more than one bundle or both modes, repeat the verified export-and-clear
+procedure in each one. Clearing all site data is an optional blunt
+fallback that also deletes non-holdout review state; never do it before opening
+and verifying the private export.
 
 ## Continue the public workflow
 

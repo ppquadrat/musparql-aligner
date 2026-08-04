@@ -68,9 +68,14 @@ def load_selector_keys(path: Optional[Path]) -> set[Tuple[str, str]]:
 def load_previous_benchmark(path: Optional[Path]) -> Dict[Tuple[str, str], Dict[str, Any]]:
     if path is None:
         return {}
+    expected_paths = [path / "benchmark.jsonl", *(path / filename for filename in BENCHMARK_FILES.values())]
+    if not any(candidate.exists() for candidate in expected_paths):
+        raise FileNotFoundError(f"Previous benchmark has no review records: {path}")
     records: Dict[Tuple[str, str], Dict[str, Any]] = {}
-    for disposition, filename in BENCHMARK_FILES.items():
-        for rec in load_optional_json_records(path / filename):
+    sources = [("included", path / "benchmark.jsonl")]
+    sources.extend((disposition, path / filename) for disposition, filename in BENCHMARK_FILES.items())
+    for disposition, source_path in sources:
+        for rec in load_optional_json_records(source_path):
             kg_id = str(rec.get("kg_id") or "")
             query_id = str(rec.get("query_id") or "")
             if not kg_id or not query_id:
@@ -278,6 +283,11 @@ def main() -> None:
         action="store_true",
         help="When reviewed pairs are included, expose their previous judgement in the UI bundle.",
     )
+    parser.add_argument(
+        "--assert-complete-review-provenance",
+        action="store_true",
+        help="Human assertion that supplied benchmark/review sources cover every prior reviewer decision; required to enable holdout selection.",
+    )
     args = parser.parse_args()
 
     inputs_path = Path(args.inputs)
@@ -350,6 +360,7 @@ def main() -> None:
                 if previous_candidate and previous_review_matches(previous_candidate, source_input)
                 else None
             )
+            has_prior_pair_review = previous_candidate is not None
             if previous_review and not args.include_reviewed:
                 scope_counts["previously_reviewed_excluded"] += 1
                 continue
@@ -378,6 +389,7 @@ def main() -> None:
             review_record = {
                 "review_id": review_id,
                 "review_scope": review_scope,
+                "has_prior_pair_review": has_prior_pair_review,
                 "run_id": run_id or None,
                 "generation_run_id": run_id or None,
                 "run_label": run_label,
@@ -444,6 +456,7 @@ def main() -> None:
             "default_scope": "new" if previous_benchmark_path is not None else "all",
             "counts": scope_counts,
         },
+        "holdout_review_provenance_complete": bool(args.assert_complete_review_provenance),
         "pipeline_assessment_definitions": {
             "accepted": "The candidate formulation is acceptable.",
             "prompt_improvement_recommended": "The canonical pair is valid, but prompt or model behaviour should improve.",

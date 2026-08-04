@@ -47,6 +47,11 @@ def main() -> None:
         action="store_true",
         help="Include pairs whose only changes are confidence, rationale, model, or full-input evidence metadata.",
     )
+    parser.add_argument(
+        "--assert-complete-review-provenance",
+        action="store_true",
+        help="Human assertion that the supplied prior-review sources cover every earlier reviewer decision; required to enable holdout selection.",
+    )
     args = parser.parse_args()
 
     command: List[str] = [
@@ -73,6 +78,8 @@ def main() -> None:
         command.append("--include-dismissed")
     if args.include_metadata_only:
         command.append("--include-metadata-only")
+    if args.assert_complete_review_provenance:
+        command.append("--assert-complete-review-provenance")
 
     subprocess.run(command, check=True)
 
