@@ -12,8 +12,8 @@ For the step-by-step procedure, use [HOLDOUT_RUNBOOK.md](HOLDOUT_RUNBOOK.md).
 ## What is the holdout?
 
 The project starts with candidate pairs. Each pair contains a SPARQL query, its
-supporting evidence, and a generated natural-language formulation. Agents may
-help create and inspect those candidates.
+supporting evidence, and a verbatim or generated natural-language formulation. Agents may
+help compile and inspect those candidate pairs.
 
 A human reviewer may later select a candidate as a **holdout pair**. Holdout
 pairs are reserved for evaluation: they must not become training, prompt-design,
@@ -149,10 +149,12 @@ Enable the repository hooks with:
 git config core.hooksPath .githooks
 ```
 
-Removing a file in a later commit does not remove it from earlier Git history.
-The first public repository should therefore be created from a history-free,
-allowlisted export unless a separate human-audited history rewrite has been
-authorised.
+There are no holdout records yet, so the repository's existing history does not
+create a retroactive holdout problem. It does not need to be discarded for
+holdout security. From the first holdout selection onward, private holdout data
+must never enter Git history. A history-free export or history rewrite is needed
+only if the existing history contains other material that was not intended for
+publication; that is a separate publication decision.
 
 If a holdout annotation is shown to an agent or model, retire and replace that
 holdout. If a selected pair is published, treat it as public and replace it. If

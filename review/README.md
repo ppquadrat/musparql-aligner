@@ -81,6 +81,11 @@ Non-Holdout** creates a sanitized decision file with those entries absent;
 `musparql-holdout-private-*.json` file. The private file contains the candidate
 and its complete annotation and must remain outside Git.
 
+The summary bar shows the current holdout count. Use **Set → Holdout only** to
+inspect the selected set. After a private export starts, the workbench reports
+the exported count so the reviewer can compare it with the downloaded file
+before clearing browser state.
+
 2. Serve only the review application on loopback:
 
 ```bash

@@ -19,6 +19,32 @@ security model are in [HOLDOUT_SECURITY.md](HOLDOUT_SECURITY.md).
    a location outside the workspace. `review/private/` is ignored but is not an
    encrypted access boundary.
 
+## Choose the holdout set
+
+Choose the holdout as a small, representative evaluation sample—not as a list of
+the easiest, hardest, or most memorable examples.
+
+For this benchmark, use about **10% of eligible pairs** as the default target.
+Treat 5% as a lower bound only. With roughly 100 pairs, five holdouts are usually
+too few to cover several KGs and query patterns; eight to ten is a more useful
+target while leaving most data available for development. If the benchmark
+grows substantially, revisit the percentage and report uncertainty around any
+holdout result. A set of eight to ten pairs is useful as a protected qualitative
+check, but it is not large enough for a precise aggregate performance claim.
+
+Select across:
+
+- the represented KGs, roughly in proportion to their benchmark presence while
+  ensuring that smaller KGs are not absent;
+- different query shapes and complexity levels;
+- different evidence and formulation origins;
+- straightforward, ambiguous, and graph-context-dependent cases; and
+- relevant execution outcomes or endpoint requirements.
+
+Make the selection before using its reviewer annotations to tune prompts or
+systems. Record the intended size and sampling rationale in a human-only note.
+Do not put that note into an agent-readable selector.
+
 ## During review
 
 1. Review candidates normally.
@@ -27,15 +53,19 @@ security model are in [HOLDOUT_SECURITY.md](HOLDOUT_SECURITY.md).
    comments, ratings, and fields whose names contain the word `public`.
 4. Do not resume an agent task while private annotations remain in browser
    storage.
+5. Use the **Set → Holdout only** filter and the **Holdout** summary count to
+   check the selected set's size and coverage before exporting.
 
 ## Export and close the private session
 
 1. Select **Export Non-Holdout**. Move that file to
    `review/public_exports/` if it will be used by agent-facing build tools.
-2. Select **Export Private Holdout**.
+2. Note the **Holdout** count, then select **Export Private Holdout**. The
+   workbench reports how many records the download contains.
 3. Move the private file outside the workspace or to `review/private/`.
-4. Open the private file yourself. Confirm that it opens and contains the
-   expected number of holdout records. Do not ask an agent to verify it.
+4. Open the private file yourself. Confirm that it opens and that its record
+   count matches the workbench's Holdout count and export message. Do not ask an
+   agent to verify it.
 5. Select **Clear Private State** and confirm the deletion.
 6. Close the review browser tab or window.
 7. Only now resume agent-assisted work.

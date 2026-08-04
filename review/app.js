@@ -9,10 +9,12 @@
     recordCount: document.getElementById("recordCount"),
     visibleCount: document.getElementById("visibleCount"),
     reviewedCount: document.getElementById("reviewedCount"),
+    holdoutCount: document.getElementById("holdoutCount"),
     searchInput: document.getElementById("searchInput"),
     kgFilter: document.getElementById("kgFilter"),
     modeFilter: document.getElementById("modeFilter"),
     statusFilter: document.getElementById("statusFilter"),
+    holdoutFilter: document.getElementById("holdoutFilter"),
     scopeFilter: document.getElementById("scopeFilter"),
     runFilter: document.getElementById("runFilter"),
     recordList: document.getElementById("recordList"),
@@ -82,6 +84,7 @@
     kg: "all",
     mode: "all",
     status: "all",
+    holdout: "all",
     scope: data.review_scope_policy?.default_scope || "all",
     run: "all",
   };
@@ -120,6 +123,9 @@
       ["all", "unreviewed", "accepted", "excluded", "prompt_improvement_recommended", "input_data_improvement_recommended"],
       "All review states"
     );
+    fillSelect(els.holdoutFilter, ["all", "holdout", "non_holdout"], "All sets");
+    els.holdoutFilter.options[1].textContent = "Holdout only";
+    els.holdoutFilter.options[2].textContent = "Non-holdout only";
     fillSelect(els.scopeFilter, ["all", "new", "previously_reviewed"], "All scopes");
     els.scopeFilter.value = state.scope;
     fillSelect(els.runFilter, ["all", ...uniqueValues(data.records.map((r) => r.run_label))], "All runs");
@@ -154,6 +160,10 @@
     });
     els.statusFilter.addEventListener("change", () => {
       state.status = els.statusFilter.value;
+      render();
+    });
+    els.holdoutFilter.addEventListener("change", () => {
+      state.holdout = els.holdoutFilter.value;
       render();
     });
     els.scopeFilter.addEventListener("change", () => {
@@ -230,6 +240,8 @@
       if (state.kg !== "all" && record.kg_id !== state.kg) return false;
       if (state.mode !== "all" && getMode(record) !== state.mode) return false;
       if (state.status !== "all" && status !== state.status) return false;
+      if (state.holdout === "holdout" && !isHoldoutReview(review)) return false;
+      if (state.holdout === "non_holdout" && isHoldoutReview(review)) return false;
       if (state.scope !== "all" && getReviewScope(record) !== state.scope) return false;
       if (state.run !== "all" && record.run_label !== state.run) return false;
       return true;
@@ -240,6 +252,10 @@
     return Object.values(reviews).filter((review) => review && review.status).length;
   }
 
+  function holdoutCount(reviewMap) {
+    return Object.values(reviewMap || {}).filter((review) => isHoldoutReview(normalizeReview(review))).length;
+  }
+
   function render() {
     const filtered = getFilteredRecords();
     if (!filtered.some((rec) => rec.review_id === state.selectedReviewId)) {
@@ -247,6 +263,7 @@
     }
     els.visibleCount.textContent = String(filtered.length);
     els.reviewedCount.textContent = String(reviewedCount());
+    els.holdoutCount.textContent = String(holdoutCount(reviews));
     renderList(filtered);
     renderDetail(filtered.find((rec) => rec.review_id === state.selectedReviewId) || null);
   }
@@ -735,6 +752,7 @@
       `musparql-holdout-private-${timestamp}.json`
     );
     privateExportReady = true;
+    window.alert(`Private export started for ${records.length} holdout record${records.length === 1 ? "" : "s"}. Open the downloaded file and verify that count before clearing private state.`);
   }
 
   function clearPrivateState() {
@@ -845,6 +863,7 @@
       kg: "all",
       change: "all",
       status: "all",
+      holdout: "all",
       previousStatus: "all",
     };
 
@@ -864,6 +883,9 @@
       ["all", "unreviewed", "accepted", "excluded", "prompt_improvement_recommended", "input_data_improvement_recommended"],
       "All current states"
     );
+    fillSelect(els.holdoutFilter, ["all", "holdout", "non_holdout"], "All sets");
+    els.holdoutFilter.options[1].textContent = "Holdout only";
+    els.holdoutFilter.options[2].textContent = "Non-holdout only";
     fillSelect(
       els.runFilter,
       ["all", "unreviewed", "accepted", "excluded", "prompt_improvement_recommended", "input_data_improvement_recommended"],
@@ -884,6 +906,10 @@
     });
     els.statusFilter.addEventListener("change", () => {
       compareState.status = els.statusFilter.value;
+      renderCompare();
+    });
+    els.holdoutFilter.addEventListener("change", () => {
+      compareState.holdout = els.holdoutFilter.value;
       renderCompare();
     });
     els.runFilter.addEventListener("change", () => {
@@ -955,6 +981,8 @@
         if (compareState.kg !== "all" && pair.kg_id !== compareState.kg) return false;
         if (compareState.change !== "all" && pair.pair_status !== compareState.change && !(pair.change_flags || []).includes(compareState.change)) return false;
         if (compareState.status !== "all" && currentStatus !== compareState.status) return false;
+        if (compareState.holdout === "holdout" && !isHoldoutReview(currentReview)) return false;
+        if (compareState.holdout === "non_holdout" && isHoldoutReview(currentReview)) return false;
         if (compareState.previousStatus !== "all" && previousStatus !== compareState.previousStatus) return false;
         return true;
       });
@@ -967,6 +995,7 @@
       }
       els.visibleCount.textContent = String(filtered.length);
       els.reviewedCount.textContent = String(Object.values(compareReviews).filter((review) => review && review.status).length);
+      els.holdoutCount.textContent = String(holdoutCount(compareReviews));
       renderCompareList(filtered);
       renderCompareDetail(filtered.find((pair) => pair.pair_id === compareState.selectedPairId) || null);
     }
@@ -1380,6 +1409,7 @@
         `musparql-holdout-private-${timestamp}.json`
       );
       privateCompareExportReady = true;
+      window.alert(`Private export started for ${pairs.length} holdout record${pairs.length === 1 ? "" : "s"}. Open the downloaded file and verify that count before clearing private state.`);
     }
 
     function clearPrivateCompareState() {
