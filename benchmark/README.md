@@ -42,7 +42,7 @@ must be constructed with `build_public_release.py`, which serializes only allowe
 fields into `manifest.json`, `benchmark.jsonl`, and `alternatives.jsonl`.
 Detailed curation records, exploratory ratings, and dismissed candidates remain
 outside the release. Private holdout annotations remain outside the repository
-entirely; see `HOLDOUT_SECURITY.md`.
+entirely; see the [holdout security overview](../HOLDOUT_SECURITY.md).
 
 ## Pipeline assessment
 

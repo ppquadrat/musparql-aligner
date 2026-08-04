@@ -7,6 +7,10 @@ Documentation entry points:
 
 - `WORKFLOW.md`: end-to-end collection, generation, review, curation, audit,
   and release flow.
+- `HOLDOUT_SECURITY.md`: what the evaluation holdout protects, the trust model,
+  and the safeguards in place.
+- `HOLDOUT_RUNBOOK.md`: the human checklist for selecting, exporting, clearing,
+  and publishing around holdout records.
 - `review/README.md`: review-workbench operation and review-field semantics.
 - `benchmark/README.md`: snapshot schemas, update policy, audits, and
   public-release packaging.

@@ -4,6 +4,10 @@ This folder contains a lightweight local reviewer for LLM question-generation ou
 
 ## Usage
 
+Before selecting any holdout pairs, read the
+[holdout security overview](../HOLDOUT_SECURITY.md) and follow the
+[holdout review runbook](../HOLDOUT_RUNBOOK.md).
+
 1. Build the browser data bundle:
 
 ```bash
@@ -159,5 +163,6 @@ rest of the comment is retained privately.
   `benchmark/vN/alternatives.jsonl` under `literal_formulations`, with source
   type `literal_sparql_wording`.
 - Private holdout records are never retained in repository snapshots. Public
-  builders reject mixed/private exports. See `HOLDOUT_SECURITY.md` for the
-  current procedural boundary and planned encrypted storage.
+  builders reject mixed/private exports. See the
+  [security overview](../HOLDOUT_SECURITY.md) and
+  [review runbook](../HOLDOUT_RUNBOOK.md).

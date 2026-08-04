@@ -1,119 +1,160 @@
-# Holdout security policy
+# Holdout security
 
-## Scope
+## What this document is about
 
-Candidates may be processed by agents before a human designates a holdout. From
-the moment of designation, every human field attached to that candidate is
-private: disposition, pipeline assessment, preferred or literal wording,
-comments, interpretive ratings, timestamps, provenance, and the combined private
-record. A field called `public_comment` is still private when it belongs to a
+This document explains how Musparql protects its evaluation holdout. It is for
+reviewers, maintainers, and future contributors who need to understand what the
+holdout is, which information is confidential, and where the security boundary
+lies.
+
+For the step-by-step procedure, use [HOLDOUT_RUNBOOK.md](HOLDOUT_RUNBOOK.md).
+
+## What is the holdout?
+
+The project starts with candidate pairs. Each pair contains a SPARQL query, its
+supporting evidence, and a generated natural-language formulation. Agents may
+help create and inspect those candidates.
+
+A human reviewer may later select a candidate as a **holdout pair**. Holdout
+pairs are reserved for evaluation: they must not become training, prompt-design,
+or development material after selection.
+
+The important secret is the **reviewer annotation made for a holdout pair**.
+That includes the decision itself, corrected or literal wording, comments,
+ratings, timestamps, provenance, and any combined export containing those
+fields. Even a field named `public_comment` is private when it belongs to a
 holdout.
 
-The selected candidate's SPARQL, evidence, and generated formulation must be
-absent from the paper's public repository and release artifacts. Existing
-candidates already reachable through this repository's public Git history cannot
-satisfy a "never publicly released" claim; strict holdouts must come from fresh
-candidate material created after this boundary is in place.
+The candidate's SPARQL, evidence, and generated formulation are not initially
+secret from agents—the agent may already have seen them before selection. Once
+the pair is selected, however, those materials must not be published or returned
+to agent-assisted development workflows.
 
-Holdout membership is a separate policy choice:
+There are currently no holdout records. This policy establishes the boundary
+before the first ones are created.
 
-- **Identity visible:** agent-facing tools may consume a selector-only file with
-  `kg_id`, `query_id`, `sparql_version`, and `sparql_hash`, but no reviewer fields.
-- **Identity private:** filtering must happen in a human-only environment. No
-  selector or before/after disposition ledger may enter the agent workspace.
+## Security aim
 
-Omission from a candidate universe already seen by an agent can reveal membership,
-so the identity-private policy requires a fresh human-only candidate universe.
+After a human selects a pair for the holdout, we aim to ensure that:
 
-## Repository invariants
+- its reviewer annotation is never shown to an agent or model;
+- the pair is excluded from prompts, development evaluation, and routine review;
+- its SPARQL, evidence, and generated formulation are not included in the public
+  repository or release;
+- only a human-controlled private copy carries the holdout record forward.
 
-The repository must never contain a real private annotation, private holdout
-export, annotation-bearing holdout snapshot, or unfiltered candidate pool.
+This is defence in depth, not an absolute guarantee. The system combines human
+procedure, separate exports, ignored paths, fail-closed tools, Git hooks, and CI
+checks so that one ordinary mistake is less likely to disclose the data.
 
-- Legacy/raw browser exports live under ignored, agent-forbidden
-  `review/exports/`; private exports live under ignored `review/private/` or
-  outside the workspace.
-- Sanitized non-holdout decision exports live under ignored
-  `review/public_exports/` as agent-readable working inputs. The
-  paper tree contains only allowlisted benchmark outputs, not review exports.
-- Private browser exports use an opaque
-  `musparql-holdout-private-*.json` filename and remain ignored.
-- `benchmark/v*/holdout.jsonl` is not a supported snapshot artifact.
-- Public builders reject `withheld` and `private_holdout` records instead of
-  routing them into a private partition.
-- Agent-facing tests use synthetic records only.
+## Constraints and trust assumptions
 
-The public-tree check and repository hooks are tripwires. They inspect staged
-blobs, the committed tree, and every outgoing commit without crawling ignored
-private locations.
+The current workflow is unencrypted. A plaintext file on the same computer and
+under the same operating-system account is not a strong access boundary: software
+with access to that account could read it. A separate repository on the same
+machine improves organisation but does not solve that problem.
 
-## Human review procedure (current, unencrypted)
+For now, the workflow assumes that humans:
 
-Until encrypted storage is implemented, this procedure is best-effort rather
-than a cryptographic access boundary:
+- conduct the private part of review without an agent active;
+- keep private exports outside agent-readable workflows;
+- verify the private export before clearing browser state; and
+- never ask an agent to inspect, move, audit, or recover private holdout data.
 
-1. Conduct review without an agent active.
-2. Use the two separate workbench actions: export the sanitized non-holdout
-   decisions, then explicitly export the self-contained private holdout.
-3. Move the non-holdout file to `review/public_exports/`. Move the private file
-   to `review/private/` or, preferably, outside the workspace. Open the private
-   file and verify its holdout count before continuing.
-4. Use **Clear Private State** (which requires a private export in the current
-   session), then close the review browser before resuming
-   agent-assisted work.
-5. Commit only allowlisted benchmark artifacts, never a review export.
+The preferred future boundary is encryption before the private export touches
+disk, with a passphrase or key that is never stored on the machine, in an
+environment variable, on a command line, or in an agent-accessible credential
+store. A separate OS account, encrypted removable device, or separate review
+machine would be stronger still.
 
-Serve only the review application, bound to loopback:
+## What is in place
 
-```bash
-python3 -m http.server 8000 --bind 127.0.0.1 --directory review
-```
+### The review workbench separates the data
 
-Plaintext under the same OS account remains readable in principle. A separate
-plaintext repository on the same computer is an organizational boundary, not an
-agent access boundary.
+The browser has two explicit export actions:
 
-## Preferred future boundary
+- **Export Non-Holdout** creates an agent-readable review export with every
+  holdout entry absent.
+- **Export Private Holdout** creates a separate, self-contained private package.
 
-The private browser export should eventually be encrypted before it touches
-disk, using authenticated encryption and a passphrase or key that is never saved
-on the computer, placed in an environment variable, passed on a command line, or
-stored in an agent-accessible credential store. Decrypt only during a human-only
-session and lock the store before resuming agent work. A separate OS account,
-removable encrypted device, or separate review machine is stronger.
+The browser checks that every private annotation has exactly one matching record.
+It will not clear private state after a missing or duplicate identity, and any
+edit invalidates the previous export-ready state. Clearing requires a fresh
+private export and human confirmation that the file opens and has the expected
+count. Clearing also removes legacy browser-storage copies.
 
-## Publication
+### Agent-facing tools fail closed
 
-The paper repository contains source code, synthetic fixtures, sanitized public
-benchmark artifacts, and documentation. It excludes raw query pools, prompt
-inputs, raw model outputs, frozen runs, generated review bundles, raw review
-exports, and holdout records. Publish from the tracked allowlisted tree, not a
-copy-and-delete workflow.
+Benchmark and comparison tools accept only exports explicitly marked
+`non_holdout_review_export`. They reject private, mixed, legacy, or mislabeled
+review exports rather than trying to remove private records themselves.
 
-Local hooks should be enabled with:
+Where the identity-visible policy is chosen, tools may use an annotation-free
+selector containing only `kg_id`, `query_id`, `sparql_version`, and
+`sparql_hash`. Selector values are validated. Reviewer fields are forbidden.
+
+### The repository excludes working and private data
+
+The public tree contains source code, documentation, synthetic tests, compact
+benchmark data, and allowlisted release artifacts. Raw query pools, prompt
+inputs, model outputs, frozen runs, generated review bundles, raw review exports,
+internal snapshot partitions, and holdout records are ignored and not tracked.
+
+The locations have different meanings:
+
+- `review/public_exports/` — ignored but agent-readable sanitized non-holdout
+  exports;
+- `review/private/` — ignored and human-only private exports;
+- `review/exports/` — ignored and human-only legacy or unsanitized exports.
+
+Agents are instructed never to read or operate on the human-only locations,
+`benchmark/v*/holdout.jsonl`, or any `musparql-holdout-private-*` file.
+
+### Publication checks provide tripwires
+
+The public-tree checker parses staged and committed JSON/JSONL for private
+markers and rejects forbidden paths or private filenames. The pre-commit hook
+checks staged blobs. The pre-push hook checks every outgoing commit, including
+records added and deleted within the outgoing history. CI checks the committed
+tree again.
+
+These controls are tripwires, not a substitute for the human procedure. CI on a
+public remote is too late to be the first place a leak is detected.
+
+## Holdout identity policy
+
+The project owner must choose one of two policies before creating holdouts:
+
+- **Identity visible:** agent-facing tools receive an annotation-free selector
+  so they can exclude selected pair identities. This is operationally simpler,
+  but the agent can know or infer which candidates were withheld.
+- **Identity private:** selection and filtering happen entirely in a human-only
+  environment. No selector or before/after membership ledger enters the agent
+  workspace. This requires a candidate universe that has not been exposed in a
+  way that makes omission reveal membership.
+
+In both policies, reviewer annotations remain human-only.
+
+Because the current workflow selects holdouts from candidates agents may already
+have seen, identity visible is the practical default. Identity private is a
+future option only when selection begins from a genuinely human-only candidate
+universe.
+
+## Publication and incidents
+
+Publish only an allowlisted release, never a copy-and-delete working directory.
+Enable the repository hooks with:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-CI repeats the public-tree check, but CI on a public remote detects a leak only
-after data has left the machine. The ignore rules and pre-push check are the
-primary publication controls.
+Removing a file in a later commit does not remove it from earlier Git history.
+The first public repository should therefore be created from a history-free,
+allowlisted export unless a separate human-audited history rewrite has been
+authorised.
 
-Removing old artifacts from the current tree does not purge prior Git history.
-Before first publication, create the public repository from an allowlisted
-history-free export (or perform a separately authorized, human-audited history
-rewrite). Never treat a deletion commit alone as historical erasure. Material
-already pushed to a public remote must be treated as public and retired from any
-strict holdout.
-
-## Incident response
-
-- If an annotation is shown to an agent or model, retire and replace that
-  annotation/holdout.
-- If a selected candidate is pushed publicly, treat it as public and replace it.
-- If a private file is staged but not committed, unstage it through a human-only
-  process and verify that it never reached a remote.
-- If a private file is committed, audit all refs, stashes, reflogs, CI artifacts,
-  and remotes. History rewriting limits distribution but does not restore secrecy.
-- Freeze publication during an incident review.
+If a holdout annotation is shown to an agent or model, retire and replace that
+holdout. If a selected pair is published, treat it as public and replace it. If
+a private file is staged or committed, stop publication and follow the incident
+steps in the runbook.

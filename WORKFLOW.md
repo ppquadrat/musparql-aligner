@@ -36,7 +36,9 @@ models rank against a current benchmark snapshot.
 Private holdout annotations are reviewer-only and remain outside the repository.
 The browser splits them from sanitized public review decisions before any
 benchmark tool runs. Under the identity-visible policy, agent-facing exclusion
-uses annotation-free selectors; see `HOLDOUT_SECURITY.md`.
+uses annotation-free selectors. See [HOLDOUT_SECURITY.md](HOLDOUT_SECURITY.md)
+for the security model and [HOLDOUT_RUNBOOK.md](HOLDOUT_RUNBOOK.md) for the
+human procedure.
 
 ---
 
@@ -507,7 +509,8 @@ Initial review captures:
 - benchmark disposition and pipeline assessment
 - preferred/corrected wording
 - optional literal SPARQL wording
-- public reviewer comments and private operational comments as separate fields
+- public reviewer comments and internal operational comments as separate fields
+  for non-holdout records; every annotation field is private on a holdout
 - private holdout flag
 - interpretive dimensions: naturalness, pragmatism, room for interpretation
 - whether graph/context knowledge is required
@@ -558,13 +561,22 @@ Review fields:
 Legacy `note` values default to `internal_comment`. Promote text to
 `public_comment` only through an explicit review decision.
 
-Normalize sanitized non-holdout exports and existing non-holdout snapshots with:
+Normalize existing local non-holdout working snapshots with:
 
 ```bash
 .venv/bin/python benchmark/normalize_review_comments.py
 ```
 
-Outputs:
+Normalize an explicit directory of sanitized non-holdout exports with:
+
+```bash
+.venv/bin/python benchmark/normalize_review_comments.py \
+  --exports review/public_exports
+```
+
+The tool never discovers or scans raw/private export directories by default.
+
+Review workflow outputs:
 
 - `review/review_data.js`
 - ignored `review/public_exports/<non-holdout-review-export>.json`
@@ -721,11 +733,12 @@ Multiple reviews of the same pair are methodologically useful: they can support
 quality control, inter-reviewer agreement, and intra-reviewer variation checks.
 They should not be collapsed silently.
 
-The benchmark curation policy is:
+For non-holdout records, the benchmark curation policy is:
 
-- Preserve every review separately, including benchmark disposition, pipeline assessment, preferred
-  wording, literal wording, public and internal comments, split, interpretive annotations, timestamp,
-  review export, and run provenance.
+- Preserve every non-holdout review separately, including benchmark disposition,
+  pipeline assessment, preferred wording, literal wording, public and internal
+  comments, interpretive annotations, timestamp, review export, and run
+  provenance.
 - Keep exactly one canonical `gold_question` in `benchmark.jsonl`.
 - Store accepted alternative wordings and explicitly marked literal formulations
   in `alternatives.jsonl`, with provenance for each formulation.
@@ -846,7 +859,8 @@ At minimum, the project can produce:
 - KG source and metadata records.
 - Query records with execution metadata and evidence.
 - LLM generation runs with model provenance.
-- Human review exports.
+- Sanitized non-holdout review exports and separately controlled human-only
+  holdout exports.
 - Versioned benchmark snapshots.
 - Public ambiguity sidecars.
 - Automatic evaluation reports.
@@ -1170,10 +1184,10 @@ Local ignored working snapshots may additionally contain `included.jsonl`,
 }
 ```
 
-Detailed internal records live in `included.jsonl`, `dismissed.jsonl`, and
-the human-owned private holdout export. Those records retain review/run
-provenance and must not be
-confused with the compact scoring schema above.
+Detailed non-holdout working records live in `included.jsonl` and
+`dismissed.jsonl`; the human-owned private holdout export is separate and never
+part of a benchmark snapshot. These records retain review/run provenance and
+must not be confused with the compact scoring schema above.
 
 `alternatives.jsonl` is a public sidecar, not a scoring file:
 
