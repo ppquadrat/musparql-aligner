@@ -10,6 +10,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from build_review_bundle import (
     build_input_index,
     infer_run_manifest,
+    load_selector_keys,
     load_json,
     load_json_records,
     sha256_text,
@@ -62,9 +63,20 @@ def load_reviews(path: Optional[Path]) -> Dict[str, Any]:
     if path is None:
         return {}
     payload = load_json(path)
+    if payload.get("kind") != "non_holdout_review_export":
+        raise ValueError("Comparative review tools require kind='non_holdout_review_export'")
     reviews = payload.get("reviews")
     if not isinstance(reviews, dict):
         raise ValueError(f"Review export has no reviews object: {path}")
+    if any(
+        isinstance(review, dict)
+        and (
+            review.get("split") == HOLDOUT_SPLIT
+            or review.get("benchmark_disposition") == "withheld"
+        )
+        for review in reviews.values()
+    ):
+        raise ValueError("Comparative review tools require a sanitized public review export")
     return reviews
 
 
@@ -107,22 +119,12 @@ def load_benchmark_reviews(path: Optional[Path]) -> Tuple[Dict[PairKey, Dict[str
     for group, filename in (
         ("included", "included.jsonl"),
         ("excluded", "dismissed.jsonl"),
-        ("withheld", "holdout.jsonl"),
     ):
         for record in load_jsonl(path / filename):
             key = pair_key(record)
             if group == "included":
                 benchmark_pairs.add(key)
-            if group == "withheld":
-                review_by_pair[key] = {
-                    "benchmark_disposition": "withheld",
-                    "pipeline_assessment": str(record.get("pipeline_assessment") or ""),
-                    "split": HOLDOUT_SPLIT,
-                    "benchmark_id": record.get("benchmark_id"),
-                    "source_benchmark": str(path),
-                }
-            else:
-                review_by_pair[key] = benchmark_review_for_record(record, group, path)
+            review_by_pair[key] = benchmark_review_for_record(record, group, path)
     return review_by_pair, benchmark_pairs
 
 
@@ -335,6 +337,11 @@ def main() -> None:
         help="Previous benchmark/vN directory. When provided, carried-forward benchmark decisions are used as previous review context.",
     )
     parser.add_argument(
+        "--holdout-selectors",
+        default="",
+        help="Optional annotation-free selector JSONL for the identity-visible holdout policy.",
+    )
+    parser.add_argument(
         "--benchmark-only",
         action="store_true",
         help="Only include pairs present in the previous benchmark's public benchmark.jsonl set.",
@@ -363,6 +370,7 @@ def main() -> None:
     current_manifest = Path(args.current_run_manifest) if args.current_run_manifest else None
     previous_reviews_path = Path(args.previous_reviews) if args.previous_reviews else None
     previous_benchmark_path = Path(args.previous_benchmark) if args.previous_benchmark else None
+    holdout_selector_keys = load_selector_keys(Path(args.holdout_selectors) if args.holdout_selectors else None)
 
     previous_run = run_summary(previous_outputs_path, previous_manifest)
     current_run = run_summary(current_outputs_path, current_manifest)
@@ -388,6 +396,9 @@ def main() -> None:
     non_benchmark_excluded = 0
     metadata_only_excluded = 0
     for key in sorted(set(previous_outputs) | set(current_outputs)):
+        if key in holdout_selector_keys:
+            holdout_excluded += 1
+            continue
         if args.benchmark_only and previous_benchmark_path is not None and key not in benchmark_pairs:
             non_benchmark_excluded += 1
             continue

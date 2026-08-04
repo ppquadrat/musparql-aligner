@@ -15,7 +15,7 @@ LLM inputs improve generated natural-language questions?
 - Baseline run: `runs/2026-04-28-full-review-gpt5`
 - Experiment run: `runs/2026-05-19-ontology-shape-gpt5`
 - Evaluation report: `evals/reports/ontology-shape-2026-05-19`
-- Comparison review export: `review/exports/musparql-review-compare-66270aafdb0e60f8-2026-05-20_00-09-27.json`
+- Comparison review export: historical raw artifact, intentionally not retained in the public tree
 - Baseline benchmark: `benchmark/v3`
 - Dataset review update: `benchmark/v4`
 

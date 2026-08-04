@@ -23,17 +23,14 @@ class DismissedExclusionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             benchmark_dir = Path(tmp)
             dismissed_path = benchmark_dir / "dismissed.jsonl"
-            holdout_path = benchmark_dir / "holdout.jsonl"
             dismissed_path.write_text(
                 json.dumps({"query_id": "q1"}) + "\n"
                 + json.dumps({"query_id": "q2"}) + "\n",
                 encoding="utf-8",
             )
-            holdout_path.write_text(json.dumps({"query_id": "q3"}) + "\n", encoding="utf-8")
-
             self.assertEqual(
                 build_llm_inputs.load_excluded_query_ids(benchmark_dir),
-                {"q1", "q2", "q3"},
+                {"q1", "q2"},
             )
 
     def test_normal_review_bundle_excludes_previous_benchmark_by_default(self) -> None:
@@ -43,6 +40,7 @@ class DismissedExclusionTests(unittest.TestCase):
             outputs_path = tmp_path / "outputs.jsonl"
             benchmark_dir = tmp_path / "benchmark"
             out_path = tmp_path / "review_data.js"
+            selectors_path = tmp_path / "selectors.jsonl"
             benchmark_dir.mkdir()
 
             inputs = [
@@ -61,8 +59,8 @@ class DismissedExclusionTests(unittest.TestCase):
                 json.dumps({"kg_id": "kg", "query_id": "q1", "query_label": "label-1", "pipeline_assessment": "accepted"}) + "\n",
                 encoding="utf-8",
             )
-            (benchmark_dir / "holdout.jsonl").write_text(
-                json.dumps({"kg_id": "kg", "query_id": "q2", "query_label": "label-2", "pipeline_assessment": "accepted"}) + "\n",
+            selectors_path.write_text(
+                json.dumps({"kg_id": "kg", "query_id": "q2"}) + "\n",
                 encoding="utf-8",
             )
 
@@ -77,6 +75,8 @@ class DismissedExclusionTests(unittest.TestCase):
                     str(outputs_path),
                     "--previous-benchmark",
                     str(benchmark_dir),
+                    "--holdout-selectors",
+                    str(selectors_path),
                     "--out",
                     str(out_path),
                     "--no-freeze",
@@ -199,7 +199,7 @@ class DismissedExclusionTests(unittest.TestCase):
 
         self.assertEqual(splits, {("kg", "q1"): "private_holdout"})
 
-    def test_build_benchmark_routes_private_holdout_out_of_public_files(self) -> None:
+    def test_build_benchmark_rejects_mixed_private_export(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             bundle_path = tmp_path / "review_data.js"
@@ -232,6 +232,7 @@ class DismissedExclusionTests(unittest.TestCase):
                 ],
             }
             reviews = {
+                "kind": "non_holdout_review_export",
                 "dataset_id": "ds",
                 "run_id": "run",
                 "reviews": {
@@ -258,24 +259,13 @@ class DismissedExclusionTests(unittest.TestCase):
                     "--outdir",
                     str(outdir),
                 ]
-                with redirect_stdout(StringIO()):
-                    build_benchmark.main()
+                with self.assertRaisesRegex(ValueError, "cannot consume private holdout annotations"):
+                    with redirect_stdout(StringIO()):
+                        build_benchmark.main()
             finally:
                 sys.argv = original_argv
 
-            public_records = [
-                json.loads(line)
-                for line in (outdir / "benchmark.jsonl").read_text(encoding="utf-8").splitlines()
-                if line.strip()
-            ]
-            holdout_records = [
-                json.loads(line)
-                for line in (outdir / "holdout.jsonl").read_text(encoding="utf-8").splitlines()
-                if line.strip()
-            ]
-
-            self.assertEqual([rec["query_id"] for rec in public_records], ["q1"])
-            self.assertEqual([rec["query_id"] for rec in holdout_records], ["q2"])
+            self.assertFalse((outdir / "holdout.jsonl").exists())
 
     def test_build_benchmark_separates_alternatives_and_linguistic_annotations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -310,6 +300,7 @@ class DismissedExclusionTests(unittest.TestCase):
                 ],
             }
             reviews = {
+                "kind": "non_holdout_review_export",
                 "dataset_id": "ds",
                 "run_id": "run",
                 "reviews": {
@@ -464,6 +455,7 @@ class DismissedExclusionTests(unittest.TestCase):
                 ],
             }
             reviews = {
+                "kind": "non_holdout_review_export",
                 "dataset_id": "compare-ds",
                 "mode": "compare",
                 "reviews": {

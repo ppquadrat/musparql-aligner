@@ -10,16 +10,16 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from build_benchmark import (
     ALTERNATIVES_FILE,
-    HOLDOUT_SPLIT,
     INCLUDED_FILE,
     LINGUISTIC_ANNOTATIONS_FILE,
     add_interpretive_annotation,
     add_formulation,
     alternatives_record_has_content,
+    assert_no_private_reviews,
+    assert_non_holdout_export,
     benchmark_disposition,
     benchmark_gold_records,
     has_query_specific_evidence,
-    is_private_holdout,
     literal_wording,
     make_rephrasing_entry,
     normalize_rephrasing_text,
@@ -56,13 +56,13 @@ def pair_key(record: Dict[str, Any]) -> Tuple[str, str]:
 
 def included_records_path(benchmark_dir: Path) -> Path:
     preferred = benchmark_dir / INCLUDED_FILE
-    if preferred.exists():
-        return preferred
-    return benchmark_dir / "benchmark.jsonl"
-
-
-def holdout_records_path(benchmark_dir: Path) -> Path:
-    return benchmark_dir / "holdout.jsonl"
+    if not preferred.exists():
+        raise FileNotFoundError(
+            f"Working snapshot file is missing: {preferred}. "
+            "The compact public benchmark cannot reconstruct review provenance; "
+            "restore the human-owned working snapshot before updating it."
+        )
+    return preferred
 
 
 def sort_records(records: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -152,7 +152,7 @@ def make_benchmark_record(
         "gold_question_source": gold_source,
         "benchmark_disposition": disposition,
         "pipeline_assessment": assessment or None,
-        "split": HOLDOUT_SPLIT if is_private_holdout(review) else "public",
+        "split": "public",
         "review": {
             "review_id": review_id,
             "review_export": str(review_path),
@@ -228,10 +228,9 @@ def pop_key_from_all(
     key: Tuple[str, str],
     included_by_key: Dict[Tuple[str, str], Dict[str, Any]],
     dismissed_by_key: Dict[Tuple[str, str], Dict[str, Any]],
-    holdout_by_key: Dict[Tuple[str, str], Dict[str, Any]],
 ) -> bool:
     removed = False
-    for records in (included_by_key, dismissed_by_key, holdout_by_key):
+    for records in (included_by_key, dismissed_by_key):
         if key in records:
             records.pop(key, None)
             removed = True
@@ -256,6 +255,7 @@ def main() -> None:
     if bundle.get("mode") != "compare":
         raise ValueError("Benchmark update requires a compare-mode review bundle.")
     review_export = read_json(review_path)
+    assert_non_holdout_export(review_export)
     if review_export.get("mode") != "compare":
         raise ValueError("Benchmark update requires a compare-mode review export.")
     if bundle.get("dataset_id") and review_export.get("dataset_id") and bundle.get("dataset_id") != review_export.get("dataset_id"):
@@ -266,13 +266,13 @@ def main() -> None:
     reviews = review_export.get("reviews")
     if not isinstance(reviews, dict):
         raise ValueError("Review export missing reviews object")
+    assert_no_private_reviews(reviews)
     pairs = bundle.get("records")
     if not isinstance(pairs, list):
         raise ValueError("Compare bundle missing records list")
 
     included_by_key = {pair_key(rec): rec for rec in read_jsonl(included_records_path(previous_dir))}
     dismissed_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "dismissed.jsonl")}
-    holdout_by_key = {pair_key(rec): rec for rec in read_jsonl(holdout_records_path(previous_dir))}
     alternatives_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / ALTERNATIVES_FILE)}
     annotations_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / LINGUISTIC_ANNOTATIONS_FILE)}
     removed_records: List[Dict[str, Any]] = []
@@ -315,7 +315,6 @@ def main() -> None:
         current_annotations = annotations_by_key.pop(key, None)
         included_by_key.pop(key, None)
         dismissed_by_key.pop(key, None)
-        holdout_by_key.pop(key, None)
         disposition_counts[disposition] += 1
         if assessment:
             assessment_counts[assessment] += 1
@@ -356,7 +355,7 @@ def main() -> None:
                 seen_candidate_keys.add(candidate_key)
                 if candidate_key == key:
                     continue
-                if pop_key_from_all(candidate_key, included_by_key, dismissed_by_key, holdout_by_key):
+                if pop_key_from_all(candidate_key, included_by_key, dismissed_by_key):
                     superseded_removed += 1
                     current_alternatives = merge_alternative_records(current_alternatives, alternatives_by_key.pop(candidate_key, None))
                     current_annotations = merge_annotation_records(current_annotations, annotations_by_key.pop(candidate_key, None))
@@ -369,9 +368,7 @@ def main() -> None:
             dataset_id=dataset_id,
             current_run=current_run,
         )
-        if disposition == "withheld":
-            holdout_by_key[key] = next_record
-        elif disposition == "excluded":
+        if disposition == "excluded":
             dismissed_by_key[key] = next_record
         else:
             included_by_key[key] = next_record
@@ -441,7 +438,6 @@ def main() -> None:
 
     included = sort_records(included_by_key.values())
     dismissed = sort_records(dismissed_by_key.values())
-    holdout = sort_records(holdout_by_key.values())
     previous_manifest = read_json(previous_dir / "manifest.json") if (previous_dir / "manifest.json").exists() else {}
 
     built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -472,11 +468,10 @@ def main() -> None:
             "benchmark": len(benchmark_records),
             "included": len(included),
             "dismissed": len(dismissed),
-            "holdout": len(holdout),
             "alternatives": len(alternatives_records),
             "linguistic_annotations": len(linguistic_annotation_records),
             "pipeline_assessment_counts": dict(Counter(str(row.get("pipeline_assessment")) for row in included)),
-            "benchmark_disposition_counts": dict(Counter(str(row.get("benchmark_disposition")) for row in included + dismissed + holdout)),
+            "benchmark_disposition_counts": dict(Counter(str(row.get("benchmark_disposition")) for row in included + dismissed)),
             "applied_compare_reviews": applied,
             "applied_pipeline_assessment_counts": dict(assessment_counts),
             "applied_benchmark_disposition_counts": dict(disposition_counts),
@@ -484,10 +479,11 @@ def main() -> None:
         },
         "files": {
             "benchmark": "benchmark.jsonl",
+            "alternatives": ALTERNATIVES_FILE,
+        },
+        "working_files": {
             "included": INCLUDED_FILE,
             "dismissed": "dismissed.jsonl",
-            "holdout": "holdout.jsonl",
-            "alternatives": ALTERNATIVES_FILE,
             "linguistic_annotations_internal": LINGUISTIC_ANNOTATIONS_FILE,
         },
         "gold_question_policy": {
@@ -497,15 +493,12 @@ def main() -> None:
             "unchanged_previous_items_carried_forward": True,
         },
         "holdout_policy": {
-            "review_split": HOLDOUT_SPLIT,
-            "excluded_from_public_benchmark": True,
-            "excluded_from_normal_autoeval": True,
-            "excluded_from_future_generation_inputs": True,
-            "unchanged_previous_holdout_items_carried_forward": True,
+            "private_annotations_outside_repository": True,
+            "mixed_private_exports_rejected": True,
         },
         "release_boundary": {
             "public_release_files": ["manifest.json", "benchmark.jsonl", ALTERNATIVES_FILE],
-            "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl", "holdout.jsonl"],
+            "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl"],
         },
     }
 
@@ -513,7 +506,6 @@ def main() -> None:
     write_jsonl(outdir / "benchmark.jsonl", benchmark_records)
     write_jsonl(outdir / INCLUDED_FILE, included)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
-    write_jsonl(outdir / "holdout.jsonl", holdout)
     write_jsonl(outdir / ALTERNATIVES_FILE, alternatives_records)
     write_jsonl(outdir / LINGUISTIC_ANNOTATIONS_FILE, linguistic_annotation_records)
 
@@ -521,7 +513,6 @@ def main() -> None:
     print(f"Wrote {len(benchmark_records)} benchmark records to {outdir / 'benchmark.jsonl'}")
     print(f"Wrote {len(included)} included records to {outdir / INCLUDED_FILE}")
     print(f"Wrote {len(dismissed)} dismissed records to {outdir / 'dismissed.jsonl'}")
-    print(f"Wrote {len(holdout)} private holdout records to {outdir / 'holdout.jsonl'}")
     print(f"Wrote {len(alternatives_records)} alternative-formulation records to {outdir / ALTERNATIVES_FILE}")
     print(f"Wrote {len(linguistic_annotation_records)} internal linguistic-annotation records to {outdir / LINGUISTIC_ANNOTATIONS_FILE}")
     print(f"Applied {applied} comparative-review decisions")

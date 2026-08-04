@@ -7,6 +7,30 @@ __pycache__/
 # Generated data
 raw_queries.jsonl
 runnable_queries.jsonl
+kg_queries.jsonl
+llm_inputs.jsonl
+llm_outputs*.jsonl
+runs/*/
+review/review_data*.js
+prompts/llm_nl_generation.inputs.jsonl
+
+# Human review boundary
+# Raw review exports and holdout material are never repository artifacts.
+review/exports/
+review/private/
+review/public_exports/
+benchmark/v*/holdout.jsonl
+benchmark/v*/included.jsonl
+benchmark/v*/dismissed.jsonl
+benchmark/v*/linguistic_annotations.jsonl
+**/musparql-holdout-private-*.json
+
+# Local work/raw trees that are not publication inputs
+.vscode/
+dumps/
+evals/reports/
+repos/
+tmp/
 
 # OS
 .DS_Store

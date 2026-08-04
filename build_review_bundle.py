@@ -8,13 +8,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from holdout_selectors import validate_selector_record
 from runs.build_run_snapshot import create_run_snapshot
 
-HOLDOUT_SPLIT = "private_holdout"
 BENCHMARK_FILES = {
     "included": "included.jsonl",
     "excluded": "dismissed.jsonl",
-    "withheld": "holdout.jsonl",
 }
 
 
@@ -56,6 +55,16 @@ def load_optional_json_records(path: Path) -> List[Dict[str, Any]]:
     return load_json_records(path)
 
 
+def load_selector_keys(path: Optional[Path]) -> set[Tuple[str, str]]:
+    """Load annotation-free holdout selectors under the identity-visible policy."""
+    if path is None:
+        return set()
+    selectors: set[Tuple[str, str]] = set()
+    for record in load_json_records(path):
+        selectors.add(validate_selector_record(record))
+    return selectors
+
+
 def load_previous_benchmark(path: Optional[Path]) -> Dict[Tuple[str, str], Dict[str, Any]]:
     if path is None:
         return {}
@@ -68,8 +77,6 @@ def load_previous_benchmark(path: Optional[Path]) -> Dict[Tuple[str, str], Dict[
                 continue
             assessment = str(rec.get("pipeline_assessment") or "")
             split = str(rec.get("split") or "")
-            if disposition == "withheld":
-                split = HOLDOUT_SPLIT
             records[(kg_id, query_id)] = {
                 "reviewed": True,
                 "benchmark_id": rec.get("benchmark_id"),
@@ -257,6 +264,11 @@ def main() -> None:
         help="Optional benchmark directory used to exclude previously reviewed pairs from initial review.",
     )
     parser.add_argument(
+        "--holdout-selectors",
+        default="",
+        help="Optional annotation-free selector JSONL for the identity-visible holdout policy.",
+    )
+    parser.add_argument(
         "--include-reviewed",
         action="store_true",
         help="Include non-holdout pairs already present in the previous benchmark.",
@@ -280,6 +292,7 @@ def main() -> None:
     kg_queries_path = Path(args.kg_queries) if args.kg_queries else None
     previous_benchmark_path = Path(args.previous_benchmark) if args.previous_benchmark else None
     previous_benchmark = load_previous_benchmark(previous_benchmark_path)
+    holdout_selector_keys = load_selector_keys(Path(args.holdout_selectors) if args.holdout_selectors else None)
     scope_counts = {
         "new_records": 0,
         "previously_reviewed_records": 0,
@@ -329,7 +342,7 @@ def main() -> None:
             key = (kg_id, query_id, query_label)
             source_input = input_index.get(key, {})
             previous_candidate = previous_benchmark.get((kg_id, query_id))
-            if previous_candidate and previous_candidate.get("split") == HOLDOUT_SPLIT:
+            if (kg_id, query_id) in holdout_selector_keys:
                 scope_counts["holdout_excluded"] += 1
                 continue
             previous_review = (

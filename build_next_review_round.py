@@ -25,6 +25,11 @@ def main() -> None:
         help="Previous benchmark/vN directory. Use this for normal benchmark comparison rounds so carried-forward decisions are shown.",
     )
     parser.add_argument("--current-run", default="llm_outputs.jsonl", help="Current run directory or current llm_outputs.jsonl.")
+    parser.add_argument(
+        "--holdout-selectors",
+        default="",
+        help="Optional annotation-free selector JSONL for the identity-visible holdout policy.",
+    )
     parser.add_argument("--out", default="review/review_data.js")
     parser.add_argument(
         "--benchmark-only",
@@ -58,6 +63,8 @@ def main() -> None:
     ]
     if args.previous_benchmark:
         command.extend(["--previous-benchmark", args.previous_benchmark])
+    if args.holdout_selectors:
+        command.extend(["--holdout-selectors", args.holdout_selectors])
     if args.benchmark_only:
         command.append("--benchmark-only")
     if args.include_unchanged:

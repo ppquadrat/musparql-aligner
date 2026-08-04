@@ -4,12 +4,11 @@ This directory stores versioned, human-curated NL–SPARQL benchmark snapshots.
 Every record in `benchmark.jsonl` is part of the benchmark and its canonical
 natural-language formulation has been confirmed by a human reviewer.
 
-The `vN/` directories are data artifacts. The Python modules alongside them are
-maintenance tools for building, updating, auditing, and packaging those
-artifacts; they are part of the working repository but are not copied into the
-DOI dataset release. Keeping the tools next to the snapshots makes the
-reconstruction path visible, while `build_public_release.py` enforces the much
-smaller publication boundary.
+The tracked portion of each `vN/` directory is a public data artifact. Local
+working snapshots may additionally contain ignored internal files used for
+curation and reconstruction. The Python modules alongside them build, update,
+audit, and package those artifacts; `build_public_release.py` enforces the
+smaller DOI/publication boundary.
 
 ## Snapshot files
 
@@ -20,7 +19,7 @@ smaller publication boundary.
   - benchmark membership is implicit: every record in this file is included
   - optional public reviewer rationale is stored as `provenance.reviewer_comment`
 - `benchmark/vN/included.jsonl`
-  - detailed internal curation records for the included pairs
+  - ignored local detailed curation records for the included pairs
   - preserves generation provenance and `pipeline_assessment`
   - keeps `review.public_comment` and `review.internal_comment` separate
 - `benchmark/vN/alternatives.jsonl`
@@ -29,21 +28,21 @@ smaller publication boundary.
   - `literal_formulations` contains reviewer-authored literal descriptions and marks each with
     `source_type: "literal_sparql_wording"`
 - `benchmark/vN/linguistic_annotations.jsonl`
-  - internal exploratory ratings such as naturalness and pragmatism
+  - ignored local exploratory ratings such as naturalness and pragmatism
   - not part of the public release because the annotation scheme has not been validated
 - `benchmark/vN/dismissed.jsonl`
-  - candidates excluded during curation; never part of `benchmark.jsonl`
-- `benchmark/vN/holdout.jsonl`
-  - reviewer-only records withheld from the public benchmark
+  - ignored local candidates excluded during curation; never part of `benchmark.jsonl`
 - `benchmark/vN/manifest.json`
   - snapshot metadata, file inventory, and counts
   - records the release builder and the intended public file set
 
-The version directory is a working snapshot, not a DOI archive. A public release
+The local version directory may be a working snapshot, but its tracked tree
+contains no internal sidecars. A DOI/public release
 must be constructed with `build_public_release.py`, which serializes only allowed
 fields into `manifest.json`, `benchmark.jsonl`, and `alternatives.jsonl`.
-Detailed curation records, exploratory ratings, dismissed candidates, and
-holdout records remain internal.
+Detailed curation records, exploratory ratings, and dismissed candidates remain
+outside the release. Private holdout annotations remain outside the repository
+entirely; see `HOLDOUT_SECURITY.md`.
 
 ## Pipeline assessment
 
@@ -55,9 +54,10 @@ pre-review formulation process, not the validity of the final canonical pair:
 - `input_data_improvement_recommended`: the canonical pair is valid, but generation inputs should improve
 - `not_applicable`: no generated natural-language candidate was assessed, for example a source-authored prompt
 
-Excluded candidates use `benchmark_disposition: "excluded"`; private holdout
-records use `benchmark_disposition: "withheld"`. The compact scoring file omits
-both fields because its contents are uniformly included and human-confirmed.
+Excluded candidates use `benchmark_disposition: "excluded"`. The compact
+scoring file omits this field because its contents are uniformly included and
+human-confirmed. Public benchmark tools reject private holdout records rather
+than storing them in a snapshot partition.
 
 Generated formulations associated with an improvement recommendation are not
 published as accepted alternatives. Literal formulations are published only in
@@ -96,7 +96,7 @@ Build a snapshot from an initial-review bundle and export:
 ```bash
 .venv/bin/python benchmark/build_benchmark.py \
   --bundle review/review_data.js \
-  --reviews review/exports/<review-export>.json \
+  --reviews review/public_exports/<non-holdout-review-export>.json \
   --outdir benchmark/vN
 ```
 
@@ -109,7 +109,7 @@ comparative-review decisions to that previous benchmark snapshot:
 .venv/bin/python benchmark/update_benchmark.py \
   --previous-benchmark benchmark/vN \
   --bundle review/review_data.js \
-  --reviews review/exports/<comparative-review-export>.json \
+  --reviews review/public_exports/<non-holdout-comparative-export>.json \
   --outdir benchmark/vNext
 ```
 
@@ -120,7 +120,7 @@ without comparing two generation runs side by side:
 .venv/bin/python benchmark/update_from_initial_review.py \
   --previous-benchmark benchmark/vN \
   --bundle review/review_data.js \
-  --reviews review/exports/<initial-review-export>.json \
+  --reviews review/public_exports/<non-holdout-initial-export>.json \
   --outdir benchmark/vNext
 ```
 
@@ -156,6 +156,12 @@ for snapshot in benchmark/v*; do
 done
 .venv/bin/python benchmark/audit_eval_reports.py
 ```
+
+In a clean public clone, the snapshot audit validates only the tracked compact
+benchmark and alternatives because the three ignored working files are absent.
+If any working file is present, all three are required and the full provenance
+audit runs. Snapshot update commands deliberately fail when `included.jsonl` is
+absent; compact public data is not a lossless source for curation provenance.
 
 Build a new, empty public-release directory from a validated snapshot:
 

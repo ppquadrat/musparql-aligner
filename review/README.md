@@ -32,7 +32,9 @@ For later initial-review rounds, pass the latest benchmark snapshot:
 ```
 
 With `--previous-benchmark`, initial review excludes already reviewed SPARQL
-versions by default and always excludes private holdout query IDs. Previous
+versions by default. Under the identity-visible holdout policy, pass an
+annotation-free selector file with `--holdout-selectors`; private annotations
+are never read by this command. Previous
 decisions match by version/hash, with legacy SPARQL text as a compatibility
 fallback. Use `--include-reviewed` only
 for a deliberate audit pass over non-holdout reviewed pairs. Previous decisions
@@ -44,7 +46,7 @@ To build a comparative review of a previous generation run and a new run:
 .venv/bin/python build_next_review_round.py \
   --previous-run runs/<old-run-id> \
   --current-run runs/<new-run-id> \
-  --previous-reviews review/exports/<previous-review-export>.json \
+  --previous-reviews review/public_exports/<previous-non-holdout-export>.json \
   --previous-benchmark benchmark/vN \
   --benchmark-only
 ```
@@ -69,25 +71,32 @@ Comparative mode shows the previous run and current run side by side. Previous
 review decisions are read-only context; current decisions are stored separately
 and exported as a new compare-mode review file.
 
-New examples can be marked as **Private holdout** before export. In compare
-mode, this control is shown for added pairs. Holdout decisions are saved in the
-review export as `split: "private_holdout"` and are intended for reviewer-only
-sanity checks, not prompt development.
+New examples can be marked as **Private holdout** before export. **Export
+Non-Holdout** creates a sanitized decision file with those entries absent;
+**Export Private Holdout** separately creates the self-contained
+`musparql-holdout-private-*.json` file. The private file contains the candidate
+and its complete annotation and must remain outside Git.
 
-2. Serve the repo locally:
+2. Serve only the review application on loopback:
 
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8000 --bind 127.0.0.1 --directory review
 ```
 
 3. Open:
 
 ```text
-http://localhost:8000/review/
+http://127.0.0.1:8000/
 ```
 
-Reviewer decisions are stored in browser local storage and can be exported/imported as JSON.
-The recommended repo location for exported reviewer decisions is `review/exports/`.
+Reviewer decisions are stored in browser local storage. After securely saving a
+private export, use **Clear Private State** and close the browser before resuming
+agent-assisted work. Move sanitized non-holdout exports to ignored,
+agent-readable `review/public_exports/`. Move the separately downloaded private
+export to ignored, agent-forbidden `review/private/` or outside the workspace;
+open it and verify its holdout count before using **Clear Private State**. Legacy
+or unsanitized exports belong only in agent-forbidden `review/exports/`.
+No review export is a paper-repository artifact.
 The initial-review form also exports optional interpretive dimensions
 (`naturalness`, `pragmatism`, `room_for_interpretation`) and the
 `requires_graph_context_knowledge` flag when you set them. Benchmark builders
@@ -141,15 +150,14 @@ rest of the comment is retained privately.
 - `build_next_review_round.py` is the usual entry point after changing extraction,
   enrichment, prompts, or models.
 - The generated review file is `review/review_data.js`.
-- Exported reviewer judgments can be stored in `review/exports/` and committed when you want them versioned alongside the benchmark work.
-- Review exports can be shared with other evaluators without changing the original model output files.
+- Only sanitized exports from which holdout entries are absent may be supplied
+  to agent-facing builders or shared with other evaluators. Review exports are
+  not committed.
 - Compare-mode exports contain the reviewer decisions for the current run, while
   the imported previous review remains read-only context.
 - Literal SPARQL wording is preserved separately in
   `benchmark/vN/alternatives.jsonl` under `literal_formulations`, with source
   type `literal_sparql_wording`.
-- Private holdout records are retained in the internal snapshot's
-  `holdout.jsonl`, but are excluded from compact scoring data, public releases,
-  comparative-review queues, future prompt-input generation, and automatic
-  evaluation by default. Do not paste or print holdout labels in model-visible
-  conversations if the goal is to keep them clean.
+- Private holdout records are never retained in repository snapshots. Public
+  builders reject mixed/private exports. See `HOLDOUT_SECURITY.md` for the
+  current procedural boundary and planned encrypted storage.

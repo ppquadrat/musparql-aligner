@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from build_llm_inputs import build_prompt_input, dismissed_record_matches, load_exclusion_policy
+from build_llm_inputs import build_prompt_input, dismissed_record_matches, load_holdout_selectors
 from sparql_versions import (
     SparqlVersionError,
     add_execution_version,
@@ -125,12 +125,28 @@ def test_dismissal_only_applies_to_matching_sparql_version():
     assert not dismissed_record_matches(latest, dismissed)
 
 
-def test_standalone_holdout_file_is_always_id_scoped(tmp_path):
-    path = tmp_path / "holdout.jsonl"
-    path.write_text('{"query_id":"q1","sparql_version":0}\n', encoding="utf-8")
-    dismissed, holdout_ids = load_exclusion_policy(path)
-    assert dismissed == []
-    assert holdout_ids == {"q1"}
+def test_holdout_selector_file_is_identity_scoped(tmp_path):
+    path = tmp_path / "selectors.jsonl"
+    path.write_text('{"kg_id":"kg","query_id":"q1"}\n', encoding="utf-8")
+    assert load_holdout_selectors(path) == {("kg", "q1")}
+
+
+def test_holdout_selector_rejects_reviewer_fields(tmp_path):
+    path = tmp_path / "selectors.jsonl"
+    path.write_text('{"kg_id":"kg","query_id":"q1","internal_comment":"SYNTHETIC_CANARY"}\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="identity/version fields only"):
+        load_holdout_selectors(path)
+
+
+def test_holdout_selector_rejects_malformed_version_pin(tmp_path):
+    path = tmp_path / "selectors.jsonl"
+    path.write_text(
+        '{"kg_id":"kg","query_id":"q1","sparql_version":1,'
+        '"sparql_hash":"SYNTHETIC_ANNOTATION_NOT_A_DIGEST"}\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="SHA-256"):
+        load_holdout_selectors(path)
 
 
 def test_partial_legacy_execution_uses_its_declared_version():

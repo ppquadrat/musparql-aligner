@@ -127,10 +127,54 @@ def audit_version_pins(
 def audit_snapshot(snapshot: Path) -> List[str]:
     errors: List[str] = []
     manifest = read_json(snapshot / "manifest.json")
+    manifest_counts = manifest.get("counts") if isinstance(manifest.get("counts"), dict) else {}
+    if manifest_counts.get("holdout") not in (None, 0):
+        errors.append("snapshot declares private holdout records; public snapshots must not contain them")
+    manifest_files = manifest.get("files") if isinstance(manifest.get("files"), dict) else {}
+    working_files = manifest.get("working_files") if isinstance(manifest.get("working_files"), dict) else {}
+    if "holdout" in manifest_files or "holdout" in working_files:
+        errors.append("snapshot manifest references a private holdout file")
     benchmark = read_jsonl(snapshot / "benchmark.jsonl")
+    working_paths = [
+        snapshot / INCLUDED_FILE,
+        snapshot / "dismissed.jsonl",
+        snapshot / LINGUISTIC_ANNOTATIONS_FILE,
+    ]
+    present_working = [path.exists() for path in working_paths]
+    if not any(present_working):
+        alternatives = read_jsonl(snapshot / ALTERNATIVES_FILE)
+        for field in ("benchmark_id", "query_id"):
+            duplicates = duplicate_values(benchmark, field)
+            if duplicates:
+                errors.append(f"benchmark has missing or duplicate {field}: {duplicates[:5]}")
+        benchmark_keys = {key(row) for row in benchmark}
+        for row in alternatives:
+            if key(row) not in benchmark_keys:
+                errors.append(f"alternative has no benchmark referent: {row.get('benchmark_id')}")
+        if snapshot_number(manifest, snapshot) >= 8:
+            for row in benchmark:
+                label = str(row.get("query_label") or row.get("benchmark_id") or "")
+                version = row.get("sparql_version")
+                digest = row.get("sparql_hash")
+                text = row.get("sparql")
+                if not isinstance(version, int) or not isinstance(digest, str) or not isinstance(text, str):
+                    errors.append(f"benchmark record lacks a complete SPARQL version pin: {label}")
+                else:
+                    try:
+                        if sparql_hash(text) != digest:
+                            errors.append(f"benchmark SPARQL text/hash mismatch: {label}")
+                    except ValueError as exc:
+                        errors.append(f"benchmark has invalid SPARQL: {label}: {exc}")
+        counts = manifest.get("counts") if isinstance(manifest.get("counts"), dict) else {}
+        for field, actual in (("benchmark", len(benchmark)), ("alternatives", len(alternatives))):
+            if counts.get(field) != actual:
+                errors.append(f"manifest count {field}={counts.get(field)} but file has {actual}")
+        return errors
+    if not all(present_working):
+        errors.append("working snapshot is incomplete: included, dismissed, and linguistic annotation files must be present together")
+        return errors
     included = read_jsonl(snapshot / INCLUDED_FILE)
     dismissed = read_jsonl(snapshot / "dismissed.jsonl")
-    holdout = read_jsonl(snapshot / "holdout.jsonl")
     alternatives = read_jsonl(snapshot / ALTERNATIVES_FILE)
     annotations = read_jsonl(snapshot / LINGUISTIC_ANNOTATIONS_FILE)
 
@@ -147,7 +191,6 @@ def audit_snapshot(snapshot: Path) -> List[str]:
     for name, records, expected in (
         ("included", included, "included"),
         ("dismissed", dismissed, "excluded"),
-        ("holdout", holdout, "withheld"),
     ):
         for row in records:
             disposition = row.get("benchmark_disposition")
@@ -164,7 +207,7 @@ def audit_snapshot(snapshot: Path) -> List[str]:
                 errors.append(f"included record has no canonical question: {row.get('benchmark_id')}")
             all_partition_keys.append(key(row))
     if len(all_partition_keys) != len(set(all_partition_keys)):
-        errors.append("included, dismissed, and holdout partitions overlap")
+        errors.append("included and dismissed partitions overlap")
 
     included_by_key = {key(row): row for row in included}
     for row in alternatives:
@@ -183,7 +226,6 @@ def audit_snapshot(snapshot: Path) -> List[str]:
         "benchmark": len(benchmark),
         "included": len(included),
         "dismissed": len(dismissed),
-        "holdout": len(holdout),
         "alternatives": len(alternatives),
         "linguistic_annotations": len(annotations),
     }
@@ -194,7 +236,7 @@ def audit_snapshot(snapshot: Path) -> List[str]:
             errors.append(f"manifest count {field}={counts[field]} but file has {actual}")
     assessment_counts = dict(sorted(Counter(str(row.get("pipeline_assessment")) for row in included).items()))
     disposition_counts = dict(
-        sorted(Counter(str(row.get("benchmark_disposition")) for row in included + dismissed + holdout).items())
+        sorted(Counter(str(row.get("benchmark_disposition")) for row in included + dismissed).items())
     )
     if counts.get("pipeline_assessment_counts") != assessment_counts:
         errors.append("manifest pipeline_assessment_counts do not match included records")
@@ -204,7 +246,7 @@ def audit_snapshot(snapshot: Path) -> List[str]:
         audit_version_pins(
             snapshot=snapshot,
             manifest=manifest,
-            partitions=(("included", included), ("dismissed", dismissed), ("holdout", holdout)),
+            partitions=(("included", included), ("dismissed", dismissed)),
         )
     )
     return errors

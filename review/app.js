@@ -19,6 +19,8 @@
     prevBtn: document.getElementById("prevBtn"),
     nextBtn: document.getElementById("nextBtn"),
     exportReviewsBtn: document.getElementById("exportReviewsBtn"),
+    exportPrivateReviewsBtn: document.getElementById("exportPrivateReviewsBtn"),
+    clearPrivateStateBtn: document.getElementById("clearPrivateStateBtn"),
     importReviewsInput: document.getElementById("importReviewsInput"),
     detailMeta: document.getElementById("detailMeta"),
     detailTitle: document.getElementById("detailTitle"),
@@ -55,8 +57,11 @@
     normalizeReview,
     exportableReview,
     internalReviews,
+    partitionReviewMap,
     validateCompareImportPayload,
     validateImportedReviews,
+    matchPrivateRecords,
+    rejectPrivateImport,
   };
 
   if (!data || !Array.isArray(data.records) || !data.records.length) {
@@ -70,6 +75,7 @@
 
   const reviewStorageKey = `musparql-review:schema3:${data.dataset_id}`;
   let reviews = loadReviews();
+  let privateExportReady = false;
   const state = {
     selectedReviewId: data.records[0].review_id,
     search: "",
@@ -183,6 +189,8 @@
       });
     });
     els.exportReviewsBtn.addEventListener("click", exportReviews);
+    els.exportPrivateReviewsBtn.addEventListener("click", exportPrivateReviews);
+    els.clearPrivateStateBtn.addEventListener("click", clearPrivateState);
     els.importReviewsInput.addEventListener("change", importReviews);
     document.addEventListener("keydown", (event) => {
       if (event.target && ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) {
@@ -376,6 +384,7 @@
   function updateCurrentReview(options = {}) {
     const reviewId = state.selectedReviewId;
     if (!reviewId) return;
+    privateExportReady = false;
     const current = getReviewById(reviewId);
     const nextStatus = Object.prototype.hasOwnProperty.call(options, "forcedStatus")
       ? options.forcedStatus
@@ -478,6 +487,49 @@
         ...(review?.copied_from_review_id ? { copied_from_review_id: review.copied_from_review_id } : {}),
       }])
     );
+  }
+
+  function partitionReviewMap(reviewMap) {
+    const publicReviews = {};
+    const privateReviews = {};
+    Object.entries(reviewMap || {}).forEach(([reviewId, review]) => {
+      const exported = exportableReview(review);
+      if (exported.split === HOLDOUT_SPLIT || exported.benchmark_disposition === "withheld") {
+        privateReviews[reviewId] = exported;
+      } else {
+        publicReviews[reviewId] = exported;
+      }
+    });
+    return { publicReviews, privateReviews };
+  }
+
+  function matchPrivateRecords(privateReviews, records, getId, label) {
+    const privateIds = Object.keys(privateReviews || {});
+    const recordsById = new Map();
+    for (const record of records || []) {
+      const reviewId = getId(record);
+      if (!reviewId || recordsById.has(reviewId)) {
+        window.alert(`Cannot export or clear private state: ${label} has a missing or duplicate review identity.`);
+        return null;
+      }
+      recordsById.set(reviewId, record);
+    }
+    const missing = privateIds.filter((reviewId) => !recordsById.has(reviewId));
+    if (missing.length) {
+      window.alert(`Cannot export or clear private state: ${missing.length} private annotation identity is absent from this ${label}.`);
+      return null;
+    }
+    return privateIds.map((reviewId) => recordsById.get(reviewId));
+  }
+
+  function rejectPrivateImport(payload, imported) {
+    if (payload.kind && payload.kind !== "non_holdout_review_export") {
+      throw new Error(`Unsupported review export kind: ${payload.kind}.`);
+    }
+    const { privateReviews } = partitionReviewMap(imported);
+    if (Object.keys(privateReviews).length) {
+      throw new Error("Private holdout annotations cannot be imported into the agent-visible workbench.");
+    }
   }
 
   function validateCompareImportPayload(payload, currentData = data) {
@@ -640,21 +692,72 @@
   }
 
   function exportReviews() {
+    const { publicReviews } = partitionReviewMap(reviews);
     const payload = {
+      kind: "non_holdout_review_export",
       dataset_id: data.dataset_id,
       run_id: data.single_run_id,
       run_ids: data.run_ids || [],
       runs: data.runs || [],
       exported_at: new Date().toISOString(),
-      reviews: exportableReviews(reviews),
+      reviews: publicReviews,
     };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `musparql-review-${data.dataset_id}-${timestampForFilename(new Date())}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const timestamp = timestampForFilename(new Date());
+    downloadJson(payload, `musparql-review-non-holdout-${data.dataset_id}-${timestamp}.json`);
+  }
+
+  function exportPrivateReviews() {
+    const { privateReviews } = partitionReviewMap(reviews);
+    const records = matchPrivateRecords(
+      privateReviews,
+      data.records,
+      (record) => record.review_id,
+      "review dataset"
+    );
+    if (records === null) return;
+    if (!records.length) {
+      window.alert("No private holdout annotations are stored for this review dataset.");
+      return;
+    }
+    const timestamp = timestampForFilename(new Date());
+    downloadJson(
+      {
+        kind: "private_holdout_export",
+        schema_version: 1,
+        dataset_id: data.dataset_id,
+        exported_at: new Date().toISOString(),
+        holdouts: records.map((record) => ({
+          review_id: record.review_id,
+          annotation: privateReviews[record.review_id],
+          record,
+        })),
+      },
+      `musparql-holdout-private-${timestamp}.json`
+    );
+    privateExportReady = true;
+  }
+
+  function clearPrivateState() {
+    const { publicReviews, privateReviews } = partitionReviewMap(reviews);
+    const count = Object.keys(privateReviews).length;
+    if (!count) {
+      window.alert("No private holdout annotations are stored for this review dataset.");
+      return;
+    }
+    if (matchPrivateRecords(privateReviews, data.records, (record) => record.review_id, "review dataset") === null) return;
+    if (!privateExportReady) {
+      window.alert("Export the private holdout with the separate Private Export button before clearing it.");
+      return;
+    }
+    if (!window.confirm(`Have you verified that the private export contains ${count} holdout annotation${count === 1 ? "" : "s"} and opens correctly? If yes, remove all private browser state now.`)) {
+      return;
+    }
+    reviews = internalReviews(publicReviews);
+    saveReviews();
+    window.localStorage.removeItem(`musparql-review:schema2:${data.dataset_id}`);
+    window.localStorage.removeItem(`musparql-review:${data.dataset_id}`);
+    privateExportReady = false;
+    render();
   }
 
   function importReviews(event) {
@@ -664,6 +767,9 @@
     reader.onload = () => {
       try {
         const payload = JSON.parse(String(reader.result || "{}"));
+        if (payload.kind === "private_holdout_export") {
+          throw new Error("Private holdout exports cannot be imported into the agent-visible workbench.");
+        }
         if (payload.dataset_id && payload.dataset_id !== data.dataset_id) {
           if (!window.confirm("This review file was exported from a different dataset. Import anyway?")) {
             event.target.value = "";
@@ -681,7 +787,9 @@
           throw new Error("Bad review file format.");
         }
         validateImportedReviews(imported);
+        rejectPrivateImport(payload, imported);
         reviews = internalReviews(imported);
+        privateExportReady = false;
         saveReviews();
         render();
       } catch (err) {
@@ -714,9 +822,23 @@
     ].join("-") + "_" + [pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds())].join("-");
   }
 
+  function downloadJson(payload, filename) {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.hidden = true;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   function initCompareMode() {
     const compareStorageKey = `musparql-review-compare:schema3:${data.dataset_id}`;
     let compareReviews = loadCompareReviews();
+    let privateCompareExportReady = false;
     const compareState = {
       selectedPairId: data.records[0].pair_id,
       search: "",
@@ -771,6 +893,8 @@
     els.prevBtn.addEventListener("click", () => moveCompareSelection(-1));
     els.nextBtn.addEventListener("click", () => moveCompareSelection(1));
     els.exportReviewsBtn.addEventListener("click", exportCompareReviews);
+    els.exportPrivateReviewsBtn.addEventListener("click", exportPrivateCompareReviews);
+    els.clearPrivateStateBtn.addEventListener("click", clearPrivateCompareState);
     els.importReviewsInput.addEventListener("change", importCompareReviews);
     document.addEventListener("keydown", (event) => {
       if (event.target && ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
@@ -1184,6 +1308,7 @@
     }
 
     function updateCompareReview(reviewId, patch, rerender = true) {
+      privateCompareExportReady = false;
       const existing = compareReviews[reviewId] || { status: "", preferred_question: "", literal_wording: "", public_comment: "", internal_comment: "", split: "" };
       compareReviews[reviewId] = {
         ...existing,
@@ -1212,21 +1337,72 @@
     }
 
     function exportCompareReviews() {
+      const { publicReviews } = partitionReviewMap(compareReviews);
       const payload = {
+        kind: "non_holdout_review_export",
         dataset_id: data.dataset_id,
         mode: "compare",
         previous_run: data.previous_run,
         current_run: data.current_run,
         exported_at: new Date().toISOString(),
-        reviews: exportableReviews(compareReviews),
+        reviews: publicReviews,
       };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `musparql-review-compare-${data.dataset_id}-${timestampForFilename(new Date())}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+      const timestamp = timestampForFilename(new Date());
+      downloadJson(payload, `musparql-review-non-holdout-compare-${data.dataset_id}-${timestamp}.json`);
+    }
+
+    function exportPrivateCompareReviews() {
+      const { privateReviews } = partitionReviewMap(compareReviews);
+      const pairs = matchPrivateRecords(
+        privateReviews,
+        data.records,
+        (pair) => pair.current?.review_id || pair.pair_id,
+        "comparison dataset"
+      );
+      if (pairs === null) return;
+      if (!pairs.length) {
+        window.alert("No private holdout annotations are stored for this comparison dataset.");
+        return;
+      }
+      const timestamp = timestampForFilename(new Date());
+      downloadJson(
+        {
+          kind: "private_holdout_export",
+          schema_version: 1,
+          mode: "compare",
+          dataset_id: data.dataset_id,
+          exported_at: new Date().toISOString(),
+          holdouts: pairs.map((pair) => {
+            const reviewId = pair.current?.review_id || pair.pair_id;
+            return { review_id: reviewId, annotation: privateReviews[reviewId], pair };
+          }),
+        },
+        `musparql-holdout-private-${timestamp}.json`
+      );
+      privateCompareExportReady = true;
+    }
+
+    function clearPrivateCompareState() {
+      const { publicReviews, privateReviews } = partitionReviewMap(compareReviews);
+      const count = Object.keys(privateReviews).length;
+      if (!count) {
+        window.alert("No private holdout annotations are stored for this comparison dataset.");
+        return;
+      }
+      if (matchPrivateRecords(privateReviews, data.records, (pair) => pair.current?.review_id || pair.pair_id, "comparison dataset") === null) return;
+      if (!privateCompareExportReady) {
+        window.alert("Export the private holdout with the separate Private Export button before clearing it.");
+        return;
+      }
+      if (!window.confirm(`Have you verified that the private export contains ${count} holdout annotation${count === 1 ? "" : "s"} and opens correctly? If yes, remove all private browser state now.`)) {
+        return;
+      }
+      compareReviews = internalReviews(publicReviews);
+      saveCompareReviews();
+      window.localStorage.removeItem(`musparql-review-compare:schema2:${data.dataset_id}`);
+      window.localStorage.removeItem(`musparql-review-compare:${data.dataset_id}`);
+      privateCompareExportReady = false;
+      renderCompare();
     }
 
     function importCompareReviews(event) {
@@ -1236,10 +1412,15 @@
       reader.onload = () => {
         try {
           const payload = JSON.parse(String(reader.result || "{}"));
+          if (payload.kind === "private_holdout_export") {
+            throw new Error("Private holdout exports cannot be imported into the agent-visible workbench.");
+          }
           validateCompareImportPayload(payload);
           const imported = payload.reviews;
           validateImportedReviews(imported);
+          rejectPrivateImport(payload, imported);
           compareReviews = internalReviews(imported);
+          privateCompareExportReady = false;
           saveCompareReviews();
           renderCompare();
         } catch (err) {

@@ -1,0 +1,13 @@
+name: Public boundary
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  public-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check tracked publication boundary
+        run: python3 scripts/check_public_tree.py

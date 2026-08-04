@@ -11,7 +11,7 @@ questions from SPARQL, evidence, and KG metadata?
 
 - Baseline run: `runs/2026-05-19-ontology-shape-gpt5`
 - Experiment run: `runs/2026-05-22-graphia-minimax-m25`
-- Comparison review export: `review/exports/musparql-review-compare-eb840472b7e92f51-2026-05-28_01-27-22.json`
+- Comparison review export: historical raw artifact, intentionally not retained in the public tree
 - Baseline benchmark: `benchmark/v4`
 - Dataset review update: `benchmark/v5`
 - Reviewer writeup: `/Users/polina/Downloads/Review Musparql MiniMax 2.5.docx`

@@ -89,6 +89,29 @@ class DecisionSchemaTests(unittest.TestCase):
 
 
 class UpdaterAndReleaseTests(unittest.TestCase):
+    def test_public_only_snapshot_audits_without_working_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = Path(tmp) / "v1"
+            snapshot.mkdir()
+            write_json(snapshot / "manifest.json", {
+                "benchmark_version": "v1",
+                "counts": {"benchmark": 1, "alternatives": 0},
+                "files": {"benchmark": "benchmark.jsonl", "alternatives": "alternatives.jsonl"},
+            })
+            write_jsonl(snapshot / "benchmark.jsonl", [{
+                "benchmark_id": "synthetic::one", "kg_id": "synthetic",
+                "query_id": "synthetic-q1", "sparql": "ASK {}", "gold_question": "Synthetic?",
+            }])
+            write_jsonl(snapshot / "alternatives.jsonl", [])
+            self.assertEqual(audit_snapshot.audit_snapshot(snapshot), [])
+
+    def test_updater_refuses_compact_snapshot_as_provenance_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = Path(tmp)
+            write_jsonl(snapshot / "benchmark.jsonl", [])
+            with self.assertRaisesRegex(FileNotFoundError, "cannot reconstruct review provenance"):
+                update_from_initial_review.included_records_path(snapshot)
+
     def test_repository_evaluation_reports_reference_their_benchmarks(self) -> None:
         repository = Path(__file__).resolve().parents[1]
         reports = repository / "evals" / "reports"
@@ -102,7 +125,7 @@ class UpdaterAndReleaseTests(unittest.TestCase):
 const fs = require("fs");
 const vm = require("vm");
 const sandbox = {
-  window: { REVIEW_DATA: null },
+  window: { REVIEW_DATA: null, alert: () => {} },
   document: { getElementById: () => null, querySelectorAll: () => [] },
 };
 vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
@@ -118,6 +141,19 @@ if ("benchmark_disposition" in internal || "pipeline_assessment" in internal) pr
 if (internal.public_comment !== "" || internal.internal_comment !== "kept") process.exit(8);
 const exported = schema.exportableReview({ status: "excluded" });
 if (exported.benchmark_disposition !== "excluded" || exported.pipeline_assessment !== null) process.exit(3);
+const partitioned = schema.partitionReviewMap({
+  public: {status:"accepted", public_comment:"safe"},
+  private: {status:"accepted", split:"private_holdout", internal_comment:"SYNTHETIC_PRIVATE_CANARY"},
+});
+if (!("public" in partitioned.publicReviews) || ("private" in partitioned.publicReviews)) process.exit(9);
+if (!("private" in partitioned.privateReviews) || ("public" in partitioned.privateReviews)) process.exit(10);
+let privateImportRejected = false;
+try { schema.rejectPrivateImport({}, {x:{split:"private_holdout"}}); } catch (_) { privateImportRejected = true; }
+if (!privateImportRejected) process.exit(11);
+const matched = schema.matchPrivateRecords({x:{}}, [{review_id:"x"}], (record) => record.review_id, "synthetic dataset");
+if (!matched || matched.length !== 1) process.exit(12);
+const unmatched = schema.matchPrivateRecords({missing:{}}, [{review_id:"x"}], (record) => record.review_id, "synthetic dataset");
+if (unmatched !== null) process.exit(13);
 let legacyRejected = false;
 try { schema.validateImportedReviews({x:{status:"obsolete"}}); } catch (_) { legacyRejected = true; }
 if (!legacyRejected) process.exit(4);
@@ -185,6 +221,7 @@ if (!conflictRejected) process.exit(7);
             write_json(
                 reviews_path,
                 {
+                    "kind": "non_holdout_review_export",
                     "dataset_id": "dataset",
                     "reviews": {
                         "kg::new": {

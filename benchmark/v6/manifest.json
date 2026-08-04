@@ -17,7 +17,6 @@
   "counts": {
     "benchmark": 80,
     "dismissed": 5,
-    "holdout": 0,
     "applied_normal_reviews": 20,
     "applied_pipeline_assessment_counts": {
       "accepted": 20
@@ -40,11 +39,7 @@
   },
   "files": {
     "benchmark": "benchmark.jsonl",
-    "included": "included.jsonl",
-    "dismissed": "dismissed.jsonl",
-    "holdout": "holdout.jsonl",
-    "alternatives": "alternatives.jsonl",
-    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
+    "alternatives": "alternatives.jsonl"
   },
   "gold_question_policy": {
     "preferred_question_used_when_present": true,
@@ -66,8 +61,17 @@
     "internal_only_files": [
       "included.jsonl",
       "linguistic_annotations.jsonl",
-      "dismissed.jsonl",
-      "holdout.jsonl"
-    ]
+      "dismissed.jsonl"
+    ],
+    "working_snapshot_files_optional_local": true
+  },
+  "holdout_policy": {
+    "private_annotations_outside_repository": true,
+    "mixed_private_exports_rejected": true
+  },
+  "working_files": {
+    "included": "included.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
   }
 }

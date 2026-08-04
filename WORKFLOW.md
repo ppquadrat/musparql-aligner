@@ -33,9 +33,10 @@ Autoeval is used for lower-cost decisions such as whether to continue an
 experiment, whether a run deserves human review, and how candidate prompts or
 models rank against a current benchmark snapshot.
 
-Private holdout items are reviewer-only. They are preserved separately and
-excluded from normal generation inputs, prompt work, public/dev benchmark files,
-and normal automatic evaluation.
+Private holdout annotations are reviewer-only and remain outside the repository.
+The browser splits them from sanitized public review decisions before any
+benchmark tool runs. Under the identity-visible policy, agent-facing exclusion
+uses annotation-free selectors; see `HOLDOUT_SECURITY.md`.
 
 ---
 
@@ -77,12 +78,13 @@ candidate generation run
 | `seeds.yaml` | KG selection and references to normalized source IDs |
 | `kgs.jsonl` | KG catalogue, endpoint metadata, and captured source provenance |
 | `kg_sources/` | Deterministic text snapshots of KG source material |
-| `kg_queries.jsonl` | Working query records: SPARQL, evidence, execution metadata, and merged NL output |
-| `llm_inputs.jsonl` | Prompt-ready LLM input payloads |
-| `llm_outputs.jsonl` | Raw LLM generation/alignment outputs before merge or freezing |
-| `runs/<run-id>/` | Frozen generation runs with copied artefacts and model provenance |
-| `review/review_data.js` | Browser review bundle |
-| `review/exports/*.json` | Human review decisions, public/internal comments, rewrites, holdout flags, and interpretive annotations |
+| `kg_queries.jsonl` | Ignored working query records: SPARQL, evidence, execution metadata, and merged NL output |
+| `llm_inputs.jsonl` | Ignored prompt-ready LLM input payloads |
+| `llm_outputs.jsonl` | Ignored raw LLM generation/alignment outputs before merge or freezing |
+| `runs/<run-id>/` | Ignored frozen generation runs with copied artefacts and model provenance |
+| `review/review_data.js` | Ignored browser review bundle |
+| `review/public_exports/*.json` | Ignored, browser-sanitized non-holdout decisions; the only review exports agents may use |
+| `review/exports/*.json`, `review/private/*` | Ignored, human-only legacy/raw and private review material; agents must not access |
 | `benchmark/vN/` | Versioned benchmark snapshot and sidecar files |
 | `build/public-vN/` | Allowlisted public release with checksums |
 | `evals/reports/<eval-id>/` | Automatic evaluation reports |
@@ -325,8 +327,10 @@ from future generation inputs:
 ```
 
 Dismissed decisions apply only when their stored version/hash—or legacy SPARQL
-text—matches the selected prompt input. Private holdouts remain excluded by
-stable query ID across every SPARQL version.
+text—matches the selected prompt input. Under the identity-visible policy,
+private holdouts are excluded only when an explicit annotation-free
+`--holdout-selectors <path>` file is supplied. Under identity-private policy,
+the human-only environment must filter them before this command runs.
 
 ### Generation Output
 
@@ -423,7 +427,7 @@ What the evaluator scores:
 What the evaluator excludes:
 
 - `dismissed.jsonl`
-- `holdout.jsonl`
+- private holdouts are absent rather than represented by a repository file
 - `alternatives.jsonl`
 - `linguistic_annotations.jsonl`
 
@@ -481,7 +485,8 @@ For later initial-review rounds, pass the latest benchmark snapshot:
 ```
 
 With `--previous-benchmark`, initial review excludes already reviewed versions
-by default and always excludes private holdout query IDs. A previous decision
+by default. Annotation-free selectors may be supplied separately with
+`--holdout-selectors` under the identity-visible policy. A previous decision
 is reused only when its version/hash, or legacy SPARQL text, matches the current
 input. Use `--include-reviewed` only
 for deliberate audit passes over non-holdout reviewed pairs. Previous decisions
@@ -490,11 +495,11 @@ remain hidden unless `--reveal-previous-decision` is explicitly passed.
 Open the workbench through a local server:
 
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8000 --bind 127.0.0.1 --directory review
 ```
 
 ```text
-http://localhost:8000/review/
+http://127.0.0.1:8000/
 ```
 
 Initial review captures:
@@ -516,7 +521,7 @@ review bundle:
 .venv/bin/python build_next_review_round.py \
   --previous-run runs/<old-run-id> \
   --current-run runs/<new-run-id> \
-  --previous-reviews review/exports/<previous-review-export>.json \
+  --previous-reviews review/public_exports/<previous-non-holdout-export>.json \
   --previous-benchmark benchmark/vN \
   --benchmark-only
 ```
@@ -539,8 +544,8 @@ Review fields:
 
 - `benchmark_disposition: included`: publish the human-confirmed canonical pair.
 - `benchmark_disposition: excluded`: exclude unsuitable benchmark material.
-- `benchmark_disposition: withheld`: retain a private holdout outside scoring
-  and publication.
+- `benchmark_disposition: withheld`: browser-private designation; this record
+  must appear only in the separate private export and is rejected by public tools.
 - `pipeline_assessment: accepted`: the presented formulation is acceptable.
 - `pipeline_assessment: prompt_improvement_recommended`: the canonical pair is valid, but prompt/model behaviour should improve.
 - `pipeline_assessment: input_data_improvement_recommended`: the canonical pair is valid, but generation inputs or evidence should improve.
@@ -553,7 +558,7 @@ Review fields:
 Legacy `note` values default to `internal_comment`. Promote text to
 `public_comment` only through an explicit review decision.
 
-Normalize legacy exports and existing internal snapshots with:
+Normalize sanitized non-holdout exports and existing non-holdout snapshots with:
 
 ```bash
 .venv/bin/python benchmark/normalize_review_comments.py
@@ -562,7 +567,7 @@ Normalize legacy exports and existing internal snapshots with:
 Outputs:
 
 - `review/review_data.js`
-- `review/exports/*.json`
+- ignored `review/public_exports/<non-holdout-review-export>.json`
 
 ---
 
@@ -578,7 +583,7 @@ Build a first benchmark snapshot:
 ```bash
 .venv/bin/python benchmark/build_benchmark.py \
   --bundle review/review_data.js \
-  --reviews review/exports/<review-export>.json \
+  --reviews review/public_exports/<non-holdout-review-export>.json \
   --outdir benchmark/v1
 ```
 
@@ -586,7 +591,6 @@ The builder writes:
 
 - `included.jsonl`
 - `dismissed.jsonl`
-- `holdout.jsonl`
 - `alternatives.jsonl`
 - `linguistic_annotations.jsonl` (internal only)
 
@@ -610,14 +614,15 @@ Apply a comparative-review export to a previous benchmark snapshot:
 .venv/bin/python benchmark/update_benchmark.py \
   --previous-benchmark benchmark/v1 \
   --bundle review/review_data.js \
-  --reviews review/exports/<comparative-review-export>.json \
+  --reviews review/public_exports/<non-holdout-comparative-export>.json \
   --outdir benchmark/v2
 ```
 
 The update routine carries forward unchanged previous benchmark records and
 replaces only pairs that received decisions in the comparative review.
 
-Private holdout records are carried forward separately in `holdout.jsonl`.
+Private holdout records are not carried through repository snapshots. The
+human-owned private export is their continuity record.
 Accepted alternative phrasings are carried forward in `alternatives.jsonl`.
 Exploratory linguistic annotations are carried forward separately in the
 internal `linguistic_annotations.jsonl`.
@@ -635,7 +640,7 @@ Apply an additive initial-review export to a previous benchmark snapshot:
 .venv/bin/python benchmark/update_from_initial_review.py \
   --previous-benchmark benchmark/vN \
   --bundle review/review_data.js \
-  --reviews review/exports/<initial-review-export>.json \
+  --reviews review/public_exports/<non-holdout-initial-export>.json \
   --outdir benchmark/vN_plus_1
 ```
 
@@ -643,8 +648,8 @@ For an initial-review update:
 
 - Carry forward all records from the previous benchmark snapshot.
 - Add newly reviewed pairs that were not already present.
-- Preserve dismissed and private holdout records according to the usual split
-  policy.
+- Preserve dismissed records. Private holdouts remain solely in the human-owned
+  private export and are never carried through repository snapshots.
 - Preserve accepted non-canonical phrasings and explicitly marked literal
   SPARQL wordings in `alternatives.jsonl`; keep exploratory ratings separately
   in internal `linguistic_annotations.jsonl`.
@@ -771,8 +776,8 @@ is retained as an accepted alternate if distinct. When a later approved rewrite
 replaces an older canonical wording, the older canonical wording is retained as
 an accepted alternate.
 
-Dismissed and private holdout records are not exposed through the public
-ambiguity sidecar.
+Dismissed records are not exposed through the public ambiguity sidecar. Private
+holdouts never enter the sidecar builder.
 
 ### Snapshot Audit And Public Release
 
@@ -1082,12 +1087,13 @@ One frozen generation run:
 }
 ```
 
-### `review/exports/*.json`
+### ignored non-holdout review export
 
 One exported human-review file:
 
 ```json
 {
+  "kind": "non_holdout_review_export",
   "dataset_id": "830748f26ceb9031",
   "run_id": "2026-04-25-sample-review-gpt5",
   "run_ids": ["2026-04-25-sample-review-gpt5"],
@@ -1101,13 +1107,13 @@ One exported human-review file:
   "exported_at": "2026-04-25T20:10:00Z",
   "reviews": {
     "meetups::meetups-0002::<token>": {
-      "benchmark_disposition": "withheld",
+      "benchmark_disposition": "included",
       "pipeline_assessment": "accepted",
       "preferred_question": "",
       "literal_wording": "",
       "public_comment": "",
-      "internal_comment": "Operational note retained privately.",
-      "split": "private_holdout",
+      "internal_comment": "",
+      "split": "",
       "interpretive": {
         "naturalness": 88,
         "pragmatism": 70,
@@ -1120,17 +1126,20 @@ One exported human-review file:
 }
 ```
 
+Private holdout entries are absent from this file. The browser emits them in a
+separate ignored `musparql-holdout-private-*.json` package; its structure and
+contents are intentionally not part of the public workflow specification.
+
 ### `benchmark/vN/`
 
-Benchmark snapshots include:
+Tracked benchmark snapshots include:
 
 - `manifest.json`
 - `benchmark.jsonl`
-- `included.jsonl`
-- `dismissed.jsonl`
-- `holdout.jsonl`
 - `alternatives.jsonl`
-- `linguistic_annotations.jsonl` (internal only)
+
+Local ignored working snapshots may additionally contain `included.jsonl`,
+`dismissed.jsonl`, and `linguistic_annotations.jsonl`.
 
 `benchmark.jsonl` is the compact scoring dataset:
 
@@ -1162,8 +1171,8 @@ Benchmark snapshots include:
 ```
 
 Detailed internal records live in `included.jsonl`, `dismissed.jsonl`, and
-`holdout.jsonl`. Those records retain review/run provenance, including separate
-`review.public_comment` and `review.internal_comment` fields; they must not be
+the human-owned private holdout export. Those records retain review/run
+provenance and must not be
 confused with the compact scoring schema above.
 
 `alternatives.jsonl` is a public sidecar, not a scoring file:
@@ -1187,7 +1196,7 @@ confused with the compact scoring schema above.
       "normalized_text": "alternative accepted wording?",
       "source_type": "model_output",
       "review_id": "meetups::meetups-0002::<token>",
-      "review_export": "review/exports/....json",
+      "review_export": "review/public_exports/....json",
       "dataset_id": "<review-dataset-id>",
       "run_id": "2026-04-25-sample-review-gpt5",
       "generation_run_id": "2026-04-25-sample-review-gpt5",

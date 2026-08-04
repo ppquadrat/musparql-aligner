@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_sha" = "$zero" ]; then
+    revisions=$(git rev-list "$local_sha" --not --remotes)
+  else
+    revisions=$(git rev-list "$remote_sha..$local_sha")
+  fi
+  for revision in $revisions; do
+    python3 scripts/check_public_tree.py --rev "$revision"
+  done
+done

@@ -112,6 +112,29 @@ def is_private_holdout(review: Dict[str, Any]) -> bool:
     return review.get("split") == HOLDOUT_SPLIT or benchmark_disposition(review) == "withheld"
 
 
+def assert_no_private_reviews(reviews: Dict[str, Any]) -> None:
+    """Reject mixed/private exports at the public benchmark boundary."""
+    private_ids = [
+        str(review_id)
+        for review_id, review in reviews.items()
+        if isinstance(review, dict) and is_private_holdout(review)
+    ]
+    if private_ids:
+        raise ValueError(
+            "Public benchmark tools cannot consume private holdout annotations. "
+            "Use the browser's sanitized public export; private records must remain outside the repository."
+        )
+
+
+def assert_non_holdout_export(payload: Dict[str, Any]) -> None:
+    """Require the browser's explicitly sanitized export format."""
+    if payload.get("kind") != "non_holdout_review_export":
+        raise ValueError(
+            "Public benchmark tools require kind='non_holdout_review_export'; "
+            "legacy, mixed, and private review exports are rejected"
+        )
+
+
 def pair_key(record: Dict[str, Any]) -> Tuple[str, str]:
     return (str(record.get("kg_id") or ""), str(record.get("query_id") or ""))
 
@@ -476,6 +499,7 @@ def main() -> None:
 
     bundle = read_review_bundle(bundle_path)
     review_export = read_json(review_path)
+    assert_non_holdout_export(review_export)
     bundle_dataset_id = str(bundle.get("dataset_id") or "")
     review_dataset_id = str(review_export.get("dataset_id") or "")
     bundle_run_ids = [str(run_id) for run_id in bundle.get("run_ids", []) if str(run_id)]
@@ -493,10 +517,10 @@ def main() -> None:
     review_map = review_export.get("reviews")
     if not isinstance(review_map, dict):
         raise ValueError("Review export missing reviews object")
+    assert_no_private_reviews(review_map)
 
     included: List[Dict[str, Any]] = []
     dismissed: List[Dict[str, Any]] = []
-    holdout: List[Dict[str, Any]] = []
     alternatives_records: List[Dict[str, Any]] = []
     linguistic_annotation_records: List[Dict[str, Any]] = []
     assessment_counts: Counter[str] = Counter()
@@ -516,7 +540,7 @@ def main() -> None:
         disposition_counts[disposition] += 1
         if assessment:
             assessment_counts[assessment] += 1
-        split = HOLDOUT_SPLIT if is_private_holdout(review) else "public"
+        split = "public"
 
         evidence = record.get("input", {}).get("evidence", [])
         if not isinstance(evidence, list):
@@ -570,33 +594,30 @@ def main() -> None:
             },
         }
 
-        if disposition == "withheld":
-            holdout.append(base)
-        elif disposition == "excluded":
+        if disposition == "excluded":
             dismissed.append(base)
         else:
             if not gold_question:
                 raise ValueError(f"Included record has no canonical question: {review_id}")
             included.append(base)
 
-        alternatives, linguistic_annotations = sidecars_from_benchmark_record(
-            benchmark_record=base,
-            review=review,
-            source_record=record,
-            review_id=review_id,
-            review_path=review_path,
-            dataset_id=review_dataset_id or bundle_dataset_id,
-            benchmark_version=outdir.name,
-            built_at="",
-        )
-        if alternatives:
-            alternatives_records.append(alternatives)
-        if linguistic_annotations:
-            linguistic_annotation_records.append(linguistic_annotations)
+            alternatives, linguistic_annotations = sidecars_from_benchmark_record(
+                benchmark_record=base,
+                review=review,
+                source_record=record,
+                review_id=review_id,
+                review_path=review_path,
+                dataset_id=review_dataset_id or bundle_dataset_id,
+                benchmark_version=outdir.name,
+                built_at="",
+            )
+            if alternatives:
+                alternatives_records.append(alternatives)
+            if linguistic_annotations:
+                linguistic_annotation_records.append(linguistic_annotations)
 
     included.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
     dismissed.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
-    holdout.sort(key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
 
     built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     benchmark_version = outdir.name
@@ -623,7 +644,6 @@ def main() -> None:
             "benchmark": len(benchmark_records),
             "included": len(included),
             "dismissed": len(dismissed),
-            "holdout": len(holdout),
             "alternatives": len(alternatives_records),
             "linguistic_annotations": len(linguistic_annotation_records),
             "reviewed_total": sum(disposition_counts.values()),
@@ -632,10 +652,11 @@ def main() -> None:
         },
         "files": {
             "benchmark": "benchmark.jsonl",
+            "alternatives": ALTERNATIVES_FILE,
+        },
+        "working_files": {
             "included": INCLUDED_FILE,
             "dismissed": "dismissed.jsonl",
-            "holdout": "holdout.jsonl",
-            "alternatives": ALTERNATIVES_FILE,
             "linguistic_annotations_internal": LINGUISTIC_ANNOTATIONS_FILE,
         },
         "gold_question_policy": {
@@ -644,14 +665,12 @@ def main() -> None:
             "approved_model_output_used_otherwise": True,
         },
         "holdout_policy": {
-            "review_split": HOLDOUT_SPLIT,
-            "excluded_from_public_benchmark": True,
-            "excluded_from_normal_autoeval": True,
-            "excluded_from_future_generation_inputs": True,
+            "private_annotations_outside_repository": True,
+            "mixed_private_exports_rejected": True,
         },
         "release_boundary": {
             "public_release_files": ["manifest.json", "benchmark.jsonl", ALTERNATIVES_FILE],
-            "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl", "holdout.jsonl"],
+            "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl"],
         },
     }
 
@@ -659,7 +678,6 @@ def main() -> None:
     write_jsonl(outdir / "benchmark.jsonl", benchmark_records)
     write_jsonl(outdir / INCLUDED_FILE, included)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
-    write_jsonl(outdir / "holdout.jsonl", holdout)
     write_jsonl(outdir / ALTERNATIVES_FILE, alternatives_records)
     write_jsonl(outdir / LINGUISTIC_ANNOTATIONS_FILE, linguistic_annotation_records)
 
@@ -667,7 +685,6 @@ def main() -> None:
     print(f"Wrote {len(benchmark_records)} benchmark records to {outdir / 'benchmark.jsonl'}")
     print(f"Wrote {len(included)} included records to {outdir / INCLUDED_FILE}")
     print(f"Wrote {len(dismissed)} dismissed records to {outdir / 'dismissed.jsonl'}")
-    print(f"Wrote {len(holdout)} private holdout records to {outdir / 'holdout.jsonl'}")
     print(f"Wrote {len(alternatives_records)} alternative-formulation records to {outdir / ALTERNATIVES_FILE}")
     print(f"Wrote {len(linguistic_annotation_records)} internal linguistic-annotation records to {outdir / LINGUISTIC_ANNOTATIONS_FILE}")
 

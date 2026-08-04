@@ -14,9 +14,10 @@ from build_benchmark import (
     add_interpretive_annotation,
     add_formulation,
     alternatives_record_has_content,
+    assert_no_private_reviews,
+    assert_non_holdout_export,
     benchmark_disposition,
     benchmark_gold_records,
-    is_private_holdout,
     literal_wording,
     make_rephrasing_entry,
     pipeline_assessment,
@@ -29,7 +30,6 @@ from build_benchmark import (
 )
 from update_benchmark import (
     included_records_path,
-    holdout_records_path,
     make_benchmark_record,
     pair_key,
     read_jsonl,
@@ -68,6 +68,7 @@ def main() -> None:
     if bundle.get("mode") == "compare":
         raise ValueError("Initial-review update requires an initial-review bundle, not comparative mode.")
     review_export = read_json(review_path)
+    assert_non_holdout_export(review_export)
     if review_export.get("mode") == "compare":
         raise ValueError("Initial-review update requires an initial-review export, not comparative mode.")
     if bundle.get("dataset_id") and review_export.get("dataset_id") and bundle.get("dataset_id") != review_export.get("dataset_id"):
@@ -78,6 +79,7 @@ def main() -> None:
     reviews = review_export.get("reviews")
     if not isinstance(reviews, dict):
         raise ValueError("Review export missing reviews object")
+    assert_no_private_reviews(reviews)
     bundle_records = bundle.get("records")
     if not isinstance(bundle_records, list):
         raise ValueError("Review bundle missing records list")
@@ -89,10 +91,9 @@ def main() -> None:
 
     included_by_key = {pair_key(rec): rec for rec in read_jsonl(included_records_path(previous_dir))}
     dismissed_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "dismissed.jsonl")}
-    holdout_by_key = {pair_key(rec): rec for rec in read_jsonl(holdout_records_path(previous_dir))}
     alternatives_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / ALTERNATIVES_FILE)}
     annotations_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / LINGUISTIC_ANNOTATIONS_FILE)}
-    existing_keys = set(included_by_key) | set(dismissed_by_key) | set(holdout_by_key)
+    existing_keys = set(included_by_key) | set(dismissed_by_key)
 
     current_run = source_run(bundle)
     dataset_id = str(review_export.get("dataset_id") or bundle.get("dataset_id") or "")
@@ -126,9 +127,7 @@ def main() -> None:
             dataset_id=dataset_id,
             current_run=current_run,
         )
-        if disposition == "withheld":
-            holdout_by_key[key] = next_record
-        elif disposition == "excluded":
+        if disposition == "excluded":
             dismissed_by_key[key] = next_record
         else:
             included_by_key[key] = next_record
@@ -208,7 +207,6 @@ def main() -> None:
 
     included = sort_records(included_by_key.values())
     dismissed = sort_records(dismissed_by_key.values())
-    holdout = sort_records(holdout_by_key.values())
     previous_manifest = read_json(previous_dir / "manifest.json") if (previous_dir / "manifest.json").exists() else {}
 
     built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -238,11 +236,10 @@ def main() -> None:
             "benchmark": len(benchmark_records),
             "included": len(included),
             "dismissed": len(dismissed),
-            "holdout": len(holdout),
             "alternatives": len(alternatives_records),
             "linguistic_annotations": len(linguistic_annotation_records),
             "pipeline_assessment_counts": dict(Counter(str(row.get("pipeline_assessment")) for row in included)),
-            "benchmark_disposition_counts": dict(Counter(str(row.get("benchmark_disposition")) for row in included + dismissed + holdout)),
+            "benchmark_disposition_counts": dict(Counter(str(row.get("benchmark_disposition")) for row in included + dismissed)),
             "applied_normal_reviews": applied,
             "applied_pipeline_assessment_counts": dict(assessment_counts),
             "applied_benchmark_disposition_counts": dict(disposition_counts),
@@ -250,10 +247,11 @@ def main() -> None:
         },
         "files": {
             "benchmark": "benchmark.jsonl",
+            "alternatives": ALTERNATIVES_FILE,
+        },
+        "working_files": {
             "included": INCLUDED_FILE,
             "dismissed": "dismissed.jsonl",
-            "holdout": "holdout.jsonl",
-            "alternatives": ALTERNATIVES_FILE,
             "linguistic_annotations_internal": LINGUISTIC_ANNOTATIONS_FILE,
         },
         "gold_question_policy": {
@@ -267,7 +265,7 @@ def main() -> None:
         },
         "release_boundary": {
             "public_release_files": ["manifest.json", "benchmark.jsonl", ALTERNATIVES_FILE],
-            "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl", "holdout.jsonl"],
+            "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl"],
         },
     }
 
@@ -275,7 +273,6 @@ def main() -> None:
     write_jsonl(outdir / "benchmark.jsonl", benchmark_records)
     write_jsonl(outdir / INCLUDED_FILE, included)
     write_jsonl(outdir / "dismissed.jsonl", dismissed)
-    write_jsonl(outdir / "holdout.jsonl", holdout)
     write_jsonl(outdir / ALTERNATIVES_FILE, alternatives_records)
     write_jsonl(outdir / LINGUISTIC_ANNOTATIONS_FILE, linguistic_annotation_records)
 

@@ -64,7 +64,6 @@ def regenerate_snapshot(snapshot: Path) -> Dict[str, Any]:
     built_at = str(manifest.get("built_at") or "")
     included = sort_records(read_jsonl(snapshot / INCLUDED_FILE))
     dismissed = sort_records(read_jsonl(snapshot / "dismissed.jsonl"))
-    holdout = sort_records(read_jsonl(snapshot / "holdout.jsonl"))
     annotations = read_jsonl(snapshot / LINGUISTIC_ANNOTATIONS_FILE)
     alternatives_by_key = {pair_key(row): row for row in read_jsonl(snapshot / ALTERNATIVES_FILE)}
 
@@ -91,7 +90,7 @@ def regenerate_snapshot(snapshot: Path) -> Dict[str, Any]:
 
     assessment_counts = Counter(str(row.get("pipeline_assessment") or "none") for row in included)
     disposition_counts = Counter(
-        str(row.get("benchmark_disposition")) for row in included + dismissed + holdout
+        str(row.get("benchmark_disposition")) for row in included + dismissed
     )
     counts = manifest.setdefault("counts", {})
     counts.update(
@@ -99,7 +98,6 @@ def regenerate_snapshot(snapshot: Path) -> Dict[str, Any]:
             "benchmark": len(benchmark),
             "included": len(included),
             "dismissed": len(dismissed),
-            "holdout": len(holdout),
             "alternatives": len(alternatives),
             "linguistic_annotations": len(annotations),
             "pipeline_assessment_counts": dict(sorted(assessment_counts.items())),
@@ -123,17 +121,18 @@ def regenerate_snapshot(snapshot: Path) -> Dict[str, Any]:
             counts["applied_benchmark_disposition_counts"] = applied_dispositions
     manifest["files"] = {
         "benchmark": "benchmark.jsonl",
+        "alternatives": ALTERNATIVES_FILE,
+    }
+    manifest["working_files"] = {
         "included": INCLUDED_FILE,
         "dismissed": "dismissed.jsonl",
-        "holdout": "holdout.jsonl",
-        "alternatives": ALTERNATIVES_FILE,
         "linguistic_annotations_internal": LINGUISTIC_ANNOTATIONS_FILE,
     }
     manifest["release_boundary"] = {
         "public_release_builder": "benchmark/build_public_release.py",
         "working_snapshot_is_not_a_release_archive": True,
         "public_release_files": ["manifest.json", "benchmark.jsonl", ALTERNATIVES_FILE],
-        "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl", "holdout.jsonl"],
+        "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl"],
     }
 
     write_json(snapshot / "manifest.json", manifest)

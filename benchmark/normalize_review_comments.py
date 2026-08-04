@@ -46,7 +46,7 @@ def normalize_records(
 def normalize_snapshot(snapshot: Path, *, reclassify_existing_public: bool = False) -> int:
     changed = 0
     public_by_benchmark_id: Dict[str, str] = {}
-    for filename in ("included.jsonl", "dismissed.jsonl", "holdout.jsonl"):
+    for filename in ("included.jsonl", "dismissed.jsonl"):
         path = snapshot / filename
         if not path.exists():
             continue
@@ -103,7 +103,11 @@ def normalize_export(path: Path, *, reclassify_existing_public: bool = False) ->
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--benchmark-root", default="benchmark")
-    parser.add_argument("--exports", default="review/exports")
+    parser.add_argument(
+        "--exports",
+        default="",
+        help="Explicit sanitized non-holdout review-export directory. Raw/private exports are never scanned by default.",
+    )
     parser.add_argument(
         "--reclassify-existing-public-as-legacy",
         action="store_true",
@@ -119,8 +123,8 @@ def main() -> None:
         )
         total += changed
         print(f"{snapshot}: normalized {changed} review records")
-    exports = Path(args.exports)
-    if exports.exists():
+    exports = Path(args.exports) if args.exports else None
+    if exports is not None and exports.exists():
         for path in sorted(exports.glob("*.json")):
             changed = normalize_export(
                 path,

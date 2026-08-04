@@ -28,7 +28,6 @@
   "counts": {
     "benchmark": 60,
     "dismissed": 5,
-    "holdout": 0,
     "applied_compare_reviews": 61,
     "applied_pipeline_assessment_counts": {
       "prompt_improvement_recommended": 13,
@@ -53,11 +52,7 @@
   },
   "files": {
     "benchmark": "benchmark.jsonl",
-    "included": "included.jsonl",
-    "dismissed": "dismissed.jsonl",
-    "holdout": "holdout.jsonl",
-    "alternatives": "alternatives.jsonl",
-    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
+    "alternatives": "alternatives.jsonl"
   },
   "gold_question_policy": {
     "preferred_question_used_when_present": true,
@@ -66,11 +61,8 @@
     "benchmark_contains_all_human_confirmed_included_pairs": true
   },
   "holdout_policy": {
-    "review_split": "private_holdout",
-    "excluded_from_public_benchmark": true,
-    "excluded_from_normal_autoeval": true,
-    "excluded_from_future_generation_inputs": true,
-    "unchanged_previous_holdout_items_carried_forward": true
+    "private_annotations_outside_repository": true,
+    "mixed_private_exports_rejected": true
   },
   "release_boundary": {
     "public_release_builder": "benchmark/build_public_release.py",
@@ -83,8 +75,13 @@
     "internal_only_files": [
       "included.jsonl",
       "linguistic_annotations.jsonl",
-      "dismissed.jsonl",
-      "holdout.jsonl"
-    ]
+      "dismissed.jsonl"
+    ],
+    "working_snapshot_files_optional_local": true
+  },
+  "working_files": {
+    "included": "included.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
   }
 }

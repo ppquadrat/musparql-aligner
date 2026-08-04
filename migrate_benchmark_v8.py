@@ -223,7 +223,7 @@ def migrate(*, dry_run: bool = False) -> None:
     update_snapshot(included, query_records, adjudicated_at)
     write_jsonl(TARGET_SNAPSHOT / "included.jsonl", included)
 
-    for filename in ("dismissed.jsonl", "holdout.jsonl"):
+    for filename in ("dismissed.jsonl",):
         rows = read_jsonl(SOURCE_SNAPSHOT / filename)
         for row in rows:
             query = canonical_query(
