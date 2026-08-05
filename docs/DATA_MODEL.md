@@ -1,0 +1,179 @@
+# Artifact and data model reference
+
+This is the technical supplement to the readable [workflow](WORKFLOW.md). It
+describes the main artifacts and the contracts between stages. JSONL files
+contain one JSON object per line.
+
+## Tracked catalog
+
+### `catalog/sources.yaml`
+
+Defines stable `source_id` values. A source records its type, title, and either
+an external locator or an explicitly justified local artifact. Supported types
+are repository, web document, publication, local document, and derivative.
+Derivatives identify their parent sources.
+
+### `catalog/seeds.yaml`
+
+Selects source IDs for each KG and stores operational KG configuration:
+
+- `kg_id` and display name;
+- source IDs;
+- SPARQL endpoint, authentication mode, and optional graph;
+- optional local dump path and format; and
+- project-specific notes.
+
+Repository and document lists are hydrated from the source catalogue rather
+than duplicated manually.
+
+### `catalog/kgs.jsonl`
+
+One generated catalogue record per KG. It contains endpoint and dump metadata,
+resolved source URLs, captured revisions, local snapshot paths, source IDs, and
+catalog provenance. This file is tracked because it is a compact, reviewable
+description of the collected source state.
+
+## Working query catalogue
+
+### `var/queries/kg_queries.jsonl`
+
+One record per extracted query. Important fields include:
+
+- `kg_id`, `query_id`, and `query_label`;
+- `sparql_raw`, `sparql_clean`, and normalized hashes;
+- source URL, path, commit, and extraction metadata;
+- evidence records with stable evidence IDs;
+- append-only `sparql_edits`;
+- execution and run history pinned to SPARQL version and hash;
+- provisional model output after merge; and
+- correction and review provenance where applicable.
+
+Version `0` is always `sparql_clean`. Later versions live in `sparql_edits` and
+must have increasing integer versions, text, hash, reason, source, and approval
+provenance.
+
+The query catalogue is persistent local state and is ignored by Git.
+
+### `var/queries/sparql_correction_candidates.jsonl`
+
+An automatic triage ledger. A candidate identifies the query and base SPARQL
+version, summarizes the observed problem, and records the evidence safe for the
+correction workbench. It is not an approved edit.
+
+## Model inputs and outputs
+
+### `var/llm/inputs.jsonl`
+
+Prompt-ready records containing the selected SPARQL version, query identity,
+evidence, and schema reference. Holdout and dismissed identities must be removed
+before this file is written.
+
+### `var/llm/outputs.jsonl`
+
+Provisional model responses. A successful response contains:
+
+- ranked evidence phrases and evidence IDs;
+- proposed `nl_question`;
+- an origin mode and cited evidence IDs;
+- confidence and rationale; and
+- model/request metadata needed for reproducibility.
+
+Malformed or failed responses are written separately and never treated as
+benchmark candidates.
+
+## Generation runs
+
+### `var/runs/<run-id>/manifest.json`
+
+A frozen run manifest identifies:
+
+- run ID and creation time;
+- copied input and output filenames and SHA-256 hashes;
+- prompt, schema, and example hashes;
+- requested and returned model information;
+- generation parameters and request configuration; and
+- optional query and KG catalog snapshots.
+
+Review bundles refer to run IDs and manifests rather than an unversioned output
+file whenever possible.
+
+## Review bundles and exports
+
+The browser bundle is generated and ignored. It contains candidate records,
+their run provenance, source evidence, SPARQL provenance, and holdout eligibility
+information.
+
+A sanitized review export has `kind: non_holdout_review_export` and contains no
+holdout entry. Review records can contain a benchmark decision, preferred
+question, literal wording, public and internal comments, and copied-review
+provenance. Historical interpretive fields remain readable but are not collected
+by the current UI.
+
+Sanitized exports belong in `var/review/exports/`. Private or mixed exports are
+rejected by agent-facing tools.
+
+## Holdout selectors
+
+### `var/holdout/selectors.jsonl`
+
+Under the identity-visible policy, each record may contain only:
+
+```json
+{
+  "kg_id": "example-kg",
+  "query_id": "example-query",
+  "sparql_version": 0,
+  "sparql_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+}
+```
+
+The version and hash are optional but must appear together. Reviewer decisions,
+wording, comments, ratings, timestamps, and provenance are forbidden. Exclusion
+is pair-wide, and a selector is invalid when the query identity retains a SPARQL
+edit.
+
+The full holdout export is not part of this data model because it belongs to the
+separate human-controlled private repository.
+
+## Benchmark snapshot
+
+### `benchmark/vN/benchmark.jsonl`
+
+The scoring dataset. Each record contains a benchmark identity, KG and query
+identity, selected SPARQL text/version/hash, one canonical gold question, gold
+question provenance, evidence summary, and safe source provenance.
+
+### `benchmark/vN/alternatives.jsonl`
+
+Public, human-accepted non-canonical formulations and literal formulations.
+Alternatives never replace the single canonical scoring question.
+
+### `benchmark/vN/manifest.json`
+
+Records the snapshot version, build time, counts, input runs and reviews,
+sidecar names, and policy assertions. Historical manifests retain the paths that
+were true when they were built.
+
+### Ignored internal sidecars
+
+Working snapshots may also have ignored included, dismissed, linguistic, or
+holdout partitions. They are not public repository artifacts and are never
+copied into a public release.
+
+## Public release
+
+### `build/public-releases/vN/`
+
+A derived publication package containing only allowlisted fields. It normally
+contains sanitized `benchmark.jsonl`, public `alternatives.jsonl`, and a manifest
+with checksums. The release builder rejects private fields, internal review
+metadata, filesystem paths, credentials, and correction artifacts.
+
+The directory is ignored and may be deleted and rebuilt.
+
+## Automatic evaluation reports
+
+### `var/evals/reports/<eval-id>/`
+
+May contain a manifest, per-record scores, a readable summary, and a judge
+cache. Reports compare runs or systems; they do not update benchmark gold data.

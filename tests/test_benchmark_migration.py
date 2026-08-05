@@ -9,16 +9,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 
-BENCHMARK_DIR = Path(__file__).resolve().parents[1] / "benchmark"
-sys.path.insert(0, str(BENCHMARK_DIR))
+from scripts.benchmark import audit_snapshot  # noqa: E402
+from scripts.benchmark import audit_eval_reports  # noqa: E402
+from scripts.benchmark import build_benchmark  # noqa: E402
+from scripts.benchmark import build_public_release  # noqa: E402
+from scripts.benchmark import update_from_initial_review  # noqa: E402
 
-import audit_snapshot  # noqa: E402
-import audit_eval_reports  # noqa: E402
-import build_benchmark  # noqa: E402
-import build_public_release  # noqa: E402
-import update_from_initial_review  # noqa: E402
-
-import build_review_diff_bundle  # noqa: E402
+from scripts import build_review_diff_bundle
 
 
 def write_json(path: Path, value: object) -> None:

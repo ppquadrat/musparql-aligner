@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-import extract_queries
+from scripts import extract_queries
 
 
 class ExtractQueriesTests(unittest.TestCase):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-import enrich_evidence
+from scripts import enrich_evidence
 
 
 class EnrichEvidenceTests(unittest.TestCase):

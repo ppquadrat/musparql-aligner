@@ -5,8 +5,9 @@ This folder contains a lightweight local reviewer for LLM question-generation ou
 ## Usage
 
 Before selecting any holdout pairs, read the
-[holdout security overview](../HOLDOUT_SECURITY.md) and follow the
-[holdout review runbook](../HOLDOUT_RUNBOOK.md).
+[holdout security overview](../docs/HOLDOUT_SECURITY.md) and follow the
+[holdout review runbook](../docs/HOLDOUT_RUNBOOK.md). The broader procedure is
+in the [human review runbook](../docs/REVIEW_RUNBOOK.md).
 
 Every bundle build requires exactly one of `--holdout-selectors <path>`,
 `--no-holdout`, or `--holdout-filtered-upstream`. The examples use
@@ -16,29 +17,29 @@ identity-visible examples use the selector path.
 1. Build the browser data bundle:
 
 ```bash
-.venv/bin/python build_review_bundle.py --no-holdout
+.venv/bin/python -m scripts.build_review_bundle --no-holdout
 ```
 
 By default, the builder ensures the bundle points to exactly one frozen LLM generation run. If the
-selected output is not already inside `runs/<run-id>/`, it will auto-freeze a generation run
+selected output is not already inside `var/runs/<run-id>/`, it will auto-freeze a generation run
 snapshot first and then build the review bundle from that run.
 
 If you want to review an already-frozen generation run explicitly:
 
 ```bash
-.venv/bin/python build_review_bundle.py \
+.venv/bin/python -m scripts.build_review_bundle \
   --no-holdout \
-  --outputs runs/<run-id>/llm_outputs.jsonl \
-  --run-manifest runs/<run-id>/manifest.json
+  --outputs var/runs/<run-id>/llm_outputs.jsonl \
+  --run-manifest var/runs/<run-id>/manifest.json
 ```
 
 For later initial-review rounds, pass the latest benchmark snapshot:
 
 ```bash
-.venv/bin/python build_review_bundle.py \
-  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl \
-  --outputs runs/<run-id>/llm_outputs.jsonl \
-  --run-manifest runs/<run-id>/manifest.json \
+.venv/bin/python -m scripts.build_review_bundle \
+  --holdout-selectors var/holdout/selectors.jsonl \
+  --outputs var/runs/<run-id>/llm_outputs.jsonl \
+  --run-manifest var/runs/<run-id>/manifest.json \
   --previous-benchmark benchmark/vN
 ```
 
@@ -54,17 +55,17 @@ and pipeline assessments are not included unless `--reveal-previous-decision` is
 To build a comparative review of a previous generation run and a new run:
 
 ```bash
-.venv/bin/python build_next_review_round.py \
-  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl \
-  --previous-run runs/<old-run-id> \
-  --current-run runs/<new-run-id> \
-  --previous-reviews review/public_exports/<previous-non-holdout-export>.json \
+.venv/bin/python -m scripts.build_next_review_round \
+  --holdout-selectors var/holdout/selectors.jsonl \
+  --previous-run var/runs/<old-run-id> \
+  --current-run var/runs/<new-run-id> \
+  --previous-reviews var/review/exports/<previous-non-holdout-export>.json \
   --previous-benchmark benchmark/vN \
   --benchmark-only
 ```
 
-`--current-run` defaults to `llm_outputs.jsonl`, so it can be omitted when the
-new outputs are in the repo-root current output file.
+`--current-run` defaults to `var/llm/outputs.jsonl`, so it can be omitted when
+reviewing the current working output.
 
 The comparative-review bundle shows only added, removed, and review-worthy changed pairs by
 default. Use `--include-unchanged` if you want unchanged pairs visible too.
@@ -122,18 +123,18 @@ selected non-holdout query, regardless of outcome. Build a holdout-filtered
 bundle and start the same-origin correction service:
 
 ```bash
-.venv/bin/python build_sparql_correction_bundle.py \
-  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl
-.venv/bin/python correction_service.py \
-  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl
+.venv/bin/python -m scripts.build_sparql_correction_bundle \
+  --holdout-selectors var/holdout/selectors.jsonl
+.venv/bin/python -m scripts.correction_service \
+  --holdout-selectors var/holdout/selectors.jsonl
 # open http://127.0.0.1:8765/corrections.html
 ```
 
 This mode shows base/proposal/latest versions, a diff, automatic triage,
 evidence, agent suggestions, and non-mutating execution observations. It has no
 private-holdout control, import, or private-export path. Apply exported decisions
-with `apply_sparql_corrections.py` following
-`SPARQL_CORRECTION_RUNBOOK.md`.
+with `scripts.apply_sparql_corrections` following the
+[SPARQL correction runbook](../docs/SPARQL_CORRECTION_RUNBOOK.md).
 
 Any query identity with retained SPARQL edits is permanently ineligible for
 holdout inclusion. Initial and comparison NL review enforce this from explicit
@@ -143,10 +144,11 @@ Reviewer decisions are stored in persistent browser local storage, so closing a
 tab does not clear them and clearing the browser cache is not relevant. After
 securely saving and verifying a private export, use **Clear Private State**, then
 close the browser before resuming agent-assisted work. Move sanitized non-holdout
-exports to ignored, agent-readable `review/public_exports/`. Move the separately downloaded private
-export to ignored, agent-forbidden `review/private/` or outside the workspace;
-open it and verify its holdout count before using **Clear Private State**. Legacy
-or unsanitized exports belong only in agent-forbidden `review/exports/`.
+exports to ignored, agent-readable `var/review/exports/`. Move the separately
+downloaded private export to the separate private holdout repository outside
+this workspace; open it and verify its holdout count before using **Clear
+Private State**. Legacy files under `review/private/` or `review/exports/`
+remain agent-forbidden quarantine material, not normal destinations.
 No review export is a paper-repository artifact.
 The current review form does not collect linguistic or interpretive dimensions.
 Historical exports containing those fields remain readable so that old review
@@ -196,8 +198,8 @@ rest of the comment is retained privately.
 
 - Model outputs remain separate from reviewer judgments.
 - Review exports should point to exactly one run.
-- `build_review_bundle.py` is responsible for making that true before review starts.
-- `build_next_review_round.py` is the usual entry point after changing extraction,
+- `scripts.build_review_bundle` is responsible for making that true before review starts.
+- `scripts.build_next_review_round` is the usual entry point after changing extraction,
   enrichment, prompts, or models.
 - The generated review file is `review/review_data.js`.
 - Only sanitized exports from which holdout entries are absent may be supplied
@@ -210,5 +212,5 @@ rest of the comment is retained privately.
   type `literal_sparql_wording`.
 - Private holdout records are never retained in repository snapshots. Public
   builders reject mixed/private exports. See the
-  [security overview](../HOLDOUT_SECURITY.md) and
-  [review runbook](../HOLDOUT_RUNBOOK.md).
+  [security overview](../docs/HOLDOUT_SECURITY.md) and
+  [review runbook](../docs/HOLDOUT_RUNBOOK.md).

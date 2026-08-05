@@ -9,16 +9,15 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-import build_llm_inputs
-import build_next_review_round
-import build_review_bundle
-import build_review_diff_bundle
-from sparql_corrections import sparql_provenance
-from sparql_versions import resolve_sparql_version, sparql_hash
+from scripts import build_llm_inputs
+from scripts import build_next_review_round
+from scripts import build_review_bundle
+from scripts import build_review_diff_bundle
+from musparql.sparql_corrections import sparql_provenance
+from musparql.sparql_versions import resolve_sparql_version, sparql_hash
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmark"))
-import build_benchmark  # noqa: E402
-import update_benchmark  # noqa: E402
+from scripts.benchmark import build_benchmark  # noqa: E402
+from scripts.benchmark import update_benchmark  # noqa: E402
 
 
 class DismissedExclusionTests(unittest.TestCase):
@@ -30,7 +29,7 @@ class DismissedExclusionTests(unittest.TestCase):
             "--current-run", "new",
             "--no-holdout",
             "--assert-complete-review-provenance",
-        ]), patch("build_next_review_round.subprocess.run") as run:
+        ]), patch("scripts.build_next_review_round.subprocess.run") as run:
             build_next_review_round.main()
         command = run.call_args.args[0]
         self.assertIn("--assert-complete-review-provenance", command)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from migrate_benchmark_v8 import CORRECTIONS, one_value_query, update_snapshot
-from sparql_versions import resolve_sparql_version
+from scripts.migrations.migrate_benchmark_v8 import CORRECTIONS, one_value_query, update_snapshot
+from musparql.sparql_versions import resolve_sparql_version
 
 
 def test_one_value_query_replaces_the_complete_values_body() -> None:

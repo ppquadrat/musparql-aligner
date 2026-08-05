@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from rdflib.plugins.sparql.parser import parseQuery
 
-from run_queries import (
+from scripts.run_queries import (
     apply_graph,
     build_query_jobs,
     clean_query,
@@ -13,7 +13,7 @@ from run_queries import (
     record_matches_sources,
     record_query_execution,
 )
-from sparql_versions import sparql_hash
+from musparql.sparql_versions import sparql_hash
 
 
 def versioned_record():

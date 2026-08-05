@@ -6,15 +6,15 @@ from pathlib import Path
 
 import pytest
 
-import correction_service
-import run_queries
-from build_llm_inputs import build_prompt_input
-from build_sparql_correction_bundle import build_payload
-from benchmark.build_benchmark import neutral_execution_snapshot
-from correction_service import Workbench, allowed_static_path, safe_endpoint, safe_error
-from holdout_selectors import validate_selectors_current
-from sparql_corrections import REVIEW_EXPORT_SCHEMA, apply_reviews, build_candidate, candidate_digest, safe_error as correction_safe_error
-from sparql_versions import sparql_hash
+from scripts import correction_service
+from scripts import run_queries
+from scripts.build_llm_inputs import build_prompt_input
+from scripts.build_sparql_correction_bundle import build_payload
+from scripts.benchmark.build_benchmark import neutral_execution_snapshot
+from scripts.correction_service import Workbench, allowed_static_path, safe_endpoint, safe_error
+from musparql.holdout_selectors import validate_selectors_current
+from musparql.sparql_corrections import REVIEW_EXPORT_SCHEMA, apply_reviews, build_candidate, candidate_digest, safe_error as correction_safe_error
+from musparql.sparql_versions import sparql_hash
 
 
 BASE = "SELECT * WHERE { ?s ?p ?o }"

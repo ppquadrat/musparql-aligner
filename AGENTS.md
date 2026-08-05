@@ -14,8 +14,8 @@ ask for a sanitized public export or a synthetic fixture. Agent-authored code an
 tests may use obviously synthetic holdout examples only.
 
 Browser-sanitized `non_holdout_review_export` files may be placed in ignored
-`review/public_exports/`; agents may use only that directory for review input.
+`var/review/exports/`; agents may use only that directory for review input.
 
 Selector-only files containing no reviewer fields may be used only when the
 human owner has explicitly chosen the identity-visible holdout policy described
-in `HOLDOUT_SECURITY.md`.
+in `docs/HOLDOUT_SECURITY.md`.

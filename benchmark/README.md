@@ -6,8 +6,8 @@ natural-language formulation has been confirmed by a human reviewer.
 
 The tracked portion of each `vN/` directory is a public data artifact. Local
 working snapshots may additionally contain ignored internal files used for
-curation and reconstruction. The Python modules alongside them build, update,
-audit, and package those artifacts; `build_public_release.py` enforces the
+curation and reconstruction. Commands under `scripts/benchmark/` build, update,
+audit, and package those artifacts; the public-release builder enforces the
 smaller DOI/publication boundary.
 
 ## Snapshot files
@@ -38,11 +38,11 @@ smaller DOI/publication boundary.
 
 The local version directory may be a working snapshot, but its tracked tree
 contains no internal sidecars. A DOI/public release
-must be constructed with `build_public_release.py`, which serializes only allowed
+must be constructed with `scripts.benchmark.build_public_release`, which serializes only allowed
 fields into `manifest.json`, `benchmark.jsonl`, and `alternatives.jsonl`.
 Detailed curation records, exploratory ratings, and dismissed candidates remain
 outside the release. Private holdout annotations remain outside the repository
-entirely; see the [holdout security overview](../HOLDOUT_SECURITY.md).
+entirely; see the [holdout security overview](../docs/HOLDOUT_SECURITY.md).
 
 ## Pipeline assessment
 
@@ -83,7 +83,7 @@ matches the dedicated `literal_wording` value. Other legacy note text defaults
 to `internal_comment` and requires an explicit later review before publication:
 
 ```bash
-.venv/bin/python benchmark/normalize_review_comments.py
+.venv/bin/python -m scripts.benchmark.normalize_review_comments
 ```
 
 ## Build and update
@@ -94,9 +94,9 @@ unknown disposition and assessment values instead of treating them as included.
 Build a snapshot from an initial-review bundle and export:
 
 ```bash
-.venv/bin/python benchmark/build_benchmark.py \
+.venv/bin/python -m scripts.benchmark.build_benchmark \
   --bundle review/review_data.js \
-  --reviews review/public_exports/<non-holdout-review-export>.json \
+  --reviews var/review/exports/<non-holdout-review-export>.json \
   --outdir benchmark/vN
 ```
 
@@ -106,10 +106,10 @@ snapshot; an earlier review export may also supply review context. Apply the new
 comparative-review decisions to that previous benchmark snapshot:
 
 ```bash
-.venv/bin/python benchmark/update_benchmark.py \
+.venv/bin/python -m scripts.benchmark.update_benchmark \
   --previous-benchmark benchmark/vN \
   --bundle review/review_data.js \
-  --reviews review/public_exports/<non-holdout-comparative-export>.json \
+  --reviews var/review/exports/<non-holdout-comparative-export>.json \
   --outdir benchmark/vNext
 ```
 
@@ -117,22 +117,22 @@ An initial review can also add newly reviewed pairs to an existing snapshot
 without comparing two generation runs side by side:
 
 ```bash
-.venv/bin/python benchmark/update_from_initial_review.py \
+.venv/bin/python -m scripts.benchmark.update_from_initial_review \
   --previous-benchmark benchmark/vN \
   --bundle review/review_data.js \
-  --reviews review/public_exports/<non-holdout-initial-export>.json \
+  --reviews var/review/exports/<non-holdout-initial-export>.json \
   --outdir benchmark/vNext
 ```
 
 The evaluator reads every record in `benchmark.jsonl`:
 
 ```bash
-.venv/bin/python evals/evaluate_runs.py \
+.venv/bin/python -m scripts.evals.evaluate_runs \
   --benchmark benchmark/vN \
-  --runs runs/<run-id> \
-  --baseline runs/<baseline-run-id> \
+  --runs var/runs/<run-id> \
+  --baseline var/runs/<baseline-run-id> \
   --judge-model gpt-5 \
-  --out evals/reports/<eval-id>
+  --out var/evals/reports/<eval-id>
 ```
 
 New working snapshots and public releases (release schema `1.1`) retain `sparql_version` and
@@ -145,16 +145,16 @@ Regenerate all compact scoring files, accepted alternatives, and manifest counts
 from the detailed snapshots, auditing each version as it is written:
 
 ```bash
-.venv/bin/python benchmark/regenerate_snapshots.py
+.venv/bin/python -m scripts.benchmark.regenerate_snapshots
 ```
 
 Run the snapshot and saved-evaluation consistency audits independently:
 
 ```bash
 for snapshot in benchmark/v*; do
-  .venv/bin/python benchmark/audit_snapshot.py "$snapshot"
+  .venv/bin/python -m scripts.benchmark.audit_snapshot "$snapshot"
 done
-.venv/bin/python benchmark/audit_eval_reports.py
+.venv/bin/python -m scripts.benchmark.audit_eval_reports
 ```
 
 In a clean public clone, the snapshot audit validates only the tracked compact
@@ -166,9 +166,9 @@ absent; compact public data is not a lossless source for curation provenance.
 Build a new, empty public-release directory from a validated snapshot:
 
 ```bash
-.venv/bin/python benchmark/build_public_release.py \
+.venv/bin/python -m scripts.benchmark.build_public_release \
   --snapshot benchmark/v8 \
-  --outdir build/public-v8
+  --outdir build/public-releases/v8
 ```
 
 The release builder uses field allowlists and rejects private filesystem paths
@@ -182,11 +182,11 @@ questions, canonical LinkedMusic identities, and latest-version selections from
 v7 with:
 
 ```bash
-.venv/bin/python migrate_benchmark_v8.py
-.venv/bin/python benchmark/audit_snapshot.py benchmark/v8
+.venv/bin/python -m scripts.migrations.migrate_benchmark_v8
+.venv/bin/python -m scripts.benchmark.audit_snapshot benchmark/v8
 ```
 
 The v8 manifest summarizes the execution observations available for its 100
 selected SPARQL versions at build time. Full observations and histories remain
-in `kg_queries.jsonl`; they are deliberately not duplicated into the public
+in `var/queries/kg_queries.jsonl`; they are deliberately not duplicated into the public
 NL–SPARQL release records.

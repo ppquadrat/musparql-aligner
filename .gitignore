@@ -1,10 +1,13 @@
 # Python
 __pycache__/
 *.pyc
+*.egg-info/
 .venv/
 .env
 
 # Generated data
+var/
+build/
 raw_queries.jsonl
 runnable_queries.jsonl
 sparql_correction_candidates.jsonl
@@ -37,6 +40,3 @@ tmp/
 
 # OS
 .DS_Store
-
-# Local paper working files
-papers/

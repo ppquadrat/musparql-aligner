@@ -23,8 +23,9 @@ def test_private_export_name_is_extension_independent() -> None:
 
 
 def test_known_local_work_trees_are_forbidden() -> None:
-    assert boundary.matches("tmp/example.json", boundary.FORBIDDEN_PATHS)
-    assert boundary.matches("dumps/example.ttl", boundary.FORBIDDEN_PATHS)
+    assert boundary.matches("var/tmp/example.json", boundary.FORBIDDEN_PATHS)
+    assert boundary.matches("var/cache/dumps/example.ttl", boundary.FORBIDDEN_PATHS)
+    assert boundary.matches("build/public-releases/v8/benchmark.jsonl", boundary.FORBIDDEN_PATHS)
     assert boundary.matches("review/sparql_correction_data.js", boundary.FORBIDDEN_PATHS)
     assert boundary.CORRECTION_NAME_RE.match("musparql-sparql-correction-review-abc.json")
 

@@ -5,30 +5,30 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from source_catalog import (
+from musparql.source_catalog import (
     load_hydrated_seeds,
     load_source_catalog,
     validate_catalogued_local_files,
 )
-from normalize_source_provenance import normalize_kgs, normalize_query_catalog
+from scripts.normalize_source_provenance import normalize_kgs, normalize_query_catalog
 
 
 class SourceProvenanceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.repository = Path(__file__).resolve().parents[1]
-        cls.catalogue = load_source_catalog(cls.repository / "sources.yaml")
+        cls.catalogue = load_source_catalog(cls.repository / "catalog/sources.yaml")
 
     def test_all_manually_stored_sources_are_catalogued(self) -> None:
         missing = validate_catalogued_local_files(
             self.catalogue,
-            [self.repository / "pdfs", self.repository / "curated_sources"],
+            [self.repository / "catalog/pdfs", self.repository / "catalog/curated"],
         )
         self.assertEqual(missing, [])
 
     def test_seed_sources_resolve_to_normalized_catalogue(self) -> None:
         seeds = load_hydrated_seeds(
-            self.repository / "seeds.yaml", self.repository / "sources.yaml"
+            self.repository / "catalog/seeds.yaml", self.repository / "catalog/sources.yaml"
         )
         self.assertTrue(seeds)
         for seed in seeds:
@@ -40,7 +40,7 @@ class SourceProvenanceTests(unittest.TestCase):
     def test_generated_kg_metadata_preserves_catalogue_provenance(self) -> None:
         records = [
             json.loads(line)
-            for line in (self.repository / "kgs.jsonl").read_text(encoding="utf-8").splitlines()
+            for line in (self.repository / "catalog/kgs.jsonl").read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
         for record in records:
@@ -57,22 +57,23 @@ class SourceProvenanceTests(unittest.TestCase):
                 )
 
     def test_local_query_evidence_retains_source_identifier(self) -> None:
-        path = self.repository / "kg_queries.jsonl"
+        path = self.repository / "var/queries/kg_queries.jsonl"
         if not path.exists():
             self.skipTest("local generated kg_queries.jsonl is intentionally absent from a clean checkout")
         for line in path.read_text(encoding="utf-8").splitlines():
             record = json.loads(line)
             for evidence in record.get("evidence", []):
                 path = str(evidence.get("source_path") or "")
-                if path.startswith("pdfs/") or path.startswith("curated_sources/"):
+                if path.startswith("catalog/pdfs/") or path.startswith("catalog/curated/"):
                     self.assertIn(evidence.get("source_id"), self.catalogue)
 
     def test_normalization_matches_reordered_details_by_identity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            sources = root / "sources.yaml"
-            seeds = root / "seeds.yaml"
-            kgs = root / "kgs.jsonl"
+            (root / "catalog").mkdir()
+            sources = root / "catalog/sources.yaml"
+            seeds = root / "catalog/seeds.yaml"
+            kgs = root / "catalog/kgs.jsonl"
             sources.write_text(
                 "sources:\n"
                 "  - source_id: first\n    type: web_document\n    title: First\n    url: https://example.com/first\n"

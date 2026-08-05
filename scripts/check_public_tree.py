@@ -28,6 +28,8 @@ FORBIDDEN_PATHS = (
     "sparql_correction_candidates*.jsonl",
     "**/musparql-sparql-correction-review-*",
     "prompts/llm_nl_generation.inputs.jsonl",
+    "var/*",
+    "build/*",
     ".vscode/*",
     "dumps/*",
     "repos/*",

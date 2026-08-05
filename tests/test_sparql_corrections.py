@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from build_sparql_correction_bundle import build_payload
-from build_llm_inputs import build_prompt_input
-from holdout_selectors import assert_selectors_unedited
-from sparql_corrections import (
+from scripts.build_sparql_correction_bundle import build_payload
+from scripts.build_llm_inputs import build_prompt_input
+from musparql.holdout_selectors import assert_selectors_unedited
+from musparql.sparql_corrections import (
     REVIEW_EXPORT_SCHEMA,
     apply_reviews,
     build_candidate,
@@ -22,7 +22,7 @@ from sparql_corrections import (
     validate_candidate,
     write_jsonl,
 )
-from sparql_versions import resolve_sparql_version, sparql_hash
+from musparql.sparql_versions import resolve_sparql_version, sparql_hash
 
 
 ORIGINAL = "SELECT * WHERE { ?s ?p ?o }"
@@ -216,7 +216,7 @@ def test_candidate_validation_and_kg_scoping_fail_closed():
 def test_atomic_jsonl_write_preserves_original_if_replace_fails(tmp_path, monkeypatch):
     path = tmp_path / "canonical.jsonl"
     path.write_text("original\n", encoding="utf-8")
-    monkeypatch.setattr("sparql_corrections.os.replace", lambda *_: (_ for _ in ()).throw(OSError("synthetic")))
+    monkeypatch.setattr("musparql.sparql_corrections.os.replace", lambda *_: (_ for _ in ()).throw(OSError("synthetic")))
     with pytest.raises(OSError, match="synthetic"):
         write_jsonl(path, [{"replacement": True}])
     assert path.read_text(encoding="utf-8") == "original\n"

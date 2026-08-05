@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import pytest
 
-from build_llm_inputs import build_prompt_input, dismissed_record_matches, load_holdout_selectors
-from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy
-from sparql_versions import (
+from scripts.build_llm_inputs import build_prompt_input, dismissed_record_matches, load_holdout_selectors
+from musparql.holdout_selectors import add_holdout_filter_arguments, holdout_input_policy
+from musparql.sparql_versions import (
     SparqlVersionError,
     add_execution_version,
     available_sparql_versions,

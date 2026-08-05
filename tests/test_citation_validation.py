@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-import run_llm_generation
+from scripts import run_llm_generation
 
 
 class CitationValidationTests(unittest.TestCase):
