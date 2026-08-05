@@ -117,18 +117,22 @@ http://127.0.0.1:8000/
 
 ### SPARQL correction mode
 
-Query execution automatically creates the correction-candidate ledger. Build a
-holdout-filtered bundle and open the separate correction page:
+Query execution automatically creates the correction-candidate ledger for every
+selected non-holdout query, regardless of outcome. Build a holdout-filtered
+bundle and start the same-origin correction service:
 
 ```bash
-.venv/bin/python build_sparql_correction_bundle.py --no-holdout
-# open http://127.0.0.1:8000/corrections.html
+.venv/bin/python build_sparql_correction_bundle.py \
+  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl
+.venv/bin/python correction_service.py \
+  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl
+# open http://127.0.0.1:8765/corrections.html
 ```
 
-This mode shows the immutable base query, execution observation, automatic
-triage, aligned evidence, and an append-only proposal form. It has no
-private-holdout control, import, or private-export path. Apply exported
-decisions with `apply_sparql_corrections.py` following
+This mode shows base/proposal/latest versions, a diff, automatic triage,
+evidence, agent suggestions, and non-mutating execution observations. It has no
+private-holdout control, import, or private-export path. Apply exported decisions
+with `apply_sparql_corrections.py` following
 `SPARQL_CORRECTION_RUNBOOK.md`.
 
 Any query identity with retained SPARQL edits is permanently ineligible for

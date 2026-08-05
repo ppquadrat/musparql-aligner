@@ -105,9 +105,13 @@ def audit_version_pins(
                     if expected_count > 0:
                         if not isinstance(provenance.get("selected_edit"), dict):
                             errors.append(f"{name} edited SPARQL lacks selected-edit provenance: {label}")
-                        verification = provenance.get("verification")
-                        if not isinstance(verification, dict) or verification.get("status") != "verified":
-                            errors.append(f"{name} edited SPARQL is not execution-verified: {label}")
+                        observation = provenance.get("execution_observation")
+                        legacy_observation = provenance.get("verification")
+                        if (
+                            (not isinstance(observation, dict) or not isinstance(observation.get("status"), str))
+                            and not isinstance(legacy_observation, dict)
+                        ):
+                            errors.append(f"{name} edited SPARQL lacks execution-observation provenance: {label}")
             if latest_required and latest["sparql_version"] != version:
                 errors.append(f"{name} does not select the latest retained SPARQL: {label}")
 
@@ -131,11 +135,11 @@ def audit_version_pins(
             and str(item.get("ran_at") or "") <= cutoff
         ]
         if not observations:
-            errors.append(f"execution snapshot has no matching observation: {row.get('query_label')}")
-            continue
-        observation = max(observations, key=lambda item: str(item.get("ran_at") or ""))
-        matched += 1
-        statuses[str(observation.get("status"))] += 1
+            statuses["not_attempted"] += 1
+        else:
+            observation = max(observations, key=lambda item: str(item.get("ran_at") or ""))
+            matched += 1
+            statuses[str(observation.get("status"))] += 1
     if execution.get("selected_queries") != len(included):
         errors.append("execution_snapshot selected_queries does not match included records")
     if execution.get("selected_versions_with_execution") != matched:

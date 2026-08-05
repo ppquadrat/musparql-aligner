@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Set, Tuple
 
-from holdout_selectors import add_holdout_filter_arguments, assert_selectors_unedited, validate_selector_record
-from sparql_corrections import require_verified_edit, sparql_provenance
+from holdout_selectors import add_holdout_filter_arguments, validate_selector_record, validate_selectors_current
+from sparql_corrections import sparql_provenance
 from sparql_versions import resolve_sparql_version
 
 
@@ -33,30 +33,30 @@ def load_jsonl(path: Path) -> List[Dict[str, object]]:
     return records
 
 
-def load_query_ids(path: Path) -> Set[str]:
-    query_ids: Set[str] = set()
+def load_query_pairs(path: Path) -> Set[Tuple[str, str]]:
+    pairs: Set[Tuple[str, str]] = set()
     if not path.exists():
-        return query_ids
+        return pairs
     for rec in load_jsonl(path):
-        query_id = rec.get("query_id")
-        if isinstance(query_id, str) and query_id:
-            query_ids.add(query_id)
-    return query_ids
+        kg_id, query_id = rec.get("kg_id"), rec.get("query_id")
+        if isinstance(kg_id, str) and kg_id and isinstance(query_id, str) and query_id:
+            pairs.add((kg_id, query_id))
+    return pairs
 
 
-def load_excluded_query_ids(path: Path) -> Set[str]:
+def load_excluded_pairs(path: Path) -> Set[Tuple[str, str]]:
     if path.is_dir():
-        return load_query_ids(path / "dismissed.jsonl")
+        return load_query_pairs(path / "dismissed.jsonl")
     if not path.exists():
         raise FileNotFoundError(f"Benchmark exclusion records not found: {path}")
-    return load_query_ids(path)
+    return load_query_pairs(path)
 
 
-def load_dismissed_query_ids(path: Path) -> Set[str]:
-    return load_excluded_query_ids(path)
+def load_dismissed_pairs(path: Path) -> Set[Tuple[str, str]]:
+    return load_excluded_pairs(path)
 
 
-def load_exclusion_policy(path: Path) -> Tuple[List[Dict[str, object]], Set[str]]:
+def load_exclusion_policy(path: Path) -> Tuple[List[Dict[str, object]], Set[Tuple[str, str]]]:
     """Load version-aware public dismissal records."""
     if path.is_dir():
         dismissed_path = path / "dismissed.jsonl"
@@ -90,7 +90,10 @@ def canonical_sparql(value: object) -> str:
 
 
 def dismissed_record_matches(payload: Dict[str, object], dismissed: Dict[str, object]) -> bool:
-    if payload.get("query_id") != dismissed.get("query_id"):
+    if (
+        payload.get("query_id") != dismissed.get("query_id")
+        or payload.get("kg_id") != dismissed.get("kg_id")
+    ):
         return False
     old_hash = dismissed.get("sparql_hash")
     new_hash = payload.get("sparql_hash")
@@ -142,7 +145,6 @@ def build_prompt_input(
     sparql_version: str = "latest",
 ) -> Dict[str, object]:
     resolved = resolve_sparql_version(rec, sparql_version)
-    require_verified_edit(rec, resolved)
     payload: Dict[str, object] = {
         "query_id": rec.get("query_id"),
         "query_label": rec.get("query_label"),
@@ -197,23 +199,22 @@ def main() -> None:
     in_path = Path(args.input)
     out_path = Path(args.output)
     records = load_jsonl(in_path)
-    dismissed_records, holdout_query_ids = (
+    dismissed_records, holdout_pairs = (
         load_exclusion_policy(Path(args.exclude_dismissed_benchmark))
         if args.exclude_dismissed_benchmark
         else ([], set())
     )
-    holdout_selector_keys = (
-        load_holdout_selectors(Path(args.holdout_selectors))
-        if args.holdout_selectors
-        else set()
-    )
-    if holdout_selector_keys:
-        assert_selectors_unedited(holdout_selector_keys, records)
+    selector_rows = load_jsonl(Path(args.holdout_selectors)) if args.holdout_selectors else []
+    holdout_selector_keys = validate_selectors_current(selector_rows, records) if selector_rows else set()
 
     written = 0
     skipped_excluded = 0
     with out_path.open("w", encoding="utf-8") as f:
         for rec in records:
+            raw_key = (str(rec.get("kg_id") or ""), str(rec.get("query_id") or ""))
+            if raw_key in holdout_selector_keys:
+                skipped_excluded += 1
+                continue
             payload = build_prompt_input(
                 rec,
                 include_raw=args.include_raw_sparql,
@@ -222,8 +223,7 @@ def main() -> None:
             )
             query_id = payload.get("query_id")
             if isinstance(query_id, str) and (
-                (str(payload.get("kg_id") or ""), query_id) in holdout_selector_keys
-                or query_id in holdout_query_ids
+                (str(payload.get("kg_id") or ""), query_id) in holdout_pairs
                 or any(dismissed_record_matches(payload, item) for item in dismissed_records)
             ):
                 skipped_excluded += 1

@@ -117,7 +117,7 @@ def test_prompt_input_records_selected_version_and_hash():
     assert payload["sparql_provenance"]["retained_edit_count"] == 2
     assert payload["sparql_provenance"]["selected_version"] == 2
     assert payload["sparql_provenance"]["selected_hash"] == sparql_hash(EDIT_2)
-    assert payload["sparql_provenance"]["verification"]["status"] == "verified"
+    assert payload["sparql_provenance"]["execution_observation"]["status"] == "ok"
     assert payload["sparql_provenance"]["history_digest"].startswith("sha256:")
 
 
@@ -135,6 +135,7 @@ def test_dismissal_only_applies_to_matching_sparql_version():
     original = build_prompt_input(record, False, False, "original")
     latest = build_prompt_input(record, False, False, "latest")
     dismissed = {
+        "kg_id": "kg",
         "query_id": "q1",
         "sparql_version": original["sparql_version"],
         "sparql_hash": original["sparql_hash"],

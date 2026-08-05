@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
-from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selector_record
+from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selector_record, validate_selectors_current
 from sparql_corrections import candidate_digest, load_jsonl, validate_candidate
 
 
@@ -32,15 +32,15 @@ def build_payload(
     excluded = 0
     seen: set[str] = set()
     for item in candidates:
+        key = (str(item.get("kg_id") or ""), str(item.get("query_id") or ""))
+        if key in selector_keys:
+            excluded += 1
+            continue
         validate_candidate(item)
         identifier = str(item["candidate_id"])
         if identifier in seen:
             raise ValueError(f"Duplicate SPARQL correction candidate {identifier}")
         seen.add(identifier)
-        key = (str(item.get("kg_id") or ""), str(item.get("query_id") or ""))
-        if key in selector_keys:
-            excluded += 1
-            continue
         filtered.append({**item, "candidate_digest": candidate_digest(item)})
     identity = json.dumps(
         [
@@ -50,7 +50,7 @@ def build_payload(
         sort_keys=True,
         separators=(",", ":"),
     )
-    return {
+    payload = {
         "mode": "sparql_correction",
         "schema": "musparql.sparql-correction-bundle.v1",
         "dataset_id": hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16],
@@ -61,18 +61,22 @@ def build_payload(
         "record_count": len(filtered),
         "records": filtered,
     }
+    payload["bundle_digest"] = "sha256:" + hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return payload
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidates", default="sparql_correction_candidates.jsonl")
     parser.add_argument("--out", default="review/sparql_correction_data.js")
+    parser.add_argument("--queries", default="kg_queries.jsonl")
     add_holdout_filter_arguments(parser)
     args = parser.parse_args()
     candidates_path = Path(args.candidates)
-    selector_keys = load_selector_keys(
-        Path(args.holdout_selectors) if args.holdout_selectors else None
-    )
+    selector_rows = load_jsonl(Path(args.holdout_selectors)) if args.holdout_selectors else []
+    selector_keys = validate_selectors_current(selector_rows, load_jsonl(Path(args.queries))) if selector_rows else set()
     payload = build_payload(
         load_jsonl(candidates_path),
         selector_keys=selector_keys,

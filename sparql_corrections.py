@@ -6,12 +6,13 @@ import json
 import os
 import re
 import tempfile
+from urllib.parse import urlsplit, urlunsplit
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, Sequence
 
-from sparql_versions import resolve_sparql_version, sparql_hash, validate_execution_versions
+from sparql_versions import available_sparql_versions, resolve_sparql_version, sparql_hash, validate_execution_versions
 
 
 CANDIDATE_SCHEMA = "musparql.sparql-correction-candidate.v1"
@@ -28,6 +29,49 @@ EDIT_TYPES = {
 }
 PROPOSAL_ORIGINS = {"human", "agent", "source_artifact"}
 SHA256_RE = re.compile(r"sha256:[0-9a-f]{64}")
+
+
+def safe_endpoint(value: Any) -> str | None:
+    if not isinstance(value, str) or not value:
+        return None
+    parts = urlsplit(value)
+    host = parts.hostname or ""
+    if parts.port:
+        host += f":{parts.port}"
+    return urlunsplit((parts.scheme, host, parts.path, "", ""))
+
+
+def safe_error(value: Any, limit: int = 500) -> str | None:
+    if value is None:
+        return None
+    text = re.sub(r"(?i)bearer\s+[a-z0-9._~+/=-]+", "Bearer <redacted>", str(value))
+    text = re.sub(r"https?://[^\s/@]+:[^\s/@]+@", lambda m: m.group(0).split("://", 1)[0] + "://<redacted>@", text)
+    text = re.sub(r"(?i)(api[_-]?key|token|password|secret)=([^\s&]+)", r"\1=<redacted>", text)
+    # Strip every URL query/fragment, including provider-specific signed URL
+    # parameters whose names cannot be exhaustively enumerated.
+    text = re.sub(r"https?://[^\s<>\"']+", lambda m: safe_endpoint(m.group(0)) or "<redacted-url>", text, flags=re.I)
+    return text[:limit]
+
+
+def safe_execution_projection(value: Mapping[str, Any]) -> Dict[str, Any]:
+    result = {
+        key: deepcopy(value.get(key))
+        for key in (
+            "status", "skip_reason", "http_status", "content_type", "effective_sparql_hash",
+            "observed_at", "ran_at", "duration_ms", "result_count",
+        )
+        if value.get(key) is not None
+    }
+    endpoint = safe_endpoint(value.get("endpoint"))
+    if endpoint is not None:
+        result["endpoint"] = endpoint
+    graph = safe_endpoint(value.get("graph"))
+    if graph is not None:
+        result["graph"] = graph
+    error = safe_error(value.get("error") or value.get("error_line"))
+    if error is not None:
+        result["error"] = error
+    return result
 
 
 def utc_now() -> str:
@@ -55,6 +99,7 @@ def sparql_provenance(record: Mapping[str, Any], resolved: Mapping[str, Any]) ->
         "history_digest": "sha256:" + hashlib.sha256(
             canonical_review_payload(record.get("sparql_correction_history") or [])
         ).hexdigest(),
+        "execution_observation": execution_observation(record, resolved),
     }
     if resolved["sparql_version"] > 0:
         provenance = resolved.get("provenance") or {}
@@ -66,42 +111,52 @@ def sparql_provenance(record: Mapping[str, Any], resolved: Mapping[str, Any]) ->
         result["selected_edit"] = {
             key: deepcopy(provenance.get(key)) for key in public_fields if provenance.get(key) is not None
         }
-        result["verification"] = edit_verification(record, resolved)
+        suggestion = provenance.get("agent_suggestion")
+        if isinstance(suggestion, Mapping):
+            result["selected_edit"]["agent_provenance"] = {
+                key: deepcopy(suggestion.get(key)) for key in (
+                    "suggestion_id", "suggestion_digest", "model", "request_id", "prompt_hash",
+                    "schema_hash", "input_hash", "proposed_sparql_hash", "bundle_digest",
+                ) if suggestion.get(key) is not None
+            }
+        attempts = provenance.get("ui_execution_attempts") or []
+        if isinstance(attempts, list):
+            result["selected_edit"]["ui_execution_observations"] = [
+                {
+                    key: deepcopy(attempt.get(key)) for key in (
+                        "attempt_id", "attempt_digest", "target", "status", "sparql_hash",
+                        "effective_sparql_hash", "duration_ms", "result_count", "ran_at",
+                    ) if attempt.get(key) is not None
+                }
+                for attempt in attempts if isinstance(attempt, Mapping)
+            ]
     return result
 
 
-def edit_verification(record: Mapping[str, Any], resolved: Mapping[str, Any]) -> Dict[str, Any]:
-    """Return successful execution evidence for an edited version, or pending state."""
-    if resolved["sparql_version"] == 0:
-        return {"status": "not_required"}
+def execution_observation(record: Mapping[str, Any], resolved: Mapping[str, Any]) -> Dict[str, Any]:
+    """Describe the newest matching attempt without turning execution into eligibility."""
     observations = record.get("execution_history") or record.get("run_history") or []
     matches = [
         item for item in observations
         if isinstance(item, Mapping)
         and item.get("sparql_version") == resolved["sparql_version"]
         and item.get("sparql_hash") == resolved["sparql_hash"]
-        and item.get("status") in {"ok", "empty"}
     ]
     if not matches:
-        return {"status": "pending"}
+        return {"status": "not_attempted", "attempted": False}
     observation = matches[-1]
     return {
-        "status": "verified",
-        "verified_at": observation.get("ran_at"),
+        "status": str(observation.get("status") or "unknown"),
+        "attempted": True,
+        "observed_at": observation.get("ran_at"),
         "execution_digest": "sha256:" + hashlib.sha256(
             canonical_review_payload(observation)
         ).hexdigest(),
-        "outcome": observation.get("status"),
+        "endpoint": safe_endpoint(observation.get("endpoint")),
+        "graph": safe_endpoint(observation.get("graph")),
+        "duration_ms": observation.get("duration_ms"),
+        "result_count": observation.get("result_count"),
     }
-
-
-def require_verified_edit(record: Mapping[str, Any], resolved: Mapping[str, Any]) -> None:
-    verification = edit_verification(record, resolved)
-    if resolved["sparql_version"] > 0 and verification["status"] != "verified":
-        raise ValueError(
-            f"Edited SPARQL version {resolved['sparql_version']} for "
-            f"{record.get('kg_id')}/{record.get('query_id')} has not passed a matching execution"
-        )
 
 
 def assert_input_provenance_current(
@@ -134,6 +189,20 @@ def classify_failure(failure: Mapping[str, Any]) -> Dict[str, Any]:
     status = str(failure.get("status") or "unknown")
     skip_reason = str(failure.get("skip_reason") or "")
     http_status = failure.get("http_status")
+    if status == "not_attempted":
+        return {
+            "reason_code": "not_attempted",
+            "category": "needs_observation",
+            "priority": "medium",
+            "summary": "This retained version has no execution observation; it remains eligible for correction review.",
+        }
+    if status in {"ok", "empty"}:
+        return {
+            "reason_code": f"execution_{status}",
+            "category": "general_review",
+            "priority": "normal",
+            "summary": "Execution completed, but semantic correction review remains available.",
+        }
     if status in {"parse_error", "query_error"}:
         return {
             "reason_code": "endpoint_rejected_query",
@@ -210,23 +279,7 @@ def build_candidate(
     if failure.get("sparql_hash") and failure.get("sparql_hash") != resolved["sparql_hash"]:
         raise ValueError(f"Failure SPARQL hash does not resolve for {query.get('query_label')}")
     triage = classify_failure(failure)
-    execution = {
-        key: deepcopy(failure.get(key))
-        for key in (
-            "status",
-            "skip_reason",
-            "endpoint",
-            "http_status",
-            "content_type",
-            "error",
-            "error_line",
-            "body_snippet",
-            "effective_sparql_hash",
-            "graph",
-            "observed_at",
-        )
-        if failure.get(key) is not None
-    }
+    execution = safe_execution_projection(failure)
     item = {
         "schema": CANDIDATE_SCHEMA,
         "candidate_id": candidate_id(failure, triage),
@@ -244,6 +297,15 @@ def build_candidate(
         "evidence": deepcopy(query.get("evidence") or []),
         "existing_edits": deepcopy(query.get("sparql_edits") or []),
         "correction_history": deepcopy(query.get("sparql_correction_history") or []),
+        "retained_versions": [
+            {
+                "sparql_version": version["sparql_version"],
+                "sparql_hash": version["sparql_hash"],
+                "sparql": version["sparql"],
+                "note": version.get("note"),
+            }
+            for version in available_sparql_versions(query)
+        ],
     }
     return item
 
@@ -270,6 +332,8 @@ def validate_candidate(item: Mapping[str, Any]) -> None:
     triage = item.get("triage")
     if not isinstance(execution, Mapping) or not isinstance(triage, Mapping):
         raise ValueError("Correction candidate requires execution and triage objects")
+    if dict(execution) != safe_execution_projection(execution):
+        raise ValueError("Correction candidate execution is not safely projected; regenerate the candidate ledger")
     reconstructed = {
         **dict(execution), "kg_id": item["kg_id"], "query_id": item["query_id"],
         "sparql_version": version, "sparql_hash": item["base_sparql_hash"],
@@ -397,23 +461,19 @@ def validate_review_export(payload: Mapping[str, Any]) -> None:
         if isinstance(version, bool) or not isinstance(version, int) or version < 0:
             raise ValueError("Correction review requires a non-negative base_sparql_version")
         rationale = review.get("rationale")
-        if decision in {"approve_edit", "no_edit"} and (
-            not isinstance(rationale, str) or not rationale.strip()
-        ):
-            raise ValueError(f"{decision} requires a rationale")
         if decision == "approve_edit":
             proposed = review.get("proposed_sparql")
             if not isinstance(proposed, str) or not proposed.strip():
                 raise ValueError("approve_edit requires proposed_sparql")
-            if review.get("edit_type") not in EDIT_TYPES:
-                raise ValueError("approve_edit requires a supported edit_type")
-            if not review.get("evidence_ids"):
-                raise ValueError("approve_edit requires at least one aligned evidence ID")
+            if review.get("edit_type") not in EDIT_TYPES and not (
+                isinstance(rationale, str) and rationale.strip()
+            ):
+                raise ValueError("approve_edit requires either a supported edit_type or rationale")
         origin = review.get("proposal_origin")
         if origin not in PROPOSAL_ORIGINS:
             raise ValueError("Correction review requires a supported proposal_origin")
-        if origin == "agent" and (not isinstance(review.get("proposal_model"), str) or not review["proposal_model"].strip()):
-            raise ValueError("Agent proposals require proposal_model")
+        if origin == "agent" and not isinstance(review.get("agent_suggestion"), Mapping):
+            raise ValueError("Agent proposals require retained agent_suggestion provenance")
         try:
             datetime.fromisoformat(str(review["reviewed_at"]).replace("Z", "+00:00"))
         except ValueError as exc:
@@ -431,21 +491,33 @@ def apply_reviews(
     candidates: Sequence[Mapping[str, Any]],
     candidate_path: str = "<in-memory>",
     forbidden_pairs: set[tuple[str, str]] | None = None,
+    authoritative_suggestions: Sequence[Mapping[str, Any]] = (),
+    authoritative_executions: Sequence[Mapping[str, Any]] = (),
+    authoritative_bundle_digest: str | None = None,
 ) -> Dict[str, int]:
     validate_review_export(payload)
+    if authoritative_bundle_digest is not None and payload.get("bundle_digest") != authoritative_bundle_digest:
+        raise ValueError("Correction review export does not match the authoritative browser bundle")
     forbidden_pairs = forbidden_pairs or set()
     by_id = {(str(record.get("kg_id") or ""), str(record.get("query_id") or "")): record for record in records}
     candidate_by_id: Dict[str, Mapping[str, Any]] = {}
     for item in candidates:
+        candidate_pair = (str(item.get("kg_id") or ""), str(item.get("query_id") or ""))
+        if candidate_pair in forbidden_pairs:
+            continue
         validate_candidate(item)
         identifier = str(item["candidate_id"])
         if identifier in candidate_by_id:
             raise ValueError(f"Duplicate correction candidate {identifier}")
         candidate_by_id[identifier] = item
     export_hash = "sha256:" + hashlib.sha256(canonical_review_payload(payload)).hexdigest()
+    suggestion_by_id = {str(item.get("suggestion_id") or ""): item for item in authoritative_suggestions}
+    execution_by_id = {str(item.get("attempt_id") or ""): item for item in authoritative_executions}
     stats = {"approved": 0, "no_edit": 0, "deferred": 0}
     seen_candidates: set[str] = set()
     for review in payload["reviews"]:
+        if authoritative_bundle_digest is not None and review.get("bundle_digest") != authoritative_bundle_digest:
+            raise ValueError("Correction review is not pinned to the authoritative browser bundle")
         candidate = str(review["candidate_id"])
         if candidate in seen_candidates:
             raise ValueError(f"Duplicate correction review for {candidate}")
@@ -454,14 +526,14 @@ def apply_reviews(
         record = by_id.get((kg_id, query_id))
         if record is None:
             raise ValueError(f"Unknown correction query_id {query_id}")
+        pair = (kg_id, query_id)
+        if pair in forbidden_pairs:
+            raise ValueError(f"Refusing to review or edit holdout-selected pair {pair[0]}/{pair[1]}")
         anchored = candidate_by_id.get(candidate)
         if anchored is None:
             raise ValueError(f"Correction candidate is absent from the authoritative ledger: {candidate}")
         if candidate_digest(anchored) != review["candidate_digest"]:
             raise ValueError("Correction candidate digest does not match the authoritative ledger")
-        pair = (kg_id, query_id)
-        if pair in forbidden_pairs:
-            raise ValueError(f"Refusing to review or edit holdout-selected pair {pair[0]}/{pair[1]}")
         evidence = record.get("evidence") or []
         valid_evidence_ids = {
             str(item.get("evidence_id"))
@@ -469,10 +541,36 @@ def apply_reviews(
             if isinstance(item, Mapping) and isinstance(item.get("evidence_id"), str)
         }
         unknown_evidence = sorted(set(review.get("evidence_ids") or []) - valid_evidence_ids)
-        if unknown_evidence:
+        if review.get("decision") == "approve_edit" and unknown_evidence:
             raise ValueError(
                 f"Unknown correction evidence IDs for {record.get('query_label')}: {unknown_evidence}"
             )
+        suggestion = review.get("agent_suggestion")
+        if review.get("proposal_origin") == "agent":
+            suggestion_id = str(suggestion.get("suggestion_id") or "") if isinstance(suggestion, Mapping) else ""
+            authoritative_suggestion = suggestion_by_id.get(suggestion_id)
+            if authoritative_suggestion is None or dict(authoritative_suggestion) != dict(suggestion or {}):
+                raise ValueError("Agent suggestion does not match the authoritative service log")
+            if (
+                authoritative_suggestion.get("candidate_id") != candidate
+                or authoritative_suggestion.get("kg_id") != kg_id
+                or authoritative_suggestion.get("query_id") != query_id
+                or (
+                    review.get("decision") == "approve_edit"
+                    and authoritative_suggestion.get("proposed_sparql_hash") != sparql_hash(str(review.get("proposed_sparql") or ""))
+                )
+            ):
+                raise ValueError("Agent suggestion identity or proposal hash is stale")
+        for attempt in review.get("execution_attempts") or []:
+            if not isinstance(attempt, Mapping):
+                raise ValueError("execution_attempts entries must be objects")
+            authoritative_attempt = execution_by_id.get(str(attempt.get("attempt_id") or ""))
+            if authoritative_attempt is None or dict(authoritative_attempt) != dict(attempt):
+                raise ValueError("UI execution attempt does not match the authoritative service log")
+            if authoritative_attempt.get("candidate_id") != candidate or (
+                authoritative_attempt.get("kg_id"), authoritative_attempt.get("query_id")
+            ) != (kg_id, query_id):
+                raise ValueError("UI execution attempt identity is inconsistent")
         latest = resolve_sparql_version(record, "latest")
         if (
             latest["sparql_version"] != review["base_sparql_version"]
@@ -507,7 +605,7 @@ def apply_reviews(
             and item.get("skip_reason") == execution_snapshot.get("skip_reason")
             for item in observations
         )
-        if not execution_match:
+        if not execution_match and execution_snapshot.get("status") != "not_attempted":
             raise ValueError("Correction candidate trigger does not match retained execution history")
         history = record.setdefault("sparql_correction_history", [])
         if not isinstance(history, list):
@@ -525,6 +623,9 @@ def apply_reviews(
             "evidence_ids": list(review.get("evidence_ids") or []),
             "proposal_origin": review.get("proposal_origin"),
             "proposal_model": review.get("proposal_model"),
+            "agent_suggestion": deepcopy(review.get("agent_suggestion")) if review.get("proposal_origin") == "agent" else None,
+            "ui_execution_attempts": deepcopy(review.get("execution_attempts") or []),
+            "bundle_digest": review.get("bundle_digest"),
             "candidate_digest": candidate_digest(anchored),
             "candidate_ledger": candidate_path,
             "candidate_captured_at": anchored.get("captured_at"),
@@ -547,15 +648,42 @@ def apply_reviews(
             approved_version = latest["sparql_version"] + 1
             provenance["approved_sparql_version"] = approved_version
             provenance["approved_sparql_hash"] = proposed_hash
+            note = str(review.get("rationale") or "").strip() or str(review.get("edit_type") or "SPARQL correction")
             edit = {
                 "version": approved_version,
                 "sparql": proposed,
-                "note": str(review["rationale"]).strip(),
-                "edit_type": review["edit_type"],
+                "note": note,
+                "edit_type": review.get("edit_type"),
                 "evidence_ids": list(review.get("evidence_ids") or []),
                 "provenance": deepcopy(provenance),
             }
             edits.append(edit)
+            promoted = []
+            for attempt in review.get("execution_attempts") or []:
+                if (
+                    isinstance(attempt, Mapping)
+                    and attempt.get("target") == "proposal"
+                    and attempt.get("sparql_hash") == proposed_hash
+                ):
+                    promoted.append({
+                        key: deepcopy(attempt.get(key)) for key in (
+                            "status", "pipeline_status", "endpoint", "graph", "duration_ms",
+                            "result_count", "effective_sparql_hash", "error", "ran_at",
+                        ) if attempt.get(key) is not None
+                    } | {
+                        "sparql_version": approved_version,
+                        "sparql_hash": proposed_hash,
+                        "source": "correction_ui",
+                        "source_attempt_id": attempt.get("attempt_id"),
+                        "source_attempt_digest": attempt.get("attempt_digest"),
+                    })
+            if promoted:
+                execution_history = record.get("execution_history")
+                if not isinstance(execution_history, list):
+                    execution_history = list(record.get("run_history") or [])
+                execution_history.extend(promoted)
+                record["execution_history"] = execution_history
+                record["run_history"] = execution_history
             stats["approved"] += 1
         elif decision == "no_edit":
             stats["no_edit"] += 1

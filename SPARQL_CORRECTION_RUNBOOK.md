@@ -1,92 +1,111 @@
-# SPARQL correction runbook
+# SPARQL correction workbench runbook
 
-This is the practical workflow for reviewing and applying SPARQL corrections.
-It assumes that holdout selectors already exist. Replace
-`<holdout-selectors>.jsonl` and other angle-bracket placeholders with your
-actual paths or values.
+This workflow assumes holdouts exist. In every command, replace
+`<holdout-selectors>.jsonl` with the annotation-free selector file chosen by the
+human owner under `review/public_exports/`. Never use private annotations as an
+input.
 
-## 1. Run the queries and create the correction queue
-
-Run:
+## 1. Run the pipeline and update candidates
 
 ```bash
 .venv/bin/python run_queries.py \
   --holdout-selectors review/public_exports/<holdout-selectors>.jsonl
 ```
 
-This executes the latest retained SPARQL version for each non-holdout query and
-updates `sparql_correction_candidates.jsonl` automatically. Failed execution is
-not a reason to hide a query from correction review: endpoint rejection,
-unresolved placeholders, unavailable infrastructure, and other failures can all
-appear in the queue with different triage labels. Holdout pairs are removed
-before the queue is written.
+The command removes holdout identities before query jobs are created. For each
+remaining selected query it runs the latest retained SPARQL by default and
+updates `sparql_correction_candidates.jsonl`. Successful, empty, failed,
+unsupported, unavailable, and not-attempted versions are all valid correction
+candidates. Execution changes priority and trust; it never decides eligibility.
 
-You do not write a separate correction report. The queue is that report.
+To use an older retained version deliberately, add `--sparql-version <number>`.
+The selected version and hash are recorded explicitly. Without that option,
+`latest` is always used and there is no silent fallback.
 
-## 2. Build and open the correction workbench
-
-Build the browser data:
+## 2. Build the browser bundle
 
 ```bash
 .venv/bin/python build_sparql_correction_bundle.py \
   --holdout-selectors review/public_exports/<holdout-selectors>.jsonl
 ```
 
-Serve the review directory on loopback:
+This writes the ignored local file `review/sparql_correction_data.js`. The
+builder filters holdout identities before it validates candidate content or
+touches evidence.
+
+## 3. Start the local workbench service
 
 ```bash
-python3 -m http.server 8000 --bind 127.0.0.1 --directory review
+.venv/bin/python correction_service.py \
+  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl
 ```
 
 Open:
 
 ```text
-http://127.0.0.1:8000/corrections.html
+http://127.0.0.1:8765/corrections.html
 ```
 
-## 3. Review a proposed correction
+No separate static server is needed. The service serves the existing browser UI
+and provides same-origin `/api/execute` and `/api/suggest` endpoints. It binds to
+loopback by default.
 
-The workbench shows the retained base SPARQL, the observed failure, the source
-evidence, and the proposed SPARQL in one place. Compare the proposal with the
-base query and evidence before approving it. Do not approve merely because a
-query looks syntactically plausible.
+UI execution is deliberately separate from pipeline execution. It uses the same
+endpoint, fallback, graph insertion, cleaning, timeout, local-dataset, and
+unsupported-runtime rules, but it does not mutate `kg_queries.jsonl`. Attempts
+are appended to `review/local_workbench_execution_attempts.jsonl` and retained
+with an approval. Pipeline execution, by contrast, updates canonical execution
+history and refreshes the candidate ledger.
 
-At present, the workbench does **not** call the endpoint and does not generate an
-agent correction itself. It also does not yet provide one-click approval of a
-fully populated suggestion. These are current UI limitations.
+Suggestion generation uses the configured OpenAI environment and defaults to
+model `gpt-5`. Override it with `--model <model>`. API keys are read by the SDK;
+they are never returned or written to workbench logs.
 
-For `Approve New Version`, the current UI requires:
+## 4. Review efficiently
 
-- changed, complete SPARQL;
-- an edit type;
-- a short rationale;
-- at least one evidence ID shown in the evidence panel;
-- proposal origin; and
-- a model/tool name only when the proposal origin is `Agent`.
+For each candidate:
 
-The workbench automatically supplies the query identity, base version and hash,
-failure observation, candidate digest, review time, and available evidence. You
-are not asked to copy those fields manually. `Reviewer note` is optional.
+1. Inspect triage, retained base, latest approved version, source evidence, and
+   the base-to-proposal diff.
+2. Optionally click **Generate suggestion**. Its edit type, rationale, evidence
+   IDs, model/request identity, and prompt/schema hashes are filled and retained
+   automatically, but nothing is approved automatically.
+3. Optionally execute base, latest, or proposal. Endpoint failure or unsupported
+   runtime does not block the decision.
+4. Click **Approve and next**, **No edit and next**, or **Defer and next**.
 
-If you are happy with the correction and the required fields are already
-populated, click `Approve New Version`, then click `Next`. Approval does not yet
-advance automatically. With the current UI, missing required fields must be
-completed before export. `No SPARQL Edit` requires only a rationale; `Defer` can
-be used when more investigation is needed.
+The current shared result parser executes `SELECT` queries. `ASK`, `CONSTRUCT`,
+and `DESCRIBE` are recorded as unsupported observations; they remain reviewable
+and eligible downstream.
 
-Approving an edit permanently makes that query identity ineligible for holdout
-inclusion.
+For a manual approval, the human must enter changed, nonempty SPARQL and either
+an edit type or a rationale. Evidence IDs and reviewer note are optional. The UI
+infers a human origin; no model/tool field is requested. No-edit and defer need
+no metadata and accept an optional note.
 
-## 4. Export and apply the decisions
+The browser saves drafts and decisions in local browser storage. Approval marks
+only the local decision and advances to the next visible unreviewed candidate.
+Canonical records are unchanged until the explicit apply step.
 
-Click **Export Correction Reviews**. Put the downloaded JSON in the ignored
-local directory `review/public_exports/`, for example:
+## 5. Export and apply
+
+Click **Export decisions**. Move the downloaded, non-holdout correction export
+to the ignored local input directory:
 
 ```text
 review/public_exports/musparql-sparql-correction-review-<dataset>-<time>.json
 ```
 
-Do not commit this export. Apply it with:
+Do not commit the export or the two local service logs. Validate without writing:
+
+```bash
+.venv/bin/python apply_sparql_corrections.py \
+  review/public_exports/musparql-sparql-correction-review-<dataset>-<time>.json \
+  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl \
+  --dry-run
+```
+
+Apply it:
 
 ```bash
 .venv/bin/python apply_sparql_corrections.py \
@@ -94,70 +113,52 @@ Do not commit this export. Apply it with:
   --holdout-selectors review/public_exports/<holdout-selectors>.jsonl
 ```
 
-The command validates the export against the authoritative candidate queue and
-then appends every approved correction as the next version. It refuses stale,
-changed, duplicate, unknown, or holdout-selected records.
+The apply command compares browser decisions with the authoritative candidate
+ledger and, for agent suggestions and UI executions, the append-only local
+service logs. It rejects stale version/hash pins, changed service metadata,
+duplicates, and holdout identities. Approved SPARQL is appended atomically as a
+new version; no existing version is overwritten.
 
-`--dry-run` is optional. Use it only if you want a validation-only rehearsal;
-the normal workflow does not require running the command twice.
-
-## 5. Re-execute approved corrections
-
-You cannot execute a proposed version from the current UI. After applying the
-export, re-run the affected KG:
-
-```bash
-.venv/bin/python run_queries.py \
-  --kg-id <kg-id> \
-  --holdout-selectors review/public_exports/<holdout-selectors>.jsonl
-```
-
-You do not need to know the new version number: `run_queries.py` uses `latest`
-by default. The new version and hash are recorded automatically.
-
-If the endpoint fails or is unavailable, the edit is still retained and can
-return to the correction queue. It is not silently discarded. However, the
-edited query remains blocked from NL generation and benchmark propagation until
-that exact version and hash receives an `ok` or `empty` execution. This gate is
-separate from eligibility for correction review.
-
-## 6. Rebuild downstream data
-
-After successful re-execution, rebuild NL inputs:
+## 6. Rebuild downstream artifacts
 
 ```bash
 .venv/bin/python build_llm_inputs.py \
   --holdout-selectors review/public_exports/<holdout-selectors>.jsonl
 ```
 
-Run generation if needed:
+The latest approved SPARQL is included regardless of whether its execution
+observation is successful, empty, failed, unavailable, unsupported, or absent.
+The observation travels as provenance. Stale hashes and provenance still fail
+closed.
+
+Continue with the normal generation and review commands:
 
 ```bash
 .venv/bin/python run_llm_generation.py
-```
 
-Build an initial NL review bundle:
-
-```bash
 .venv/bin/python build_review_bundle.py \
   --holdout-selectors review/public_exports/<holdout-selectors>.jsonl \
   --outputs llm_outputs.jsonl \
   --assert-complete-review-provenance
 ```
 
-## 7. Test before committing
-
-Run the test suite:
+## 7. Checks before a commit
 
 ```bash
-.venv/bin/pytest -q
+.venv/bin/python -m pytest -q
+node --check review/correction_app.js
+.venv/bin/python -m py_compile correction_service.py sparql_corrections.py run_queries.py
 ```
 
-After staging only the files you intend to commit, run the publication-boundary
-check:
+After staging the intended source files:
 
 ```bash
 .venv/bin/python scripts/check_public_tree.py --staged
 ```
 
-The commit and push hooks run the boundary check again automatically.
+The benchmark audit needs the ignored canonical `kg_queries.jsonl` present so it
+can resolve immutable version/hash pins:
+
+```bash
+.venv/bin/python benchmark/audit_snapshot.py benchmark/v8
+```

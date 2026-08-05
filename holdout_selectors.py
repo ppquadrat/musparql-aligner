@@ -76,10 +76,12 @@ def assert_selectors_unedited(
     """Reject selectors for query identities that retain any SPARQL edit."""
     from sparql_corrections import retained_sparql_edit_count
 
-    by_key = {
-        (str(record.get("kg_id") or ""), str(record.get("query_id") or "")): record
-        for record in records
-    }
+    by_key = {}
+    for record in records:
+        key = (str(record.get("kg_id") or ""), str(record.get("query_id") or ""))
+        if key in by_key:
+            raise ValueError(f"Duplicate canonical query identity: {key[0]}/{key[1]}")
+        by_key[key] = record
     missing = sorted(selector_keys - set(by_key))
     if missing:
         raise ValueError(f"Holdout selectors do not resolve to canonical query records: {missing}")
@@ -91,3 +93,24 @@ def assert_selectors_unedited(
             "SPARQL-edited query identities are permanently ineligible for holdout: "
             + ", ".join(f"{kg_id}/{query_id}" for kg_id, query_id in edited)
         )
+
+
+def validate_selectors_current(
+    selector_records: list[Mapping[str, Any]], records: list[Mapping[str, Any]]
+) -> set[Tuple[str, str]]:
+    """Validate selector identities and optional immutable version/hash pins."""
+    keys = {validate_selector_record(item) for item in selector_records}
+    assert_selectors_unedited(keys, records)
+    canonical = {
+        (str(record.get("kg_id") or ""), str(record.get("query_id") or "")): record
+        for record in records
+    }
+    from sparql_versions import resolve_sparql_version
+    for selector in selector_records:
+        if "sparql_version" not in selector:
+            continue
+        key = (str(selector["kg_id"]), str(selector["query_id"]))
+        resolved = resolve_sparql_version(canonical[key], int(selector["sparql_version"]))
+        if resolved["sparql_hash"].removeprefix("sha256:") != str(selector["sparql_hash"]).removeprefix("sha256:"):
+            raise ValueError(f"Stale holdout selector SPARQL pin: {key[0]}/{key[1]}")
+    return keys

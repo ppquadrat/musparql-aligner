@@ -14,6 +14,7 @@ llm_outputs*.jsonl
 runs/*/
 review/review_data*.js
 review/sparql_correction_data.js
+review/local_workbench_*.jsonl
 prompts/llm_nl_generation.inputs.jsonl
 
 # Human review boundary

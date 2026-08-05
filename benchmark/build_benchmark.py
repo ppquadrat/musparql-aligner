@@ -80,6 +80,32 @@ def write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def neutral_execution_snapshot(records: List[Dict[str, Any]], *, captured_through: str) -> Dict[str, Any]:
+    """Summarize neutral execution observations already pinned in record provenance."""
+    statuses: Counter[str] = Counter()
+    attempted = 0
+    observed_times: List[str] = []
+    for record in records:
+        provenance = record.get("sparql_provenance") if isinstance(record.get("sparql_provenance"), dict) else {}
+        observation = provenance.get("execution_observation") if isinstance(provenance, dict) else None
+        if not isinstance(observation, dict):
+            observation = {"status": "not_attempted", "attempted": False}
+        status = str(observation.get("status") or "not_attempted")
+        statuses[status] += 1
+        if observation.get("attempted") is True:
+            attempted += 1
+        if observation.get("observed_at"):
+            observed_times.append(str(observation["observed_at"]))
+    return {
+        "source": "pinned sparql_provenance.execution_observation",
+        "captured_through": max(observed_times) if observed_times else captured_through,
+        "selected_queries": len(records),
+        "selected_versions_with_execution": attempted,
+        "status_counts": dict(sorted(statuses.items())),
+        "note": "Execution observations are trust provenance only; missing or failed observations do not affect inclusion.",
+    }
+
+
 def write_jsonl(path: Path, records: List[Dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8") as fh:
         for rec in records:
@@ -643,6 +669,8 @@ def main() -> None:
         "source_review_export": str(review_path),
         "dataset_id": dataset_id,
         "run_id": review_run_id or (bundle_run_ids[0] if len(bundle_run_ids) == 1 else None),
+        "sparql_version_policy": "latest_retained",
+        "execution_snapshot": neutral_execution_snapshot(included, captured_through=built_at),
         "counts": {
             "benchmark": len(benchmark_records),
             "included": len(included),

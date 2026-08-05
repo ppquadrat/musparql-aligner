@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SPARQL correction suggestion request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["candidate_id", "candidate_digest"],
+  "properties": {
+    "candidate_id": {"type": "string", "minLength": 1},
+    "candidate_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

@@ -1,89 +1,87 @@
 # SPARQL editing policy
 
-## The short version
+## The rule in one sentence
 
-Keep the query found in the source unchanged. If it needs correction, add a new
-version, record why it changed, and require a human to approve it. A query that
-has ever received a retained SPARQL edit cannot be used as a holdout pair.
+Keep every query version, let a human approve changes, and treat execution as
+useful evidence—not as permission to use the query.
 
-## What happens automatically
+## What stays permanent
 
-When the query pipeline runs, it records queries that could not be executed.
-This includes endpoint rejections, unresolved placeholders, unavailable
-endpoints, specialised-runtime requirements, and less specific failures. These
-records are automatically placed in the correction queue with the execution
-observation and available source evidence.
+The SPARQL found in the source is version 0. It is never replaced. Each approved
+change is added as version 1, 2, and so on. Older versions remain available for
+comparison and can be selected explicitly. When nobody chooses a version, the
+latest approved version is used.
 
-Failure does not prevent a query from appearing in correction review. The queue
-is for diagnosis: some entries need a SPARQL edit, while others need parameters,
-different infrastructure, or no action at all.
+There is no silent fallback to an older query when the latest version fails.
 
-## What must remain unchanged
+## Who can enter correction review
 
-The source SPARQL is version `0` and is never overwritten. Existing edited
-versions are never overwritten either. An approved correction is appended as
-version `1`, `2`, and so on.
+Any non-holdout query can be reviewed. That includes a query that succeeded,
+failed, has no endpoint, contains placeholders, needs a local file or specialist
+tool, or has never been run. A failed query may be shown earlier in the queue,
+but failure does not prove that the query is wrong. A successful query may still
+ask the wrong question.
 
-This lets us answer both questions later: “What did the source contain?” and
-“What query did Musparql actually use?”
+Holdout identities are removed before candidate details, evidence, execution
+observations, or agent prompts are created. A query identity with any retained
+SPARQL edit can never become a holdout, even if someone later selects version 0.
 
-## What a human approves
+## What execution means
 
-Before approving, the reviewer should compare the proposed query with the
-source query and its evidence. Approval records:
+An execution observation says what happened for one exact SPARQL hash: success,
+an empty result, endpoint error, unavailable infrastructure, unsupported
+runtime, or not attempted. It may include endpoint, graph, duration, result
+count, a small sample, and a safe error.
 
-- the complete proposed SPARQL;
-- the kind of edit;
-- a brief explanation;
-- the evidence supporting the intended meaning;
-- whether the proposal came from a human, an agent, or a source artifact; and
-- the agent/model name when an agent made the proposal.
+Execution is not approval, verification, or an eligibility decision. Missing or
+failed execution never removes an approved version from NL generation, review,
+benchmark construction, or public release. The execution status travels with
+the query so later users can judge trust.
 
-The system records technical provenance such as query identity, versions,
-hashes, execution failure, timestamps, and review-export digest automatically.
+At present the workbench runner reads `SELECT` results. Other query forms are
+shown as unsupported, which does not prevent review or approval.
 
-The edit types mean:
+Running a query in the workbench does not save or alter SPARQL. The workbench
+records the attempt separately. Only an exported and explicitly applied human
+decision can add a canonical version.
 
-- **Syntax correction:** repairs malformed SPARQL without changing the question.
-- **Endpoint adaptation:** expresses the same question in the endpoint's dialect.
-- **Parameter instantiation:** replaces a placeholder with a concrete value.
-- **Benchmark specialisation:** deliberately narrows or fixes the benchmark query.
-- **Federation rewrite:** changes how remote graphs or services are queried.
-- **Performance optimisation:** seeks the same answer more efficiently.
-- **Other:** none of the above; explain the choice in the rationale.
+## Human approval
 
-Execution success alone is not enough to prove that a correction preserves the
-intended meaning. The human review of the query and evidence is therefore the
-approval step.
+The reviewer compares the retained query, proposal, readable diff, evidence,
+and execution observations before approval.
 
-## What happens after approval
+If the proposal came from the agent, the workbench fills in and retains the
+model/request identity, prompt and schema hashes, suggestion, rationale, edit
+type, evidence IDs, and proposal hash. The human does not retype those fields.
+The agent can suggest “no edit”, and its suggestion is never approved
+automatically.
 
-Approval retains the new version immediately. The current UI does not execute
-it. The pipeline must subsequently run the latest version against the relevant
-endpoint or local dataset.
+For a manual edit, the human supplies:
 
-If execution fails, the correction remains retained and may appear in the queue
-again. It is still available for correction review. It is simply not passed to
-NL generation or a benchmark until the same version and hash has an `ok` or
-`empty` execution record. This prevents an untested edit from silently becoming
-the benchmark query.
+- changed, complete SPARQL; and
+- either an edit type or a short rationale.
 
-## Holdout rule
+Evidence IDs and reviewer notes are optional. No model/tool field is shown for a
+human proposal. No-edit and defer need no explanation, although the human may
+leave a note.
 
-Once a query identity has a retained SPARQL edit, it is permanently ineligible
-for holdout inclusion—even if somebody later selects the original version.
+## Safe application
 
-Correction review must never expose a selected holdout pair. Commands that read
-the canonical query collection therefore require the annotation-free holdout
-selector file and remove those identities before creating correction data. The
-apply command also refuses any reviewed pair found in the selector file.
+Browser decisions are local drafts until export and apply. The apply command
+checks the exact `(kg_id, query_id)`, base version, hashes, authoritative
+candidate digest, and service records. It rejects stale or changed proposals,
+duplicate decisions, unknown evidence IDs, and selected holdouts.
 
-## Data-handling rule
+Approved edits and correction history are append-only, and the canonical file
+is replaced atomically only after the full export validates. This explicit
+boundary protects against an accidental click changing the dataset.
 
-Correction queues and exports are local working data. Keep exports under the
-ignored `review/public_exports/` directory and do not commit them. Never put raw
-holdout annotations into a correction queue, browser bundle, test fixture, or
-agent prompt. Tests must use clearly synthetic examples.
+## Data handling
 
-For the commands to follow, use
-[SPARQL_CORRECTION_RUNBOOK.md](SPARQL_CORRECTION_RUNBOOK.md).
+Correction bundles, browser exports, and service logs are local working data and
+must not enter the public repository tree. Put a downloaded, sanitized
+non-holdout export under ignored `review/public_exports/`. Never place private
+holdout annotations in a correction bundle, prompt, test, or service request.
+Tests use clearly synthetic identities and evidence only.
+
+Exact commands are in `SPARQL_CORRECTION_RUNBOOK.md`.

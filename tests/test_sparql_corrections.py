@@ -90,8 +90,8 @@ def review_export(candidate: dict, **overrides) -> dict:
         "edit_type": "syntax_correction",
         "rationale": "Synthetic parser correction.",
         "evidence_ids": ["e1"],
-        "proposal_origin": "agent",
-        "proposal_model": "synthetic-agent",
+        "proposal_origin": "human",
+        "proposal_model": None,
         "candidate_execution": candidate["execution"],
         "reviewed_at": "2026-08-05T11:00:00+00:00",
     }
@@ -134,23 +134,23 @@ def test_approved_review_appends_version_and_complete_provenance():
     assert edit["edit_type"] == "syntax_correction"
     assert edit["evidence_ids"] == ["e1"]
     assert edit["provenance"]["candidate_id"] == candidate["candidate_id"]
-    assert edit["provenance"]["proposal_model"] == "synthetic-agent"
+    assert edit["provenance"]["proposal_origin"] == "human"
     assert edit["provenance"]["review_export_hash"].startswith("sha256:")
     assert retained_sparql_edit_count(query) == 1
 
 
-def test_approved_edit_is_blocked_until_matching_successful_execution():
+def test_approved_edit_is_included_without_successful_execution():
     query = query_record()
     candidate = build_candidate(failure(), query)
     apply_reviews([query], review_export(candidate), export_path="synthetic.json", candidates=[candidate])
-    with pytest.raises(ValueError, match="has not passed"):
-        build_prompt_input(query, include_raw=False, include_sparql_blocks=False)
+    payload = build_prompt_input(query, include_raw=False, include_sparql_blocks=False)
+    assert payload["sparql_provenance"]["execution_observation"]["status"] == "not_attempted"
     resolved = resolve_sparql_version(query, "latest")
     query["execution_history"].append(
         {"status": "ok", "ran_at": "2026-08-05T12:00:00+00:00", "sparql_version": 1, "sparql_hash": resolved["sparql_hash"]}
     )
     payload = build_prompt_input(query, include_raw=False, include_sparql_blocks=False)
-    assert payload["sparql_provenance"]["verification"]["status"] == "verified"
+    assert payload["sparql_provenance"]["execution_observation"]["status"] == "ok"
     assert payload["sparql_provenance"]["selected_edit"]["candidate_id"] == candidate["candidate_id"]
 
 
@@ -189,13 +189,14 @@ def test_no_edit_records_durable_history_without_adding_version():
     assert query["sparql_correction_history"][0]["decision"] == "no_edit"
 
 
-def test_review_requires_aligned_evidence_and_agent_identity():
+def test_review_allows_missing_evidence_and_requires_only_type_or_rationale():
     query = query_record()
     candidate = build_candidate(failure(), query)
-    with pytest.raises(ValueError, match="aligned evidence"):
-        apply_reviews([deepcopy(query)], review_export(candidate, evidence_ids=[]), export_path="x", candidates=[candidate])
-    with pytest.raises(ValueError, match="proposal_model"):
-        apply_reviews([deepcopy(query)], review_export(candidate, proposal_model=""), export_path="x", candidates=[candidate])
+    target = deepcopy(query)
+    apply_reviews([target], review_export(candidate, evidence_ids=[], rationale=""), export_path="x", candidates=[candidate])
+    invalid = review_export(candidate, evidence_ids=[], rationale="", edit_type=None)
+    with pytest.raises(ValueError, match="either"):
+        apply_reviews([deepcopy(query)], invalid, export_path="x", candidates=[candidate])
 
 
 def test_candidate_validation_and_kg_scoping_fail_closed():

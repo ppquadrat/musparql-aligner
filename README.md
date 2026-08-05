@@ -12,7 +12,7 @@ Documentation entry points:
 - `HOLDOUT_RUNBOOK.md`: the human checklist for selecting, exporting, clearing,
   and publishing around holdout records.
 - `SPARQL_EDITING_POLICY.md`: append-only edit, provenance, and holdout rules.
-- `SPARQL_CORRECTION_RUNBOOK.md`: automatic triage, review, application, and verification.
+- `SPARQL_CORRECTION_RUNBOOK.md`: automatic triage, review, execution observations, and append-only application.
 - `review/README.md`: review-workbench operation and review-field semantics.
 - `benchmark/README.md`: snapshot schemas, update policy, audits, and
   public-release packaging.

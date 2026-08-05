@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SPARQL correction execution request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["candidate_id", "candidate_digest", "target", "sparql_hash"],
+  "properties": {
+    "candidate_id": {"type": "string", "minLength": 1},
+    "candidate_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "target": {"type": "string", "enum": ["base", "proposal", "latest_approved"]},
+    "sparql": {"type": "string", "minLength": 1},
+    "sparql_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

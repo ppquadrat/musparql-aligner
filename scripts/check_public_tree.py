@@ -43,6 +43,8 @@ CORRECTION_SCHEMAS = {
     "musparql.sparql-correction-candidate.v1",
     "musparql.sparql-correction-bundle.v1",
     "musparql.sparql-correction-review-export.v1",
+    "musparql.sparql-correction-ui-execution.v1",
+    "musparql.sparql-correction-agent-suggestion.v1",
 }
 PRIVATE_TEXT_RE = re.compile(
     r'(?:(?:"|\b)(?:split|benchmark_disposition|kind)(?:"|\b)\s*:\s*'

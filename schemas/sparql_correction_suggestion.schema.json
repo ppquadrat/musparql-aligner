@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://musparql.local/schemas/sparql_correction_suggestion.schema.json",
+  "title": "SPARQL correction suggestion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["recommendation", "proposed_sparql", "edit_type", "rationale", "evidence_ids", "uncertainty"],
+  "properties": {
+    "recommendation": {"type": "string", "enum": ["edit", "no_edit"]},
+    "proposed_sparql": {"type": ["string", "null"]},
+    "edit_type": {
+      "type": ["string", "null"],
+      "enum": ["syntax_correction", "endpoint_dialect_adaptation", "parameter_instantiation", "benchmark_specialization", "federation_rewrite", "performance_optimization", "other", null]
+    },
+    "rationale": {"type": "string", "minLength": 1, "maxLength": 2000},
+    "evidence_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "uncertainty": {"type": "string", "maxLength": 1000}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"recommendation": {"const": "edit"}}},
+      "then": {"properties": {"proposed_sparql": {"type": "string", "minLength": 1}}}
+    },
+    {
+      "if": {"properties": {"recommendation": {"const": "no_edit"}}},
+      "then": {"properties": {"proposed_sparql": {"type": "null"}, "edit_type": {"type": "null"}}}
+    }
+  ]
+}

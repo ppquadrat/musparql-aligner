@@ -36,18 +36,18 @@ class DismissedExclusionTests(unittest.TestCase):
         self.assertIn("--assert-complete-review-provenance", command)
         self.assertIn("--no-holdout", command)
 
-    def test_load_excluded_query_ids_from_benchmark_dir(self) -> None:
+    def test_load_excluded_pairs_from_benchmark_dir(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             benchmark_dir = Path(tmp)
             dismissed_path = benchmark_dir / "dismissed.jsonl"
             dismissed_path.write_text(
-                json.dumps({"query_id": "q1"}) + "\n"
-                + json.dumps({"query_id": "q2"}) + "\n",
+                json.dumps({"kg_id": "kg-a", "query_id": "q1"}) + "\n"
+                + json.dumps({"kg_id": "kg-b", "query_id": "q2"}) + "\n",
                 encoding="utf-8",
             )
             self.assertEqual(
-                build_llm_inputs.load_excluded_query_ids(benchmark_dir),
-                {"q1", "q2"},
+                build_llm_inputs.load_excluded_pairs(benchmark_dir),
+                {("kg-a", "q1"), ("kg-b", "q2")},
             )
 
     def test_normal_review_bundle_excludes_previous_benchmark_by_default(self) -> None:

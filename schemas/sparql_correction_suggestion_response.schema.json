@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SPARQL correction suggestion response envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "suggestion_id", "suggestion_digest", "candidate_id", "candidate_digest", "bundle_digest", "kg_id", "query_id", "output", "model", "prompt_hash", "schema_hash", "input_hash", "generated_at", "duration_ms"],
+  "properties": {
+    "schema": {"const": "musparql.sparql-correction-agent-suggestion.v1"},
+    "suggestion_id": {"type": "string"}, "suggestion_digest": {"type": "string"},
+    "candidate_id": {"type": "string"}, "candidate_digest": {"type": "string"}, "bundle_digest": {"type": "string"},
+    "kg_id": {"type": "string"}, "query_id": {"type": "string"},
+    "output": {"$ref": "sparql_correction_suggestion.schema.json"},
+    "proposed_sparql_hash": {"type": ["string", "null"]}, "model": {"type": "string"},
+    "request_id": {"type": ["string", "null"]}, "prompt_hash": {"type": "string"}, "schema_hash": {"type": "string"},
+    "input_hash": {"type": "string"}, "generated_at": {"type": "string", "format": "date-time"}, "duration_ms": {"type": "integer"}
+  }
+}

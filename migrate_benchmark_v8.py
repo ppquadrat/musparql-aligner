@@ -259,15 +259,17 @@ def migrate(*, dry_run: bool = False) -> None:
     execution_times: list[str] = []
     for row in included:
         query = by_id[(str(row["kg_id"]), str(row["query_id"]))]
-        execution = query.get("latest_execution")
-        if not isinstance(execution, Mapping):
-            raise ValueError(f"No latest execution for {row['query_label']}")
-        if (
-            execution.get("sparql_version") != row["sparql_version"]
-            or execution.get("sparql_hash") != row["sparql_hash"]
-        ):
-            raise ValueError(f"Latest execution is not for selected SPARQL: {row['query_label']}")
-        statuses[str(execution.get("status"))] += 1
+        matches = [
+            execution for execution in (query.get("execution_history") or query.get("run_history") or [])
+            if isinstance(execution, Mapping)
+            and execution.get("sparql_version") == row["sparql_version"]
+            and execution.get("sparql_hash") == row["sparql_hash"]
+        ]
+        if not matches:
+            statuses["not_attempted"] += 1
+            continue
+        execution = matches[-1]
+        statuses[str(execution.get("status") or "unknown")] += 1
         execution_times.append(str(execution.get("ran_at") or ""))
     manifest.update(
         {
@@ -280,9 +282,9 @@ def migrate(*, dry_run: bool = False) -> None:
             "sparql_version_policy": "latest_retained",
             "execution_snapshot": {
                 "source": "kg_queries.jsonl",
-                "captured_through": max(execution_times),
+                "captured_through": max(execution_times) if execution_times else adjudicated_at,
                 "selected_queries": len(included),
-                "selected_versions_with_execution": len(included),
+                "selected_versions_with_execution": sum(statuses.values()) - statuses.get("not_attempted", 0),
                 "status_counts": dict(sorted(statuses.items())),
                 "note": "Execution history remains canonical in kg_queries.jsonl and is not duplicated in public NL-SPARQL records.",
             },

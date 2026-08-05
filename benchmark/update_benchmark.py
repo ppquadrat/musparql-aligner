@@ -23,6 +23,7 @@ from build_benchmark import (
     literal_wording,
     make_rephrasing_entry,
     normalize_rephrasing_text,
+    neutral_execution_snapshot,
     pipeline_assessment,
     read_json,
     read_review_bundle,
@@ -465,6 +466,8 @@ def main() -> None:
         "dataset_id": dataset_id,
         "previous_run": bundle.get("previous_run"),
         "current_run": bundle.get("current_run"),
+        "sparql_version_policy": "latest_retained",
+        "execution_snapshot": neutral_execution_snapshot(included, captured_through=built_at),
         "counts": {
             "benchmark": len(benchmark_records),
             "included": len(included),

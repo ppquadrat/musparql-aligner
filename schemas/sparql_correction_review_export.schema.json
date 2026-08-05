@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SPARQL correction review export",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "mode", "dataset_id", "bundle_digest", "exported_at", "reviews"],
+  "properties": {
+    "schema": {"const": "musparql.sparql-correction-review-export.v1"},
+    "mode": {"const": "sparql_correction"},
+    "dataset_id": {"type": "string", "minLength": 1},
+    "bundle_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "exported_at": {"type": "string", "format": "date-time"},
+    "source_bundle_built_at": {"type": "string"},
+    "holdout_input_policy": {"type": "string"},
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["candidate_id", "candidate_digest", "kg_id", "query_id", "base_sparql_version", "base_sparql_hash", "bundle_digest", "decision", "proposal_origin", "reviewed_at"],
+        "properties": {
+          "candidate_id": {"type": "string"}, "candidate_digest": {"type": "string"},
+          "kg_id": {"type": "string"}, "query_id": {"type": "string"},
+          "base_sparql_version": {"type": "integer", "minimum": 0}, "base_sparql_hash": {"type": "string"},
+          "bundle_digest": {"type": "string"}, "decision": {"enum": ["approve_edit", "no_edit", "defer"]},
+          "proposed_sparql": {"type": "string"}, "edit_type": {"type": ["string", "null"]},
+          "rationale": {"type": ["string", "null"]}, "evidence_ids": {"type": "array", "items": {"type": "string"}},
+          "proposal_origin": {"enum": ["human", "agent", "source_artifact"]},
+          "agent_suggestion": {"type": ["object", "null"]}, "execution_attempts": {"type": "array"},
+          "reviewer_note": {"type": ["string", "null"]}, "reviewed_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    }
+  }
+}

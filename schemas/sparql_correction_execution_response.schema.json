@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SPARQL correction execution response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "attempt_id", "attempt_digest", "candidate_id", "candidate_digest", "bundle_digest", "kg_id", "query_id", "target", "sparql_hash", "effective_sparql_hash", "retained_sparql_transformed", "status", "duration_ms", "sample_rows", "ran_at"],
+  "properties": {
+    "schema": {"const": "musparql.sparql-correction-ui-execution.v1"},
+    "attempt_id": {"type": "string"}, "attempt_digest": {"type": "string"},
+    "candidate_id": {"type": "string"}, "candidate_digest": {"type": "string"}, "bundle_digest": {"type": "string"},
+    "kg_id": {"type": "string"}, "query_id": {"type": "string"},
+    "target": {"type": "string"}, "sparql_version": {"type": ["integer", "null"]},
+    "sparql_hash": {"type": "string"}, "effective_sparql_hash": {"type": "string"},
+    "retained_sparql_transformed": {"type": "boolean"}, "pipeline_status": {"type": ["string", "null"]},
+    "status": {"type": "string", "enum": ["ok", "empty", "unavailable", "unsupported", "error"]},
+    "endpoint": {"type": ["string", "null"]}, "graph": {"type": ["string", "null"]},
+    "duration_ms": {"type": "integer"}, "result_count": {"type": ["integer", "null"]},
+    "sample_rows": {"type": "array", "maxItems": 5}, "error": {"type": ["string", "null"]},
+    "http_status": {"type": ["integer", "null"]}, "skip_reason": {"type": ["string", "null"]}, "ran_at": {"type": "string"}
+  }
+}

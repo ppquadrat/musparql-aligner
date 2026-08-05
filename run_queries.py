@@ -26,7 +26,7 @@ from sparql_versions import (
 )
 from sparql_corrections import load_jsonl as load_correction_candidates
 from sparql_corrections import exclude_candidate_pairs, merge_candidates, write_jsonl as write_correction_candidates
-from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selector_record
+from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selectors_current
 
 REPO_ROOT = Path(__file__).resolve().parent
 DUMPS_DIR = (REPO_ROOT / "dumps").resolve()
@@ -625,6 +625,127 @@ def is_remote_executable(query: str) -> bool:
     return non_executable_reason(query) is None
 
 
+def read_only_query_reason(query: str) -> Optional[str]:
+    """Return a reason when text is not a read-only SPARQL query form."""
+    text = clean_query(query)
+    prologue = re.compile(r"(?is)^\s*(?:(?:prefix\s+(?:[A-Za-z_][\w.-]*)?:\s*<[^>]+>)|(?:base\s*<[^>]+>))\s*")
+    while True:
+        match = prologue.match(text)
+        if not match:
+            break
+        text = text[match.end():]
+    first = re.match(r"(?is)^\s*([A-Za-z]+)\b", text)
+    # The shared parser currently consumes SPARQL Results JSON bindings. Restrict
+    # the UI/pipeline execution primitive to SELECT until boolean and RDF graph
+    # result formats have dedicated parsers.
+    if first is None or first.group(1).upper() != "SELECT":
+        return "non_read_only_operation"
+    return None
+
+
+def execute_sparql_observation(
+    *,
+    kg_id: str,
+    retained_sparql: str,
+    retained_hash: str,
+    sparql_version: int | None,
+    endpoints: Dict[str, KGEndpoint],
+    datasets: Dict[str, KGDataset],
+    timeout_s: int = 30,
+    sample_limit: int = 5,
+    local_graphs: Dict[str, Graph] | None = None,
+    max_dump_mb: int = 550,
+    retry_http_500: bool = True,
+) -> Dict[str, object]:
+    """Execute one pinned query using the pipeline's cleaning, graph and runtime rules.
+
+    This function is intentionally side-effect free with respect to canonical query
+    records. Callers may retain the returned attempt as provenance separately.
+    """
+    if compute_sparql_hash(retained_sparql) != retained_hash:
+        raise ValueError("Retained SPARQL hash does not match the supplied text")
+    observed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    effective = clean_query(retained_sparql)
+    reason = non_executable_reason(retained_sparql) or non_executable_reason(effective)
+    read_only_reason = read_only_query_reason(effective)
+    endpoint = endpoints.get(kg_id)
+    dataset = datasets.get(kg_id)
+    common: Dict[str, object] = {
+        "ran_at": observed_at,
+        "sparql_version": sparql_version,
+        "sparql_hash": retained_hash,
+        "effective_sparql_hash": compute_sparql_hash(effective),
+        "retained_sparql_transformed": effective != retained_sparql,
+        "duration_ms": 0,
+        "result_count": None,
+        "sample_rows": [],
+        "endpoint": endpoint.primary.endpoint if endpoint else None,
+        "graph": endpoint.primary.graph if endpoint else None,
+    }
+    if read_only_reason:
+        return {**common, "status": "unsupported", "skip_reason": read_only_reason, "error": "Only SELECT queries can be executed by this runtime."}
+    if reason:
+        return {**common, "status": "unsupported", "skip_reason": reason, "error": None}
+    if endpoint is None and dataset is None:
+        return {**common, "status": "unavailable", "error": "No endpoint or local dataset is configured."}
+    start = time.time()
+    result: Dict[str, object]
+    endpoint_used: Optional[str] = None
+    graph_used: Optional[str] = None
+    effective_used = effective
+    if endpoint is not None:
+        result = {"status": "request_error", "error": "No endpoint tried"}
+        for target in [endpoint.primary] + (endpoint.fallbacks or []):
+            effective_used = apply_graph(effective, target.graph)
+            result = run_select_query(target.endpoint, effective_used, timeout_s=timeout_s)
+            endpoint_used, graph_used = target.endpoint, target.graph
+            if result.get("status") in {"ok", "empty"}:
+                break
+            if result.get("status") not in {"request_error", "http_error", "bad_json", "query_error", "parse_error"}:
+                break
+        if retry_http_500 and result.get("status") == "http_error" and result.get("http_status") == 500:
+            for delay_s in (1.0, 2.0):
+                time.sleep(delay_s)
+                result = run_select_query(endpoint_used or endpoint.primary.endpoint, effective_used, timeout_s=timeout_s)
+                if result.get("status") in {"ok", "empty"}:
+                    break
+    else:
+        try:
+            graph_cache = local_graphs if local_graphs is not None else {}
+            if kg_id not in graph_cache:
+                dump_path = ensure_dump_available(dataset, limit_mb=max_dump_mb)
+                graph = Graph()
+                graph.parse(dump_path, format=dataset.format or guess_rdf_format(dump_path))
+                graph_cache[kg_id] = graph
+            graph = graph_cache[kg_id]
+            result = run_local_select_query(graph, effective)
+        except Exception as exc:
+            result = {"status": "unavailable", "error": f"{exc.__class__.__name__}: {exc}"}
+    duration_ms = int((time.time() - start) * 1000)
+    sample = result.get("sample_rows")
+    if not isinstance(sample, list):
+        one = result.get("sample_row")
+        sample = [one] if isinstance(one, dict) else []
+    safe_status = str(result.get("status") or "error")
+    if safe_status not in {"ok", "empty", "unsupported", "unavailable"}:
+        safe_status = "error"
+    return {
+        **common,
+        "status": safe_status,
+        "pipeline_status": result.get("status"),
+        "endpoint": endpoint_used,
+        "graph": graph_used,
+        "duration_ms": duration_ms,
+        "result_count": result.get("result_count"),
+        "sample_rows": sample[: max(0, sample_limit)],
+        "error": result.get("error") or result.get("error_line"),
+        "http_status": result.get("http_status"),
+        "content_type": result.get("content_type"),
+        "effective_sparql_hash": compute_sparql_hash(effective_used),
+        "retained_sparql_transformed": effective_used != retained_sparql,
+    }
+
+
 def preflight_endpoint(endpoint: KGEndpoint) -> None:
     probe_default = "SELECT * WHERE { ?s ?p ?o } LIMIT 1"
     probe_named = "SELECT ?g WHERE { GRAPH ?g { ?s ?p ?o } } LIMIT 1"
@@ -705,11 +826,9 @@ def main() -> None:
     selected_kg_ids = set(args.kg_ids or [])
     selected_source_ids = set(args.source_ids or [])
     holdout_keys = set()
+    holdout_selector_records = []
     if args.holdout_selectors:
-        holdout_keys = {
-            validate_selector_record(item)
-            for item in load_correction_candidates(Path(args.holdout_selectors))
-        }
+        holdout_selector_records = load_correction_candidates(Path(args.holdout_selectors))
 
     def record_is_selected(record: Dict[str, object]) -> bool:
         kg_id = record.get("kg_id")
@@ -731,12 +850,20 @@ def main() -> None:
         endpoints = {kg_id: value for kg_id, value in endpoints.items() if kg_id in selected_kg_ids}
         datasets = {kg_id: value for kg_id, value in datasets.items() if kg_id in selected_kg_ids}
     raw_queries = load_query_records(queries_path)
+    if holdout_selector_records:
+        holdout_keys = validate_selectors_current(holdout_selector_records, raw_queries)
     for record in raw_queries:
         if isinstance(record.get("sparql_clean"), str):
             backfill_legacy_execution_versions(record)
             validate_execution_versions(record)
 
-    selected_records = [record for record in raw_queries if record_is_selected(record)]
+    # Holdout identities are removed before job construction, endpoint execution,
+    # correction evidence capture, or any later agent-facing artifact is produced.
+    selected_records = [
+        record for record in raw_queries
+        if record_is_selected(record)
+        and (str(record.get("kg_id") or ""), str(record.get("query_id") or "")) not in holdout_keys
+    ]
     try:
         jobs = build_query_jobs(selected_records, args.sparql_version)
     except SparqlVersionError as exc:
@@ -770,7 +897,6 @@ def main() -> None:
             ):
                 failures.append(previous)
     preserved_failure_count = len(failures)
-    endpoint_success: Dict[str, int] = {}
     stats: Dict[str, Dict[str, int]] = {}
     graphs: Dict[str, Graph] = {}
     max_dump_mb = int(os.environ.get("KG_DUMP_MAX_MB", "550"))
@@ -897,91 +1023,45 @@ def main() -> None:
             record_query_execution(rec, skipped_execution)
             continue
         stat["ran"] += 1
-        start = time.time()
-        endpoint_used = None
-        target_used: Optional[SparqlTarget] = None
-        effective_query = query_to_run
-        effective_graph: Optional[str] = None
-        if endpoint is not None:
-            endpoint_list = [endpoint.primary] + (endpoint.fallbacks or [])
-            result = {"status": "request_error", "error": "No endpoint tried"}
-            for target in endpoint_list:
-                query_with_graph = apply_graph(query_to_run, target.graph)
-                effective_query = query_with_graph
-                effective_graph = target.graph
-                result = run_select_query(target.endpoint, query_with_graph)
-                endpoint_used = target.endpoint
-                target_used = target
-                if result.get("status") in {"ok", "empty"}:
-                    break
-                if result.get("status") not in {"request_error", "http_error", "bad_json", "query_error", "parse_error"}:
-                    break
-        else:
-            dump_path = ensure_dump_available(dataset, limit_mb=max_dump_mb)
-            if kg_id not in graphs:
-                fmt = dataset.format or guess_rdf_format(dump_path)
-                graph = Graph()
-                graph.parse(dump_path, format=fmt)
-                graphs[kg_id] = graph
-            result = run_local_select_query(graphs[kg_id], query_to_run)
-        duration_ms = int((time.time() - start) * 1000)
-        if result.get("status") in {"ok", "empty"}:
-            endpoint_success[kg_id] = endpoint_success.get(kg_id, 0) + 1
-        elif endpoint is not None and result.get("status") == "http_error" and result.get("http_status") == 500:
-            if endpoint_success.get(kg_id, 0) > 0:
-                # Retry once or twice if the endpoint works for other queries.
-                for delay_s in (1.0, 2.0):
-                    time.sleep(delay_s)
-                    retry_start = time.time()
-                    retry_target = target_used or endpoint.primary
-                    retry_query = apply_graph(query_to_run, retry_target.graph)
-                    effective_query = retry_query
-                    effective_graph = retry_target.graph
-                    retry = run_select_query(retry_target.endpoint, retry_query)
-                    endpoint_used = retry_target.endpoint
-                    duration_ms = int((time.time() - retry_start) * 1000)
-                    if retry.get("status") in {"ok", "empty"}:
-                        result = retry
-                        endpoint_success[kg_id] = endpoint_success.get(kg_id, 0) + 1
-                        break
-                    result = retry
-        status = result.get("status")
-        observed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        observation = execute_sparql_observation(
+            kg_id=kg_id, retained_sparql=query, retained_hash=resolved["sparql_hash"],
+            sparql_version=version, endpoints=endpoints, datasets=datasets,
+            local_graphs=graphs, max_dump_mb=max_dump_mb,
+        )
+        status = observation.get("pipeline_status") or observation.get("status")
+        observed_at = str(observation.get("ran_at"))
+        sample_rows = observation.get("sample_rows") or []
         latest_execution = add_execution_version({
             "ran_at": observed_at,
             "status": status,
-            "endpoint": endpoint_used if endpoint is not None else None,
-            "result_count": result.get("result_count"),
-            "sample_row": result.get("sample_row"),
-            "duration_ms": duration_ms,
-            "error": result.get("error"),
-            "effective_sparql_hash": compute_sparql_hash(effective_query),
-            "graph": effective_graph,
+            "endpoint": observation.get("endpoint"),
+            "result_count": observation.get("result_count"),
+            "sample_row": sample_rows[0] if sample_rows else None,
+            "duration_ms": observation.get("duration_ms"),
+            "error": observation.get("error"),
+            "effective_sparql_hash": observation.get("effective_sparql_hash"),
+            "graph": observation.get("graph"),
         }, resolved)
-        if result.get("error_line") is not None:
-            latest_execution["error_line"] = result.get("error_line")
-        if result.get("http_status") is not None:
-            latest_execution["http_status"] = result.get("http_status")
-        if result.get("content_type") is not None:
-            latest_execution["content_type"] = result.get("content_type")
+        if observation.get("http_status") is not None:
+            latest_execution["http_status"] = observation.get("http_status")
+        if observation.get("content_type") is not None:
+            latest_execution["content_type"] = observation.get("content_type")
         record_query_execution(rec, latest_execution)
         if status not in {"ok", "empty"}:
             failures.append(
                 {
                     "kg_id": kg_id,
-                    "endpoint": endpoint_used if endpoint is not None else None,
+                    "endpoint": observation.get("endpoint"),
                     "status": status,
-                    "http_status": result.get("http_status"),
-                    "content_type": result.get("content_type"),
-                    "error": result.get("error"),
-                    "error_line": result.get("error_line"),
+                    "http_status": observation.get("http_status"),
+                    "content_type": observation.get("content_type"),
+                    "error": observation.get("error"),
                     "query_id": rec.get("query_id"),
                     "query_label": rec.get("query_label"),
                     "sparql_version": version,
                     "sparql_hash": resolved["sparql_hash"],
-                    "effective_sparql_hash": compute_sparql_hash(effective_query),
-                    "graph": effective_graph,
-                    "body_snippet": result.get("body_snippet"),
+                    "effective_sparql_hash": observation.get("effective_sparql_hash"),
+                    "graph": observation.get("graph"),
                     "observed_at": observed_at,
                 }
             )
@@ -1003,10 +1083,24 @@ def main() -> None:
         for rec in failures:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
-    candidate_failures = [
-        failure for failure in failures
-        if (str(failure.get("kg_id") or ""), str(failure.get("query_id") or "")) not in holdout_keys
-    ]
+    candidate_failures: List[Dict[str, object]] = []
+    for record, resolved in jobs:
+        observations = [
+            item for item in (record.get("execution_history") or [])
+            if isinstance(item, dict)
+            and item.get("sparql_version") == resolved["sparql_version"]
+            and item.get("sparql_hash") == resolved["sparql_hash"]
+        ]
+        observation = observations[-1] if observations else {
+            "status": "not_attempted", "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        }
+        candidate_failures.append({
+            **observation,
+            "kg_id": record.get("kg_id"), "query_id": record.get("query_id"),
+            "query_label": record.get("query_label"),
+            "sparql_version": resolved["sparql_version"], "sparql_hash": resolved["sparql_hash"],
+            "observed_at": observation.get("ran_at"),
+        })
     existing_candidates = exclude_candidate_pairs(
         load_correction_candidates(correction_path), holdout_keys
     )
