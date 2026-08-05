@@ -8,7 +8,7 @@ security model are in [HOLDOUT_SECURITY.md](HOLDOUT_SECURITY.md).
 1. Decide whether holdout identities may be visible to agents. Record the choice
    as **identity visible** or **identity private**.
 2. Finish or close all agent-assisted tasks.
-3. Serve only the review application on the loopback interface:
+3. Serve only the review application on the loopback interface. Run from the root of the Musparql repo:
 
    ```bash
    python3 -m http.server 8000 --bind 127.0.0.1 --directory review
