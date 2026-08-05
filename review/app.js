@@ -44,14 +44,6 @@
     publicCommentInput: document.getElementById("publicCommentInput"),
     internalCommentInput: document.getElementById("internalCommentInput"),
     holdoutSplitInput: document.getElementById("holdoutSplitInput"),
-    naturalnessInput: document.getElementById("naturalnessInput"),
-    pragmatismInput: document.getElementById("pragmatismInput"),
-    roomForInterpretationInput: document.getElementById("roomForInterpretationInput"),
-    naturalnessValue: document.getElementById("naturalnessValue"),
-    pragmatismValue: document.getElementById("pragmatismValue"),
-    roomForInterpretationValue: document.getElementById("roomForInterpretationValue"),
-    clearInterpretiveBtn: document.getElementById("clearInterpretiveBtn"),
-    requiresGraphContextKnowledgeInput: document.getElementById("requiresGraphContextKnowledgeInput"),
     decisionButtons: Array.from(document.querySelectorAll(".decision-btn")),
   };
 
@@ -186,18 +178,6 @@
     els.publicCommentInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.internalCommentInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.holdoutSplitInput.addEventListener("change", () => updateCurrentReview({ rerender: true }));
-    [els.naturalnessInput, els.pragmatismInput, els.roomForInterpretationInput].forEach((input) => {
-      input.addEventListener("input", () => {
-        input.dataset.hasValue = "true";
-        syncSliderOutputs();
-        updateCurrentReview({ rerender: false });
-      });
-    });
-    els.clearInterpretiveBtn.addEventListener("click", () => {
-      clearInterpretiveInputs();
-      updateCurrentReview({ rerender: true });
-    });
-    els.requiresGraphContextKnowledgeInput.addEventListener("change", () => updateCurrentReview({ rerender: false }));
     els.decisionButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         updateCurrentReview({ forcedStatus: btn.dataset.status || "", rerender: true });
@@ -349,7 +329,6 @@
     document.getElementById("holdoutEligibilityHelp").textContent = savedIneligibleHoldout
       ? "This saved holdout is no longer eligible under current provenance. Keep it private, export and clear it, then retire it."
       : holdoutEligibility.reason;
-    setInterpretiveInputs(review.interpretive);
     els.decisionButtons.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.status === (review.status || ""));
     });
@@ -417,7 +396,9 @@
     const nextStatus = Object.prototype.hasOwnProperty.call(options, "forcedStatus")
       ? options.forcedStatus
       : current.status;
-    const interpretive = readInterpretiveInputs();
+    // The current review UI does not collect linguistic dimensions. Preserve
+    // values from historical imports until that work has its own interface.
+    const interpretive = current.interpretive;
     const record = data.records.find((candidate) => candidate.review_id === reviewId);
     const holdoutEligible = initialHoldoutEligibility(record, data.holdout_review_provenance_complete).eligible;
     const keepExistingHoldout = isHoldoutReview(current) && els.holdoutSplitInput.checked;
@@ -648,51 +629,6 @@
     if (value === null || value === undefined || value === "") return null;
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
-  }
-
-  function readInterpretiveInputs() {
-    return {
-      naturalness: readSliderValue(els.naturalnessInput),
-      pragmatism: readSliderValue(els.pragmatismInput),
-      room_for_interpretation: readSliderValue(els.roomForInterpretationInput),
-      requires_graph_context_knowledge: els.requiresGraphContextKnowledgeInput.checked,
-    };
-  }
-
-  function readSliderValue(input) {
-    return input.dataset.hasValue === "true" ? Number(input.value) : null;
-  }
-
-  function setInterpretiveInputs(interpretive) {
-    setSliderValue(els.naturalnessInput, els.naturalnessValue, interpretive.naturalness);
-    setSliderValue(els.pragmatismInput, els.pragmatismValue, interpretive.pragmatism);
-    setSliderValue(els.roomForInterpretationInput, els.roomForInterpretationValue, interpretive.room_for_interpretation);
-    els.requiresGraphContextKnowledgeInput.checked = Boolean(interpretive.requires_graph_context_knowledge);
-  }
-
-  function syncSliderOutputs() {
-    els.naturalnessValue.textContent = els.naturalnessInput.dataset.hasValue === "true" ? els.naturalnessInput.value : "-";
-    els.pragmatismValue.textContent = els.pragmatismInput.dataset.hasValue === "true" ? els.pragmatismInput.value : "-";
-    els.roomForInterpretationValue.textContent = els.roomForInterpretationInput.dataset.hasValue === "true" ? els.roomForInterpretationInput.value : "-";
-  }
-
-  function setSliderValue(input, output, value) {
-    if (value === null || value === undefined || value === "") {
-      input.value = "50";
-      input.dataset.hasValue = "false";
-      output.textContent = "-";
-      return;
-    }
-    input.value = String(value);
-    input.dataset.hasValue = "true";
-    output.textContent = String(value);
-  }
-
-  function clearInterpretiveInputs() {
-    setSliderValue(els.naturalnessInput, els.naturalnessValue, null);
-    setSliderValue(els.pragmatismInput, els.pragmatismValue, null);
-    setSliderValue(els.roomForInterpretationInput, els.roomForInterpretationValue, null);
-    els.requiresGraphContextKnowledgeInput.checked = false;
   }
 
   function isEmptyInterpretive(interpretive) {

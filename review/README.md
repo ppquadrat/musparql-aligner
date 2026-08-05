@@ -148,11 +148,10 @@ export to ignored, agent-forbidden `review/private/` or outside the workspace;
 open it and verify its holdout count before using **Clear Private State**. Legacy
 or unsanitized exports belong only in agent-forbidden `review/exports/`.
 No review export is a paper-repository artifact.
-The initial-review form also exports optional interpretive dimensions
-(`naturalness`, `pragmatism`, `room_for_interpretation`) and the
-`requires_graph_context_knowledge` flag when you set them. Benchmark builders
-copy these into the internal `benchmark/vN/linguistic_annotations.jsonl`, not
-into the scoring dataset or public release.
+The current review form does not collect linguistic or interpretive dimensions.
+Historical exports containing those fields remain readable so that old review
+data is not destroyed. Linguistic annotation will move to a separate review
+interface in future.
 
 The form also exports optional literal SPARQL wording in `literal_wording`.
 Use this for wording that follows the SPARQL more exactly than the preferred
