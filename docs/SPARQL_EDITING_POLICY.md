@@ -119,4 +119,11 @@ non-holdout export under ignored `var/review/exports/`. Never place private
 holdout annotations in a correction bundle, prompt, test, or service request.
 Tests use clearly synthetic identities and evidence only.
 
+Working benchmark partitions may retain the complete applied-correction
+provenance. Tracked benchmark files and public release packages receive only a
+stable allowlisted projection: selected version/hash and history digest,
+neutral execution status, and durable human-approved edit facts. Candidate
+identifiers and digests, review-export hashes, and UI execution-attempt histories
+remain internal. Snapshot audits reject those working fields in public files.
+
 Exact commands are in `SPARQL_CORRECTION_RUNBOOK.md`.

@@ -23,6 +23,56 @@ PIPELINE_ASSESSMENTS = frozenset(
         "not_applicable",
     }
 )
+
+PUBLIC_SPARQL_PROVENANCE_FIELDS = (
+    "retained_edit_count",
+    "selected_version",
+    "selected_hash",
+    "history_digest",
+)
+PUBLIC_EXECUTION_OBSERVATION_FIELDS = (
+    "status",
+    "attempted",
+    "observed_at",
+    "result_count",
+)
+PUBLIC_SELECTED_EDIT_FIELDS = (
+    "decision",
+    "edit_type",
+    "rationale",
+    "proposal_origin",
+    "reviewed_at",
+    "approved_sparql_version",
+    "approved_sparql_hash",
+)
+
+
+def _selected_public_fields(value: Dict[str, Any], fields: Tuple[str, ...]) -> Dict[str, Any]:
+    return {
+        field: value[field]
+        for field in fields
+        if field in value and value[field] not in (None, "", [], {})
+    }
+
+
+def public_sparql_provenance(value: Any) -> Dict[str, Any] | None:
+    """Project internal SPARQL correction state onto stable public provenance."""
+    if not isinstance(value, dict):
+        return None
+    result = _selected_public_fields(value, PUBLIC_SPARQL_PROVENANCE_FIELDS)
+    observation = value.get("execution_observation")
+    if isinstance(observation, dict):
+        public_observation = _selected_public_fields(observation, PUBLIC_EXECUTION_OBSERVATION_FIELDS)
+        if public_observation:
+            result["execution_observation"] = public_observation
+    selected_edit = value.get("selected_edit")
+    if isinstance(selected_edit, dict):
+        public_edit = _selected_public_fields(selected_edit, PUBLIC_SELECTED_EDIT_FIELDS)
+        if public_edit:
+            result["selected_edit"] = public_edit
+    return result or None
+
+
 def normalized_review_decision(review: Dict[str, Any]) -> Tuple[str, str]:
     """Return and validate the benchmark disposition and pipeline assessment."""
     if review.get("status"):
@@ -99,6 +149,42 @@ def neutral_execution_snapshot(records: List[Dict[str, Any]], *, captured_throug
     return {
         "source": "pinned sparql_provenance.execution_observation",
         "captured_through": max(observed_times) if observed_times else captured_through,
+        "selected_queries": len(records),
+        "selected_versions_with_execution": attempted,
+        "status_counts": dict(sorted(statuses.items())),
+        "note": "Execution observations are trust provenance only; missing or failed observations do not affect inclusion.",
+    }
+
+
+def canonical_execution_snapshot(
+    records: List[Dict[str, Any]],
+    *,
+    query_path: Path,
+    captured_through: str,
+) -> Dict[str, Any]:
+    """Summarize canonical execution history for the selected SPARQL pins."""
+    canonical = {pair_key(row): row for row in read_jsonl(query_path)}
+    statuses: Counter[str] = Counter()
+    attempted = 0
+    for record in records:
+        query = canonical.get(pair_key(record))
+        observations = [
+            item
+            for item in ((query or {}).get("execution_history") or [])
+            if isinstance(item, dict)
+            and item.get("sparql_version") == record.get("sparql_version")
+            and item.get("sparql_hash") == record.get("sparql_hash")
+            and str(item.get("ran_at") or "") <= captured_through
+        ]
+        if not observations:
+            statuses["not_attempted"] += 1
+            continue
+        observation = max(observations, key=lambda item: str(item.get("ran_at") or ""))
+        attempted += 1
+        statuses[str(observation.get("status") or "unknown")] += 1
+    return {
+        "source": str(query_path),
+        "captured_through": captured_through,
         "selected_queries": len(records),
         "selected_versions_with_execution": attempted,
         "status_counts": dict(sorted(statuses.items())),
@@ -356,11 +442,15 @@ def update_sidecar_identity(
             "sparql": benchmark_record.get("sparql"),
             "sparql_version": benchmark_record.get("sparql_version"),
             "sparql_hash": benchmark_record.get("sparql_hash"),
-            "sparql_provenance": benchmark_record.get("sparql_provenance"),
             "canonical_question": benchmark_record.get("gold_question"),
             "canonical_question_source": benchmark_record.get("gold_question_source"),
         }
     )
+    provenance = public_sparql_provenance(benchmark_record.get("sparql_provenance"))
+    if provenance:
+        sidecar["sparql_provenance"] = provenance
+    else:
+        sidecar.pop("sparql_provenance", None)
     return sidecar
 
 
@@ -492,24 +582,25 @@ def benchmark_gold_records(
         for field in ("prompt_source", "challenge", "cq", "dataset", "reported_result_rows"):
             if source.get(field) not in (None, ""):
                 provenance[field] = source.get(field)
-        records.append(
-            {
-                    "benchmark_version": benchmark_version,
-                    "benchmark_built_at": built_at,
-                    "benchmark_id": rec.get("benchmark_id"),
-                    "kg_id": rec.get("kg_id"),
-                    "query_id": rec.get("query_id"),
-                    "query_label": rec.get("query_label"),
-                    "sparql": rec.get("sparql"),
-                    "sparql_version": rec.get("sparql_version"),
-                    "sparql_hash": rec.get("sparql_hash"),
-                    "sparql_provenance": rec.get("sparql_provenance"),
-                    "gold_question": gold_question,
-                    "gold_question_source": rec.get("gold_question_source"),
-                    "evidence_summary": rec.get("evidence_summary"),
-                    "provenance": provenance,
-                }
-        )
+        benchmark_record = {
+            "benchmark_version": benchmark_version,
+            "benchmark_built_at": built_at,
+            "benchmark_id": rec.get("benchmark_id"),
+            "kg_id": rec.get("kg_id"),
+            "query_id": rec.get("query_id"),
+            "query_label": rec.get("query_label"),
+            "sparql": rec.get("sparql"),
+            "sparql_version": rec.get("sparql_version"),
+            "sparql_hash": rec.get("sparql_hash"),
+            "gold_question": gold_question,
+            "gold_question_source": rec.get("gold_question_source"),
+            "evidence_summary": rec.get("evidence_summary"),
+            "provenance": provenance,
+        }
+        sparql_provenance = public_sparql_provenance(rec.get("sparql_provenance"))
+        if sparql_provenance:
+            benchmark_record["sparql_provenance"] = sparql_provenance
+        records.append(benchmark_record)
     return sorted(records, key=lambda rec: (str(rec.get("kg_id")), str(rec.get("query_label"))))
 
 

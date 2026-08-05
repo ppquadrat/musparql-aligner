@@ -10,7 +10,14 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
 from scripts.benchmark.audit_snapshot import audit_snapshot
-from scripts.benchmark.build_benchmark import ALTERNATIVES_FILE, read_json, read_jsonl, write_json, write_jsonl
+from scripts.benchmark.build_benchmark import (
+    ALTERNATIVES_FILE,
+    public_sparql_provenance,
+    read_json,
+    read_jsonl,
+    write_json,
+    write_jsonl,
+)
 
 
 BENCHMARK_FIELDS = (
@@ -85,6 +92,11 @@ def selected(record: Dict[str, Any], fields: Iterable[str]) -> Dict[str, Any]:
 
 def public_benchmark_record(record: Dict[str, Any]) -> Dict[str, Any]:
     result = selected(record, BENCHMARK_FIELDS)
+    provenance_pin = public_sparql_provenance(record.get("sparql_provenance"))
+    if provenance_pin:
+        result["sparql_provenance"] = provenance_pin
+    else:
+        result.pop("sparql_provenance", None)
     evidence = record.get("evidence_summary")
     if isinstance(evidence, dict):
         result["evidence_summary"] = selected(evidence, EVIDENCE_FIELDS)
@@ -98,6 +110,11 @@ def public_benchmark_record(record: Dict[str, Any]) -> Dict[str, Any]:
 
 def public_alternative_record(record: Dict[str, Any]) -> Dict[str, Any]:
     result = selected(record, ALTERNATIVE_FIELDS)
+    provenance_pin = public_sparql_provenance(record.get("sparql_provenance"))
+    if provenance_pin:
+        result["sparql_provenance"] = provenance_pin
+    else:
+        result.pop("sparql_provenance", None)
     for field in ("accepted_alternatives", "literal_formulations"):
         formulations = [
             selected(item, FORMULATION_FIELDS)

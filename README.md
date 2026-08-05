@@ -19,7 +19,7 @@ otherwise erroneous, a human may approve a provenance-linked, append-only
 correction that preserves the source information need. The original source
 query remains immutable as version `0`.
 
-The current public benchmark is under [`benchmark/v8`](benchmark/v8). It
+The current public benchmark is under [`benchmark/v9`](benchmark/v9). It
 contains 100 reviewed pairs from Musical Meetups, the Jazz Ontology, MusOW,
 Organs, and LinkedMusic.
 
@@ -76,6 +76,9 @@ the human verifies and places that file at the local path.
   changes and runs must preserve.
 - [`docs/PIPELINE_RUNBOOK.md`](docs/PIPELINE_RUNBOOK.md) — commands for running
   the pipeline.
+- [`docs/BENCHMARK_RUNBOOK.md`](docs/BENCHMARK_RUNBOOK.md) — choosing a
+  benchmark build/update command, auditing the new snapshot, inspecting the
+  version diff, and packaging a public release.
 - [`docs/REVIEW_POLICY.md`](docs/REVIEW_POLICY.md) — what human review decides
   and how review data is handled.
 - [`docs/REVIEW_RUNBOOK.md`](docs/REVIEW_RUNBOOK.md) — initial and comparative

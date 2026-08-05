@@ -16,6 +16,7 @@ from scripts.benchmark import build_public_release  # noqa: E402
 from scripts.benchmark import update_from_initial_review  # noqa: E402
 
 from scripts import build_review_diff_bundle
+from musparql.sparql_versions import sparql_hash
 
 
 def write_json(path: Path, value: object) -> None:
@@ -46,6 +47,56 @@ class DecisionSchemaTests(unittest.TestCase):
                 benchmark_version="v-test",
                 built_at="fixed",
             )
+
+    def test_public_sparql_provenance_excludes_working_correction_artifacts(self) -> None:
+        projected = build_benchmark.public_sparql_provenance({
+            "retained_edit_count": 1,
+            "selected_version": 1,
+            "selected_hash": "sha256:selected",
+            "history_digest": "sha256:history",
+            "execution_observation": {
+                "status": "ok",
+                "attempted": True,
+                "observed_at": "2026-08-05T18:12:01+00:00",
+                "result_count": 1,
+                "execution_digest": "SYNTHETIC_PRIVATE_CANARY",
+                "duration_ms": 42,
+            },
+            "selected_edit": {
+                "decision": "approve_edit",
+                "edit_type": "parameter_instantiation",
+                "rationale": "Synthetic public rationale.",
+                "proposal_origin": "human",
+                "reviewed_at": "2026-08-05T18:20:46+00:00",
+                "approved_sparql_version": 1,
+                "approved_sparql_hash": "sha256:selected",
+                "candidate_id": "SYNTHETIC_PRIVATE_CANARY",
+                "candidate_digest": "SYNTHETIC_PRIVATE_CANARY",
+                "review_export_hash": "SYNTHETIC_PRIVATE_CANARY",
+                "ui_execution_observations": [{"attempt_id": "SYNTHETIC_PRIVATE_CANARY"}],
+            },
+        })
+        self.assertEqual(projected, {
+            "retained_edit_count": 1,
+            "selected_version": 1,
+            "selected_hash": "sha256:selected",
+            "history_digest": "sha256:history",
+            "execution_observation": {
+                "status": "ok",
+                "attempted": True,
+                "observed_at": "2026-08-05T18:12:01+00:00",
+                "result_count": 1,
+            },
+            "selected_edit": {
+                "decision": "approve_edit",
+                "edit_type": "parameter_instantiation",
+                "rationale": "Synthetic public rationale.",
+                "proposal_origin": "human",
+                "reviewed_at": "2026-08-05T18:20:46+00:00",
+                "approved_sparql_version": 1,
+                "approved_sparql_hash": "sha256:selected",
+            },
+        })
 
     def test_public_scoring_serializer_uses_record_provenance(self) -> None:
         rows = build_benchmark.benchmark_gold_records(
@@ -83,6 +134,7 @@ class DecisionSchemaTests(unittest.TestCase):
         self.assertNotIn("reviewer_comment", rows[0]["provenance"])
         self.assertNotIn("review", rows[0])
         self.assertNotIn("run", rows[0])
+        self.assertNotIn("sparql_provenance", rows[0])
 
 
 class UpdaterAndReleaseTests(unittest.TestCase):
@@ -123,6 +175,28 @@ class UpdaterAndReleaseTests(unittest.TestCase):
             errors = audit_snapshot.audit_snapshot(snapshot)
             self.assertTrue(any("acceptance provenance" in error for error in errors))
             self.assertTrue(any("linguistic ratings" in error for error in errors))
+
+    def test_snapshot_rejects_non_public_sparql_provenance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = Path(tmp) / "v1"
+            snapshot.mkdir()
+            write_json(snapshot / "manifest.json", {
+                "benchmark_version": "v1",
+                "counts": {"benchmark": 1, "alternatives": 0},
+            })
+            write_jsonl(snapshot / "benchmark.jsonl", [{
+                "benchmark_id": "synthetic::one",
+                "kg_id": "synthetic",
+                "query_id": "synthetic-q1",
+                "sparql": "ASK {}",
+                "gold_question": "Synthetic?",
+                "sparql_provenance": {
+                    "selected_edit": {"candidate_id": "SYNTHETIC_PRIVATE_CANARY"},
+                },
+            }])
+            write_jsonl(snapshot / "alternatives.jsonl", [])
+            errors = audit_snapshot.audit_snapshot(snapshot)
+            self.assertTrue(any("non-public SPARQL provenance" in error for error in errors))
 
     def test_updater_refuses_compact_snapshot_as_provenance_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -299,17 +373,19 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
     def test_normal_review_updater_replaces_re_reviewed_sparql_revision(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            previous = root / "v1"
-            outdir = root / "v2"
+            previous = root / "v8"
+            outdir = root / "v9"
             previous.mkdir()
+            original_sparql = "ASK {}"
+            replacement_sparql = "SELECT * WHERE {}"
             existing = {
                 "benchmark_id": "kg::old-review",
                 "kg_id": "kg",
                 "query_id": "same-identity",
                 "query_label": "example-0001",
-                "sparql": "ASK {}",
+                "sparql": original_sparql,
                 "sparql_version": 0,
-                "sparql_hash": "sha256:old",
+                "sparql_hash": sparql_hash(original_sparql),
                 "gold_question": "Old question?",
                 "gold_question_source": "approved_model_output",
                 "benchmark_disposition": "included",
@@ -317,7 +393,7 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
                 "review": {},
                 "run": {},
             }
-            write_json(previous / "manifest.json", {"benchmark_version": "v1", "counts": {}})
+            write_json(previous / "manifest.json", {"benchmark_version": "v8", "counts": {}})
             write_jsonl(previous / "included.jsonl", [existing])
             write_jsonl(previous / "dismissed.jsonl", [])
             write_jsonl(previous / "holdout.jsonl", [])
@@ -335,9 +411,9 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
                     "has_prior_pair_review": True,
                     "run_id": "run",
                     "input": {
-                        "sparql_clean": "SELECT * WHERE {}",
+                        "sparql_clean": replacement_sparql,
                         "sparql_version": 1,
-                        "sparql_hash": "sha256:new",
+                        "sparql_hash": sparql_hash(replacement_sparql),
                         "evidence": [],
                     },
                     "output": {"nl_question": "Question for the corrected query?"},
@@ -359,23 +435,43 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
                 },
             })
 
+            query_path = root / "var" / "queries" / "kg_queries.jsonl"
+            query_path.parent.mkdir(parents=True)
+            write_jsonl(query_path, [{
+                "kg_id": "kg",
+                "query_id": "same-identity",
+                "sparql_clean": original_sparql,
+                "sparql_hash": sparql_hash(original_sparql),
+                "sparql_edits": [{
+                    "version": 1,
+                    "sparql": replacement_sparql,
+                    "note": "Synthetic reviewed correction.",
+                }],
+                "execution_history": [],
+            }])
+
             with patch.object(sys, "argv", [
                 "update_from_initial_review.py",
                 "--previous-benchmark", str(previous),
                 "--bundle", str(bundle_path),
                 "--reviews", str(reviews_path),
                 "--outdir", str(outdir),
+                "--kg-queries", str(query_path),
             ]):
                 update_from_initial_review.main()
 
             rows = build_benchmark.read_jsonl(outdir / "included.jsonl")
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["benchmark_id"], "kg::new-review")
-            self.assertEqual(rows[0]["sparql"], "SELECT * WHERE {}")
+            self.assertEqual(rows[0]["sparql"], replacement_sparql)
             self.assertEqual(rows[0]["sparql_version"], 1)
             manifest = build_benchmark.read_json(outdir / "manifest.json")
             self.assertEqual(manifest["counts"]["replaced_sparql_revisions"], 1)
-            self.assertEqual(audit_snapshot.audit_snapshot(outdir), [])
+            self.assertEqual(manifest["sparql_version_policy"], "latest_retained")
+            self.assertEqual(manifest["execution_snapshot"]["status_counts"], {"not_attempted": 1})
+
+            with patch.object(audit_snapshot, "REPO_ROOT", root):
+                self.assertEqual(audit_snapshot.audit_snapshot(outdir), [])
 
     def test_public_release_is_allowlisted_and_deterministic(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -496,6 +592,17 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
             "gold_question": "Question?",
             "sparql_version": 1,
             "sparql_hash": "sha256:abc",
+            "sparql_provenance": {
+                "retained_edit_count": 1,
+                "selected_version": 1,
+                "selected_hash": "sha256:abc",
+                "selected_edit": {
+                    "decision": "approve_edit",
+                    "candidate_id": "SYNTHETIC_PRIVATE_CANARY",
+                    "review_export_hash": "SYNTHETIC_PRIVATE_CANARY",
+                    "ui_execution_observations": [{"attempt_id": "SYNTHETIC_PRIVATE_CANARY"}],
+                },
+            },
             "provenance": {
                 "question_source": "reviewer_rewrite",
                 "source_type": "human_review",
@@ -506,6 +613,12 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
         public = build_public_release.public_benchmark_record(record)
         self.assertEqual(public["sparql_version"], 1)
         self.assertEqual(public["sparql_hash"], "sha256:abc")
+        self.assertEqual(public["sparql_provenance"], {
+            "retained_edit_count": 1,
+            "selected_version": 1,
+            "selected_hash": "sha256:abc",
+            "selected_edit": {"decision": "approve_edit"},
+        })
         self.assertEqual(
             public["provenance"],
             {"question_source": "reviewer_rewrite", "source_type": "human_review"},

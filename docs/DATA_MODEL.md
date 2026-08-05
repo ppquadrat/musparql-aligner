@@ -159,6 +159,14 @@ The scoring dataset. Each record contains a benchmark identity, KG and query
 identity, selected SPARQL text/version/hash, one canonical gold question, gold
 question provenance, evidence summary, and safe source provenance.
 
+For an edited SPARQL pin, public `sparql_provenance` is an allowlisted
+projection. It may retain the edit count, selected version/hash, history digest,
+neutral execution status, and stable human-approved edit facts such as the
+decision, edit type, rationale, proposal origin, review time, and approved
+version/hash. It excludes working correction identifiers and artifacts,
+including candidate IDs/digests, review-export hashes, and UI execution-attempt
+histories.
+
 ### `benchmark/vN/alternatives.jsonl`
 
 Public, human-accepted non-canonical formulations and literal formulations.
@@ -174,7 +182,9 @@ were true when they were built.
 
 Working snapshots may also have ignored included, dismissed, linguistic, or
 holdout partitions. They are not public repository artifacts and are never
-copied into a public release.
+copied into a public release. In particular, `included.jsonl` may retain the
+complete internal SPARQL correction provenance from the reviewed query record;
+the public benchmark and alternatives files receive only the projection above.
 
 ## Public release
 

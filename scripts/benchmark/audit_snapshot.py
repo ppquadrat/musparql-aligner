@@ -14,6 +14,7 @@ from scripts.benchmark.build_benchmark import (
     INCLUDED_FILE,
     LINGUISTIC_ANNOTATIONS_FILE,
     PIPELINE_ASSESSMENTS,
+    public_sparql_provenance,
     read_json,
     read_jsonl,
 )
@@ -38,6 +39,22 @@ def duplicate_values(records: Iterable[Dict[str, Any]], field: str) -> List[str]
 def snapshot_number(manifest: Dict[str, Any], snapshot: Path) -> int:
     value = str(manifest.get("benchmark_version") or snapshot.name)
     return int(value[1:]) if value.startswith("v") and value[1:].isdigit() else 0
+
+
+def audit_public_sparql_provenance(
+    records: Iterable[Dict[str, Any]],
+    *,
+    filename: str,
+) -> List[str]:
+    errors: List[str] = []
+    for row in records:
+        provenance = row.get("sparql_provenance")
+        if provenance is None:
+            continue
+        if provenance != public_sparql_provenance(provenance):
+            label = str(row.get("query_label") or row.get("benchmark_id") or "")
+            errors.append(f"{filename} contains non-public SPARQL provenance: {label}")
+    return errors
 
 
 def audit_version_pins(
@@ -161,6 +178,8 @@ def audit_snapshot(snapshot: Path) -> List[str]:
         errors.append("snapshot manifest references a private holdout file")
     benchmark = read_jsonl(snapshot / "benchmark.jsonl")
     alternatives = read_jsonl(snapshot / ALTERNATIVES_FILE)
+    errors.extend(audit_public_sparql_provenance(benchmark, filename="benchmark.jsonl"))
+    errors.extend(audit_public_sparql_provenance(alternatives, filename=ALTERNATIVES_FILE))
     for field in ("benchmark_id", "query_id"):
         duplicates = duplicate_values(benchmark, field)
         if duplicates:

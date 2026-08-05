@@ -1,0 +1,89 @@
+{
+  "benchmark_version": "v9",
+  "built_at": "2026-08-05T21:45:49+00:00",
+  "update_type": "normal_review_update",
+  "previous_benchmark": "benchmark/v8",
+  "previous_benchmark_version": "v8",
+  "source_bundle": "review/review_data.js",
+  "source_review_export": "var/review/exports/musparql-review-non-holdout-6270bd103d9a54c9-2026-08-05_21-25-55.json",
+  "dataset_id": "6270bd103d9a54c9",
+  "current_run": {
+    "run_id": "2026-08-05-191155-minimax-m2-5",
+    "generation_run_id": "2026-08-05-191155-minimax-m2-5",
+    "manifest_path": "/Users/polina/Musparql/var/runs/2026-08-05-191155-minimax-m2-5/manifest.json",
+    "purpose": null,
+    "created_at": "2026-08-05T19:48:10+00:00"
+  },
+  "sparql_version_policy": "latest_retained",
+  "execution_snapshot": {
+    "source": "var/queries/kg_queries.jsonl",
+    "captured_through": "2026-08-05T21:45:49+00:00",
+    "selected_queries": 100,
+    "selected_versions_with_execution": 100,
+    "status_counts": {
+      "empty": 28,
+      "http_error": 5,
+      "ok": 48,
+      "request_error": 1,
+      "skipped_local_query": 8,
+      "unsupported": 10
+    },
+    "note": "Execution observations are trust provenance only; missing or failed observations do not affect inclusion."
+  },
+  "counts": {
+    "benchmark": 100,
+    "included": 100,
+    "dismissed": 5,
+    "alternatives": 50,
+    "linguistic_annotations": 10,
+    "pipeline_assessment_counts": {
+      "accepted": 62,
+      "prompt_improvement_recommended": 12,
+      "not_applicable": 20,
+      "input_data_improvement_recommended": 6
+    },
+    "benchmark_disposition_counts": {
+      "included": 100,
+      "excluded": 5
+    },
+    "applied_normal_reviews": 1,
+    "replaced_sparql_revisions": 1,
+    "applied_pipeline_assessment_counts": {
+      "accepted": 1
+    },
+    "applied_benchmark_disposition_counts": {
+      "included": 1
+    },
+    "overlapping_reviewed_pairs": 0
+  },
+  "files": {
+    "benchmark": "benchmark.jsonl",
+    "alternatives": "alternatives.jsonl"
+  },
+  "working_files": {
+    "included": "included.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
+  },
+  "gold_question_policy": {
+    "benchmark_contains_all_human_confirmed_included_pairs": true,
+    "preferred_question_used_when_present": true,
+    "approved_model_output_used_otherwise": true,
+    "unchanged_previous_items_carried_forward": true
+  },
+  "conflict_policy": {
+    "overlapping_normal_reviews": "replace_only_attested_re_reviewed_sparql_revisions; otherwise fail"
+  },
+  "release_boundary": {
+    "public_release_files": [
+      "manifest.json",
+      "benchmark.jsonl",
+      "alternatives.jsonl"
+    ],
+    "internal_only_files": [
+      "included.jsonl",
+      "linguistic_annotations.jsonl",
+      "dismissed.jsonl"
+    ]
+  }
+}

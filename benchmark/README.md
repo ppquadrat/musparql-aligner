@@ -167,8 +167,8 @@ Build a new, empty public-release directory from a validated snapshot:
 
 ```bash
 .venv/bin/python -m scripts.benchmark.build_public_release \
-  --snapshot benchmark/v8 \
-  --outdir build/public-releases/v8
+  --snapshot benchmark/v9 \
+  --outdir build/public-releases/v9
 ```
 
 The release builder uses field allowlists and rejects private filesystem paths

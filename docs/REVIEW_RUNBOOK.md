@@ -99,9 +99,12 @@ holdout export.
 
 ## Apply the review
 
-Use the appropriate command under `scripts/benchmark/` to build or update a new
-benchmark version. Then run the snapshot audit and inspect the diff from the
-previous version.
+Follow the [benchmark runbook](BENCHMARK_RUNBOOK.md) to choose the command from
+the exported review artifact's mode, build a new version, run the snapshot
+audit, and inspect the diff from the previous version. In particular, a normal
+review of a changed SPARQL pin uses the initial-review updater when the bundle
+explicitly attests a re-reviewed SPARQL revision; it does not become a
+comparative update merely because an existing benchmark record is replaced.
 
 Check that:
 

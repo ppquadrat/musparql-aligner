@@ -197,13 +197,16 @@ private holdout export—is the review input used in the next pipeline step.
 
 ## 10. Build or update a benchmark
 
-Use the appropriate command under `scripts/benchmark/` for an initial build,
-comparative update, or curated-source addition. Always supply the frozen run,
-validated sanitized review export, previous snapshot where applicable, and an
-explicit holdout policy.
+Follow the [benchmark runbook](BENCHMARK_RUNBOOK.md). It explains how to choose
+between a first build, an initial-review update, and a comparative-review
+update. The command is determined by the review artifact's mode, not just by
+whether an existing pair will change.
 
-Write the next snapshot to a new version after `benchmark/vN/`; never overwrite
-an earlier version.
+Always use the matching validated sanitized review export and write to a new
+version after `benchmark/vN/`; never overwrite an earlier version. The explicit
+holdout decision was made when constructing and exporting the review material.
+Benchmark tools consume only the sanitized non-holdout export and reject
+private or mixed review data.
 
 ## 11. Audit the snapshot
 
@@ -212,6 +215,9 @@ an earlier version.
 ```
 
 Resolve every audit error before release.
+
+Then inspect the snapshot diff using the partition-first procedure in the
+[benchmark runbook](BENCHMARK_RUNBOOK.md).
 
 ## 12. Build a public release
 

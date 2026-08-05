@@ -19,11 +19,11 @@ from scripts.benchmark.build_benchmark import (
     assert_non_holdout_export,
     benchmark_disposition,
     benchmark_gold_records,
+    canonical_execution_snapshot,
     has_query_specific_evidence,
     literal_wording,
     make_rephrasing_entry,
     normalize_rephrasing_text,
-    neutral_execution_snapshot,
     pipeline_assessment,
     read_json,
     read_review_bundle,
@@ -245,12 +245,18 @@ def main() -> None:
     parser.add_argument("--bundle", default="review/review_data.js", help="Comparative-review bundle.")
     parser.add_argument("--reviews", required=True, help="Exported comparative-review decisions.")
     parser.add_argument("--outdir", required=True, help="Output benchmark/vN directory.")
+    parser.add_argument(
+        "--kg-queries",
+        default="var/queries/kg_queries.jsonl",
+        help="Canonical query catalogue used to summarize execution observations.",
+    )
     args = parser.parse_args()
 
     previous_dir = Path(args.previous_benchmark)
     bundle_path = Path(args.bundle)
     review_path = Path(args.reviews)
     outdir = Path(args.outdir)
+    query_path = Path(args.kg_queries)
     outdir.mkdir(parents=True, exist_ok=True)
 
     bundle = read_review_bundle(bundle_path)
@@ -467,7 +473,11 @@ def main() -> None:
         "previous_run": bundle.get("previous_run"),
         "current_run": bundle.get("current_run"),
         "sparql_version_policy": "latest_retained",
-        "execution_snapshot": neutral_execution_snapshot(included, captured_through=built_at),
+        "execution_snapshot": canonical_execution_snapshot(
+            included,
+            query_path=query_path,
+            captured_through=built_at,
+        ),
         "counts": {
             "benchmark": len(benchmark_records),
             "included": len(included),
