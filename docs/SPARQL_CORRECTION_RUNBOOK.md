@@ -123,6 +123,12 @@ service logs. It rejects stale version/hash pins, changed service metadata,
 duplicates, and holdout identities. Approved SPARQL is appended atomically as a
 new version; no existing version is overwritten.
 
+The apply command also updates the tracked, public-safe
+`catalog/curated/Approved_SPARQL_Edits.jsonl` projection. Commit that projection
+with the source change. It contains approved version text and minimal
+non-private provenance, not the browser export or local service logs. A clean
+extraction restores approved versions from it automatically.
+
 ## 6. Rebuild downstream artifacts
 
 ```bash

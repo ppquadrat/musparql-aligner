@@ -34,7 +34,10 @@ catalog changes before committing them.
 ```
 
 The working catalogue is `var/queries/kg_queries.jsonl`. Repository clones and
-local dumps are cached under `var/cache/`.
+local dumps are cached under `var/cache/`. Extraction also restores approved
+versions from `catalog/curated/Approved_SPARQL_Edits.jsonl`. The reported
+restored count is zero when an intact local catalogue already contains the same
+versions, or the archive's edit count after rebuilding from scratch.
 
 ## 4. Execute queries
 

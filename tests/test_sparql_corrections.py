@@ -137,6 +137,38 @@ def test_candidate_capture_is_deterministic_and_partial_runs_preserve_other_jobs
     assert {item["candidate_id"] for item in merged} == {"other-candidate", first["candidate_id"]}
 
 
+def test_latest_run_replaces_stale_candidates_from_older_versions():
+    query = query_record()
+    old_candidate = build_candidate(failure(), query)
+    query["sparql_edits"] = [
+        {"version": 1, "sparql": EDITED, "note": "Synthetic approved edit."}
+    ]
+    latest_failure = failure(
+        status="not_attempted",
+        http_status=None,
+        sparql_version=1,
+        sparql_hash=sparql_hash(EDITED),
+    )
+    merged = merge_candidates(
+        [old_candidate],
+        [latest_failure],
+        [query],
+        {("synthetic-kg", "synthetic-q1", 1)},
+    )
+    assert len(merged) == 1
+    assert merged[0]["base_sparql_version"] == 1
+
+
+def test_deliberate_old_version_run_does_not_create_stale_candidate():
+    query = query_record()
+    query["sparql_edits"] = [
+        {"version": 1, "sparql": EDITED, "note": "Synthetic approved edit."}
+    ]
+    assert merge_candidates(
+        [], [failure()], [query], {("synthetic-kg", "synthetic-q1", 0)}
+    ) == []
+
+
 def test_static_diagnostic_flags_only_the_latest_uncorrected_version():
     query = statically_flagged_query()
     unavailable = failure(status="skipped_endpoint_unavailable", http_status=None)

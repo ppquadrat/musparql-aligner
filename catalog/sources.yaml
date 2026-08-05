@@ -156,3 +156,15 @@ sources:
     derived_from: [linkedmusic-public-query-database, sesemmi-linkedmusic-2025-paper]
     query_role: edit_source
     description: Working copy retained as append-only SPARQL edits. Fifteen queries are principally self-contained normalizations and five contain substantive federated-query rewrites; live comparison found no improvement in coarse execution outcomes.
+
+  - source_id: musparql-approved-sparql-edits
+    type: derivative
+    title: Public-safe archive of approved Musparql SPARQL versions
+    local_path: catalog/curated/Approved_SPARQL_Edits.jsonl
+    derived_from:
+      - organs-ontology-curated-extract
+      - jazz-ontology-repository
+      - linkedmusic-public-query-database
+      - linkedmusic-corrected-examples-working-copy
+    query_role: edit_source
+    description: Append-only approved SPARQL versions with immutable hashes and minimal non-private provenance, used to restore version state after clean extraction.

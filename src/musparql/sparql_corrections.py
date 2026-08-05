@@ -454,14 +454,22 @@ def merge_candidates(
     query_by_id = {
         (str(item.get("kg_id") or ""), str(item.get("query_id") or "")): item for item in queries
     }
+    latest_job_pairs = {
+        (kg_id, query_id)
+        for kg_id, query_id, version in job_keys
+        if (query := query_by_id.get((kg_id, query_id))) is not None
+        and resolve_sparql_version(query, "latest")["sparql_version"] == version
+    }
     retained = [
         deepcopy(dict(item))
         for item in existing
-        if (
-            str(item.get("kg_id") or ""), str(item.get("query_id") or ""),
+        if (str(item.get("kg_id") or ""), str(item.get("query_id") or ""))
+        not in latest_job_pairs
+        and (
+            str(item.get("kg_id") or ""),
+            str(item.get("query_id") or ""),
             int(item.get("base_sparql_version") or 0),
-        )
-        not in job_keys
+        ) not in job_keys
     ]
     for failure in failures:
         kg_id, query_id = str(failure.get("kg_id") or ""), str(failure.get("query_id") or "")
@@ -472,6 +480,12 @@ def merge_candidates(
         query = query_by_id.get((kg_id, query_id))
         if query is None:
             raise ValueError(f"No query record for correction candidate {query_id}")
+        latest = resolve_sparql_version(query, "latest")
+        if (
+            normalized_version != latest["sparql_version"]
+            or failure.get("sparql_hash") != latest["sparql_hash"]
+        ):
+            continue
         retained.append(build_candidate(failure, query))
     retained.sort(
         key=lambda item: (

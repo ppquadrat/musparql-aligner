@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 import yaml
 from pypdf import PdfReader
 
+from musparql.approved_sparql_edits import restore_approved_edits
 from musparql.source_catalog import load_hydrated_seeds
 from musparql.sparql_versions import backfill_legacy_execution_versions, validate_execution_versions
 
@@ -706,6 +707,7 @@ def append_unique_source(kg_sources: Dict[str, List[str]], kg_id: str, source_pa
 def main() -> None:
     seeds_path = Path("catalog/seeds.yaml")
     out_path = Path("var/queries/kg_queries.jsonl")
+    approved_edits_path = Path("catalog/curated/Approved_SPARQL_Edits.jsonl")
     repos_dir = Path("var/cache/repos")
     repos_dir.mkdir(parents=True, exist_ok=True)
     kgs_path = Path("catalog/kgs.jsonl")
@@ -1000,6 +1002,11 @@ def main() -> None:
             record,
             existing_by_query_id.get(query_id) if isinstance(query_id, str) else None,
         )
+
+    archived_edits = load_kgs_jsonl(approved_edits_path)
+    restored_edits = restore_approved_edits(records, archived_edits)
+
+    for record in records:
         validate_preserved_version_state(record)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1007,7 +1014,10 @@ def main() -> None:
         for rec in records:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
-    print(f"Wrote {len(records)} records to {out_path.resolve()}")
+    print(
+        f"Wrote {len(records)} records to {out_path.resolve()} "
+        f"(restored {restored_edits} approved SPARQL edits)"
+    )
 
 
 if __name__ == "__main__":

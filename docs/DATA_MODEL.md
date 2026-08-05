@@ -33,6 +33,19 @@ resolved source URLs, captured revisions, local snapshot paths, source IDs, and
 catalog provenance. This file is tracked because it is a compact, reviewable
 description of the collected source state.
 
+### `catalog/curated/Approved_SPARQL_Edits.jsonl`
+
+A tracked, public-safe projection of every approved SPARQL version. It retains
+the query identity, immutable base/version hashes, corrected SPARQL, concise
+rationale, edit type, and non-private approval source. It deliberately excludes
+raw review exports, reviewer notes, service logs, local paths, and execution
+details.
+
+Extraction restores missing versions from this archive after preserving any
+richer matching local state. A fresh working directory therefore reconstructs
+approved query versions without treating the ignored working catalogue as the
+only copy.
+
 ## Working query catalogue
 
 ### `var/queries/kg_queries.jsonl`
@@ -52,7 +65,9 @@ Version `0` is always `sparql_clean`. Later versions live in `sparql_edits` and
 must have increasing integer versions, text, hash, reason, source, and approval
 provenance.
 
-The query catalogue is persistent local state and is ignored by Git.
+The query catalogue is persistent local state and is ignored by Git. Approved
+SPARQL versions are additionally projected into the tracked archive above;
+execution history and detailed correction provenance remain local.
 
 ### `var/queries/sparql_correction_candidates.jsonl`
 

@@ -14,6 +14,12 @@ latest approved version is used.
 
 There is no silent fallback to an older query when the latest version fails.
 
+Approved versions have two representations: full local state in
+`var/queries/kg_queries.jsonl`, and a tracked public-safe projection in
+`catalog/curated/Approved_SPARQL_Edits.jsonl`. The projection is sufficient to
+restore version text, hashes, and minimal approval provenance after a clean
+extraction; detailed browser and execution provenance remains local.
+
 ## Who can enter correction review
 
 Any non-holdout query can be reviewed. That includes a query that succeeded,

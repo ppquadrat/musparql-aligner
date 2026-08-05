@@ -8,6 +8,7 @@ import re
 import hashlib
 from pathlib import Path
 
+from musparql.approved_sparql_edits import archive_rows_from_records
 from musparql.holdout_selectors import add_holdout_filter_arguments, validate_selector_record, validate_selectors_current
 from musparql.sparql_corrections import apply_reviews, load_jsonl, write_jsonl
 
@@ -46,6 +47,11 @@ def main() -> None:
     parser.add_argument("--suggestion-log", default="var/review/workbench/suggestions.jsonl")
     parser.add_argument("--execution-log", default="var/review/workbench/execution_attempts.jsonl")
     parser.add_argument("--bundle", default="review/sparql_correction_data.js")
+    parser.add_argument(
+        "--approved-edits",
+        default="catalog/curated/Approved_SPARQL_Edits.jsonl",
+        help="Tracked, public-safe archive of approved SPARQL versions.",
+    )
     add_holdout_filter_arguments(parser)
     args = parser.parse_args()
     if args.holdout_filtered_upstream:
@@ -70,6 +76,10 @@ def main() -> None:
         authoritative_bundle_digest=bundle_digest(Path(args.bundle)),
     )
     if not args.dry_run:
+        # Write the durable archive first. If the working-catalogue replacement
+        # then fails, the next extraction restores the approved version rather
+        # than losing it.
+        write_jsonl(Path(args.approved_edits), archive_rows_from_records(records))
         write_jsonl(query_path, records)
     suffix = " (dry run)" if args.dry_run else ""
     print(
