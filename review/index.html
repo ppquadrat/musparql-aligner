@@ -28,6 +28,25 @@
         </div>
       </header>
 
+      <dialog id="holdoutSelectorDialog" class="choice-dialog" aria-labelledby="holdoutSelectorDialogTitle">
+        <form method="dialog">
+          <h2 id="holdoutSelectorDialogTitle">Update holdout selectors</h2>
+          <p>
+            Choose the existing <code>selectors.jsonl</code> to preserve
+            earlier selector identities while applying this review's changes.
+          </p>
+          <div class="dialog-actions">
+            <button id="chooseExistingSelectorsBtn" class="btn solid" type="button">Choose existing file</button>
+            <button id="createNewSelectorsBtn" class="btn" type="button">Create NEW file</button>
+            <button class="btn" value="cancel">Cancel</button>
+          </div>
+          <p class="muted-meta">
+            Create a new file only when no selector file exists; it cannot
+            preserve identities selected in earlier reviews.
+          </p>
+        </form>
+      </dialog>
+
       <section class="summary-strip">
         <div class="chip"><span class="chip-label">Dataset</span><span id="datasetId">-</span></div>
         <div class="chip"><span class="chip-label">Records</span><span id="recordCount">-</span></div>

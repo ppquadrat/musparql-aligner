@@ -20,14 +20,19 @@ Build the bundle:
 
 ```bash
 .venv/bin/python -m scripts.build_review_bundle \
-  --outputs var/runs/<run-id>/llm_outputs.jsonl \
-  --run-manifest var/runs/<run-id>/manifest.json \
+  --latest-run \
   --previous-benchmark benchmark/vN \
-  --holdout-selectors var/holdout/selectors.jsonl
+  --holdout-selectors var/holdout/selectors.jsonl \
+  --assert-complete-review-provenance
 ```
 
 Omit `--previous-benchmark` only for a genuinely first review. Use
 `--include-reviewed` for intentional reinspection, not normal initial review.
+If the workbench says holdout selection is disabled because complete
+prior-review provenance was not attested, rebuild the bundle with
+`--assert-complete-review-provenance` after verifying the condition in step 5
+above. The **Private holdout / selector member** text is the checkbox label; it
+does not mean that every displayed candidate is already a selector member.
 
 ## Comparative review
 
@@ -41,7 +46,8 @@ Build a side-by-side bundle:
   --current-run-manifest var/runs/<new-run>/manifest.json \
   --previous-benchmark benchmark/vN \
   --previous-reviews var/review/exports/<previous-export>.json \
-  --holdout-selectors var/holdout/selectors.jsonl
+  --holdout-selectors var/holdout/selectors.jsonl \
+  --assert-complete-review-provenance
 ```
 
 Use `--benchmark-only` when the comparison is specifically about existing

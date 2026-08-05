@@ -63,7 +63,7 @@ ledgers under `var/queries/`.
 ```bash
 .venv/bin/python -m scripts.build_llm_inputs \
   --holdout-selectors var/holdout/selectors.jsonl \
-  --unreviewed-from benchmark/v8
+  --unreviewed-from benchmark/vN
 ```
 
 Use `--no-holdout` only when the human owner asserts that no holdout identities
@@ -79,7 +79,7 @@ then run:
 
 ```bash
 .venv/bin/python -m scripts.run_llm_generation \
-  --unreviewed-from benchmark/v8 \
+  --unreviewed-from benchmark/vN \
   --output var/llm/outputs-minimax-unreviewed.jsonl \
   --errors var/llm/outputs-minimax-unreviewed.errors.jsonl
 ```
@@ -92,10 +92,10 @@ precedence; `GRAPHIA_MODEL` and `GRAPHIA_API_METHOD` provide persistent shell
 overrides.
 
 The command uses explicit output names so the completed generation is not
-confused with older working files. Update `benchmark/v8` when starting from a
-newer benchmark. The generation flag can also filter an existing full input
-file; omit it when the input builder already produced the subset. Inspect the
-error file before freezing the run.
+confused with older working files. Replace `vN` with the benchmark version you
+are actually building from. The generation flag can also filter an existing
+full input file; omit it when the input builder already produced the subset.
+Inspect the error file before freezing the run.
 
 ## 7. Freeze the generation run
 
@@ -143,13 +143,21 @@ For initial review:
 ```bash
 .venv/bin/python -m scripts.build_review_bundle \
   --latest-run \
-  --previous-benchmark benchmark/v8 \
-  --holdout-selectors var/holdout/selectors.jsonl
+  --previous-benchmark benchmark/vN \
+  --holdout-selectors var/holdout/selectors.jsonl \
+  --assert-complete-review-provenance
 ```
 
 `--latest-run` reads the newest frozen manifest under `var/runs/` and resolves
 that run's copied inputs and outputs from the manifest. Use explicit `--inputs`,
 `--outputs`, and `--run-manifest` instead when reviewing an older run.
+
+`--assert-complete-review-provenance` is a human attestation that the supplied
+previous benchmark accounts for every earlier reviewer decision. Use it only
+after confirming that `--previous-benchmark` is the complete authoritative
+prior-review snapshot. Without this assertion, the bundle is still usable for
+ordinary review, but holdout selection is disabled for every candidate because
+the workbench cannot safely determine which identities are eligible.
 
 Start the review application on loopback from a separate terminal:
 
@@ -167,6 +175,26 @@ For comparative review, follow [REVIEW_RUNBOOK.md](REVIEW_RUNBOOK.md). The
 browser bundle remains an ignored generated file under `review/` because the
 static review application loads it from that directory.
 
+### Export and close the review
+
+Do not proceed directly from reviewing to benchmark construction. Complete the
+export sequence in the [review runbook](REVIEW_RUNBOOK.md):
+
+1. Select **Export Non-Holdout**, then place the sanitized export under
+   `var/review/exports/` for the benchmark-building tools.
+2. Under the identity-visible holdout policy, select **Update Holdout
+   Selectors**, verify the downloaded selector-only file yourself, and replace
+   `var/holdout/selectors.jsonl` with the verified update.
+3. If the review contains holdouts, follow the human-only export, verification,
+   storage, and browser-state clearing procedure in the
+   [holdout runbook](HOLDOUT_RUNBOOK.md). Never place the private holdout export
+   in the public repository or ask an agent to inspect it.
+4. Confirm that all required exports are safely stored, close the review tab,
+   and stop the local server with `Ctrl-C`.
+
+The sanitized non-holdout export—not the browser's local review state or the
+private holdout export—is the review input used in the next pipeline step.
+
 ## 10. Build or update a benchmark
 
 Use the appropriate command under `scripts/benchmark/` for an initial build,
@@ -174,13 +202,13 @@ comparative update, or curated-source addition. Always supply the frozen run,
 validated sanitized review export, previous snapshot where applicable, and an
 explicit holdout policy.
 
-The next snapshot after the current `benchmark/v8/` is `benchmark/v9/`; never
-overwrite an earlier version.
+Write the next snapshot to a new version after `benchmark/vN/`; never overwrite
+an earlier version.
 
 ## 11. Audit the snapshot
 
 ```bash
-.venv/bin/python -m scripts.benchmark.audit_snapshot benchmark/v9
+.venv/bin/python -m scripts.benchmark.audit_snapshot benchmark/vN
 ```
 
 Resolve every audit error before release.
@@ -189,11 +217,11 @@ Resolve every audit error before release.
 
 ```bash
 .venv/bin/python -m scripts.benchmark.build_public_release \
-  --snapshot benchmark/v9 \
-  --outdir build/public-releases/v9
+  --snapshot benchmark/vN \
+  --outdir build/public-releases/vN
 ```
 
-`build/public-releases/v9/` is a sanitized, reproducible package. It is ignored
+`build/public-releases/vN/` is a sanitized, reproducible package. It is ignored
 and may be archived or uploaded after human inspection; it is not a replacement
 for the tracked working snapshot.
 

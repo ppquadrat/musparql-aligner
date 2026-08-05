@@ -296,6 +296,87 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
             self.assertEqual(new["pipeline_assessment"], "prompt_improvement_recommended")
             self.assertEqual(audit_snapshot.audit_snapshot(outdir), [])
 
+    def test_normal_review_updater_replaces_re_reviewed_sparql_revision(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            previous = root / "v1"
+            outdir = root / "v2"
+            previous.mkdir()
+            existing = {
+                "benchmark_id": "kg::old-review",
+                "kg_id": "kg",
+                "query_id": "same-identity",
+                "query_label": "example-0001",
+                "sparql": "ASK {}",
+                "sparql_version": 0,
+                "sparql_hash": "sha256:old",
+                "gold_question": "Old question?",
+                "gold_question_source": "approved_model_output",
+                "benchmark_disposition": "included",
+                "pipeline_assessment": "accepted",
+                "review": {},
+                "run": {},
+            }
+            write_json(previous / "manifest.json", {"benchmark_version": "v1", "counts": {}})
+            write_jsonl(previous / "included.jsonl", [existing])
+            write_jsonl(previous / "dismissed.jsonl", [])
+            write_jsonl(previous / "holdout.jsonl", [])
+            write_jsonl(previous / "alternatives.jsonl", [])
+            write_jsonl(previous / "linguistic_annotations.jsonl", [])
+
+            bundle = {
+                "dataset_id": "dataset",
+                "records": [{
+                    "review_id": "kg::new-review",
+                    "kg_id": "kg",
+                    "query_id": "same-identity",
+                    "query_label": "example-0001",
+                    "review_scope": "new",
+                    "has_prior_pair_review": True,
+                    "run_id": "run",
+                    "input": {
+                        "sparql_clean": "SELECT * WHERE {}",
+                        "sparql_version": 1,
+                        "sparql_hash": "sha256:new",
+                        "evidence": [],
+                    },
+                    "output": {"nl_question": "Question for the corrected query?"},
+                    "output_meta": {"model": "test-model"},
+                }],
+                "runs": [{"run_id": "run"}],
+            }
+            bundle_path = root / "bundle.js"
+            bundle_path.write_text("window.REVIEW_DATA = " + json.dumps(bundle) + ";\n", encoding="utf-8")
+            reviews_path = root / "reviews.json"
+            write_json(reviews_path, {
+                "kind": "non_holdout_review_export",
+                "dataset_id": "dataset",
+                "reviews": {
+                    "kg::new-review": {
+                        "benchmark_disposition": "included",
+                        "pipeline_assessment": "accepted",
+                    }
+                },
+            })
+
+            with patch.object(sys, "argv", [
+                "update_from_initial_review.py",
+                "--previous-benchmark", str(previous),
+                "--bundle", str(bundle_path),
+                "--reviews", str(reviews_path),
+                "--outdir", str(outdir),
+            ]):
+                update_from_initial_review.main()
+
+            rows = build_benchmark.read_jsonl(outdir / "included.jsonl")
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["benchmark_id"], "kg::new-review")
+            self.assertEqual(rows[0]["sparql"], "SELECT * WHERE {}")
+            self.assertEqual(rows[0]["sparql_version"], 1)
+            manifest = build_benchmark.read_json(outdir / "manifest.json")
+            self.assertEqual(manifest["counts"]["replaced_sparql_revisions"], 1)
+            self.assertEqual(audit_snapshot.audit_snapshot(outdir), [])
+
     def test_public_release_is_allowlisted_and_deterministic(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

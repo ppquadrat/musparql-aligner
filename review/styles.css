@@ -107,6 +107,30 @@ h1 {
   padding: 0.45rem 0.8rem;
 }
 
+.choice-dialog {
+  max-width: 38rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.choice-dialog::backdrop {
+  background: rgba(29, 42, 42, 0.45);
+}
+
+.choice-dialog p {
+  line-height: 1.45;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
 .summary-strip {
   margin-bottom: 1rem;
 }

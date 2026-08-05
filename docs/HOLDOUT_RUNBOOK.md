@@ -59,8 +59,8 @@ private recovery flow, retire it, and choose a replacement.
    If no selector file exists, choose **Cancel** in the existing-file question,
    then explicitly confirm **Create a NEW selector file**. Cancelling that
    second confirmation aborts. The workbench refuses to create an empty new
-   selector. The browser downloads `holdout_selectors.jsonl`; it does not write
-   into the workspace.
+   selector. The browser downloads `selectors.jsonl`; it does not write into
+   the workspace.
 3. Open the selector download yourself and confirm that the reported total,
    additions, and removals are expected. Move/rename it to
    `var/holdout/selectors.jsonl`, replacing the earlier selector when updating.

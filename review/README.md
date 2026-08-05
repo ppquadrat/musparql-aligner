@@ -93,7 +93,7 @@ and its complete annotation and must remain outside Git.
 Under the identity-visible policy, **Update Holdout Selectors** asks the human
 to choose the existing annotation-free selector JSON/JSONL, merges only
 holdout additions and removals explicitly made in the current review, and
-downloads `holdout_selectors.jsonl`. Choose the create-new option when no
+downloads `selectors.jsonl`. Choose the create-new option when no
 selector exists; creating a new empty selector is rejected. Untouched or merely
 restored selections are preserved rather than treated as changes; malformed,
 duplicate, or annotation-bearing input is rejected. Older selector identities

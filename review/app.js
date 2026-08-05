@@ -24,6 +24,9 @@
     exportPrivateReviewsBtn: document.getElementById("exportPrivateReviewsBtn"),
     exportHoldoutSelectorsBtn: document.getElementById("exportHoldoutSelectorsBtn"),
     holdoutSelectorsInput: document.getElementById("holdoutSelectorsInput"),
+    holdoutSelectorDialog: document.getElementById("holdoutSelectorDialog"),
+    chooseExistingSelectorsBtn: document.getElementById("chooseExistingSelectorsBtn"),
+    createNewSelectorsBtn: document.getElementById("createNewSelectorsBtn"),
     clearPrivateStateBtn: document.getElementById("clearPrivateStateBtn"),
     importReviewsInput: document.getElementById("importReviewsInput"),
     detailMeta: document.getElementById("detailMeta"),
@@ -59,6 +62,7 @@
     matchPrivateRecords,
     rejectPrivateImport,
     hasReviewerDecision,
+    reviewDecisionCount,
     initialHoldoutEligibility,
     compareHoldoutEligibility,
     sparqlEditHoldoutEligibility,
@@ -245,7 +249,7 @@
   }
 
   function reviewedCount() {
-    return Object.values(reviews).filter((review) => review && review.status).length;
+    return reviewDecisionCount(reviews);
   }
 
   function holdoutCount(reviewMap) {
@@ -699,6 +703,12 @@
     );
   }
 
+  function reviewDecisionCount(reviewMap) {
+    return Object.values(reviewMap || {}).filter((review) =>
+      hasReviewerDecision(normalizeReview(review))
+    ).length;
+  }
+
   function initialHoldoutEligibility(record, provenanceComplete = false) {
     if (!provenanceComplete) {
       return {
@@ -1065,22 +1075,27 @@
         window.alert("Holdout selector export is disabled for the identity-private filtered-upstream policy.");
         return;
       }
-      const updateExisting = window.confirm(
-        "Identity-visible holdout policy only. Select OK to choose and merge the existing holdout_selectors.jsonl file. Select Cancel to stop."
-      );
-      if (updateExisting) {
+      if (typeof els.holdoutSelectorDialog?.showModal === "function") {
+        els.holdoutSelectorDialog.showModal();
+      } else {
+        // Older browsers get the safe update-existing path directly.
+        els.holdoutSelectorsInput.value = "";
         els.holdoutSelectorsInput.click();
-        return;
       }
-      const createNew = window.confirm(
-        "Create a NEW selector file from this review? Continue only if no selector file exists yet; this will not preserve any earlier selector identities."
-      );
-      if (createNew) {
-        try {
-          exportUpdatedHoldoutSelectors([], getUpdates(), { requireNonempty: true });
-        } catch (error) {
-          window.alert(`Could not update holdout selectors: ${error}`);
-        }
+    });
+    els.chooseExistingSelectorsBtn.addEventListener("click", () => {
+      els.holdoutSelectorDialog.close();
+      els.holdoutSelectorsInput.value = "";
+      // This runs directly from the in-page button gesture, which Firefox
+      // requires before opening a hidden file input.
+      els.holdoutSelectorsInput.click();
+    });
+    els.createNewSelectorsBtn.addEventListener("click", () => {
+      els.holdoutSelectorDialog.close();
+      try {
+        exportUpdatedHoldoutSelectors([], getUpdates(), { requireNonempty: true });
+      } catch (error) {
+        window.alert(`Could not update holdout selectors: ${error}`);
       }
     });
     els.holdoutSelectorsInput.addEventListener("change", (event) => {
@@ -1108,7 +1123,7 @@
       }
       const content = result.selectors.map((selector) => JSON.stringify(selector)).join("\n")
         + (result.selectors.length ? "\n" : "");
-      downloadText(content, "holdout_selectors.jsonl", "application/x-ndjson");
+      downloadText(content, "selectors.jsonl", "application/x-ndjson");
       window.alert(
         `Selector export started with ${result.selectors.length} identit${result.selectors.length === 1 ? "y" : "ies"} (${result.additions} added, ${result.removals} removed). Move the downloaded file to var/holdout/selectors.jsonl.`
       );
@@ -1272,7 +1287,7 @@
         compareState.selectedPairId = filtered.length ? filtered[0].pair_id : null;
       }
       els.visibleCount.textContent = String(filtered.length);
-      els.reviewedCount.textContent = String(Object.values(compareReviews).filter((review) => review && review.status).length);
+      els.reviewedCount.textContent = String(reviewDecisionCount(compareReviews));
       els.holdoutCount.textContent = String(holdoutCount(compareReviews));
       renderCompareList(filtered);
       renderCompareDetail(filtered.find((pair) => pair.pair_id === compareState.selectedPairId) || null);

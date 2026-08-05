@@ -50,6 +50,22 @@ def source_run(bundle: Dict[str, Any]) -> Dict[str, Any]:
     return {}
 
 
+def is_reviewed_sparql_replacement(record: Dict[str, Any], previous: Dict[str, Any]) -> bool:
+    """Allow a re-reviewed SPARQL revision to replace the same benchmark identity."""
+    if record.get("has_prior_pair_review") is not True or record.get("review_scope") != "new":
+        return False
+    current_input = record.get("input") if isinstance(record.get("input"), dict) else {}
+    current_hash = str(current_input.get("sparql_hash") or "").removeprefix("sha256:")
+    previous_hash = str(previous.get("sparql_hash") or "").removeprefix("sha256:")
+    if current_hash and previous_hash:
+        return current_hash != previous_hash
+    current_version = current_input.get("sparql_version")
+    previous_version = previous.get("sparql_version")
+    if isinstance(current_version, int) and isinstance(previous_version, int):
+        return current_version != previous_version
+    return str(current_input.get("sparql_clean") or "").strip() != str(previous.get("sparql") or "").strip()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Add initial-review decisions to an existing benchmark snapshot.")
     parser.add_argument("--previous-benchmark", required=True, help="Previous benchmark/vN directory.")
@@ -102,6 +118,8 @@ def main() -> None:
     applied = 0
     missing_records: List[str] = []
     overlaps: List[Tuple[str, Tuple[str, str]]] = []
+    replaced_keys: set[Tuple[str, str]] = set()
+    replaced_sparql_revisions = 0
 
     for review_id, review in reviews.items():
         if not isinstance(review, dict):
@@ -116,8 +134,21 @@ def main() -> None:
             continue
         key = pair_key(record)
         if key in existing_keys:
-            overlaps.append((str(review_id), key))
-            continue
+            previous_record = included_by_key.get(key) or dismissed_by_key.get(key)
+            if (
+                key not in replaced_keys
+                and isinstance(previous_record, dict)
+                and is_reviewed_sparql_replacement(record, previous_record)
+            ):
+                included_by_key.pop(key, None)
+                dismissed_by_key.pop(key, None)
+                alternatives_by_key.pop(key, None)
+                annotations_by_key.pop(key, None)
+                replaced_keys.add(key)
+                replaced_sparql_revisions += 1
+            else:
+                overlaps.append((str(review_id), key))
+                continue
 
         next_record = make_benchmark_record(
             record=record,
@@ -225,7 +256,7 @@ def main() -> None:
     manifest = {
         "benchmark_version": benchmark_version,
         "built_at": built_at,
-        "update_type": "normal_review_additive_update",
+        "update_type": "normal_review_update",
         "previous_benchmark": str(previous_dir),
         "previous_benchmark_version": previous_manifest.get("benchmark_version"),
         "source_bundle": str(bundle_path),
@@ -241,6 +272,7 @@ def main() -> None:
             "pipeline_assessment_counts": dict(Counter(str(row.get("pipeline_assessment")) for row in included)),
             "benchmark_disposition_counts": dict(Counter(str(row.get("benchmark_disposition")) for row in included + dismissed)),
             "applied_normal_reviews": applied,
+            "replaced_sparql_revisions": replaced_sparql_revisions,
             "applied_pipeline_assessment_counts": dict(assessment_counts),
             "applied_benchmark_disposition_counts": dict(disposition_counts),
             "overlapping_reviewed_pairs": 0,
@@ -261,7 +293,7 @@ def main() -> None:
             "unchanged_previous_items_carried_forward": True,
         },
         "conflict_policy": {
-            "overlapping_normal_reviews": "fail_until_adjudicated",
+            "overlapping_normal_reviews": "replace_only_attested_re_reviewed_sparql_revisions; otherwise fail",
         },
         "release_boundary": {
             "public_release_files": ["manifest.json", "benchmark.jsonl", ALTERNATIVES_FILE],

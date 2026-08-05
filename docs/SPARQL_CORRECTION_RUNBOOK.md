@@ -213,5 +213,5 @@ The benchmark audit needs the ignored canonical `var/queries/kg_queries.jsonl` p
 can resolve immutable version/hash pins:
 
 ```bash
-.venv/bin/python -m scripts.benchmark.audit_snapshot benchmark/v8
+.venv/bin/python -m scripts.benchmark.audit_snapshot benchmark/vN
 ```

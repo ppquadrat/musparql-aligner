@@ -27,8 +27,15 @@ def test_holdout_selector_export_controls_are_wired_for_both_review_modes() -> N
 
     assert 'id="exportHoldoutSelectorsBtn"' in html
     assert 'id="holdoutSelectorsInput"' in html
+    assert 'id="holdoutSelectorDialog"' in html
+    assert 'id="chooseExistingSelectorsBtn"' in html
+    assert 'id="createNewSelectorsBtn"' in html
     assert 'accept=".json,.jsonl,application/json,application/x-ndjson"' in html
     assert app.count("bindHoldoutSelectorExport(() =>") == 2
+    assert "holdoutSelectorDialog.showModal()" in app
+    assert "els.chooseExistingSelectorsBtn.addEventListener" in app
+    assert 'downloadText(content, "selectors.jsonl"' in app
+    assert "holdout_selectors.jsonl" not in app
     assert "selectorUpdatesForInitialReview" in app
     assert "selectorUpdatesForCompareReview" in app
     assert 'data.holdout_input_policy !== "identity_private_filtered_upstream"' in app
@@ -102,6 +109,11 @@ assert.throws(() => schema.mergeHoldoutSelectors([], [
 
 const normalized = schema.normalizeReview({holdout_selection_touched:true});
 assert.equal(normalized.holdout_selection_touched, true);
+assert.equal(schema.reviewDecisionCount({
+  public:{status:"accepted"},
+  holdout:{split:"private_holdout", holdout_selector_selected:true},
+  untouched:{},
+}), 2, "reviewed count must include a holdout decision without a status");
 const exported = schema.exportableReview(normalized);
 assert.equal(Object.hasOwn(exported, "holdout_selection_touched"), false, "browser-only removal markers must not enter review exports");
 assert.deepEqual(JSON.parse(JSON.stringify(schema.selectorUpdateForReview(addedRecord, {}))), []);
