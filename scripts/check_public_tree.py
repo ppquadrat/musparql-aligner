@@ -92,7 +92,8 @@ def contains_private_marker(value: Any) -> bool:
 
 def contains_correction_artifact(value: Any) -> bool:
     if isinstance(value, dict):
-        return value.get("schema") in CORRECTION_SCHEMAS or any(
+        schema = value.get("schema")
+        return (isinstance(schema, str) and schema in CORRECTION_SCHEMAS) or any(
             contains_correction_artifact(item) for item in value.values()
         )
     if isinstance(value, list):

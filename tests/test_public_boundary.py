@@ -33,3 +33,4 @@ def test_correction_schemas_are_publication_tripwires() -> None:
     assert boundary.contains_correction_artifact(
         {"schema": "musparql.sparql-correction-review-export.v1"}
     )
+    assert not boundary.contains_correction_artifact({"schema": {"type": "object"}})
