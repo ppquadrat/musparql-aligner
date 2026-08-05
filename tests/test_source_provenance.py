@@ -57,7 +57,10 @@ class SourceProvenanceTests(unittest.TestCase):
                 )
 
     def test_local_query_evidence_retains_source_identifier(self) -> None:
-        for line in (self.repository / "kg_queries.jsonl").read_text(encoding="utf-8").splitlines():
+        path = self.repository / "kg_queries.jsonl"
+        if not path.exists():
+            self.skipTest("local generated kg_queries.jsonl is intentionally absent from a clean checkout")
+        for line in path.read_text(encoding="utf-8").splitlines():
             record = json.loads(line)
             for evidence in record.get("evidence", []):
                 path = str(evidence.get("source_path") or "")

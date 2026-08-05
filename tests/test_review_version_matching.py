@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import pytest
 
 from build_review_bundle import previous_review_matches
 from evals.evaluate_runs import resolve_run_query_id
@@ -40,6 +41,8 @@ def test_legacy_alias_never_crosses_kg_boundary():
 
 def test_all_linkedmusic_v7_ids_resolve_to_current_version_one():
     root = Path(__file__).resolve().parents[1]
+    if not (root / "kg_queries.jsonl").exists() or not (root / "benchmark/v7/benchmark.jsonl").exists():
+        pytest.skip("local canonical queries and retired v7 snapshot are not part of a clean checkout")
     current = [json.loads(line) for line in (root / "kg_queries.jsonl").read_text().splitlines()]
     inputs = {
         record["query_id"]: {

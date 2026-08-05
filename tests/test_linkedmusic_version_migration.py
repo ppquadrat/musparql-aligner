@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import pytest
 
 from migrate_linkedmusic_versions import (
     EDIT_SOURCE_ID,
@@ -13,9 +14,16 @@ from migrate_linkedmusic_versions import (
 from sparql_versions import execution_resolves, resolve_sparql_version
 
 
+def canonical_records_or_skip(root: Path):
+    path = root / "kg_queries.jsonl"
+    if not path.exists():
+        pytest.skip("local generated kg_queries.jsonl is intentionally absent from a clean checkout")
+    return read_jsonl(path)
+
+
 def test_current_linkedmusic_records_migrate_one_to_one():
     root = Path(__file__).resolve().parents[1]
-    records = read_jsonl(root / "kg_queries.jsonl")
+    records = canonical_records_or_skip(root)
     official = read_jsonl(root / "curated_sources/LinkedMusic_Queries_Official.jsonl")
     corrected = parse_corrected_markdown(root / "curated_sources/LinkedMusic_Queries_Corrected.md")
     migrated, mapping = migrate_records(
@@ -41,7 +49,7 @@ def test_current_linkedmusic_records_migrate_one_to_one():
 
 def test_migration_is_idempotent():
     root = Path(__file__).resolve().parents[1]
-    records = read_jsonl(root / "kg_queries.jsonl")
+    records = canonical_records_or_skip(root)
     official = read_jsonl(root / "curated_sources/LinkedMusic_Queries_Official.jsonl")
     corrected = parse_corrected_markdown(root / "curated_sources/LinkedMusic_Queries_Corrected.md")
     first, _ = migrate_records(records, official, corrected, extracted_at="2026-08-03T00:00:00+00:00")
@@ -75,7 +83,7 @@ def test_migration_is_idempotent():
 
 def test_first_migration_preserves_legacy_curator_annotations():
     root = Path(__file__).resolve().parents[1]
-    current = read_jsonl(root / "kg_queries.jsonl")
+    current = canonical_records_or_skip(root)
     official = read_jsonl(root / "curated_sources/LinkedMusic_Queries_Official.jsonl")
     corrected = parse_corrected_markdown(root / "curated_sources/LinkedMusic_Queries_Corrected.md")
     legacy = []
