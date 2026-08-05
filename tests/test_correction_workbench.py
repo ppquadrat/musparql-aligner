@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -240,6 +241,36 @@ def test_generate_approve_round_trip_retains_authoritative_agent_provenance(tmp_
     downstream = build_prompt_input(row, include_raw=False, include_sparql_blocks=False)
     assert downstream["sparql_provenance"]["execution_observation"]["status"] == "unavailable"
     assert downstream["sparql_provenance"]["selected_edit"]["agent_provenance"]["request_id"] == "req-synthetic"
+
+
+def test_suggestion_supports_chat_completions_api(tmp_path, monkeypatch):
+    row = record(); candidate = candidate_for(row)
+    output = {
+        "recommendation": "edit", "proposed_sparql": PROPOSAL,
+        "edit_type": "syntax_correction", "rationale": "Synthetic correction.",
+        "evidence_ids": [], "uncertainty": "Low.",
+    }
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, **_kwargs):
+            self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
+            self.responses = SimpleNamespace(create=lambda **_kwargs: pytest.fail("Responses API should not be used"))
+
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            message = SimpleNamespace(content=json.dumps(output))
+            return SimpleNamespace(id="req-chat", model="chat-model", choices=[SimpleNamespace(message=message)])
+
+    monkeypatch.setattr(correction_service, "OpenAI", FakeClient)
+    wb = workbench(tmp_path, row, candidate)
+    wb.api_method = "chat.completions.create"
+    suggestion = wb.suggest({"candidate_id": candidate["candidate_id"], "candidate_digest": candidate_digest(candidate)})
+
+    assert captured["model"] == "synthetic-model"
+    assert captured["messages"][0]["role"] == "system"
+    assert suggestion["request_id"] == "req-chat"
+    assert suggestion["model"] == "chat-model"
 
 
 @pytest.mark.parametrize("status", ["ok", "http_error", "skipped_no_endpoint", None])

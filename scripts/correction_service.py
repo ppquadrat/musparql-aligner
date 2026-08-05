@@ -108,6 +108,7 @@ class Workbench:
         attempts_path: Path,
         suggestions_path: Path,
         model: str,
+        api_method: str = "responses.create",
         suggestion_provider: Callable[[Dict[str, Any]], tuple[Dict[str, Any], Dict[str, Any]]] | None = None,
     ) -> None:
         self.holdout_pairs = holdout_pairs
@@ -126,6 +127,7 @@ class Workbench:
         self.attempts_path = attempts_path
         self.suggestions_path = suggestions_path
         self.model = model
+        self.api_method = api_method
         self.suggestion_provider = suggestion_provider
         self._write_lock = threading.Lock()
         self._execution_locks: Dict[str, threading.Lock] = {}
@@ -264,11 +266,25 @@ class Workbench:
                 client_args["base_url"] = os.getenv("GRAPHIA_BASE_URL")
             client = OpenAI(**client_args)
             system = self.prompt + "\nOutput schema (JSON):\n" + json.dumps(self.schema, ensure_ascii=False)
-            response = client.responses.create(
-                model=self.model,
-                input=[{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-            )
-            output = extract_first_json_object((response.output_text or "").strip())
+            user_content = json.dumps(payload, ensure_ascii=False)
+            if self.api_method == "responses.create":
+                response = client.responses.create(
+                    model=self.model,
+                    input=[{"role": "system", "content": system}, {"role": "user", "content": user_content}],
+                )
+                response_text = (response.output_text or "").strip()
+            else:
+                response = client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user_content},
+                    ],
+                )
+                choice = response.choices[0] if getattr(response, "choices", None) else None
+                message = getattr(choice, "message", None)
+                response_text = str(getattr(message, "content", "") or "").strip()
+            output = extract_first_json_object(response_text)
             if output is None:
                 raise ValueError("Agent returned no JSON object")
             response_meta = {"id": getattr(response, "id", None), "model": getattr(response, "model", None)}
@@ -378,6 +394,12 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--model", default="gpt-5")
+    parser.add_argument(
+        "--api-method",
+        default="responses.create",
+        choices=["responses.create", "chat.completions.create"],
+        help="Use chat.completions.create for LiteLLM deployments whose hosted models do not support the Responses API.",
+    )
     parser.add_argument("--attempt-log", default="var/review/workbench/execution_attempts.jsonl")
     parser.add_argument("--suggestion-log", default="var/review/workbench/suggestions.jsonl")
     parser.add_argument("--synthetic-suggestion", default="", help=argparse.SUPPRESS)
@@ -397,7 +419,7 @@ def main() -> None:
     workbench = Workbench(
         bundle=read_bundle(Path(args.bundle)), queries=queries, holdout_pairs=pairs,
         seeds_path=Path(args.seeds), attempts_path=Path(args.attempt_log), suggestions_path=Path(args.suggestion_log),
-        model=args.model, suggestion_provider=provider,
+        model=args.model, api_method=args.api_method, suggestion_provider=provider,
     )
     Handler.workbench = workbench
     server_class = ThreadingHTTPServer

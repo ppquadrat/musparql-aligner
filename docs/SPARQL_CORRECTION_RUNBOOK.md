@@ -1,5 +1,8 @@
 # SPARQL correction workbench runbook
 
+Known follow-up work identified during manual end-to-end testing is tracked in
+[`SPARQL_CORRECTION_FOLLOW_UP.md`](SPARQL_CORRECTION_FOLLOW_UP.md).
+
 This workflow assumes holdouts exist. In every command, replace
 `<holdout-selectors>.jsonl` with the annotation-free selector file chosen by the
 human owner under `var/review/exports/`. Never use private annotations as an
@@ -65,7 +68,44 @@ Suggestion generation uses the configured OpenAI environment and defaults to
 model `gpt-5`. Override it with `--model <model>`. API keys are read by the SDK;
 they are never returned or written to workbench logs.
 
+The API method defaults to `responses.create`. For a LiteLLM or hosted-vLLM
+deployment that exposes the selected model only through chat completions, start
+the service with both an explicit model and API method, for example:
+
+```bash
+.venv/bin/python -m scripts.correction_service \
+  --holdout-selectors var/holdout/selectors.jsonl \
+  --model Qwen3-Coder-30B-A3B-Instruct-Q8_0 \
+  --api-method chat.completions.create
+```
+
+An error that names a valid model but reports `Hosted_vllmException` with HTTP
+404 usually means the Responses API was used for a chat-completions-only model.
+
 ## 4. Review efficiently
+
+The queue intentionally contains every non-holdout query, including successful
+queries, empty results, and identities that already have an approved version.
+An approved version may still need a later correction, and execution alone does
+not establish semantic correctness. The sidebar does not currently show version
+numbers; open a record to see **Retained base** and **Latest approved**.
+
+For a focused first pass, use the **Triage** filter in this order:
+
+1. **Likely correction** — high-priority syntax or endpoint-rejected queries.
+2. **Instantiation required** — unresolved parameterized templates that need
+   concrete values and source/runtime context; these are not automatically
+   SPARQL errors.
+3. **Investigate** — medium-priority execution failures that may reflect either
+   the query or its environment.
+4. **Runtime environment** — informational cases requiring a local file,
+   specialist engine, federation, or other unavailable runtime.
+5. **General review** — successful, empty, and otherwise ordinary queries; use
+   this for a broader semantic audit rather than the initial correction pass.
+
+Combine the triage filter with **KG** or search when useful. Do not mark an
+already-approved or low-priority query **No edit** merely to clear it from the
+queue: filter it out unless a human no-edit decision is actually intended.
 
 For each candidate:
 
