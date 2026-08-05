@@ -54,7 +54,9 @@ data remain distinguishable instead of being flattened into one file.
 
 The private holdout is not stored in this repository. The annotation-free,
 identity-visible selector used to exclude holdout pairs lives locally at
-`var/holdout/selectors.jsonl`.
+`var/holdout/selectors.jsonl`. The review UI can merge explicitly touched
+holdout additions/removals into an existing selector or create a new download;
+the human verifies and places that file at the local path.
 
 ## Documentation
 

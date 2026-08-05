@@ -22,6 +22,8 @@
     nextBtn: document.getElementById("nextBtn"),
     exportReviewsBtn: document.getElementById("exportReviewsBtn"),
     exportPrivateReviewsBtn: document.getElementById("exportPrivateReviewsBtn"),
+    exportHoldoutSelectorsBtn: document.getElementById("exportHoldoutSelectorsBtn"),
+    holdoutSelectorsInput: document.getElementById("holdoutSelectorsInput"),
     clearPrivateStateBtn: document.getElementById("clearPrivateStateBtn"),
     importReviewsInput: document.getElementById("importReviewsInput"),
     detailMeta: document.getElementById("detailMeta"),
@@ -61,11 +63,19 @@
     compareHoldoutEligibility,
     sparqlEditHoldoutEligibility,
     reusedPreviousReview,
+    parseHoldoutSelectors,
+    validateHoldoutSelector,
+    selectorForRecord,
+    mergeHoldoutSelectors,
+    selectorUpdateForReview,
   };
 
   if (!data || !Array.isArray(data.records) || !data.records.length) {
     return;
   }
+
+  const selectorExportAllowed = data.holdout_input_policy !== "identity_private_filtered_upstream";
+  els.exportHoldoutSelectorsBtn.classList.toggle("hidden", !selectorExportAllowed);
 
   if (data.mode === "compare") {
     initCompareMode();
@@ -177,7 +187,7 @@
     els.literalWordingInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.publicCommentInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
     els.internalCommentInput.addEventListener("input", () => updateCurrentReview({ rerender: false }));
-    els.holdoutSplitInput.addEventListener("change", () => updateCurrentReview({ rerender: true }));
+    els.holdoutSplitInput.addEventListener("change", () => updateCurrentReview({ rerender: true, holdoutSelectionTouched: true }));
     els.decisionButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         updateCurrentReview({ forcedStatus: btn.dataset.status || "", rerender: true });
@@ -185,6 +195,7 @@
     });
     els.exportReviewsBtn.addEventListener("click", exportReviews);
     els.exportPrivateReviewsBtn.addEventListener("click", exportPrivateReviews);
+    bindHoldoutSelectorExport(() => selectorUpdatesForInitialReview());
     els.clearPrivateStateBtn.addEventListener("click", clearPrivateState);
     els.importReviewsInput.addEventListener("change", importReviews);
     document.addEventListener("keydown", (event) => {
@@ -322,12 +333,14 @@
     els.literalWordingInput.value = review.literal_wording || "";
     els.publicCommentInput.value = review.public_comment || "";
     els.internalCommentInput.value = review.internal_comment || "";
-    els.holdoutSplitInput.checked = isHoldoutReview(review);
+    els.holdoutSplitInput.checked = review.holdout_selector_selected;
     const holdoutEligibility = initialHoldoutEligibility(record, data.holdout_review_provenance_complete);
     const savedIneligibleHoldout = isHoldoutReview(review) && !holdoutEligibility.eligible;
-    els.holdoutSplitInput.disabled = !holdoutEligibility.eligible;
+    els.holdoutSplitInput.disabled = !holdoutEligibility.eligible && !review.holdout_selector_selected;
     document.getElementById("holdoutEligibilityHelp").textContent = savedIneligibleHoldout
-      ? "This saved holdout is no longer eligible under current provenance. Keep it private, export and clear it, then retire it."
+      ? review.holdout_selector_selected
+        ? "This saved holdout is no longer eligible. Uncheck it to mark an identity-visible selector removal; its annotations will remain private."
+        : "Selector removal marked. This pair's annotations remain private and must still be privately exported and cleared."
       : holdoutEligibility.reason;
     els.decisionButtons.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.status === (review.status || ""));
@@ -401,14 +414,17 @@
     const interpretive = current.interpretive;
     const record = data.records.find((candidate) => candidate.review_id === reviewId);
     const holdoutEligible = initialHoldoutEligibility(record, data.holdout_review_provenance_complete).eligible;
-    const keepExistingHoldout = isHoldoutReview(current) && els.holdoutSplitInput.checked;
+    const selectorSelected = els.holdoutSplitInput.checked;
+    const keepAnnotationPrivate = isHoldoutReview(current);
     reviews[reviewId] = {
       status: nextStatus,
       preferred_question: els.preferredQuestionInput.value.trim(),
       literal_wording: els.literalWordingInput.value.trim(),
       public_comment: els.publicCommentInput.value.trim(),
       internal_comment: els.internalCommentInput.value.trim(),
-      split: els.holdoutSplitInput.checked && (holdoutEligible || keepExistingHoldout) ? HOLDOUT_SPLIT : "",
+      split: keepAnnotationPrivate || (selectorSelected && holdoutEligible) ? HOLDOUT_SPLIT : "",
+      holdout_selection_touched: options.holdoutSelectionTouched === true || current.holdout_selection_touched,
+      holdout_selector_selected: selectorSelected,
       interpretive,
       updated_at: new Date().toISOString(),
     };
@@ -419,6 +435,7 @@
       !reviews[reviewId].public_comment &&
       !reviews[reviewId].internal_comment &&
       !reviews[reviewId].split &&
+      !reviews[reviewId].holdout_selection_touched &&
       isEmptyInterpretive(interpretive)
     ) {
       delete reviews[reviewId];
@@ -449,6 +466,7 @@
     const literalWording = review?.literal_wording || extractLiteralWordingFromNote(legacyNote);
     const hasPublicComment = review != null
       && Object.prototype.hasOwnProperty.call(review, "public_comment");
+    const split = review?.split || (review?.benchmark_disposition === "withheld" ? HOLDOUT_SPLIT : "");
     return {
       status,
       preferred_question: review?.preferred_question || "",
@@ -457,7 +475,11 @@
       internal_comment: hasPublicComment
         ? (review?.internal_comment || "")
         : removeLiteralFromComment(review?.internal_comment || legacyNote, literalWording),
-      split: review?.split || (review?.benchmark_disposition === "withheld" ? HOLDOUT_SPLIT : ""),
+      split,
+      holdout_selection_touched: review?.holdout_selection_touched === true,
+      holdout_selector_selected: typeof review?.holdout_selector_selected === "boolean"
+        ? review.holdout_selector_selected
+        : split === HOLDOUT_SPLIT,
       interpretive: normalizeInterpretive(review?.interpretive),
     };
   }
@@ -580,6 +602,12 @@
     const dispositions = new Set(["included", "excluded", "withheld"]);
     for (const [reviewId, review] of Object.entries(reviewMap || {})) {
       if (!review || typeof review !== "object") throw new Error(`Bad review record: ${reviewId}`);
+      if (
+        Object.prototype.hasOwnProperty.call(review, "holdout_selection_touched")
+        || Object.prototype.hasOwnProperty.call(review, "holdout_selector_selected")
+      ) {
+        throw new Error(`Review ${reviewId} contains a browser-only holdout selector control.`);
+      }
       if (review.status && !internalStatuses.has(review.status)) {
         throw new Error(`Unsupported legacy decision in review ${reviewId}.`);
       }
@@ -779,6 +807,10 @@
     downloadJson(payload, `musparql-review-non-holdout-${data.dataset_id}-${timestamp}.json`);
   }
 
+  function selectorUpdatesForInitialReview() {
+    return data.records.flatMap((record) => selectorUpdateForReview(record, getReview(record)));
+  }
+
   function exportPrivateReviews() {
     const { privateReviews } = partitionReviewMap(reviews);
     const records = matchPrivateRecords(
@@ -909,6 +941,195 @@
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  function parseHoldoutSelectors(text) {
+    const source = String(text || "").trim();
+    if (!source) return [];
+    let records;
+    if (source.startsWith("[")) {
+      records = JSON.parse(source);
+    } else {
+      records = source.split(/\r?\n/).filter((line) => line.trim()).map((line, index) => {
+        try {
+          return JSON.parse(line);
+        } catch (error) {
+          throw new Error(`Invalid holdout selector JSON on line ${index + 1}: ${error.message}`);
+        }
+      });
+    }
+    if (!Array.isArray(records)) throw new Error("Holdout selectors must be a JSON array or JSONL records.");
+    const seen = new Set();
+    return records.map((record) => {
+      const selector = validateHoldoutSelector(record);
+      const key = selectorKey(selector);
+      if (seen.has(key)) throw new Error(`Duplicate holdout selector identity: ${selector.kg_id}/${selector.query_id}.`);
+      seen.add(key);
+      return selector;
+    });
+  }
+
+  function validateHoldoutSelector(record) {
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      throw new Error("Each holdout selector must be an object.");
+    }
+    const allowed = new Set(["kg_id", "query_id", "sparql_version", "sparql_hash"]);
+    if (Object.keys(record).some((field) => !allowed.has(field))) {
+      throw new Error("Holdout selector files may contain identity/version fields only.");
+    }
+    const kgId = record.kg_id;
+    const queryId = record.query_id;
+    if (typeof kgId !== "string" || !kgId.trim() || typeof queryId !== "string" || !queryId.trim()) {
+      throw new Error("Each holdout selector requires nonempty kg_id and query_id strings.");
+    }
+    const hasVersion = Object.prototype.hasOwnProperty.call(record, "sparql_version");
+    const hasHash = Object.prototype.hasOwnProperty.call(record, "sparql_hash");
+    if (hasVersion !== hasHash) throw new Error("Holdout selector SPARQL version and hash must be supplied together.");
+    const selector = { kg_id: kgId, query_id: queryId };
+    if (hasVersion) {
+      const digest = record.sparql_hash;
+      if (!Number.isInteger(record.sparql_version) || record.sparql_version < 0) {
+        throw new Error("Holdout selector sparql_version must be a non-negative integer.");
+      }
+      if (!/^[0-9a-f]{64}$/.test(digest)) {
+        throw new Error("Holdout selector sparql_hash must be a lowercase SHA-256 digest.");
+      }
+      selector.sparql_version = record.sparql_version;
+      selector.sparql_hash = digest;
+    }
+    return selector;
+  }
+
+  function selectorForRecord(record) {
+    const selector = { kg_id: record?.kg_id, query_id: record?.query_id };
+    const version = record?.input?.sparql_version;
+    const digest = record?.input?.sparql_hash;
+    const hasVersion = version !== null && version !== undefined;
+    const hasHash = digest !== null && digest !== undefined && digest !== "";
+    if (hasVersion !== hasHash) {
+      throw new Error(`Current review record ${selector.kg_id || "?"}/${selector.query_id || "?"} has an incomplete SPARQL pin.`);
+    }
+    if (hasVersion) {
+      selector.sparql_version = version;
+      selector.sparql_hash = typeof digest === "string" ? digest.replace(/^sha256:/, "") : digest;
+    }
+    return validateHoldoutSelector(selector);
+  }
+
+  function selectorUpdateForReview(record, review) {
+    const normalized = normalizeReview(review);
+    if (!normalized.holdout_selection_touched) return [];
+    if (!record) throw new Error("Cannot update a holdout selector without a current review record.");
+    return [{ record, selected: normalized.holdout_selector_selected }];
+  }
+
+  function selectorKey(selector) {
+    return `${selector.kg_id}\u0000${selector.query_id}`;
+  }
+
+  function mergeHoldoutSelectors(existingSelectors, updates) {
+    const merged = new Map();
+    for (const record of existingSelectors || []) {
+      const selector = validateHoldoutSelector(record);
+      const key = selectorKey(selector);
+      if (merged.has(key)) throw new Error(`Duplicate holdout selector identity: ${selector.kg_id}/${selector.query_id}.`);
+      merged.set(key, selector);
+    }
+    const touched = new Set();
+    let additions = 0;
+    let removals = 0;
+    for (const update of updates || []) {
+      const selector = selectorForRecord(update?.record);
+      const key = selectorKey(selector);
+      if (touched.has(key)) throw new Error(`Duplicate current review identity: ${selector.kg_id}/${selector.query_id}.`);
+      touched.add(key);
+      const existed = merged.has(key);
+      if (update.selected) {
+        if (!existed) {
+          merged.set(key, selector);
+          additions += 1;
+        }
+      } else if (existed) {
+        merged.delete(key);
+        removals += 1;
+      }
+    }
+    const compareCodeUnits = (left, right) => left < right ? -1 : left > right ? 1 : 0;
+    const selectors = [...merged.values()].sort((left, right) =>
+      compareCodeUnits(left.kg_id, right.kg_id) || compareCodeUnits(left.query_id, right.query_id)
+    );
+    return { selectors, additions, removals };
+  }
+
+  function bindHoldoutSelectorExport(getUpdates) {
+    els.exportHoldoutSelectorsBtn.addEventListener("click", () => {
+      if (!selectorExportAllowed) {
+        window.alert("Holdout selector export is disabled for the identity-private filtered-upstream policy.");
+        return;
+      }
+      const updateExisting = window.confirm(
+        "Identity-visible holdout policy only. Select OK to choose and merge the existing holdout_selectors.jsonl file. Select Cancel to stop."
+      );
+      if (updateExisting) {
+        els.holdoutSelectorsInput.click();
+        return;
+      }
+      const createNew = window.confirm(
+        "Create a NEW selector file from this review? Continue only if no selector file exists yet; this will not preserve any earlier selector identities."
+      );
+      if (createNew) {
+        try {
+          exportUpdatedHoldoutSelectors([], getUpdates(), { requireNonempty: true });
+        } catch (error) {
+          window.alert(`Could not update holdout selectors: ${error}`);
+        }
+      }
+    });
+    els.holdoutSelectorsInput.addEventListener("change", (event) => {
+      const [file] = event.target.files || [];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          exportUpdatedHoldoutSelectors(parseHoldoutSelectors(reader.result), getUpdates());
+        } catch (error) {
+          window.alert(`Could not update holdout selectors: ${error}`);
+        } finally {
+          event.target.value = "";
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  function exportUpdatedHoldoutSelectors(existingSelectors, updates, options = {}) {
+    try {
+      const result = mergeHoldoutSelectors(existingSelectors, updates);
+      if (options.requireNonempty && !result.selectors.length) {
+        throw new Error("A new selector file would be empty. Leave the project in --no-holdout mode instead.");
+      }
+      const content = result.selectors.map((selector) => JSON.stringify(selector)).join("\n")
+        + (result.selectors.length ? "\n" : "");
+      downloadText(content, "holdout_selectors.jsonl", "application/x-ndjson");
+      window.alert(
+        `Selector export started with ${result.selectors.length} identit${result.selectors.length === 1 ? "y" : "ies"} (${result.additions} added, ${result.removals} removed). Move the downloaded file to var/holdout/selectors.jsonl.`
+      );
+    } catch (error) {
+      window.alert(`Could not update holdout selectors: ${error}`);
+    }
+  }
+
+  function downloadText(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.hidden = true;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   function initCompareMode() {
     const compareStorageKey = `musparql-review-compare:schema3:${data.dataset_id}`;
     let compareReviews = loadCompareReviews();
@@ -976,6 +1197,7 @@
     els.nextBtn.addEventListener("click", () => moveCompareSelection(1));
     els.exportReviewsBtn.addEventListener("click", exportCompareReviews);
     els.exportPrivateReviewsBtn.addEventListener("click", exportPrivateCompareReviews);
+    bindHoldoutSelectorExport(() => selectorUpdatesForCompareReview());
     els.clearPrivateStateBtn.addEventListener("click", clearPrivateCompareState);
     els.importReviewsInput.addEventListener("change", importCompareReviews);
     document.addEventListener("keydown", (event) => {
@@ -1191,10 +1413,15 @@
       });
       document.getElementById("compareHoldoutInput")?.addEventListener("change", () => {
         const input = document.getElementById("compareHoldoutInput");
-        const keepExistingHoldout = isHoldoutReview(currentReview) && input.checked;
+        const selectorSelected = input.checked;
+        const keepAnnotationPrivate = isHoldoutReview(currentReview);
         updateCompareReview(
           currentReviewId,
-          { split: input.checked && (compareHoldoutEligibility(pair, data.holdout_review_provenance_complete).eligible || keepExistingHoldout) ? HOLDOUT_SPLIT : "" },
+          {
+            split: keepAnnotationPrivate || (selectorSelected && compareHoldoutEligibility(pair, data.holdout_review_provenance_complete).eligible) ? HOLDOUT_SPLIT : "",
+            holdout_selection_touched: true,
+            holdout_selector_selected: selectorSelected,
+          },
           true
         );
       });
@@ -1301,9 +1528,13 @@
             ${
               eligibility.eligible || isHoldoutReview(review)
                 ? `<label class="checkbox-field compare-holdout-field">
-                    <input id="compareHoldoutInput" type="checkbox" ${isHoldoutReview(review) ? "checked" : ""} ${eligibility.eligible ? "" : "disabled"} />
-                    <span>Private holdout</span>
-                    <small>${escapeHtml(savedIneligibleHoldout ? "This saved holdout is no longer eligible under current provenance. Keep it private, export and clear it, then retire it." : eligibility.reason)}</small>
+                    <input id="compareHoldoutInput" type="checkbox" ${review.holdout_selector_selected ? "checked" : ""} ${!eligibility.eligible && !review.holdout_selector_selected ? "disabled" : ""} />
+                    <span>Private holdout / selector member</span>
+                    <small>${escapeHtml(savedIneligibleHoldout
+                      ? review.holdout_selector_selected
+                        ? "This saved holdout is no longer eligible. Uncheck it to mark an identity-visible selector removal; its annotations will remain private."
+                        : "Selector removal marked. This pair's annotations remain private and must still be privately exported and cleared."
+                      : eligibility.reason)}</small>
                   </label>`
                 : `<p class="muted-meta compare-holdout-field">${escapeHtml(eligibility.reason)}</p>`
             }
@@ -1392,9 +1623,16 @@
 
     function cleanupEmptyCompareReview(reviewId) {
       const review = compareReviews[reviewId];
-      if (review && !review.status && !review.preferred_question && !review.literal_wording && !review.public_comment && !review.internal_comment && !review.split) {
+      if (review && !review.status && !review.preferred_question && !review.literal_wording && !review.public_comment && !review.internal_comment && !review.split && !review.holdout_selection_touched) {
         delete compareReviews[reviewId];
       }
+    }
+
+    function selectorUpdatesForCompareReview() {
+      return data.records.flatMap((pair) => {
+        const reviewId = pair.current?.review_id || pair.pair_id;
+        return selectorUpdateForReview(pair.current?.record, compareReviews[reviewId]);
+      });
     }
 
     function moveCompareSelection(delta) {

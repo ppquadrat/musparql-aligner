@@ -79,9 +79,14 @@ The current UI intentionally has no linguistic-dimension controls.
 
 1. Select **Export Non-Holdout**.
 2. Move the downloaded sanitized export to `var/review/exports/`.
-3. If holdouts were selected, export and verify the private package using the
+3. Under the identity-visible policy, use **Update Holdout Selectors** to merge
+   the current review's explicit holdout additions/removals into the existing
+   selector, or create a new selector when none exists. Verify the download and
+   move/rename it to `var/holdout/selectors.jsonl`.
+4. If holdouts were selected, export and verify the private package using the
    human-only holdout procedure and store it in the separate private repository.
-4. Clear private browser state only after verifying the private export.
+5. Clear private browser state only after verifying both applicable selector
+   and private exports.
 
 Do not ask an agent to inspect, move, count, validate, or migrate a private
 holdout export.

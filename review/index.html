@@ -18,6 +18,8 @@
         <div class="toolbar">
           <button id="exportReviewsBtn" class="btn solid">Export Non-Holdout</button>
           <button id="exportPrivateReviewsBtn" class="btn">Export Private Holdout</button>
+          <button id="exportHoldoutSelectorsBtn" class="btn hidden">Update Holdout Selectors</button>
+          <input id="holdoutSelectorsInput" type="file" accept=".json,.jsonl,application/json,application/x-ndjson" hidden />
           <button id="clearPrivateStateBtn" class="btn">Clear Private State</button>
           <label class="btn">
             Import Reviews
@@ -155,7 +157,7 @@
               <div class="field-grid">
                 <label class="wide checkbox-field">
                   <input id="holdoutSplitInput" type="checkbox" />
-                  <span>Private holdout</span>
+                  <span>Private holdout / selector member</span>
                   <small id="holdoutEligibilityHelp">Keep this judgement out of the public/dev benchmark, prompt work, and normal autoeval.</small>
                 </label>
                 <label class="wide">

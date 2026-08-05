@@ -90,6 +90,25 @@ Non-Holdout** creates a sanitized decision file with those entries absent;
 `musparql-holdout-private-*.json` file. The private file contains the candidate
 and its complete annotation and must remain outside Git.
 
+Under the identity-visible policy, **Update Holdout Selectors** asks the human
+to choose the existing annotation-free selector JSON/JSONL, merges only
+holdout additions and removals explicitly made in the current review, and
+downloads `holdout_selectors.jsonl`. Choose the create-new option when no
+selector exists; creating a new empty selector is rejected. Untouched or merely
+restored selections are preserved rather than treated as changes; malformed,
+duplicate, or annotation-bearing input is rejected. Older selector identities
+that were filtered out of the current bundle cannot be retired through its
+checkboxes and remain a human identity-visible maintenance task. The browser cannot write
+to the repository, so the human must verify the result and move/rename it to
+`var/holdout/selectors.jsonl`. Do not use this action under the identity-private
+policy; the button is hidden and its action rejected for filtered-upstream
+identity-private bundles.
+
+Unchecking selector membership retires the identity but never declassifies its
+annotation. The pair remains in **Export Private Holdout**, stays absent from
+**Export Non-Holdout**, and must still complete the private export-and-clear
+procedure.
+
 The summary bar shows the current holdout count. Use **Set → Holdout only** to
 inspect the selected set. After a private export starts, the workbench reports
 the exported count so the reviewer can compare it with the downloaded file
@@ -142,12 +161,14 @@ edit-history provenance, including when selected SPARQL is version `0`.
 
 Reviewer decisions are stored in persistent browser local storage, so closing a
 tab does not clear them and clearing the browser cache is not relevant. After
-securely saving and verifying a private export, use **Clear Private State**, then
-close the browser before resuming agent-assisted work. Move sanitized non-holdout
-exports to ignored, agent-readable `var/review/exports/`. Move the separately
-downloaded private export to the separate private holdout repository outside
-this workspace; open it and verify its holdout count before using **Clear
-Private State**. Legacy files under `review/private/` or `review/exports/`
+updating and verifying the identity-visible selector (when applicable), securely
+saving and verifying a private export, use **Clear Private State**, then close
+the browser before resuming agent-assisted work. Move sanitized non-holdout
+exports to ignored, agent-readable `var/review/exports/`; a human moves the
+selector download to `var/holdout/selectors.jsonl`. Move the separately downloaded
+private export to the separate private holdout repository outside this workspace;
+open it and verify its holdout count before using **Clear Private State**. Legacy
+files under `review/private/` or `review/exports/`
 remain agent-forbidden quarantine material, not normal destinations.
 No review export is a paper-repository artifact.
 The current review form does not collect linguistic or interpretive dimensions.

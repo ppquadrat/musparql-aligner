@@ -18,6 +18,9 @@ security model are in [HOLDOUT_SECURITY.md](HOLDOUT_SECURITY.md).
 5. Confirm that the separate private holdout repository is available outside
    this workspace. It is the destination for the private export; do not place
    the export in Musparql.
+6. Under the identity-visible policy, have the current annotation-free
+   `var/holdout/selectors.jsonl` available for selection in the browser. If no
+   selector exists yet, the workbench can create one from an empty set.
 
 ## Choose the holdout set
 
@@ -50,15 +53,34 @@ private recovery flow, retire it, and choose a replacement.
 
 1. Select **Export Non-Holdout**. Move that file to
    `var/review/exports/` if it will be used by agent-facing build tools.
-2. Note the **Holdout** count, then select **Export Private Holdout**. The
+2. Under the identity-visible policy, select **Update Holdout Selectors**.
+   Choose **OK** and select the existing selector file to preserve prior
+   identities while applying additions/removals explicitly made in this review.
+   If no selector file exists, choose **Cancel** in the existing-file question,
+   then explicitly confirm **Create a NEW selector file**. Cancelling that
+   second confirmation aborts. The workbench refuses to create an empty new
+   selector. The browser downloads `holdout_selectors.jsonl`; it does not write
+   into the workspace.
+3. Open the selector download yourself and confirm that the reported total,
+   additions, and removals are expected. Move/rename it to
+   `var/holdout/selectors.jsonl`, replacing the earlier selector when updating.
+   Do not use this action under the identity-private policy.
+   Existing selector identities are normally absent from a selector-filtered
+   review bundle. Retire an older absent identity through the identity-visible
+   human maintenance process; do not infer its removal from absence in this
+   review and do not ask an agent to handle the private record.
+   Unchecking selector membership does not make the pair's annotation public:
+   the workbench retains its private split, and the private export in the next
+   steps is still mandatory.
+4. Note the **Holdout** count, then select **Export Private Holdout**. The
    workbench reports how many records the download contains.
-3. Move the private file into the separate private holdout repository.
-4. Open the private file yourself. Confirm that it opens and that its record
+5. Move the private file into the separate private holdout repository.
+6. Open the private file yourself. Confirm that it opens and that its record
    count matches the workbench's Holdout count and export message. Do not ask an
    agent to verify it.
-5. Select **Clear Private State** and confirm the deletion.
-6. Close the review browser tab or window.
-7. Only now resume agent-assisted work.
+7. Select **Clear Private State** and confirm the deletion.
+8. Close the review browser tab or window.
+9. Only now resume agent-assisted work.
 
 Closing the tab or browser is not sufficient: review state is stored in the
 browser's persistent local storage and normally survives closing and reopening.

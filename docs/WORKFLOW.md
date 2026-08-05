@@ -116,7 +116,10 @@ Review determines:
 
 Sanitized non-holdout exports go to `var/review/exports/`. Full private holdout
 exports go to the separate human-controlled private repository and must never be
-handled by an agent. See the [review policy](REVIEW_POLICY.md),
+handled by an agent. Under the identity-visible policy, the review UI also
+merges explicitly touched membership changes into an existing selector (or an
+empty set) and downloads a replacement that the human verifies and places at
+`var/holdout/selectors.jsonl`. See the [review policy](REVIEW_POLICY.md),
 [review runbook](REVIEW_RUNBOOK.md), and [holdout security policy](HOLDOUT_SECURITY.md).
 
 ## 9. Build or update a benchmark snapshot

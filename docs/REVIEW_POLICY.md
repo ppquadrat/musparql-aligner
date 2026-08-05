@@ -59,14 +59,24 @@ repository or an agent workflow.
 
 ## Export boundary
 
-The browser produces separate exports:
+The browser produces separate exports and, for the identity-visible policy, an
+annotation-free selector update:
 
 - a sanitized `non_holdout_review_export` for agent-facing benchmark tools; and
-- a full private holdout export for the human-controlled private repository.
+- a full private holdout export for the human-controlled private repository;
+  and
+- a replacement selector JSONL made by merging an existing human-chosen
+  selector with holdout additions/removals explicitly touched in the current
+  review.
+
+Removing selector membership retires an identity from the active holdout but
+does not declassify its annotations. They remain in the full private export and
+absent from the sanitized non-holdout export.
 
 Sanitized exports go to `var/review/exports/`. Agent-facing tools reject
 private, mixed, legacy, or mislabeled review files rather than attempting to
-sanitize them.
+sanitize them. The browser downloads selector updates; a human verifies and
+places them at `var/holdout/selectors.jsonl`.
 
 ## Benchmark authority
 

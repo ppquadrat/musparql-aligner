@@ -71,11 +71,37 @@ machine would be stronger still.
 
 ### The review workbench separates the data
 
-The browser has two explicit export actions:
+Under the identity-visible policy, the browser has three explicit export
+actions:
 
 - **Export Non-Holdout** creates an agent-readable review export with every
   holdout entry absent.
 - **Export Private Holdout** creates a separate, self-contained private package.
+- **Update Holdout Selectors** reads an existing annotation-free selector file
+  chosen by the human (or starts from an empty set), applies only holdout
+  additions and removals explicitly made in the current review, and downloads
+  a replacement `holdout_selectors.jsonl`.
+
+The selector action is hidden and rejected when the bundle declares the
+identity-private filtered-upstream policy. The browser cannot write directly to
+a repository path. The human must inspect
+the selector download and move/rename it to
+`var/holdout/selectors.jsonl`. Existing selectors not touched in the current
+review are preserved. A pair is added or removed only after the human changes
+its holdout checkbox in the current browser review; an untouched, restored, or
+merely unreviewed pair is not treated as a membership change. Because existing
+selector identities are normally filtered out before a new bundle is built,
+this action cannot retire an older holdout that is absent from the current
+bundle; the human must handle that retirement in the identity-visible private
+maintenance process. The selector export contains only
+the allowlisted identity and optional SPARQL pin fields and rejects malformed,
+duplicate, or annotation-bearing input.
+
+Selector removal never declassifies a review annotation. Once a pair has been
+selected, its annotation retains the private split even when its selector
+membership is unchecked for retirement. It must still be included in the full
+private export and cleared through the private-state flow; it must not enter the
+non-holdout export.
 
 The browser checks that every private annotation has exactly one matching record.
 It will not clear private state after a missing or duplicate identity, and any
@@ -186,9 +212,13 @@ The repository implements and tests this enforcement in:
 - `scripts.build_review_diff_bundle` excludes them from comparison bundles; and
 - `scripts.build_next_review_round` forwards the selector to the comparison builder.
 
-Under the identity-visible policy, the human creates the selector after choosing
-the holdout identities and the same file must be supplied explicitly to every
-applicable downstream run. Once a holdout exists, `--no-holdout` is not valid.
+Under the identity-visible policy, the human creates or updates the selector
+after choosing the holdout identities and the same file must be supplied
+explicitly to every applicable downstream run. The review workbench can merge
+the current review's explicitly touched membership changes into a human-chosen
+existing selector file. The human remains responsible for placing the download
+at `var/holdout/selectors.jsonl`. Once a holdout exists, `--no-holdout` is not
+valid.
 Each JSON or JSONL record may contain only:
 
 ```json
