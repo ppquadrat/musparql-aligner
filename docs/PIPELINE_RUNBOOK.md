@@ -82,6 +82,13 @@ then run:
   --unreviewed-from benchmark/vN
 ```
 
+Generation defaults to the adopted `MiniMax-M2.5` model through
+`chat.completions.create`. After the first successful output, the selected model
+and API method are saved locally in ignored `var/llm/generation_config.json` and
+reused by later runs. Explicit `--model` and `--api-method` arguments take
+precedence; `GRAPHIA_MODEL` and `GRAPHIA_API_METHOD` provide persistent shell
+overrides.
+
 The default outputs are `var/llm/outputs.jsonl` and
 `var/llm/outputs.errors.jsonl`. The generation flag can also filter an existing
 full input file; omit it when the input builder already produced the subset.

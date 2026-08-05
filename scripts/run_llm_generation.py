@@ -19,7 +19,11 @@ try:
 except ImportError:  # pragma: no cover - exercised only in minimal test envs
     OpenAI = None  # type: ignore[assignment]
 
-SCRIPT_VERSION = "run_llm_generation.py@v4"
+SCRIPT_VERSION = "run_llm_generation.py@v5"
+PROJECT_DEFAULT_MODEL = "MiniMax-M2.5"
+PROJECT_DEFAULT_API_METHOD = "chat.completions.create"
+GENERATION_CONFIG_SCHEMA = "musparql.llm-generation-defaults.v1"
+VALID_API_METHODS = {"responses.create", "chat.completions.create"}
 REPAIR_MIN_SCORE = 0.80
 REPAIR_MIN_MARGIN = 0.35
 REPAIR_TIE_MARGIN = 0.05
@@ -27,6 +31,47 @@ REPAIR_TIE_MARGIN = 0.05
 
 def load_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_generation_defaults(path: Path) -> Dict[str, str]:
+    if not path.exists():
+        return {}
+    value = load_json(path)
+    if value.get("schema") != GENERATION_CONFIG_SCHEMA:
+        raise ValueError(f"Unsupported generation config schema in {path}")
+    model = value.get("model")
+    api_method = value.get("api_method")
+    if not isinstance(model, str) or not model.strip():
+        raise ValueError(f"Generation config requires a model: {path}")
+    if api_method not in VALID_API_METHODS:
+        raise ValueError(f"Generation config has an invalid api_method: {path}")
+    return {"model": model, "api_method": str(api_method)}
+
+
+def save_generation_defaults(path: Path, model: str, api_method: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    value = {
+        "schema": GENERATION_CONFIG_SCHEMA,
+        "model": model,
+        "api_method": api_method,
+        "saved_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+    }
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(path)
+
+
+def is_fatal_configuration_error(error: Exception) -> bool:
+    message = str(error).casefold()
+    return any(
+        marker in message
+        for marker in (
+            "invalid model name",
+            "model_not_found",
+            "incorrect api key",
+            "invalid api key",
+        )
+    )
 
 
 def stable_json_dumps(value: Any) -> str:
@@ -497,12 +542,21 @@ def main() -> None:
     parser.add_argument("--examples", default="prompts/llm_nl_generation.examples.jsonl")
     parser.add_argument("--output", default="var/llm/outputs.jsonl")
     parser.add_argument("--errors", default="var/llm/outputs.errors.jsonl")
-    parser.add_argument("--model", default="gpt-5")
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Model ID. Defaults to an environment override, the last successful configuration, or MiniMax-M2.5.",
+    )
     parser.add_argument(
         "--api-method",
-        default="responses.create",
-        choices=["responses.create", "chat.completions.create"],
-        help="Use chat.completions.create for LiteLLM deployments that do not support the Responses API.",
+        default=None,
+        choices=sorted(VALID_API_METHODS),
+        help="API method. Defaults to an environment override, the last successful configuration, or chat completions.",
+    )
+    parser.add_argument(
+        "--generation-config",
+        default="var/llm/generation_config.json",
+        help="Local defaults saved after the first successful output.",
     )
     parser.add_argument(
         "--api-key-env",
@@ -535,6 +589,22 @@ def main() -> None:
     parser.add_argument("--max-output-tokens", type=int, default=0)
     parser.add_argument("--reasoning-effort", default="", choices=["", "minimal", "low", "medium", "high", "xhigh"])
     args = parser.parse_args()
+
+    generation_config_path = Path(args.generation_config)
+    saved_defaults = load_generation_defaults(generation_config_path)
+    args.model = (
+        args.model
+        or os.getenv("GRAPHIA_MODEL")
+        or saved_defaults.get("model")
+        or PROJECT_DEFAULT_MODEL
+    )
+    args.api_method = (
+        args.api_method
+        or os.getenv("GRAPHIA_API_METHOD")
+        or saved_defaults.get("api_method")
+        or PROJECT_DEFAULT_API_METHOD
+    )
+    log(f"Generation configuration: model={args.model}, api_method={args.api_method}")
 
     input_path = Path(args.input)
     prompt_path = Path(args.prompt)
@@ -582,6 +652,7 @@ def main() -> None:
     client = OpenAI(**client_kwargs)
     ok_count = 0
     err_count = 0
+    generation_config_saved = False
 
     completed = load_completed(out_path)
     ensure_jsonl_file(err_path)
@@ -644,6 +715,9 @@ def main() -> None:
                 }
                 out_f.write(json.dumps(out_rec, ensure_ascii=False) + "\n")
                 ok_count += 1
+                if not generation_config_saved:
+                    save_generation_defaults(generation_config_path, args.model, args.api_method)
+                    generation_config_saved = True
                 log(f"[{idx}/{len(inputs)}] ok {payload.get('query_label')} ({out_rec['elapsed_ms']} ms)")
             except Exception as e:
                 elapsed_ms = int((time.time() - started) * 1000)
@@ -667,6 +741,8 @@ def main() -> None:
                 err_f.write(json.dumps(err_rec, ensure_ascii=False) + "\n")
                 err_count += 1
                 log(f"[{idx}/{len(inputs)}] error {payload.get('query_label')} ({elapsed_ms} ms): {e}")
+                if is_fatal_configuration_error(e):
+                    raise SystemExit("Stopping after a fatal model/API configuration error.") from e
 
     log(f"Wrote {ok_count} outputs to {out_path.resolve()}")
     if err_count:

@@ -1,11 +1,29 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+import tempfile
 import unittest
 
 from scripts import run_llm_generation
 
 
 class CitationValidationTests(unittest.TestCase):
+    def test_generation_defaults_persist_only_explicit_model_and_api_method(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "generation_config.json"
+            run_llm_generation.save_generation_defaults(path, "MiniMax-M2.5", "chat.completions.create")
+            self.assertEqual(
+                run_llm_generation.load_generation_defaults(path),
+                {"model": "MiniMax-M2.5", "api_method": "chat.completions.create"},
+            )
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["schema"], "musparql.llm-generation-defaults.v1")
+
+    def test_invalid_model_error_is_fatal_configuration_error(self) -> None:
+        error = RuntimeError("Invalid model name passed in model=gpt-5")
+        self.assertTrue(run_llm_generation.is_fatal_configuration_error(error))
+        self.assertFalse(run_llm_generation.is_fatal_configuration_error(RuntimeError("Schema validation failed")))
+
     def test_repairs_minimax_cq_number_evidence_id_drift(self) -> None:
         payload = {
             "evidence": [
