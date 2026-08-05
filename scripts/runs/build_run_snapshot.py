@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -56,6 +57,31 @@ def copy_file(src: Path, dest: Path) -> Dict[str, Any]:
 def infer_models(output_records: List[Dict[str, Any]]) -> List[str]:
     models = sorted({str(rec.get("model")) for rec in output_records if rec.get("model")})
     return models
+
+
+def slugify(value: str) -> str:
+    return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", value.casefold())).strip("-") or "run"
+
+
+def infer_run_id(output_records: List[Dict[str, Any]], outputs_path: Path) -> str:
+    if not output_records:
+        raise ValueError(
+            f"Cannot infer a run ID from empty outputs: {outputs_path}. "
+            "Pass the same non-empty --outputs path used for generation."
+        )
+    models = infer_models(output_records)
+    if len(models) != 1:
+        raise ValueError("Cannot infer a run ID for mixed or unidentified models; pass --run-id explicitly")
+    generated_at = sorted(
+        str(record.get("generated_at"))
+        for record in output_records
+        if isinstance(record.get("generated_at"), str) and record.get("generated_at")
+    )
+    if generated_at:
+        stamp = datetime.fromisoformat(generated_at[0].replace("Z", "+00:00")).astimezone(timezone.utc)
+    else:
+        stamp = datetime.fromtimestamp(outputs_path.stat().st_mtime, timezone.utc)
+    return f"{stamp.strftime('%Y-%m-%d-%H%M%S')}-{slugify(models[0])}"
 
 
 def summarize_request_configs(output_records: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -145,7 +171,11 @@ def create_run_snapshot(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Create a frozen run snapshot under var/runs/<run-id>/")
-    parser.add_argument("--run-id", required=True)
+    parser.add_argument(
+        "--run-id",
+        default="",
+        help="Snapshot identifier. Defaults to the generation start time and requested model inferred from --outputs.",
+    )
     parser.add_argument("--inputs", required=True)
     parser.add_argument("--outputs", required=True)
     parser.add_argument("--errors", default="")
@@ -159,10 +189,14 @@ def main() -> None:
     parser.add_argument("--outroot", default="var/runs")
     args = parser.parse_args()
 
+    outputs_path = Path(args.outputs)
+    run_id = args.run_id or infer_run_id(load_json_records(outputs_path), outputs_path)
+    if not args.run_id:
+        print(f"Using inferred run ID: {run_id}")
     outdir = create_run_snapshot(
-        run_id=args.run_id,
+        run_id=run_id,
         inputs=Path(args.inputs),
-        outputs=Path(args.outputs),
+        outputs=outputs_path,
         errors=Path(args.errors) if args.errors else None,
         prompt=Path(args.prompt),
         schema=Path(args.schema),

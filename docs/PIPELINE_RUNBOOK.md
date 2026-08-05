@@ -63,7 +63,7 @@ ledgers under `var/queries/`.
 ```bash
 .venv/bin/python -m scripts.build_llm_inputs \
   --holdout-selectors var/holdout/selectors.jsonl \
-  --unreviewed-from benchmark/vN
+  --unreviewed-from benchmark/v8
 ```
 
 Use `--no-holdout` only when the human owner asserts that no holdout identities
@@ -79,7 +79,9 @@ then run:
 
 ```bash
 .venv/bin/python -m scripts.run_llm_generation \
-  --unreviewed-from benchmark/vN
+  --unreviewed-from benchmark/v8 \
+  --output var/llm/outputs-minimax-unreviewed.jsonl \
+  --errors var/llm/outputs-minimax-unreviewed.errors.jsonl
 ```
 
 Generation defaults to the adopted `MiniMax-M2.5` model through
@@ -89,19 +91,22 @@ reused by later runs. Explicit `--model` and `--api-method` arguments take
 precedence; `GRAPHIA_MODEL` and `GRAPHIA_API_METHOD` provide persistent shell
 overrides.
 
-The default outputs are `var/llm/outputs.jsonl` and
-`var/llm/outputs.errors.jsonl`. The generation flag can also filter an existing
-full input file; omit it when the input builder already produced the subset.
-Inspect the error file before freezing the run.
+The command uses explicit output names so the completed generation is not
+confused with older working files. Update `benchmark/v8` when starting from a
+newer benchmark. The generation flag can also filter an existing full input
+file; omit it when the input builder already produced the subset. Inspect the
+error file before freezing the run.
 
 ## 7. Freeze the generation run
 
+Use the exact input, output, and error paths supplied to the generation command.
+The copyable command below matches the generation command above.
+
 ```bash
 .venv/bin/python -m scripts.runs.build_run_snapshot \
-  --run-id <run-id> \
   --inputs var/llm/inputs.jsonl \
-  --outputs var/llm/outputs.jsonl \
-  --errors var/llm/outputs.errors.jsonl \
+  --outputs var/llm/outputs-minimax-unreviewed.jsonl \
+  --errors var/llm/outputs-minimax-unreviewed.errors.jsonl \
   --prompt prompts/llm_nl_generation.prompt.txt \
   --schema schemas/llm_output.schema.json \
   --examples prompts/llm_nl_generation.examples.jsonl \
@@ -109,9 +114,17 @@ Inspect the error file before freezing the run.
   --kg-queries var/queries/kg_queries.jsonl
 ```
 
-The snapshot is written to `var/runs/<run-id>/`.
+The snapshot builder infers a run ID from the generation start time and the
+single requested model recorded in the output. For the generation shown above,
+the snapshot is `var/runs/2026-08-05-191155-minimax-m2-5/`. Pass `--run-id NAME`
+only to override the inferred name.
 
 ## 8. Evaluate a change
+
+This step is optional and applies only when comparing two generation runs, such
+as a baseline and an experimental prompt or model. Skip it for an ordinary
+initial-review round. The following is a template rather than a copyable command
+because both run IDs must be chosen from the runs being compared:
 
 ```bash
 .venv/bin/python -m scripts.evals.evaluate_runs \
@@ -129,10 +142,26 @@ For initial review:
 
 ```bash
 .venv/bin/python -m scripts.build_review_bundle \
-  --outputs var/runs/<run-id>/llm_outputs.jsonl \
-  --run-manifest var/runs/<run-id>/manifest.json \
+  --latest-run \
+  --previous-benchmark benchmark/v8 \
   --holdout-selectors var/holdout/selectors.jsonl
 ```
+
+`--latest-run` reads the newest frozen manifest under `var/runs/` and resolves
+that run's copied inputs and outputs from the manifest. Use explicit `--inputs`,
+`--outputs`, and `--run-manifest` instead when reviewing an older run.
+
+Start the review application on loopback from a separate terminal:
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1 --directory review
+```
+
+Open `http://127.0.0.1:8000/` in a browser. Review state is stored in browser
+local storage, so closing the tab does not clear it. When the review and exports
+are complete, return to the server terminal and press `Ctrl-C` to stop it. Follow
+the [review runbook](REVIEW_RUNBOOK.md) for review, export, selector-update, and
+private holdout procedures.
 
 For comparative review, follow [REVIEW_RUNBOOK.md](REVIEW_RUNBOOK.md). The
 browser bundle remains an ignored generated file under `review/` because the
@@ -145,12 +174,13 @@ comparative update, or curated-source addition. Always supply the frozen run,
 validated sanitized review export, previous snapshot where applicable, and an
 explicit holdout policy.
 
-Create a new `benchmark/vN/`; never overwrite an earlier version.
+The next snapshot after the current `benchmark/v8/` is `benchmark/v9/`; never
+overwrite an earlier version.
 
 ## 11. Audit the snapshot
 
 ```bash
-.venv/bin/python -m scripts.benchmark.audit_snapshot benchmark/vN
+.venv/bin/python -m scripts.benchmark.audit_snapshot benchmark/v9
 ```
 
 Resolve every audit error before release.
@@ -159,11 +189,11 @@ Resolve every audit error before release.
 
 ```bash
 .venv/bin/python -m scripts.benchmark.build_public_release \
-  --snapshot benchmark/vN \
-  --outdir build/public-releases/vN
+  --snapshot benchmark/v9 \
+  --outdir build/public-releases/v9
 ```
 
-`build/public-releases/vN/` is a sanitized, reproducible package. It is ignored
+`build/public-releases/v9/` is a sanitized, reproducible package. It is ignored
 and may be archived or uploaded after human inspection; it is not a replacement
 for the tracked working snapshot.
 

@@ -58,7 +58,6 @@ One record per extracted query. Important fields include:
 - evidence records with stable evidence IDs;
 - append-only `sparql_edits`;
 - execution and run history pinned to SPARQL version and hash;
-- provisional model output after merge; and
 - correction and review provenance where applicable.
 
 Version `0` is always `sparql_clean`. Later versions live in `sparql_edits` and
@@ -94,7 +93,9 @@ Provisional model responses. A successful response contains:
 - model/request metadata needed for reproducibility.
 
 Malformed or failed responses are written separately and never treated as
-benchmark candidates.
+benchmark candidates. Model outputs remain separate from the working query
+catalogue; frozen runs, review builders, and evaluation tools join them by query
+identity without mutating the extracted query records.
 
 ## Generation runs
 

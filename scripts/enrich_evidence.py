@@ -1947,19 +1947,6 @@ def main() -> None:
             rec.pop("comments", None)
             if "confidence" not in rec:
                 rec["confidence"] = None
-            if "llm_output" not in rec:
-                rec["llm_output"] = {
-                    "ranked_evidence_phrases": [],
-                    "nl_question": None,
-                    "nl_question_origin": {
-                        "mode": None,
-                        "evidence_ids": [],
-                        "primary_evidence_id": None,
-                    },
-                    "confidence": None,
-                    "confidence_rationale": None,
-                    "needs_review": None,
-                }
 
     write_jsonl(queries_path, records)
     print(f"Wrote {len(records)} records to {queries_path.resolve()}")

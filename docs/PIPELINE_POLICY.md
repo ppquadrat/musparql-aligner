@@ -6,8 +6,16 @@ preserve. The commands are in [PIPELINE_RUNBOOK.md](PIPELINE_RUNBOOK.md).
 ## Start from human-authored SPARQL
 
 Musparql may extract, normalize, test, and version SPARQL, but it does not invent
-benchmark queries. Every query must resolve to an identified repository,
-document, paper, guide, or curated derivative with explicit provenance.
+benchmark information needs. Every query identity and intended information need
+must resolve to an identified repository, document, paper, guide, or curated
+derivative with explicit provenance.
+
+The normal curation track aligns natural language with an existing query and
+sends the pair to human review. SPARQL editing is an exceptional repair track,
+not an alternative source of benchmark tasks. A correction must remain grounded
+in the retained query and its evidence, preserve the intended information need,
+and never introduce an unrelated query merely because it is useful or easier to
+execute.
 
 ## Keep provenance attached
 
@@ -24,6 +32,11 @@ evidence alignment, paraphrase, and unguided formulation.
 Normalized source SPARQL is version `0`. A correction adds an append-only
 version with its own hash and provenance. Execution records, prompt inputs, and
 benchmark records identify the exact selected version and hash.
+
+Corrections should be rare and limited to errors, omissions, unresolved
+parameters, or other defects that prevent the retained query from faithfully
+expressing its source-grounded information need. They are not routine rewriting
+or optimization.
 
 Never rewrite version `0`, reuse a version number, or silently replace an
 approved edit.

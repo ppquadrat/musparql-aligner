@@ -167,6 +167,38 @@ def load_json(path: Path) -> Dict[str, Any]:
     return data
 
 
+def resolve_manifest_file(manifest_path: Path, manifest: Dict[str, Any], key: str) -> Path:
+    files = manifest.get("files")
+    entry = files.get(key) if isinstance(files, dict) else None
+    filename = entry.get("filename") if isinstance(entry, dict) else None
+    if not isinstance(filename, str) or not filename:
+        raise ValueError(f"Run manifest has no {key} file: {manifest_path}")
+    path = (manifest_path.parent / filename).resolve()
+    if not path.is_relative_to(manifest_path.parent.resolve()):
+        raise ValueError(f"Run manifest file escapes its run directory: {manifest_path}")
+    if not path.exists():
+        raise FileNotFoundError(f"Run manifest file is missing: {path}")
+    return path
+
+
+def resolve_latest_frozen_run(runs_root: Path) -> Tuple[Path, Path, Path]:
+    candidates: List[Tuple[str, str, Path, Dict[str, Any]]] = []
+    for manifest_path in runs_root.glob("*/manifest.json"):
+        manifest = load_json(manifest_path)
+        created_at = str(manifest.get("created_at") or "")
+        run_id = str(manifest.get("generation_run_id") or manifest.get("run_id") or manifest_path.parent.name)
+        if created_at:
+            candidates.append((created_at, run_id, manifest_path.resolve(), manifest))
+    if not candidates:
+        raise FileNotFoundError(f"No frozen run manifests found under {runs_root}")
+    _, run_id, manifest_path, manifest = max(candidates, key=lambda item: (item[0], item[1]))
+    inputs_path = resolve_manifest_file(manifest_path, manifest, "llm_inputs")
+    outputs_path = resolve_manifest_file(manifest_path, manifest, "llm_outputs")
+    if not load_json_records(outputs_path):
+        raise ValueError(f"Latest frozen run has empty outputs: {run_id}")
+    return inputs_path, outputs_path, manifest_path
+
+
 def infer_run_manifest(output_path: Path, explicit_manifest: Optional[Path]) -> Optional[Path]:
     candidates: List[Path] = []
     if explicit_manifest is not None:
@@ -253,8 +285,14 @@ def ensure_single_run_manifest(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build a browser review bundle from LLM inputs and outputs.")
-    parser.add_argument("--inputs", default="var/llm/inputs.jsonl")
-    parser.add_argument("--outputs", nargs="+", default=["var/llm/outputs.jsonl"])
+    parser.add_argument("--inputs", default=None)
+    parser.add_argument("--outputs", nargs="+", default=None)
+    parser.add_argument(
+        "--latest-run",
+        action="store_true",
+        help="Resolve inputs, outputs, and manifest from the newest frozen run under --runs-root.",
+    )
+    parser.add_argument("--runs-root", default="var/runs", help="Frozen-run directory used by --latest-run.")
     parser.add_argument("--out", default="review/review_data.js")
     parser.add_argument("--prompt", default="prompts/llm_nl_generation.prompt.txt")
     parser.add_argument("--schema", default="schemas/llm_output.schema.json")
@@ -287,11 +325,19 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    inputs_path = Path(args.inputs)
-    output_paths = [Path(p) for p in args.outputs]
+    if args.latest_run:
+        if args.inputs is not None or args.outputs is not None or args.run_manifest:
+            raise ValueError("--latest-run cannot be combined with --inputs, --outputs, or --run-manifest")
+        inputs_path, latest_output_path, latest_manifest_path = resolve_latest_frozen_run(Path(args.runs_root))
+        output_paths = [latest_output_path]
+        explicit_run_manifest = latest_manifest_path
+        print(f"Using latest frozen run: {latest_manifest_path.parent.name}")
+    else:
+        inputs_path = Path(args.inputs or "var/llm/inputs.jsonl")
+        output_paths = [Path(p) for p in (args.outputs or ["var/llm/outputs.jsonl"])]
+        explicit_run_manifest = Path(args.run_manifest) if args.run_manifest else None
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    explicit_run_manifest = Path(args.run_manifest) if args.run_manifest else None
     prompt_path = Path(args.prompt)
     schema_path = Path(args.schema)
     examples_path = Path(args.examples) if args.examples else None

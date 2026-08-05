@@ -2,11 +2,48 @@
 
 Musparql turns existing SPARQL and scattered human-language evidence into a
 reviewed NL–SPARQL benchmark. It is a curation workflow, not a query-generation
-system: benchmark SPARQL must originate in a repository, paper, guide, or other
-identified human source.
+system: every query identity and intended information need must originate in a
+repository, paper, guide, or other identified human source. A benchmark may
+select a human-approved corrected SPARQL version, but that correction repairs
+the retained source query; it does not introduce a new information need.
+
+The main workflow is natural-language review: recover, align, or formulate a
+faithful expression of the information need embodied in an existing query, then
+have a human decide whether the pair belongs in the benchmark. SPARQL correction
+is an exceptional supporting track for source queries that are malformed,
+incomplete, parameterized, or otherwise erroneous. Corrections should be rare,
+source-grounded, append-only, and limited to making the existing information
+need usable; version `0` always preserves the source text.
 
 This document explains the flow. Use the [pipeline runbook](PIPELINE_RUNBOOK.md)
 for commands and [DATA_MODEL.md](DATA_MODEL.md) for field-level detail.
+
+## Where determinism, models, and human judgment enter
+
+Musparql does not use an LLM throughout the pipeline. Most artifact construction
+is deterministic: given the same tracked inputs, configuration, code, and local
+working records, it produces the same identities, normalized records, prompt
+payloads, version pins, benchmark files, audits, and release package. The parts
+that depend on external systems, an LLM, or human judgment remain explicit and
+carry separate provenance.
+
+| Workflow activity | Kind | Role and boundary |
+| --- | --- | --- |
+| Capture sources | Deterministic after capture | Fetching can observe changing external content, but tracked snapshots provide the stable input used downstream. |
+| Extract queries and evidence | Deterministic | Parsers and enrichment rules transform configured source artifacts. They do not invent benchmark SPARQL or gold questions. |
+| Normalize and version SPARQL; build model inputs | Deterministic | Code selects retained versions, calculates hashes, packages evidence, and applies dismissal and holdout filters. |
+| Execute queries | External observation | The execution procedure and recorded pins are deterministic, but results can change with endpoints, datasets, federation, and time. Execution never decides benchmark inclusion. |
+| Triage possible SPARQL problems | Deterministic rules | Static checks and execution diagnostics select cases for investigation. An optional LLM may propose a correction, but only a human can approve an append-only SPARQL version. |
+| Align evidence and formulate questions | **LLM-assisted** | The LLM selects, aligns, paraphrases, or proposes provisional natural-language wording. Its output is non-deterministic model output, not gold data. |
+| Automatically evaluate provisional generation runs | Mixed diagnostics | Exact comparisons and optional LLM-based judges compare batches of proposed questions during pipeline experiments. These diagnostics do not evaluate the published benchmark or write review decisions or gold data. |
+| Review candidates and corrections | **Human judgment** | A reviewer decides semantic adequacy, canonical wording, inclusion or dismissal, correction approval, and eligible holdout selection. |
+| Build, audit, and package a benchmark | Deterministic | Validated human decisions and pinned artifacts are transformed into versioned benchmark files and an allowlisted public release. |
+
+In short, LLMs may **propose language, suggest a SPARQL correction, or provide an
+evaluation signal**. They do not create benchmark information needs, alter
+source SPARQL, approve corrections, select gold pairs, choose canonical
+questions, or publish a benchmark decision. Those boundaries are enforced by
+separate artifacts rather than relying only on prompt instructions.
 
 ## 1. Collect sources
 
@@ -90,7 +127,7 @@ This makes later comparison possible even after working files change.
 Runs are persistent local state, not build products: deleting them can remove
 the provenance needed to understand a review or benchmark update.
 
-## 7. Evaluate changes
+## 7. Automatically evaluate generation changes
 
 Automatic evaluation compares generation runs and writes reports under
 `var/evals/reports/`. These reports are diagnostics for pipeline development;

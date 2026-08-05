@@ -2,8 +2,23 @@
 
 ## The rule in one sentence
 
-Keep every query version, let a human approve changes, and treat execution as
-useful evidence—not as permission to use the query.
+Use editing only to repair a source-grounded query, keep every version, require
+human approval, and treat execution as useful evidence—not as permission to use
+the query.
+
+## An exception, not the main track
+
+Musparql's main curation task is to recover and review the natural-language
+information need expressed by existing SPARQL. Editing is expected to be rare.
+It exists for malformed syntax, missing constraints, unresolved parameters, or
+other errors in a retained query—not for inventing a more interesting benchmark
+task or routinely rewriting valid SPARQL.
+
+A correction may change the query text selected for a benchmark pair, but it
+must preserve the information need grounded in the source query and its
+evidence. If the desired result is a materially different information need, it
+requires its own human-authored source and query identity rather than a new
+version of the existing query.
 
 ## What stays permanent
 

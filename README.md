@@ -5,11 +5,19 @@ benchmark pairs from existing domain knowledge graphs. The current benchmark
 uses music knowledge graphs, but the workflow is intended to transfer to other
 research domains.
 
-The project starts from SPARQL written or published by people. It collects the
-query, its source, and nearby human-language evidence; uses an LLM to align that
-evidence or propose wording where evidence is missing; and asks a human reviewer
-to decide what belongs in the benchmark. Generated wording never becomes gold
-data without human review.
+The project aims to harvest information needs already expressed in
+human-authored SPARQL and its surrounding source material, not to invent new
+benchmark tasks. Its main track is natural-language curation: collect a query
+and nearby human-language evidence, use an LLM to align that evidence or propose
+a faithful wording where it is missing, and ask a human reviewer to decide what
+belongs in the benchmark. Generated wording never becomes gold data without
+human review.
+
+SPARQL editing is a narrow exception path, not a second query-authoring track.
+When a retained source query is malformed, incomplete, parameterized, or
+otherwise erroneous, a human may approve a provenance-linked, append-only
+correction that preserves the source information need. The original source
+query remains immutable as version `0`.
 
 The current public benchmark is under [`benchmark/v8`](benchmark/v8). It
 contains 100 reviewed pairs from Musical Meetups, the Jazz Ontology, MusOW,
@@ -20,8 +28,8 @@ Organs, and LinkedMusic.
 The workflow has four stages:
 
 1. **Acquire sources and queries.** Musparql records source provenance, captures
-   stable source snapshots, and extracts existing SPARQL. It does not generate
-   benchmark queries.
+   stable source snapshots, and extracts existing SPARQL. It does not invent
+   benchmark information needs.
 2. **Align evidence and formulate questions.** Existing descriptions and
    competency questions are preferred. An LLM may align or paraphrase them, or
    formulate a provisional question when no suitable wording exists.
@@ -60,7 +68,9 @@ the human verifies and places that file at the local path.
 
 ## Documentation
 
-- [`docs/WORKFLOW.md`](docs/WORKFLOW.md) — readable end-to-end workflow.
+- [`docs/WORKFLOW.md`](docs/WORKFLOW.md) — readable end-to-end workflow,
+  including the boundaries between deterministic processing, external
+  observations, LLM assistance, and human decisions.
 - [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) — artifact and field reference.
 - [`docs/PIPELINE_POLICY.md`](docs/PIPELINE_POLICY.md) — rules that pipeline
   changes and runs must preserve.
