@@ -253,13 +253,20 @@ sparql_version)` scope as the requested jobs. A version-scoped rerun therefore
 replaces failures only for that version and preserves failures for other
 retained versions. Legacy versionless failure rows are treated as version `0`.
 
+The same run automatically maintains `sparql_correction_candidates.jsonl` at
+the requested `(query_id, sparql_version)` scope. This derived queue classifies
+endpoint rejection, unresolved parameters, runtime-environment requirements,
+infrastructure failures, and ambiguous execution failures without claiming that
+each item requires an edit. Review and approval follow
+`SPARQL_CORRECTION_RUNBOOK.md`; policy is in `SPARQL_EDITING_POLICY.md`.
+
 The runner selects the latest version by default. Use an explicit selector to
 compare retained versions:
 
 ```bash
-.venv/bin/python run_queries.py --source-id linkedmusic-public-query-database --sparql-version original
-.venv/bin/python run_queries.py --source-id linkedmusic-corrected-examples-working-copy --sparql-version 1
-.venv/bin/python run_queries.py --source-id linkedmusic-corrected-examples-working-copy --sparql-version all
+.venv/bin/python run_queries.py --source-id linkedmusic-public-query-database --sparql-version original --no-holdout
+.venv/bin/python run_queries.py --source-id linkedmusic-corrected-examples-working-copy --sparql-version 1 --no-holdout
+.venv/bin/python run_queries.py --source-id linkedmusic-corrected-examples-working-copy --sparql-version all --no-holdout
 ```
 
 The official LinkedMusic JSONL is reproducible from its retained workbook:
@@ -1077,6 +1084,8 @@ Versioning invariants:
   SPARQL text) matches the current input. Historical query IDs may be resolved
   during evaluation only through a unique normalized-SPARQL match within the
   same KG.
+- Any query identity with retained `sparql_edits` is permanently ineligible for
+  holdout inclusion, including when version `0` is selected.
 
 ### `runs/<run-id>/manifest.json`
 

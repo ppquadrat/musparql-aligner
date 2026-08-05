@@ -24,6 +24,9 @@ from sparql_versions import (
     sparql_hash as compute_sparql_hash,
     validate_execution_versions,
 )
+from sparql_corrections import load_jsonl as load_correction_candidates
+from sparql_corrections import exclude_candidate_pairs, merge_candidates, write_jsonl as write_correction_candidates
+from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selector_record
 
 REPO_ROOT = Path(__file__).resolve().parent
 DUMPS_DIR = (REPO_ROOT / "dumps").resolve()
@@ -496,15 +499,16 @@ def record_matches_sources(record: Dict[str, object], selected_source_ids: set[s
 
 
 def failure_matches_job(
-    failure: Dict[str, object], job_keys: set[tuple[str, int]]
+    failure: Dict[str, object], job_keys: set[tuple[str, str, int]]
 ) -> bool:
+    kg_id = str(failure.get("kg_id") or "")
     query_id = str(failure.get("query_id") or "")
-    if not query_id:
+    if not kg_id or not query_id:
         return False
     version = failure.get("sparql_version")
     # Versionless sidecar entries predate versioning and refer to source v0.
     normalized_version = version if isinstance(version, int) else 0
-    return (query_id, normalized_version) in job_keys
+    return (kg_id, query_id, normalized_version) in job_keys
 
 
 def build_query_jobs(
@@ -612,6 +616,8 @@ def non_executable_reason(query: str) -> Optional[str]:
         return "requires_local_file"
     if re.search(r"(?<!%)%(?:s|i|d|f)\b", query):
         return "parameterized_template"
+    if re.search(r"\{[A-Za-z_][A-Za-z0-9_]*\}", query):
+        return "parameterized_template"
     return None
 
 
@@ -690,9 +696,20 @@ def main() -> None:
         default="latest",
         help="SPARQL version to execute: original, latest, all, or a non-negative integer (default: latest).",
     )
+    add_holdout_filter_arguments(parser)
     args = parser.parse_args()
+    if args.holdout_filtered_upstream:
+        raise ValueError(
+            "--holdout-filtered-upstream is invalid because run_queries reads the canonical query file"
+        )
     selected_kg_ids = set(args.kg_ids or [])
     selected_source_ids = set(args.source_ids or [])
+    holdout_keys = set()
+    if args.holdout_selectors:
+        holdout_keys = {
+            validate_selector_record(item)
+            for item in load_correction_candidates(Path(args.holdout_selectors))
+        }
 
     def record_is_selected(record: Dict[str, object]) -> bool:
         kg_id = record.get("kg_id")
@@ -706,6 +723,7 @@ def main() -> None:
     queries_path = Path("kg_queries.jsonl")
     out_path = queries_path
     fail_path = Path("runnable_queries.failures.jsonl")
+    correction_path = Path("sparql_correction_candidates.jsonl")
 
     endpoints = load_endpoints(seeds_path)
     datasets = load_datasets(seeds_path)
@@ -736,18 +754,18 @@ def main() -> None:
     kept = 0
     failures: List[Dict[str, object]] = []
     job_keys = {
-        (str(record.get("query_id")), int(resolved["sparql_version"]))
+        (str(record.get("kg_id")), str(record.get("query_id")), int(resolved["sparql_version"]))
         for record, resolved in jobs
-        if record.get("query_id") is not None
+        if record.get("kg_id") is not None and record.get("query_id") is not None
     }
-    selected_query_ids = {query_id for query_id, _version in job_keys}
+    selected_query_ids = {(kg_id, query_id) for kg_id, query_id, _version in job_keys}
     if fail_path.exists():
         for line in fail_path.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
             previous = json.loads(line)
-            previous_query_id = str(previous.get("query_id") or "")
-            if previous_query_id not in selected_query_ids or not failure_matches_job(
+            previous_pair = (str(previous.get("kg_id") or ""), str(previous.get("query_id") or ""))
+            if previous_pair not in selected_query_ids or not failure_matches_job(
                 previous, job_keys
             ):
                 failures.append(previous)
@@ -794,8 +812,9 @@ def main() -> None:
         endpoint = endpoints.get(kg_id)
         dataset = datasets.get(kg_id)
         if endpoint is not None and kg_id in unhealthy_endpoints and not (endpoint.fallbacks or []):
+            observed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
             skipped_execution = add_execution_version({
-                "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                "ran_at": observed_at,
                 "status": "skipped_endpoint_unavailable",
                 "endpoint": endpoint.primary.endpoint,
                 "result_count": None,
@@ -813,13 +832,15 @@ def main() -> None:
                     "query_label": rec.get("query_label"),
                     "sparql_version": version,
                     "sparql_hash": resolved["sparql_hash"],
+                    "observed_at": observed_at,
                 }
             )
             stat["skipped_endpoint_unavailable"] += 1
             continue
         if endpoint is None and dataset is None:
+            observed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
             skipped_execution = add_execution_version({
-                "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                "ran_at": observed_at,
                 "status": "skipped_no_endpoint",
                 "endpoint": None,
                 "result_count": None,
@@ -836,6 +857,7 @@ def main() -> None:
                 "query_label": rec.get("query_label"),
                 "sparql_version": version,
                 "sparql_hash": resolved["sparql_hash"],
+                "observed_at": observed_at,
             })
             skipped_no_endpoint += 1
             stat["skipped_no_endpoint"] += 1
@@ -844,6 +866,7 @@ def main() -> None:
         query_to_run = clean_query(query)
         skip_reason = non_executable_reason(query) or non_executable_reason(query_to_run)
         if skip_reason is not None:
+            observed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
             configured_endpoint = endpoint.primary.endpoint if endpoint is not None else None
             failures.append(
                 {
@@ -855,11 +878,12 @@ def main() -> None:
                     "query_label": rec.get("query_label"),
                     "sparql_version": version,
                     "sparql_hash": resolved["sparql_hash"],
+                    "observed_at": observed_at,
                 }
             )
             stat["skipped_local"] += 1
             skipped_execution = add_execution_version({
-                "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                "ran_at": observed_at,
                 "status": "skipped_local_query",
                 "skip_reason": skip_reason,
                 "endpoint": configured_endpoint,
@@ -922,8 +946,9 @@ def main() -> None:
                         break
                     result = retry
         status = result.get("status")
+        observed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
         latest_execution = add_execution_version({
-            "ran_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            "ran_at": observed_at,
             "status": status,
             "endpoint": endpoint_used if endpoint is not None else None,
             "result_count": result.get("result_count"),
@@ -957,6 +982,7 @@ def main() -> None:
                     "effective_sparql_hash": compute_sparql_hash(effective_query),
                     "graph": effective_graph,
                     "body_snippet": result.get("body_snippet"),
+                    "observed_at": observed_at,
                 }
             )
             stat["failed"] += 1
@@ -976,6 +1002,19 @@ def main() -> None:
     with fail_path.open("w", encoding="utf-8") as f:
         for rec in failures:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+    candidate_failures = [
+        failure for failure in failures
+        if (str(failure.get("kg_id") or ""), str(failure.get("query_id") or "")) not in holdout_keys
+    ]
+    existing_candidates = exclude_candidate_pairs(
+        load_correction_candidates(correction_path), holdout_keys
+    )
+    correction_candidates = merge_candidates(
+        existing_candidates, candidate_failures, records, job_keys
+    )
+    write_correction_candidates(correction_path, correction_candidates)
+    print(f"SPARQL correction ledger holdout policy: {holdout_input_policy(args)}")
 
     if stats:
         print("\nPer-KG run stats:")
@@ -1007,6 +1046,7 @@ def main() -> None:
         f"(skipped_no_endpoint={skipped_no_endpoint}, kept={kept}, "
         f"failed={len(failures) - preserved_failure_count})"
     )
+    print(f"Wrote {len(correction_candidates)} automatic correction candidates to {correction_path.resolve()}")
 
 
 if __name__ == "__main__":

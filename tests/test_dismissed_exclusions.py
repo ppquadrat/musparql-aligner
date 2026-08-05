@@ -13,6 +13,8 @@ import build_llm_inputs
 import build_next_review_round
 import build_review_bundle
 import build_review_diff_bundle
+from sparql_corrections import sparql_provenance
+from sparql_versions import resolve_sparql_version, sparql_hash
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmark"))
 import build_benchmark  # noqa: E402
@@ -190,9 +192,17 @@ class DismissedExclusionTests(unittest.TestCase):
             outputs_path = tmp_path / "outputs.jsonl"
             benchmark_dir = tmp_path / "benchmark"
             out_path = tmp_path / "review_data.js"
+            canonical_path = tmp_path / "kg_queries.jsonl"
             benchmark_dir.mkdir()
+            sparql = "SELECT { ?new ?p ?o }"
+            canonical = {"kg_id": "kg", "query_id": "q1", "query_label": "label", "sparql_clean": sparql, "sparql_hash": sparql_hash(sparql)}
+            resolved = resolve_sparql_version(canonical, 0)
             inputs_path.write_text(
-                json.dumps({"kg_id": "kg", "query_id": "q1", "query_label": "label", "sparql_clean": "SELECT { ?new ?p ?o }", "sparql_hash": "new", "evidence": []}) + "\n",
+                json.dumps({"kg_id": "kg", "query_id": "q1", "query_label": "label", "sparql_clean": sparql, "sparql_version": 0, "sparql_hash": resolved["sparql_hash"], "sparql_provenance": sparql_provenance(canonical, resolved), "evidence": []}) + "\n",
+                encoding="utf-8",
+            )
+            canonical_path.write_text(
+                json.dumps(canonical) + "\n",
                 encoding="utf-8",
             )
             outputs_path.write_text(
@@ -206,6 +216,7 @@ class DismissedExclusionTests(unittest.TestCase):
             with patch.object(sys, "argv", [
                 "build_review_bundle.py", "--inputs", str(inputs_path), "--outputs", str(outputs_path),
                 "--previous-benchmark", str(benchmark_dir), "--assert-complete-review-provenance",
+                "--kg-queries", str(canonical_path),
                 "--no-holdout",
                 "--out", str(out_path), "--no-freeze",
             ]):

@@ -63,8 +63,31 @@ def validate_selector_record(record: Mapping[str, Any]) -> Tuple[str, str]:
     if has_version:
         version = record.get("sparql_version")
         digest = record.get("sparql_hash")
-        if isinstance(version, bool) or not isinstance(version, int) or version < 1:
-            raise ValueError("Holdout selector sparql_version must be a positive integer")
+        if isinstance(version, bool) or not isinstance(version, int) or version < 0:
+            raise ValueError("Holdout selector sparql_version must be a non-negative integer")
         if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
             raise ValueError("Holdout selector sparql_hash must be a lowercase SHA-256 digest")
     return kg_id, query_id
+
+
+def assert_selectors_unedited(
+    selector_keys: set[Tuple[str, str]], records: list[Mapping[str, Any]]
+) -> None:
+    """Reject selectors for query identities that retain any SPARQL edit."""
+    from sparql_corrections import retained_sparql_edit_count
+
+    by_key = {
+        (str(record.get("kg_id") or ""), str(record.get("query_id") or "")): record
+        for record in records
+    }
+    missing = sorted(selector_keys - set(by_key))
+    if missing:
+        raise ValueError(f"Holdout selectors do not resolve to canonical query records: {missing}")
+    edited = sorted(
+        key for key in selector_keys if retained_sparql_edit_count(by_key[key]) > 0
+    )
+    if edited:
+        raise ValueError(
+            "SPARQL-edited query identities are permanently ineligible for holdout: "
+            + ", ".join(f"{kg_id}/{query_id}" for kg_id, query_id in edited)
+        )

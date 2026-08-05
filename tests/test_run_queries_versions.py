@@ -76,9 +76,9 @@ def test_source_filter_matches_edit_provenance():
 
 
 def test_versionless_failure_is_source_version_zero():
-    legacy = {"query_id": "q1", "status": "query_error"}
-    assert failure_matches_job(legacy, {("q1", 0)})
-    assert not failure_matches_job(legacy, {("q1", 1)})
+    legacy = {"kg_id": "kg", "query_id": "q1", "status": "query_error"}
+    assert failure_matches_job(legacy, {("kg", "q1", 0)})
+    assert not failure_matches_job(legacy, {("kg", "q1", 1)})
 
 
 def test_unused_facade_x_prefix_does_not_make_query_local_only():
@@ -93,6 +93,7 @@ SELECT * WHERE { ?s ?p ?o }"""
 def test_printf_query_templates_are_not_executed_as_literal_sparql():
     assert non_executable_reason('SELECT * WHERE { ?s rdfs:label "%s" }') == "parameterized_template"
     assert non_executable_reason("SELECT ?s\n## WHERE { <%s> ?p ?o }") == "parameterized_template"
+    assert non_executable_reason("SELECT * WHERE { wd:{qid} ?p ?o }") == "parameterized_template"
 
 
 def test_effective_query_can_be_audited_separately_from_retained_text():

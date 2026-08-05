@@ -25,3 +25,11 @@ def test_private_export_name_is_extension_independent() -> None:
 def test_known_local_work_trees_are_forbidden() -> None:
     assert boundary.matches("tmp/example.json", boundary.FORBIDDEN_PATHS)
     assert boundary.matches("dumps/example.ttl", boundary.FORBIDDEN_PATHS)
+    assert boundary.matches("review/sparql_correction_data.js", boundary.FORBIDDEN_PATHS)
+    assert boundary.CORRECTION_NAME_RE.match("musparql-sparql-correction-review-abc.json")
+
+
+def test_correction_schemas_are_publication_tripwires() -> None:
+    assert boundary.contains_correction_artifact(
+        {"schema": "musparql.sparql-correction-review-export.v1"}
+    )

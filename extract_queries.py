@@ -613,6 +613,7 @@ def load_curated_query_records(path: Path) -> List[Dict[str, Any]]:
 
 VERSION_STATE_FIELDS = (
     "sparql_edits",
+    "sparql_correction_history",
     "latest_execution",
     "latest_successful_execution",
     "execution_history",

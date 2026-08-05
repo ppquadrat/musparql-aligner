@@ -30,6 +30,11 @@ Select about **10% of eligible pairs** for the holdout across:
 - straightforward, ambiguous, and graph-context-dependent cases; and
 - relevant execution outcomes or endpoint requirements.
 
+Exclude every query identity with retained SPARQL edits. Do not select version
+`0` of an edited identity: edit history makes all of its versions ineligible.
+If a saved holdout later appears ineligible, export and clear it through the
+private recovery flow, retire it, and choose a replacement.
+
 ## During review
 
 1. Review candidates normally.

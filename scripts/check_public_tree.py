@@ -24,6 +24,9 @@ FORBIDDEN_PATHS = (
     "llm_outputs*.jsonl",
     "runs/*/*",
     "review/review_data*.js",
+    "review/sparql_correction_data*.js",
+    "sparql_correction_candidates*.jsonl",
+    "**/musparql-sparql-correction-review-*",
     "prompts/llm_nl_generation.inputs.jsonl",
     ".vscode/*",
     "dumps/*",
@@ -32,6 +35,15 @@ FORBIDDEN_PATHS = (
 )
 
 PRIVATE_NAME_RE = re.compile(r"^musparql-holdout-private-", re.IGNORECASE)
+CORRECTION_NAME_RE = re.compile(
+    r"^(?:musparql-sparql-correction-review-|sparql_correction_(?:candidates|data)(?:[._-]|$))",
+    re.IGNORECASE,
+)
+CORRECTION_SCHEMAS = {
+    "musparql.sparql-correction-candidate.v1",
+    "musparql.sparql-correction-bundle.v1",
+    "musparql.sparql-correction-review-export.v1",
+}
 PRIVATE_TEXT_RE = re.compile(
     r'(?:(?:"|\b)(?:split|benchmark_disposition|kind)(?:"|\b)\s*:\s*'
     r'(?:"(?:private_holdout|withheld|private_holdout_export)"|'
@@ -78,6 +90,16 @@ def contains_private_marker(value: Any) -> bool:
     return False
 
 
+def contains_correction_artifact(value: Any) -> bool:
+    if isinstance(value, dict):
+        return value.get("schema") in CORRECTION_SCHEMAS or any(
+            contains_correction_artifact(item) for item in value.values()
+        )
+    if isinstance(value, list):
+        return any(contains_correction_artifact(item) for item in value)
+    return False
+
+
 def structured_private_marker(path: str, text: str) -> bool:
     suffix = PurePosixPath(path).suffix.lower()
     if suffix not in DATA_SUFFIXES:
@@ -96,9 +118,13 @@ def structured_private_marker(path: str, text: str) -> bool:
 def check(*, staged: bool = False, rev: str | None = None) -> list[str]:
     errors: list[str] = []
     for path in candidate_paths(staged=staged, rev=rev):
-        if PRIVATE_NAME_RE.match(PurePosixPath(path).name) or matches(path, FORBIDDEN_PATHS):
-            errors.append(f"forbidden tracked path: {path}")
-            continue
+        name = PurePosixPath(path).name
+        if PRIVATE_NAME_RE.match(name) or CORRECTION_NAME_RE.match(name) or matches(path, FORBIDDEN_PATHS):
+            if path.startswith("tests/fixtures/") and "synthetic" in name.lower():
+                pass
+            else:
+                errors.append(f"forbidden tracked path: {path}")
+                continue
         if PurePosixPath(path).suffix.lower() not in DATA_SUFFIXES:
             continue
         try:
@@ -108,6 +134,12 @@ def check(*, staged: bool = False, rev: str | None = None) -> list[str]:
             continue
         if structured_private_marker(path, text):
             errors.append(f"private review marker in data blob: {path}")
+        try:
+            values = [json.loads(line) for line in text.splitlines() if line.strip()] if path.endswith(".jsonl") else [json.loads(text)]
+        except json.JSONDecodeError:
+            values = []
+        if not path.startswith("tests/fixtures/") and any(contains_correction_artifact(value) for value in values):
+            errors.append(f"SPARQL correction artifact in public data blob: {path}")
     return errors
 
 

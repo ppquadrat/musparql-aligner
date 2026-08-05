@@ -115,6 +115,26 @@ python3 -m http.server 8000 --bind 127.0.0.1 --directory review
 http://127.0.0.1:8000/
 ```
 
+### SPARQL correction mode
+
+Query execution automatically creates the correction-candidate ledger. Build a
+holdout-filtered bundle and open the separate correction page:
+
+```bash
+.venv/bin/python build_sparql_correction_bundle.py --no-holdout
+# open http://127.0.0.1:8000/corrections.html
+```
+
+This mode shows the immutable base query, execution observation, automatic
+triage, aligned evidence, and an append-only proposal form. It has no
+private-holdout control, import, or private-export path. Apply exported
+decisions with `apply_sparql_corrections.py` following
+`SPARQL_CORRECTION_RUNBOOK.md`.
+
+Any query identity with retained SPARQL edits is permanently ineligible for
+holdout inclusion. Initial and comparison NL review enforce this from explicit
+edit-history provenance, including when selected SPARQL is version `0`.
+
 Reviewer decisions are stored in persistent browser local storage, so closing a
 tab does not clear them and clearing the browser cache is not relevant. After
 securely saving and verifying a private export, use **Clear Private State**, then

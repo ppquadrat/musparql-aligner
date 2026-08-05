@@ -11,6 +11,8 @@ Documentation entry points:
   and the safeguards in place.
 - `HOLDOUT_RUNBOOK.md`: the human checklist for selecting, exporting, clearing,
   and publishing around holdout records.
+- `SPARQL_EDITING_POLICY.md`: append-only edit, provenance, and holdout rules.
+- `SPARQL_CORRECTION_RUNBOOK.md`: automatic triage, review, application, and verification.
 - `review/README.md`: review-workbench operation and review-field semantics.
 - `benchmark/README.md`: snapshot schemas, update policy, audits, and
   public-release packaging.
@@ -32,5 +34,10 @@ SPARQL corrections are retained as append-only versions. Version `0` is always
 the normalized source query; execution history, prompt inputs, and new benchmark
 records identify the selected version and hash. See “Query Execution Metadata”
 and the `kg_queries.jsonl` model in `WORKFLOW.md`.
+
+Execution maintains an automatic correction-candidate ledger. Human approval
+happens in a separate correction workbench and is applied append-only with
+proposal, execution, evidence, and review provenance. Query identities with
+retained edits are permanently excluded from holdout eligibility.
 
 This project uses OpenAI API with input/output sharing enabled to save costs.

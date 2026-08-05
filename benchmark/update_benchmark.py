@@ -148,6 +148,7 @@ def make_benchmark_record(
         "sparql": record.get("input", {}).get("sparql_clean"),
         "sparql_version": record.get("input", {}).get("sparql_version"),
         "sparql_hash": record.get("input", {}).get("sparql_hash"),
+        "sparql_provenance": record.get("input", {}).get("sparql_provenance"),
         "gold_question": gold_question,
         "gold_question_source": gold_source,
         "benchmark_disposition": disposition,

@@ -23,6 +23,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from sparql_versions import resolve_sparql_version, sparql_hash
+from sparql_corrections import retained_sparql_edit_count
 
 
 def key(record: Dict[str, Any]) -> Tuple[str, str]:
@@ -87,6 +88,26 @@ def audit_version_pins(
                 continue
             if resolved["sparql_hash"] != digest or resolved["sparql"] != text:
                 errors.append(f"{name} SPARQL pin differs from the retained version: {label}")
+            provenance = row.get("sparql_provenance")
+            if provenance is not None:
+                expected_count = retained_sparql_edit_count(query)
+                if not isinstance(provenance, dict) or provenance.get("retained_edit_count") != expected_count:
+                    errors.append(f"{name} retained SPARQL edit provenance is incorrect: {label}")
+                elif (
+                    provenance.get("selected_version") != version
+                    or provenance.get("selected_hash") != digest
+                ):
+                    errors.append(f"{name} selected SPARQL provenance is incorrect: {label}")
+                else:
+                    history_digest = provenance.get("history_digest")
+                    if not isinstance(history_digest, str) or not history_digest.startswith("sha256:"):
+                        errors.append(f"{name} SPARQL provenance lacks a history digest: {label}")
+                    if expected_count > 0:
+                        if not isinstance(provenance.get("selected_edit"), dict):
+                            errors.append(f"{name} edited SPARQL lacks selected-edit provenance: {label}")
+                        verification = provenance.get("verification")
+                        if not isinstance(verification, dict) or verification.get("status") != "verified":
+                            errors.append(f"{name} edited SPARQL is not execution-verified: {label}")
             if latest_required and latest["sparql_version"] != version:
                 errors.append(f"{name} does not select the latest retained SPARQL: {label}")
 

@@ -62,15 +62,30 @@ def available_sparql_versions(record: Mapping[str, Any]) -> List[Dict[str, Any]]
             raise SparqlVersionError(
                 f"SPARQL edit version {version} has an invalid source_id"
             )
-        versions.append(
-            {
+        evidence_ids = edit.get("evidence_ids")
+        if evidence_ids is not None and (
+            not isinstance(evidence_ids, list)
+            or not all(isinstance(item, str) and item.strip() for item in evidence_ids)
+        ):
+            raise SparqlVersionError(
+                f"SPARQL edit version {version} has invalid evidence_ids"
+            )
+        provenance = edit.get("provenance")
+        if provenance is not None and not isinstance(provenance, Mapping):
+            raise SparqlVersionError(
+                f"SPARQL edit version {version} has invalid provenance"
+            )
+        resolved_edit = {
                 "sparql_version": version,
                 "sparql": text,
                 "sparql_hash": sparql_hash(text),
                 "note": note,
                 "source_id": source_id,
+                "edit_type": edit.get("edit_type"),
+                "evidence_ids": list(evidence_ids or []),
+                "provenance": dict(provenance or {}),
             }
-        )
+        versions.append(resolved_edit)
     return versions
 
 

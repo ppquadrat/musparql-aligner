@@ -10,6 +10,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selector_record
 from runs.build_run_snapshot import create_run_snapshot
+from sparql_corrections import assert_input_provenance_current
 
 BENCHMARK_FILES = {
     "included": "included.jsonl",
@@ -320,6 +321,10 @@ def main() -> None:
     )
 
     input_records = load_json_records(inputs_path)
+    if args.assert_complete_review_provenance:
+        if kg_queries_path is None:
+            raise ValueError("Canonical --kg-queries is required for holdout provenance checks")
+        assert_input_provenance_current(input_records, load_json_records(kg_queries_path))
     input_index = build_input_index(input_records)
 
     review_records: List[Dict[str, Any]] = []
@@ -400,6 +405,7 @@ def main() -> None:
                     "sparql_hash": source_input.get("sparql_hash"),
                     "schema_ref": source_input.get("schema_ref"),
                     "evidence": source_input.get("evidence", []),
+                    "sparql_provenance": source_input.get("sparql_provenance"),
                 },
                 "output": rec.get("llm_output"),
                 "output_meta": output_meta(rec),
@@ -415,6 +421,21 @@ def main() -> None:
             str(rec.get("run_label") or ""),
         )
     )
+
+    if args.assert_complete_review_provenance:
+        missing_edit_provenance = [
+            rec["review_id"]
+            for rec in review_records
+            if not isinstance(rec.get("input", {}).get("sparql_provenance"), dict)
+            or isinstance(rec["input"]["sparql_provenance"].get("retained_edit_count"), bool)
+            or not isinstance(rec["input"]["sparql_provenance"].get("retained_edit_count"), int)
+            or rec["input"]["sparql_provenance"]["retained_edit_count"] < 0
+        ]
+        if missing_edit_provenance:
+            raise ValueError(
+                "Cannot enable holdout selection: SPARQL edit provenance is missing or invalid for "
+                + ", ".join(missing_edit_provenance[:5])
+            )
 
     dataset_payload = {
         "dataset_id": sha256_text(

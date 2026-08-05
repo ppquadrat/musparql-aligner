@@ -67,6 +67,7 @@
     hasReviewerDecision,
     initialHoldoutEligibility,
     compareHoldoutEligibility,
+    sparqlEditHoldoutEligibility,
     reusedPreviousReview,
   };
 
@@ -744,6 +745,8 @@
     if (!record) {
       return { eligible: false, reason: "No current record is available for holdout selection." };
     }
+    const editEligibility = sparqlEditHoldoutEligibility(record);
+    if (!editEligibility.eligible) return editEligibility;
     if (record.has_prior_pair_review === true || getReviewScope(record) === "previously_reviewed" || hasReviewerDecision(record.previous_review)) {
       return {
         eligible: false,
@@ -766,6 +769,8 @@
     if (!pair?.current?.record) {
       return { eligible: false, reason: "Ineligible for holdout: there is no current record." };
     }
+    const editEligibility = sparqlEditHoldoutEligibility(pair.current.record);
+    if (!editEligibility.eligible) return editEligibility;
     if (hasReviewerDecision(pair.previous?.review)) {
       return {
         eligible: false,
@@ -776,6 +781,24 @@
       eligible: true,
       reason: "Eligible because no earlier reviewer decision is attached; appearing in a previous run is allowed.",
     };
+  }
+
+  function sparqlEditHoldoutEligibility(record) {
+    const provenance = record?.input?.sparql_provenance;
+    const count = provenance?.retained_edit_count;
+    if (!Number.isInteger(count) || count < 0) {
+      return {
+        eligible: false,
+        reason: "Ineligible for holdout: retained SPARQL edit provenance is missing or invalid.",
+      };
+    }
+    if (count !== 0) {
+      return {
+        eligible: false,
+        reason: "Ineligible for holdout: this query identity retains SPARQL edit history.",
+      };
+    }
+    return { eligible: true, reason: "No retained SPARQL edit history." };
   }
 
   function reusedPreviousReview(previousReview, currentReview, copiedFromReviewId) {

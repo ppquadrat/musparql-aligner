@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Set, Tuple
 
-from holdout_selectors import add_holdout_filter_arguments, validate_selector_record
+from holdout_selectors import add_holdout_filter_arguments, assert_selectors_unedited, validate_selector_record
+from sparql_corrections import require_verified_edit, sparql_provenance
 from sparql_versions import resolve_sparql_version
 
 
@@ -141,6 +142,7 @@ def build_prompt_input(
     sparql_version: str = "latest",
 ) -> Dict[str, object]:
     resolved = resolve_sparql_version(rec, sparql_version)
+    require_verified_edit(rec, resolved)
     payload: Dict[str, object] = {
         "query_id": rec.get("query_id"),
         "query_label": rec.get("query_label"),
@@ -148,6 +150,7 @@ def build_prompt_input(
         "sparql_clean": resolved["sparql"],
         "sparql_version": resolved["sparql_version"],
         "sparql_hash": resolved["sparql_hash"],
+        "sparql_provenance": sparql_provenance(rec, resolved),
         "evidence": iter_evidence(rec.get("evidence", []) or [], include_sparql_blocks),
         "schema_ref": "schemas/llm_output.schema.json",
     }
@@ -204,6 +207,8 @@ def main() -> None:
         if args.holdout_selectors
         else set()
     )
+    if holdout_selector_keys:
+        assert_selectors_unedited(holdout_selector_keys, records)
 
     written = 0
     skipped_excluded = 0

@@ -330,6 +330,7 @@ def update_sidecar_identity(
             "sparql": benchmark_record.get("sparql"),
             "sparql_version": benchmark_record.get("sparql_version"),
             "sparql_hash": benchmark_record.get("sparql_hash"),
+            "sparql_provenance": benchmark_record.get("sparql_provenance"),
             "canonical_question": benchmark_record.get("gold_question"),
             "canonical_question_source": benchmark_record.get("gold_question_source"),
         }
@@ -476,6 +477,7 @@ def benchmark_gold_records(
                     "sparql": rec.get("sparql"),
                     "sparql_version": rec.get("sparql_version"),
                     "sparql_hash": rec.get("sparql_hash"),
+                    "sparql_provenance": rec.get("sparql_provenance"),
                     "gold_question": gold_question,
                     "gold_question_source": rec.get("gold_question_source"),
                     "evidence_summary": rec.get("evidence_summary"),
@@ -559,6 +561,7 @@ def main() -> None:
             "sparql": record.get("input", {}).get("sparql_clean"),
             "sparql_version": record.get("input", {}).get("sparql_version"),
             "sparql_hash": record.get("input", {}).get("sparql_hash"),
+            "sparql_provenance": record.get("input", {}).get("sparql_provenance"),
             "gold_question": gold_question,
             "gold_question_source": gold_source,
             "benchmark_disposition": disposition,

@@ -7,11 +7,13 @@ __pycache__/
 # Generated data
 raw_queries.jsonl
 runnable_queries.jsonl
+sparql_correction_candidates.jsonl
 kg_queries.jsonl
 llm_inputs.jsonl
 llm_outputs*.jsonl
 runs/*/
 review/review_data*.js
+review/sparql_correction_data.js
 prompts/llm_nl_generation.inputs.jsonl
 
 # Human review boundary

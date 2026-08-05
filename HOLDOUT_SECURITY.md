@@ -89,6 +89,11 @@ review session. Merely generating the pair in an earlier run, including it in a
 comparison bundle, or displaying it in either review interface does not make it
 ineligible. An earlier status, wording correction, rating, or comment does.
 
+A query identity that retains any SPARQL edit is also permanently ineligible,
+even if version `0` is selected later or a subsequent edit reverts the text.
+SPARQL correction review is a development workflow and excludes selected
+holdout identities before attaching execution details, evidence, or proposals.
+
 Initial review uses pair-level provenance in its bundle; comparison review checks
 the attached previous review. Eligibility remains pair-wide even when a changed
 SPARQL version prevents reuse of the old decision. The initial interface disables
@@ -193,7 +198,9 @@ Each JSON or JSONL record may contain only:
 
 The version and hash may both be omitted. The shared validator rejects reviewer
 decisions, comments, wording, ratings, timestamps, provenance, and malformed
-version pins. Under the identity-private policy, do not create an agent-visible
+version pins. Version `0` pins are permitted, but a selector is invalid if the
+canonical query identity retains any edit; exclusion remains pair-wide. Under
+the identity-private policy, do not create an agent-visible
 selector; filtering must occur in the human-only environment before any
 agent-facing processing.
 

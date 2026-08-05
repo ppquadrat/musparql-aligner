@@ -19,6 +19,7 @@ from build_review_bundle import (
 )
 from benchmark.build_benchmark import literal_wording, review_comments
 from holdout_selectors import add_holdout_filter_arguments, holdout_input_policy
+from sparql_corrections import assert_input_provenance_current
 
 
 PairKey = Tuple[str, str]
@@ -216,6 +217,7 @@ def record_payload(
             "sparql_hash": source_input.get("sparql_hash"),
             "schema_ref": source_input.get("schema_ref"),
             "evidence": source_input.get("evidence", []),
+            "sparql_provenance": source_input.get("sparql_provenance"),
         },
         "output": output_record.get("llm_output"),
         "output_meta": output_meta,
@@ -335,6 +337,7 @@ def main() -> None:
     parser.add_argument("--current-outputs", required=True)
     parser.add_argument("--previous-inputs", default="", help="Defaults to llm_inputs.jsonl beside previous outputs, then ./llm_inputs.jsonl.")
     parser.add_argument("--current-inputs", default="", help="Defaults to llm_inputs.jsonl beside current outputs, then ./llm_inputs.jsonl.")
+    parser.add_argument("--kg-queries", default="kg_queries.jsonl", help="Current canonical query records used to validate SPARQL provenance.")
     parser.add_argument("--previous-reviews", default="")
     parser.add_argument(
         "--previous-benchmark",
@@ -384,6 +387,23 @@ def main() -> None:
     current_inputs = build_input_index(load_json_records(current_inputs_path))
     previous_outputs = index_outputs(load_json_records(previous_outputs_path))
     current_outputs = index_outputs(load_json_records(current_outputs_path))
+    if args.assert_complete_review_provenance:
+        canonical_records = load_json_records(Path(args.kg_queries))
+        assert_input_provenance_current(previous_inputs.values(), canonical_records)
+        assert_input_provenance_current(current_inputs.values(), canonical_records)
+        for label, inputs in (("previous", previous_inputs), ("current", current_inputs)):
+            invalid = [
+                key
+                for key, item in inputs.items()
+                if not isinstance(item.get("sparql_provenance"), dict)
+                or isinstance(item["sparql_provenance"].get("retained_edit_count"), bool)
+                or not isinstance(item["sparql_provenance"].get("retained_edit_count"), int)
+                or item["sparql_provenance"]["retained_edit_count"] < 0
+            ]
+            if invalid:
+                raise ValueError(
+                    f"Cannot enable holdout selection: {label} inputs lack valid SPARQL edit provenance"
+                )
     previous_reviews = load_reviews(previous_reviews_path)
     previous_review_map = previous_review_by_pair(previous_outputs, previous_reviews)
     benchmark_review_map, benchmark_pairs = load_benchmark_reviews(previous_benchmark_path)

@@ -702,3 +702,12 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+.correction-layout .sidebar { min-width: 320px; }
+.correction-warning { margin: 1rem 0; border-color: #c58a2a; background: #fff8e8; }
+.correction-decisions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.validation-error { color: #8f1d1d; border-color: #c44; background: #fff1f1; }
+#proposedSparqlInput { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.86rem; }
+.correction-layout .record-item span { display: block; }
+.correction-layout #executionDetails { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.correction-layout #executionDetails p { overflow-wrap: anywhere; }
+.correction-layout #detailMeta { overflow-wrap: anywhere; max-width: 55rem; }

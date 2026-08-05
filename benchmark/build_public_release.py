@@ -22,6 +22,7 @@ BENCHMARK_FIELDS = (
     "sparql",
     "sparql_version",
     "sparql_hash",
+    "sparql_provenance",
     "gold_question",
     "gold_question_source",
 )
@@ -34,6 +35,7 @@ ALTERNATIVE_FIELDS = (
     "sparql",
     "sparql_version",
     "sparql_hash",
+    "sparql_provenance",
     "canonical_question",
     "canonical_question_source",
 )

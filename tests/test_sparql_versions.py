@@ -31,6 +31,9 @@ def record_with_edits():
             {"version": 1, "sparql": EDIT_1, "note": "Select only subjects."},
             {"version": 2, "sparql": EDIT_2, "note": "Search named graphs."},
         ],
+        "execution_history": [
+            {"status": "ok", "ran_at": "2026-08-05T12:00:00+00:00", "sparql_version": 2, "sparql_hash": sparql_hash(EDIT_2)}
+        ],
     }
 
 
@@ -111,6 +114,19 @@ def test_prompt_input_records_selected_version_and_hash():
     assert payload["sparql_clean"] == EDIT_2
     assert payload["sparql_version"] == 2
     assert payload["sparql_hash"] == sparql_hash(EDIT_2)
+    assert payload["sparql_provenance"]["retained_edit_count"] == 2
+    assert payload["sparql_provenance"]["selected_version"] == 2
+    assert payload["sparql_provenance"]["selected_hash"] == sparql_hash(EDIT_2)
+    assert payload["sparql_provenance"]["verification"]["status"] == "verified"
+    assert payload["sparql_provenance"]["history_digest"].startswith("sha256:")
+
+
+def test_original_prompt_selection_still_reports_retained_edit_history():
+    record = record_with_edits()
+    record.update({"query_id": "q1", "query_label": "kg-0001", "kg_id": "kg", "evidence": []})
+    payload = build_prompt_input(record, False, False, "original")
+    assert payload["sparql_version"] == 0
+    assert payload["sparql_provenance"]["retained_edit_count"] == 2
 
 
 def test_dismissal_only_applies_to_matching_sparql_version():
