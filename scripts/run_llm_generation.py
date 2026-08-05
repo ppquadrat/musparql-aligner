@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 import unicodedata
 
+from scripts.build_llm_inputs import dismissed_record_matches, load_reviewed_records
+
 try:
     from openai import OpenAI
 except ImportError:  # pragma: no cover - exercised only in minimal test envs
@@ -71,6 +73,15 @@ def load_json_records(path: Path) -> tuple[List[Dict[str, Any]], bool]:
 
 def load_jsonl(path: Path) -> List[Dict[str, Any]]:
     return load_json_records(path)[0]
+
+
+def select_unreviewed_inputs(inputs: List[Dict[str, Any]], benchmark_dir: Path) -> List[Dict[str, Any]]:
+    reviewed_records = load_reviewed_records(benchmark_dir)
+    return [
+        payload
+        for payload in inputs
+        if not any(dismissed_record_matches(payload, reviewed) for reviewed in reviewed_records)
+    ]
 
 
 def write_jsonl(path: Path, records: List[Dict[str, Any]]) -> None:
@@ -509,6 +520,15 @@ def main() -> None:
         help="OpenAI-compatible base URL override. Prefer GRAPHIA_BASE_URL for normal use.",
     )
     parser.add_argument("--max-records", type=int, default=0, help="0 means all")
+    parser.add_argument(
+        "--unreviewed-from",
+        default="",
+        metavar="BENCHMARK_DIR",
+        help=(
+            "Generate only pairs not already reviewed in this public benchmark. "
+            "Pairs whose retained SPARQL version/hash changed are included."
+        ),
+    )
     parser.add_argument("--timeout-s", type=float, default=180.0, help="Per-request OpenAI timeout in seconds.")
     parser.add_argument("--temperature", type=float, default=None)
     parser.add_argument("--top-p", type=float, default=None)
@@ -526,6 +546,13 @@ def main() -> None:
     err_path.parent.mkdir(parents=True, exist_ok=True)
 
     inputs = load_jsonl(input_path)
+    if args.unreviewed_from:
+        original_count = len(inputs)
+        inputs = select_unreviewed_inputs(inputs, Path(args.unreviewed_from))
+        log(
+            f"Selected {len(inputs)} unreviewed/SPARQL-changed inputs from {original_count} "
+            f"using {args.unreviewed_from}"
+        )
     if args.max_records > 0:
         inputs = inputs[: args.max_records]
     base_prompt = prompt_path.read_text(encoding="utf-8")

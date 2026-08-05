@@ -13,6 +13,7 @@ from scripts import build_llm_inputs
 from scripts import build_next_review_round
 from scripts import build_review_bundle
 from scripts import build_review_diff_bundle
+from scripts import run_llm_generation
 from musparql.sparql_corrections import sparql_provenance
 from musparql.sparql_versions import resolve_sparql_version, sparql_hash
 
@@ -21,6 +22,83 @@ from scripts.benchmark import update_benchmark  # noqa: E402
 
 
 class DismissedExclusionTests(unittest.TestCase):
+    def test_generation_subset_includes_changed_sparql(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            benchmark_dir = Path(tmp)
+            (benchmark_dir / "benchmark.jsonl").write_text(
+                json.dumps({
+                    "kg_id": "kg",
+                    "query_id": "reviewed",
+                    "sparql_version": 0,
+                    "sparql_hash": "same-hash",
+                })
+                + "\n"
+                + json.dumps({
+                    "kg_id": "kg",
+                    "query_id": "changed",
+                    "sparql_version": 0,
+                    "sparql_hash": "old-hash",
+                })
+                + "\n",
+                encoding="utf-8",
+            )
+            inputs = [
+                {"kg_id": "kg", "query_id": "reviewed", "sparql_version": 0, "sparql_hash": "same-hash"},
+                {"kg_id": "kg", "query_id": "changed", "sparql_version": 1, "sparql_hash": "new-hash"},
+                {"kg_id": "kg", "query_id": "new", "sparql_version": 0, "sparql_hash": "new-query-hash"},
+            ]
+
+            selected = run_llm_generation.select_unreviewed_inputs(inputs, benchmark_dir)
+            self.assertEqual([row["query_id"] for row in selected], ["changed", "new"])
+
+    def test_llm_inputs_can_select_unreviewed_and_changed_sparql(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            queries_path = tmp_path / "queries.jsonl"
+            output_path = tmp_path / "inputs.jsonl"
+            benchmark_dir = tmp_path / "benchmark"
+            benchmark_dir.mkdir()
+
+            records = [
+                {"kg_id": "kg", "query_id": "same", "query_label": "same", "sparql_clean": "SELECT { ?s ?p ?o }", "evidence": []},
+                {"kg_id": "kg", "query_id": "changed", "query_label": "changed", "sparql_clean": "SELECT { ?new ?p ?o }", "evidence": []},
+                {"kg_id": "kg", "query_id": "new", "query_label": "new", "sparql_clean": "ASK { ?s ?p ?o }", "evidence": []},
+            ]
+            queries_path.write_text("\n".join(json.dumps(row) for row in records) + "\n", encoding="utf-8")
+            (benchmark_dir / "benchmark.jsonl").write_text(
+                "\n".join(
+                    json.dumps(row)
+                    for row in [
+                        {
+                            "kg_id": "kg",
+                            "query_id": "same",
+                            "sparql_version": 0,
+                            "sparql_hash": sparql_hash("SELECT { ?s ?p ?o }"),
+                        },
+                        {
+                            "kg_id": "kg",
+                            "query_id": "changed",
+                            "sparql_version": 0,
+                            "sparql_hash": sparql_hash("SELECT { ?old ?p ?o }"),
+                        },
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(sys, "argv", [
+                "build_llm_inputs.py",
+                "--input", str(queries_path),
+                "--output", str(output_path),
+                "--unreviewed-from", str(benchmark_dir),
+                "--no-holdout",
+            ]), redirect_stdout(StringIO()):
+                build_llm_inputs.main()
+
+            selected = [row["query_id"] for row in build_llm_inputs.load_jsonl(output_path)]
+            self.assertEqual(selected, ["changed", "new"])
+
     def test_next_review_wrapper_forwards_provenance_assertion(self) -> None:
         with patch.object(sys, "argv", [
             "build_next_review_round.py",

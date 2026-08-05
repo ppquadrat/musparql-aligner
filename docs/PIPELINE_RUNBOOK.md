@@ -62,11 +62,15 @@ ledgers under `var/queries/`.
 
 ```bash
 .venv/bin/python -m scripts.build_llm_inputs \
-  --holdout-selectors var/holdout/selectors.jsonl
+  --holdout-selectors var/holdout/selectors.jsonl \
+  --unreviewed-from benchmark/vN
 ```
 
 Use `--no-holdout` only when the human owner asserts that no holdout identities
-exist. The output is `var/llm/inputs.jsonl`.
+exist. `--unreviewed-from` limits generation to pairs that are new since the
+given public benchmark plus previously reviewed identities whose retained SPARQL
+version/hash has changed. Omit it for a full generation run. The output is
+`var/llm/inputs.jsonl`.
 
 ## 6. Generate provisional questions
 
@@ -74,11 +78,14 @@ Configure the API key and optional compatible base URL outside tracked files,
 then run:
 
 ```bash
-.venv/bin/python -m scripts.run_llm_generation
+.venv/bin/python -m scripts.run_llm_generation \
+  --unreviewed-from benchmark/vN
 ```
 
 The default outputs are `var/llm/outputs.jsonl` and
-`var/llm/outputs.errors.jsonl`. Inspect the error file before freezing the run.
+`var/llm/outputs.errors.jsonl`. The generation flag can also filter an existing
+full input file; omit it when the input builder already produced the subset.
+Inspect the error file before freezing the run.
 
 ## 7. Freeze the generation run
 

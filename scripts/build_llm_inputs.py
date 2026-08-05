@@ -74,6 +74,20 @@ def load_exclusion_policy(path: Path) -> Tuple[List[Dict[str, object]], Set[Tupl
     return records, set()
 
 
+def load_reviewed_records(path: Path) -> List[Dict[str, object]]:
+    """Load public reviewed pairs without reading any private holdout artifact."""
+    if not path.is_dir():
+        raise ValueError(f"Previous benchmark must be a directory: {path}")
+    included_path = path / "benchmark.jsonl"
+    if not included_path.exists():
+        included_path = path / "included.jsonl"
+    dismissed_path = path / "dismissed.jsonl"
+    sources = [candidate for candidate in (included_path, dismissed_path) if candidate.exists()]
+    if not sources:
+        raise FileNotFoundError(f"Previous benchmark has no public review records: {path}")
+    return [record for source in sources for record in load_jsonl(source)]
+
+
 def load_holdout_selectors(path: Path) -> Set[Tuple[str, str]]:
     selectors: Set[Tuple[str, str]] = set()
     if not path.exists():
@@ -188,6 +202,15 @@ def main() -> None:
         default="",
         help="Benchmark directory, or public dismissal JSONL file, whose dismissed records should be excluded from prompt inputs.",
     )
+    parser.add_argument(
+        "--unreviewed-from",
+        default="",
+        metavar="BENCHMARK_DIR",
+        help=(
+            "Write only pairs not already reviewed in this public benchmark. "
+            "A pair whose retained SPARQL version/hash changed is included for re-review."
+        ),
+    )
     add_holdout_filter_arguments(parser)
     parser.add_argument(
         "--sparql-version",
@@ -204,11 +227,13 @@ def main() -> None:
         if args.exclude_dismissed_benchmark
         else ([], set())
     )
+    reviewed_records = load_reviewed_records(Path(args.unreviewed_from)) if args.unreviewed_from else []
     selector_rows = load_jsonl(Path(args.holdout_selectors)) if args.holdout_selectors else []
     holdout_selector_keys = validate_selectors_current(selector_rows, records) if selector_rows else set()
 
     written = 0
     skipped_excluded = 0
+    skipped_reviewed = 0
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8") as f:
         for rec in records:
@@ -229,6 +254,9 @@ def main() -> None:
             ):
                 skipped_excluded += 1
                 continue
+            if reviewed_records and any(dismissed_record_matches(payload, item) for item in reviewed_records):
+                skipped_reviewed += 1
+                continue
             if not isinstance(payload.get("query_id"), str) or not isinstance(payload.get("kg_id"), str):
                 continue
             if not isinstance(payload.get("sparql_clean"), str) or not payload["sparql_clean"].strip():
@@ -239,6 +267,8 @@ def main() -> None:
     print(f"Wrote {written} prompt payloads to {out_path.resolve()}")
     if skipped_excluded:
         print(f"Skipped {skipped_excluded} dismissed/holdout benchmark records")
+    if skipped_reviewed:
+        print(f"Skipped {skipped_reviewed} records already reviewed at the same SPARQL version")
 
 
 if __name__ == "__main__":
