@@ -191,8 +191,9 @@ the public benchmark and alternatives files receive only the projection above.
 ### `build/public-releases/vN/`
 
 A derived publication package containing only allowlisted fields. It normally
-contains sanitized `benchmark.jsonl`, public `alternatives.jsonl`, and a manifest
-with checksums. The release builder rejects private fields, internal review
+contains sanitized `benchmark.jsonl`, public `alternatives.jsonl`, `LICENSE`,
+`THIRD_PARTY_NOTICES.md`, and a manifest with checksums and machine-readable
+license metadata. The release builder rejects private fields, internal review
 metadata, filesystem paths, credentials, and correction artifacts.
 
 The directory is ignored and may be deleted and rebuilt.

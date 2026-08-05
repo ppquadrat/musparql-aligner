@@ -13,6 +13,13 @@ HOLDOUT_SPLIT = "private_holdout"
 INCLUDED_FILE = "included.jsonl"
 ALTERNATIVES_FILE = "alternatives.jsonl"
 LINGUISTIC_ANNOTATIONS_FILE = "linguistic_annotations.jsonl"
+PUBLIC_RELEASE_FILES = (
+    "manifest.json",
+    "benchmark.jsonl",
+    ALTERNATIVES_FILE,
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+)
 
 BENCHMARK_DISPOSITIONS = frozenset({"included", "excluded", "withheld"})
 PIPELINE_ASSESSMENTS = frozenset(
@@ -791,7 +798,7 @@ def main() -> None:
             "mixed_private_exports_rejected": True,
         },
         "release_boundary": {
-            "public_release_files": ["manifest.json", "benchmark.jsonl", ALTERNATIVES_FILE],
+            "public_release_files": list(PUBLIC_RELEASE_FILES),
             "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl"],
         },
     }

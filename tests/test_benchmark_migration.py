@@ -567,7 +567,7 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
                 ):
                     build_public_release.main()
                 releases.append(outdir)
-            for filename in ("benchmark.jsonl", "alternatives.jsonl", "manifest.json"):
+            for filename in build_benchmark.PUBLIC_RELEASE_FILES:
                 self.assertEqual(
                     (releases[0] / filename).read_bytes(),
                     (releases[1] / filename).read_bytes(),
@@ -584,7 +584,25 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
             self.assertEqual(public_benchmark["sparql_hash"], "sha256:abc")
             self.assertEqual(public_alternatives["sparql_version"], 1)
             self.assertEqual(public_alternatives["sparql_hash"], "sha256:abc")
-            self.assertEqual(public_manifest["release_schema_version"], "1.1")
+            self.assertEqual(public_manifest["release_schema_version"], "1.2")
+            self.assertEqual(
+                set(path.name for path in releases[0].iterdir()),
+                set(build_benchmark.PUBLIC_RELEASE_FILES),
+            )
+            self.assertEqual(public_manifest["licensing"]["benchmark_spdx"], "CC-BY-4.0")
+            self.assertIn(
+                "Creative Commons Attribution 4.0",
+                (releases[0] / "LICENSE").read_text(),
+            )
+            self.assertIn(
+                "Distributed Digital Music Archives",
+                (releases[0] / "THIRD_PARTY_NOTICES.md").read_text(),
+            )
+            for filename, details in public_manifest["files"].items():
+                self.assertEqual(
+                    details["sha256"],
+                    build_public_release.sha256(releases[0] / filename),
+                )
 
     def test_public_nested_provenance_is_allowlisted_and_private_paths_fail(self) -> None:
         record = {

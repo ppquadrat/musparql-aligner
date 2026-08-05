@@ -10,6 +10,11 @@ curation and reconstruction. Commands under `scripts/benchmark/` build, update,
 audit, and package those artifacts; the public-release builder enforces the
 smaller DOI/publication boundary.
 
+The benchmark database is licensed under
+[CC BY 4.0](LICENSE.md), subject to the third-party rights and attributions in
+[`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md). Software in the
+repository is licensed separately under MIT.
+
 ## Snapshot files
 
 - `benchmark/vN/benchmark.jsonl`
@@ -35,6 +40,12 @@ smaller DOI/publication boundary.
 - `benchmark/vN/manifest.json`
   - snapshot metadata, file inventory, and counts
   - records the release builder and the intended public file set
+- `benchmark/LICENSE.md`
+  - defines the CC BY 4.0 scope for the benchmark database
+  - is copied into every generated public release as `LICENSE`
+- `THIRD_PARTY_NOTICES.md` at the repository root
+  - attributes upstream query and source projects
+  - is copied into every generated public release
 
 The local version directory may be a working snapshot, but its tracked tree
 contains no internal sidecars. A DOI/public release
@@ -135,7 +146,7 @@ The evaluator reads every record in `benchmark.jsonl`:
   --out var/evals/reports/<eval-id>
 ```
 
-New working snapshots and public releases (release schema `1.1`) retain `sparql_version` and
+New working snapshots and public releases retain `sparql_version` and
 `sparql_hash`. Evaluation rejects version/hash mismatches. For snapshots that
 predate these fields, a missing historical query ID may be mapped only to a
 unique normalized-SPARQL match within the same KG; the score records both the
@@ -172,9 +183,9 @@ Build a new, empty public-release directory from a validated snapshot:
 ```
 
 The release builder uses field allowlists and rejects private filesystem paths
-and internal review, API-response, and linguistic-annotation fields. It also
-writes SHA-256 checksums into the public manifest. Licensing and repository-level
-release documentation must still be completed before publishing the directory.
+and internal review, API-response, and linguistic-annotation fields. Release
+schema `1.2` packages the benchmark license and third-party notices and writes
+their SHA-256 checksums into the public manifest alongside the data checksums.
 
 `benchmark/v8` is the first snapshot in which every query is explicitly pinned
 to a retained `sparql_version` and `sparql_hash`. Rebuild its adjudicated Organs

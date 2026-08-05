@@ -177,9 +177,10 @@ partition completeness, and the absence of forbidden public fields.
 
 The public-release command then derives an allowlisted package under
 `build/public-releases/vN/`. That package contains sanitized benchmark data,
-approved public alternatives, a release manifest, and checksums. It excludes
-holdouts, internal annotations, raw reviews, model request metadata, local
-paths, and working query state.
+approved public alternatives, the CC BY 4.0 benchmark license, third-party
+notices, a release manifest, and checksums. It excludes holdouts, internal
+annotations, raw reviews, model request metadata, local paths, and working
+query state.
 
 `build/` is disposable: a public release must be reproducible from the reviewed
 snapshot and release command. `benchmark/` is versioned project data and is not

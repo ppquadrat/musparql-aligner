@@ -13,6 +13,7 @@ from scripts.benchmark.build_benchmark import (
     ALTERNATIVES_FILE,
     INCLUDED_FILE,
     LINGUISTIC_ANNOTATIONS_FILE,
+    PUBLIC_RELEASE_FILES,
     add_formulation,
     alternatives_record_has_content,
     benchmark_gold_records,
@@ -131,7 +132,7 @@ def regenerate_snapshot(snapshot: Path) -> Dict[str, Any]:
     manifest["release_boundary"] = {
         "public_release_builder": "scripts/benchmark/build_public_release.py",
         "working_snapshot_is_not_a_release_archive": True,
-        "public_release_files": ["manifest.json", "benchmark.jsonl", ALTERNATIVES_FILE],
+        "public_release_files": list(PUBLIC_RELEASE_FILES),
         "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl"],
     }
 

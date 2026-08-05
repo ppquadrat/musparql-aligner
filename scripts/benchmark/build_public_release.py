@@ -12,6 +12,7 @@ from typing import Any, Dict, Iterable, List
 from scripts.benchmark.audit_snapshot import audit_snapshot
 from scripts.benchmark.build_benchmark import (
     ALTERNATIVES_FILE,
+    PUBLIC_RELEASE_FILES,
     public_sparql_provenance,
     read_json,
     read_jsonl,
@@ -19,6 +20,12 @@ from scripts.benchmark.build_benchmark import (
     write_jsonl,
 )
 
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+RELEASE_DOCUMENTS = {
+    "LICENSE": REPO_ROOT / "benchmark" / "LICENSE.md",
+    "THIRD_PARTY_NOTICES.md": REPO_ROOT / "THIRD_PARTY_NOTICES.md",
+}
 
 BENCHMARK_FIELDS = (
     "benchmark_version",
@@ -150,6 +157,17 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def copy_release_document(source: Path, destination: Path) -> None:
+    if not source.is_file():
+        raise ValueError(f"Required public release document is missing: {source}")
+    text = source.read_text(encoding="utf-8")
+    if not text.strip():
+        raise ValueError(f"Required public release document is empty: {source}")
+    if PRIVATE_PATH.search(text):
+        raise ValueError(f"Private filesystem path in public release document: {source}")
+    destination.write_text(text, encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--snapshot", required=True, help="Working benchmark/vN snapshot directory")
@@ -184,13 +202,21 @@ def main() -> None:
     alternatives_path = outdir / ALTERNATIVES_FILE
     write_jsonl(benchmark_path, benchmark)
     write_jsonl(alternatives_path, alternatives)
+    for filename, source in RELEASE_DOCUMENTS.items():
+        copy_release_document(source, outdir / filename)
+    payload_files = ["benchmark.jsonl", ALTERNATIVES_FILE, *RELEASE_DOCUMENTS]
+    expected_files = ["manifest.json", *payload_files]
+    if expected_files != list(PUBLIC_RELEASE_FILES):
+        raise ValueError("Public release file declarations are inconsistent")
     manifest = {
         "benchmark_version": source_manifest.get("benchmark_version") or snapshot.name,
-        "release_schema_version": "1.1",
+        "release_schema_version": "1.2",
         "counts": {"benchmark": len(benchmark), "alternatives": len(alternatives)},
-        "files": {
-            "benchmark.jsonl": {"sha256": sha256(benchmark_path)},
-            ALTERNATIVES_FILE: {"sha256": sha256(alternatives_path)},
+        "files": {filename: {"sha256": sha256(outdir / filename)} for filename in payload_files},
+        "licensing": {
+            "benchmark_spdx": "CC-BY-4.0",
+            "license_file": "LICENSE",
+            "third_party_notices_file": "THIRD_PARTY_NOTICES.md",
         },
         "release_policy": {
             "all_benchmark_pairs_are_human_confirmed": True,

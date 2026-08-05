@@ -12,6 +12,7 @@ from scripts.benchmark.build_benchmark import (
     ALTERNATIVES_FILE,
     INCLUDED_FILE,
     LINGUISTIC_ANNOTATIONS_FILE,
+    PUBLIC_RELEASE_FILES,
     add_interpretive_annotation,
     add_formulation,
     alternatives_record_has_content,
@@ -511,7 +512,7 @@ def main() -> None:
             "mixed_private_exports_rejected": True,
         },
         "release_boundary": {
-            "public_release_files": ["manifest.json", "benchmark.jsonl", ALTERNATIVES_FILE],
+            "public_release_files": list(PUBLIC_RELEASE_FILES),
             "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl"],
         },
     }

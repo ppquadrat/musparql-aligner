@@ -93,6 +93,16 @@ the human verifies and places that file at the local path.
   details.
 - [`review/README.md`](review/README.md) — review application reference.
 
+## Licensing
+
+Software authored for Musparql is licensed under the [MIT License](LICENSE).
+The public benchmark database is licensed separately under
+[Creative Commons Attribution 4.0 International](benchmark/LICENSE.md), subject
+to the third-party rights and attributions described in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md). These licenses do not cover
+referenced knowledge graphs, datasets, publications, trademarks, or other
+externally maintained resources.
+
 ## Development setup
 
 Create or activate a virtual environment, install the repository package in

@@ -190,8 +190,26 @@ The release builder audits the working snapshot again and writes an allowlisted
 package with a release manifest and checksums. It excludes raw reviews,
 internal annotations, run request metadata, local working paths, and private
 holdout material. It also reapplies the stable SPARQL-provenance projection as
-defense in depth. Inspect the package; do not publish the working snapshot
-directory directly.
+defense in depth. It copies the CC BY 4.0 benchmark license and third-party
+notices into the package; publishing a package without either document is not
+allowed. Inspect the package; do not publish the working snapshot directory
+directly.
+
+Confirm that the five declared files are present and that the manifest records
+the expected license:
+
+```bash
+find build/public-releases/vN+1 -maxdepth 1 -type f -print | sort
+jq '.release_schema_version, .licensing, .files' \
+  build/public-releases/vN+1/manifest.json
+```
+
+The package must contain `manifest.json`, `benchmark.jsonl`,
+`alternatives.jsonl`, `LICENSE`, and `THIRD_PARTY_NOTICES.md`. Before assigning
+a DOI, replace `[VERSION]` in the suggested attribution when displaying it in
+release metadata and add the DOI to the repository citation metadata when one
+is available. Do not alter the packaged license scope to claim ownership of
+third-party queries or referenced knowledge graphs.
 
 ## 7. Final checks
 

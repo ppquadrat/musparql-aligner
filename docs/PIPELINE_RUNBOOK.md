@@ -229,7 +229,9 @@ Then inspect the snapshot diff using the partition-first procedure in the
 
 `build/public-releases/vN/` is a sanitized, reproducible package. It is ignored
 and may be archived or uploaded after human inspection; it is not a replacement
-for the tracked working snapshot.
+for the tracked working snapshot. Confirm that `LICENSE` and
+`THIRD_PARTY_NOTICES.md` are present before publication; the release manifest
+checksums both files.
 
 ## 13. Final checks
 
