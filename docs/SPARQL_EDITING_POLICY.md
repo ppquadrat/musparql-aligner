@@ -26,6 +26,20 @@ Holdout identities are removed before candidate details, evidence, execution
 observations, or agent prompts are created. A query identity with any retained
 SPARQL edit can never become a holdout, even if someone later selects version 0.
 
+## Static extraction diagnostics
+
+When a curated source introduces a malformed `SELECT`, extraction retains the
+source text as version 0 and records a diagnostic pinned to that version and its
+SPARQL hash. If the flagged version is still the latest retained version, the
+next correction round classifies it as a high-priority likely correction even
+when execution was not attempted or the endpoint is unavailable.
+
+Static diagnostics are findings, not edits or execution observations. They do
+not change the source text and cannot approve a correction. Once an approved
+version 1 or later exists, a diagnostic on version 0 remains historical
+provenance but no longer affects correction triage, including runs that inspect
+original or all retained versions.
+
 ## What execution means
 
 An execution observation says what happened for one exact SPARQL hash: success,

@@ -101,6 +101,62 @@ WHERE {
             records = extract_queries.load_curated_query_records(path)
         self.assertEqual(records[0]["prompt"], "Question?")
 
+    def test_curated_non_select_remains_an_error(self) -> None:
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "queries.jsonl"
+            path.write_text('{"sparql":"ASK { ?s ?p ?o }"}\n', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "must be a nonempty SELECT"):
+                extract_queries.prepare_curated_select_records(path)
+
+    def test_retains_malformed_curated_select_without_stopping(self) -> None:
+        from contextlib import redirect_stderr
+        from io import StringIO
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "queries.jsonl"
+            path.write_text(
+                '{"challenge":3,"cq":1,"sparql":"SELECT ?s WHERE { OPTIONAL { ?s ?p ?o . }"}\n'
+                '{"challenge":3,"cq":2,"sparql":"SELECT ?s WHERE { ?s ?p ?o . }"}\n',
+                encoding="utf-8",
+            )
+            stderr = StringIO()
+            with redirect_stderr(stderr):
+                prepared = extract_queries.prepare_curated_select_records(path)
+
+        self.assertEqual(len(prepared), 2)
+        self.assertEqual(prepared[0][0]["cq"], 1)
+        self.assertFalse(extract_queries.is_well_formed_query(prepared[0][2]))
+        self.assertEqual(prepared[0][3], "unbalanced_braces")
+        self.assertEqual(prepared[1][0]["cq"], 2)
+        self.assertTrue(extract_queries.is_well_formed_query(prepared[1][2]))
+        self.assertIsNone(prepared[1][3])
+        self.assertRegex(
+            stderr.getvalue(),
+            r"Retaining malformed curated SELECT query .* record 1 \(challenge=3, cq=1\)",
+        )
+
+        record = extract_queries.build_query_record(
+            "kg",
+            "kg-0001",
+            "select",
+            prepared[0][1],
+            prepared[0][2],
+            extract_queries.sha256_hash(prepared[0][1]),
+            extract_queries.sha256_hash(prepared[0][2]),
+        )
+        extract_queries.add_extraction_diagnostic(
+            record, prepared[0][3], record["sparql_hash"]
+        )
+        self.assertEqual(record["sparql_diagnostics"][0]["sparql_version"], 0)
+        self.assertEqual(
+            record["sparql_diagnostics"][0]["sparql_hash"], record["sparql_hash"]
+        )
+
     def test_reextraction_preserves_version_state(self) -> None:
         original = "SELECT * WHERE { ?s ?p ?o }"
         digest = extract_queries.sha256_hash(original)

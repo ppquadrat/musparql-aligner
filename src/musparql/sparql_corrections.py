@@ -90,6 +90,53 @@ def retained_sparql_edit_count(record: Mapping[str, Any]) -> int:
     return len(edits)
 
 
+def correction_diagnostics(
+    record: Mapping[str, Any], resolved: Mapping[str, Any]
+) -> list[Dict[str, Any]]:
+    """Return static diagnostics only while their pinned version remains latest."""
+    raw_diagnostics = record.get("sparql_diagnostics")
+    if raw_diagnostics is None:
+        raw_diagnostics = []
+    if not isinstance(raw_diagnostics, list):
+        raise ValueError("sparql_diagnostics must be a list")
+    latest = resolve_sparql_version(record, "latest")
+    selected_version = resolved.get("sparql_version")
+    selected_hash = resolved.get("sparql_hash")
+    actionable = (
+        selected_version == latest["sparql_version"]
+        and selected_hash == latest["sparql_hash"]
+    )
+    result: list[Dict[str, Any]] = []
+    seen: set[tuple[int, str, str, str]] = set()
+    for diagnostic in raw_diagnostics:
+        if not isinstance(diagnostic, Mapping):
+            raise ValueError("sparql_diagnostics entries must be objects")
+        version = diagnostic.get("sparql_version")
+        digest = diagnostic.get("sparql_hash")
+        code = diagnostic.get("code")
+        source = diagnostic.get("source")
+        message = diagnostic.get("message")
+        if isinstance(version, bool) or not isinstance(version, int) or version < 0:
+            raise ValueError("SPARQL diagnostic requires a non-negative sparql_version")
+        if not isinstance(digest, str) or SHA256_RE.fullmatch(digest) is None:
+            raise ValueError("SPARQL diagnostic requires a valid sparql_hash")
+        if not all(
+            isinstance(value, str) and value.strip()
+            for value in (code, source, message)
+        ):
+            raise ValueError("SPARQL diagnostic requires nonempty code, source, and message")
+        pinned = resolve_sparql_version(record, version)
+        if pinned["sparql_hash"] != digest:
+            raise ValueError("SPARQL diagnostic version/hash does not resolve")
+        key = (version, digest, code, source)
+        if key in seen:
+            raise ValueError("Duplicate SPARQL diagnostic")
+        seen.add(key)
+        if actionable and version == selected_version and digest == selected_hash:
+            result.append(deepcopy(dict(diagnostic)))
+    return result
+
+
 def sparql_provenance(record: Mapping[str, Any], resolved: Mapping[str, Any]) -> Dict[str, Any]:
     count = retained_sparql_edit_count(record)
     result = {
@@ -185,10 +232,22 @@ def holdout_ineligible_reason(record: Mapping[str, Any]) -> str | None:
     return None
 
 
-def classify_failure(failure: Mapping[str, Any]) -> Dict[str, Any]:
+def classify_failure(
+    failure: Mapping[str, Any], diagnostics: Sequence[Mapping[str, Any]] | None = None
+) -> Dict[str, Any]:
     status = str(failure.get("status") or "unknown")
     skip_reason = str(failure.get("skip_reason") or "")
     http_status = failure.get("http_status")
+    if diagnostics:
+        codes = ", ".join(
+            sorted({str(item.get("code") or "unknown") for item in diagnostics})
+        )
+        return {
+            "reason_code": "static_sparql_validation",
+            "category": "likely_correction",
+            "priority": "high",
+            "summary": f"Static extraction validation flagged the retained SPARQL ({codes}).",
+        }
     if status == "not_attempted":
         return {
             "reason_code": "not_attempted",
@@ -278,7 +337,8 @@ def build_candidate(
     resolved = resolve_sparql_version(query, version)
     if failure.get("sparql_hash") and failure.get("sparql_hash") != resolved["sparql_hash"]:
         raise ValueError(f"Failure SPARQL hash does not resolve for {query.get('query_label')}")
-    triage = classify_failure(failure)
+    diagnostics = correction_diagnostics(query, resolved)
+    triage = classify_failure(failure, diagnostics)
     execution = safe_execution_projection(failure)
     item = {
         "schema": CANDIDATE_SCHEMA,
@@ -307,6 +367,8 @@ def build_candidate(
             for version in available_sparql_versions(query)
         ],
     }
+    if diagnostics:
+        item["sparql_diagnostics"] = diagnostics
     return item
 
 
@@ -318,7 +380,10 @@ def candidate_digest(item: Mapping[str, Any]) -> str:
 def validate_candidate(item: Mapping[str, Any]) -> None:
     if item.get("schema") != CANDIDATE_SCHEMA:
         raise ValueError("Unsupported SPARQL correction candidate schema")
-    for field in ("candidate_id", "kg_id", "query_id", "base_sparql", "base_sparql_hash", "captured_at"):
+    for field in (
+        "candidate_id", "kg_id", "query_id", "base_sparql", "base_sparql_hash",
+        "captured_at",
+    ):
         if not isinstance(item.get(field), str) or not str(item[field]).strip():
             raise ValueError(f"Correction candidate requires {field}")
     version = item.get("base_sparql_version")
@@ -338,7 +403,32 @@ def validate_candidate(item: Mapping[str, Any]) -> None:
         **dict(execution), "kg_id": item["kg_id"], "query_id": item["query_id"],
         "sparql_version": version, "sparql_hash": item["base_sparql_hash"],
     }
-    expected_triage = classify_failure(reconstructed)
+    diagnostics = item.get("sparql_diagnostics")
+    if diagnostics is None:
+        diagnostics = []
+    if not isinstance(diagnostics, list) or not all(
+        isinstance(entry, Mapping) for entry in diagnostics
+    ):
+        raise ValueError("Correction candidate sparql_diagnostics must be a list of objects")
+    diagnostic_keys: set[tuple[Any, Any, Any, Any]] = set()
+    for diagnostic in diagnostics:
+        if (
+            diagnostic.get("sparql_version") != version
+            or diagnostic.get("sparql_hash") != item["base_sparql_hash"]
+        ):
+            raise ValueError("Correction candidate SPARQL diagnostic does not match its base pins")
+        if not all(
+            isinstance(diagnostic.get(field), str) and str(diagnostic[field]).strip()
+            for field in ("code", "source", "message")
+        ):
+            raise ValueError("Correction candidate SPARQL diagnostic is incomplete")
+        diagnostic_key = tuple(
+            diagnostic.get(field) for field in ("sparql_version", "sparql_hash", "code", "source")
+        )
+        if diagnostic_key in diagnostic_keys:
+            raise ValueError("Duplicate correction candidate SPARQL diagnostic")
+        diagnostic_keys.add(diagnostic_key)
+    expected_triage = classify_failure(reconstructed, diagnostics)
     if dict(triage) != expected_triage or candidate_id(reconstructed, expected_triage) != item["candidate_id"]:
         raise ValueError("Correction candidate identity or triage is inconsistent")
     evidence = item.get("evidence") or []
@@ -577,8 +667,16 @@ def apply_reviews(
             or latest["sparql_hash"] != review["base_sparql_hash"]
         ):
             raise ValueError(f"Stale correction proposal for {record.get('query_label')}")
-        if any(anchored.get(field) != review.get(field) for field in ("kg_id", "query_id", "base_sparql_version", "base_sparql_hash")):
+        if any(
+            anchored.get(field) != review.get(field)
+            for field in (
+                "kg_id", "query_id", "base_sparql_version", "base_sparql_hash",
+            )
+        ):
             raise ValueError("Correction review identity/base pins do not match the authoritative candidate")
+        expected_diagnostics = correction_diagnostics(record, latest)
+        if list(anchored.get("sparql_diagnostics") or []) != expected_diagnostics:
+            raise ValueError("Correction candidate SPARQL diagnostics are stale")
         execution_snapshot = anchored["execution"]
         candidate_failure = {
             **dict(execution_snapshot),
@@ -587,7 +685,7 @@ def apply_reviews(
             "sparql_version": latest["sparql_version"],
             "sparql_hash": latest["sparql_hash"],
         }
-        triage = classify_failure(candidate_failure)
+        triage = classify_failure(candidate_failure, expected_diagnostics)
         if triage["reason_code"] != review["candidate_reason_code"]:
             raise ValueError("Correction candidate reason no longer matches its execution snapshot")
         if candidate_id(candidate_failure, triage) != candidate:

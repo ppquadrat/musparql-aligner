@@ -16,6 +16,7 @@ import html
 import json
 import re
 import subprocess
+import sys
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -271,18 +272,24 @@ def is_select_query(text: str) -> bool:
 
 
 def is_well_formed_query(query: str) -> bool:
+    return query_validation_issue(query) is None
+
+
+def query_validation_issue(query: str) -> Optional[str]:
     text = query.strip()
     if not text:
-        return False
+        return "empty_query"
     if first_query_verb(text) != "select":
-        return False
-    if not re.search(r"(?im)^\s*where\b", text) and not re.search(r"(?im)\bwhere\b", text):
-        return False
+        return "not_select"
+    if not re.search(r"(?im)^\s*where\b", text) and not re.search(
+        r"(?im)\bwhere\b", text
+    ):
+        return "missing_where"
     if "{" not in text or "}" not in text:
-        return False
+        return "missing_group_pattern"
     if text.count("{") != text.count("}"):
-        return False
-    return True
+        return "unbalanced_braces"
+    return None
 
 
 def sha256_hash(text: str) -> str:
@@ -573,6 +580,7 @@ def build_query_record(
         "sparql_clean": clean_query,
         "sparql_hash": clean_hash,
         "sparql_edits": [],
+        "sparql_diagnostics": [],
         "raw_hash": raw_hash,
         "evidence": [],
         "cq_items": [],
@@ -598,7 +606,9 @@ def load_curated_query_records(path: Path) -> List[Dict[str, Any]]:
     if path.suffix.lower() != ".jsonl":
         return []
     records: List[Dict[str, Any]] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), start=1):
+    for line_number, line in enumerate(
+        path.read_text(encoding="utf-8-sig").splitlines(), start=1
+    ):
         if not line.strip():
             continue
         try:
@@ -609,6 +619,56 @@ def load_curated_query_records(path: Path) -> List[Dict[str, Any]]:
             raise ValueError(f"Curated query record at {path}:{line_number} requires string sparql")
         records.append(record)
     return records
+
+
+def prepare_curated_select_records(
+    path: Path,
+    curated_records: Optional[Iterable[Dict[str, Any]]] = None,
+) -> List[tuple[Dict[str, Any], str, str, Optional[str]]]:
+    """Load curated SELECTs, retaining malformed source text with a diagnostic."""
+    prepared: List[tuple[Dict[str, Any], str, str, Optional[str]]] = []
+    records = (
+        load_curated_query_records(path) if curated_records is None else curated_records
+    )
+    for record_number, curated in enumerate(records, start=1):
+        raw_query = str(curated["sparql"]).strip()
+        normalized = normalize_query(raw_query, inject_missing_prefixes=False)
+        if not normalized or not is_select_query(normalized):
+            raise ValueError(
+                f"Curated query at {path}, record {record_number} must be a nonempty SELECT"
+            )
+        validation_issue = query_validation_issue(normalized)
+        if validation_issue is not None:
+            identity = ", ".join(
+                f"{field}={curated[field]}"
+                for field in ("challenge", "cq")
+                if curated.get(field) is not None
+            )
+            identity_suffix = f" ({identity})" if identity else ""
+            print(
+                f"Retaining malformed curated SELECT query at {path}, "
+                f"record {record_number}{identity_suffix}",
+                file=sys.stderr,
+            )
+        prepared.append((curated, raw_query, normalized, validation_issue))
+    return prepared
+
+
+def add_extraction_diagnostic(
+    record: Dict[str, object], validation_issue: str, sparql_digest: str
+) -> None:
+    diagnostics = record.setdefault("sparql_diagnostics", [])
+    if not isinstance(diagnostics, list):
+        raise ValueError(f"sparql_diagnostics must be a list for {record.get('query_label')}")
+    diagnostic = {
+        "sparql_version": 0,
+        "sparql_hash": sparql_digest,
+        "code": validation_issue,
+        "source": "extract_queries.py@v2",
+        "message": "Curated SELECT failed static structural validation during extraction.",
+    }
+    if diagnostic not in diagnostics:
+        diagnostics.append(diagnostic)
 
 
 VERSION_STATE_FIELDS = (
@@ -827,11 +887,8 @@ def main() -> None:
                 continue
 
             curated_records = load_curated_query_records(src_path)
-            for curated in curated_records:
-                raw_query = str(curated["sparql"]).strip()
-                normalized = normalize_query(raw_query, inject_missing_prefixes=False)
-                if not normalized or not is_select_query(normalized) or not is_well_formed_query(normalized):
-                    raise ValueError(f"Invalid curated SELECT query in {src_path}")
+            prepared_curated_records = prepare_curated_select_records(src_path, curated_records)
+            for curated, raw_query, normalized, validation_issue in prepared_curated_records:
                 clean_hash = sha256_hash(normalized)
                 raw_hash = sha256_hash(raw_query)
                 key = (kg.kg_id, clean_hash)
@@ -849,6 +906,8 @@ def main() -> None:
                     )
                     records.append(record_by_key[key])
                 record = record_by_key[key]
+                if validation_issue is not None:
+                    add_extraction_diagnostic(record, validation_issue, clean_hash)
                 source = curated.get("source") if isinstance(curated.get("source"), dict) else {}
                 prompt = curated.get("prompt")
                 if isinstance(prompt, str) and prompt.strip():

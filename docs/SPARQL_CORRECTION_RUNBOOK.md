@@ -17,6 +17,10 @@ remaining selected query it runs the latest retained SPARQL by default and
 updates `sparql_correction_candidates.jsonl`. Successful, empty, failed,
 unsupported, unavailable, and not-attempted versions are all valid correction
 candidates. Execution changes priority and trust; it never decides eligibility.
+If extraction recorded a static diagnostic for the still-latest SPARQL version,
+that candidate is high priority even without a usable endpoint. A diagnostic on
+an older source version is retained as provenance but does not affect triage
+after an approved correction exists.
 
 To use an older retained version deliberately, add `--sparql-version <number>`.
 The selected version and hash are recorded explicitly. Without that option,

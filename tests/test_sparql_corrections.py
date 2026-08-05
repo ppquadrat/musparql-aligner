@@ -75,6 +75,20 @@ def failure(**overrides) -> dict:
     return row
 
 
+def statically_flagged_query() -> dict:
+    record = query_record()
+    record["sparql_diagnostics"] = [
+        {
+            "sparql_version": 0,
+            "sparql_hash": sparql_hash(ORIGINAL),
+            "code": "unbalanced_braces",
+            "source": "synthetic-extractor@v1",
+            "message": "Synthetic static validation finding.",
+        }
+    ]
+    return record
+
+
 def review_export(candidate: dict, **overrides) -> dict:
     review = {
         "candidate_id": candidate["candidate_id"],
@@ -117,9 +131,72 @@ def test_candidate_capture_is_deterministic_and_partial_runs_preserve_other_jobs
     first = build_candidate(failure(), query)
     again = build_candidate(failure(), query)
     assert first["candidate_id"] == again["candidate_id"]
+    assert "sparql_diagnostics" not in first
     old = {**first, "query_id": "other", "candidate_id": "other-candidate"}
     merged = merge_candidates([old], [failure()], [query], {("synthetic-kg", "synthetic-q1", 0)})
     assert {item["candidate_id"] for item in merged} == {"other-candidate", first["candidate_id"]}
+
+
+def test_static_diagnostic_flags_only_the_latest_uncorrected_version():
+    query = statically_flagged_query()
+    unavailable = failure(status="skipped_endpoint_unavailable", http_status=None)
+    candidate = build_candidate(unavailable, query)
+    assert candidate["triage"]["reason_code"] == "static_sparql_validation"
+    assert candidate["triage"]["category"] == "likely_correction"
+    assert candidate["triage"]["priority"] == "high"
+    assert candidate["sparql_diagnostics"] == query["sparql_diagnostics"]
+    validate_candidate(candidate)
+
+    query["sparql_edits"] = [
+        {"version": 1, "sparql": EDITED, "note": "Synthetic correction."}
+    ]
+    original_candidate = build_candidate(unavailable, query)
+    assert "sparql_diagnostics" not in original_candidate
+    assert original_candidate["triage"]["category"] == "infrastructure"
+
+    latest_failure = failure(
+        status="skipped_endpoint_unavailable",
+        http_status=None,
+        sparql_version=1,
+        sparql_hash=sparql_hash(EDITED),
+    )
+    latest_candidate = build_candidate(latest_failure, query)
+    assert latest_candidate["base_sparql_version"] == 1
+    assert "sparql_diagnostics" not in latest_candidate
+    assert latest_candidate["triage"]["category"] == "infrastructure"
+
+
+def test_static_diagnostic_is_validated_and_rechecked_on_apply():
+    query = statically_flagged_query()
+    candidate = build_candidate(failure(), query)
+    tampered = deepcopy(candidate)
+    tampered["sparql_diagnostics"][0]["sparql_hash"] = sparql_hash(EDITED)
+    with pytest.raises(ValueError, match="does not match its base pins"):
+        validate_candidate(tampered)
+    invalid_shape = deepcopy(candidate)
+    invalid_shape["sparql_diagnostics"] = {}
+    with pytest.raises(ValueError, match="must be a list"):
+        validate_candidate(invalid_shape)
+    duplicated = deepcopy(candidate)
+    duplicated["sparql_diagnostics"].append(
+        deepcopy(duplicated["sparql_diagnostics"][0])
+    )
+    with pytest.raises(ValueError, match="Duplicate"):
+        validate_candidate(duplicated)
+
+    stale_query = deepcopy(query)
+    stale_query["sparql_diagnostics"] = []
+    with pytest.raises(ValueError, match="diagnostics are stale"):
+        apply_reviews(
+            [stale_query], review_export(candidate),
+            export_path="synthetic.json", candidates=[candidate],
+        )
+
+    stats = apply_reviews(
+        [query], review_export(candidate),
+        export_path="synthetic.json", candidates=[candidate],
+    )
+    assert stats["approved"] == 1
 
 
 def test_approved_review_appends_version_and_complete_provenance():
