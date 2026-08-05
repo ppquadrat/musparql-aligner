@@ -18,4 +18,3 @@ def test_initial_review_does_not_collect_linguistic_dimensions() -> None:
     for control_id in removed_control_ids:
         assert control_id not in html
         assert control_id not in app
-
