@@ -247,6 +247,27 @@ def main() -> None:
     parser.add_argument("--reviews", required=True, help="Exported comparative-review decisions.")
     parser.add_argument("--outdir", required=True, help="Output benchmark/vN directory.")
     parser.add_argument(
+        "--lineage-previous-benchmark",
+        help=(
+            "Optional original predecessor to record when the comparative update is the "
+            "final stage of a compound build. The data are still read from --previous-benchmark."
+        ),
+    )
+    parser.add_argument(
+        "--prior-source-bundle",
+        help="Initial-review bundle applied before this comparative stage.",
+    )
+    parser.add_argument(
+        "--prior-source-review-export",
+        help="Sanitized initial-review export applied before this comparative stage.",
+    )
+    parser.add_argument(
+        "--prior-applied-normal-reviews",
+        type=int,
+        default=0,
+        help="Number of initial-review decisions applied before this comparative stage.",
+    )
+    parser.add_argument(
         "--kg-queries",
         default="var/queries/kg_queries.jsonl",
         help="Canonical query catalogue used to summarize execution observations.",
@@ -448,6 +469,29 @@ def main() -> None:
     included = sort_records(included_by_key.values())
     dismissed = sort_records(dismissed_by_key.values())
     previous_manifest = read_json(previous_dir / "manifest.json") if (previous_dir / "manifest.json").exists() else {}
+    lineage_previous_dir = Path(args.lineage_previous_benchmark) if args.lineage_previous_benchmark else previous_dir
+    lineage_previous_manifest = (
+        read_json(lineage_previous_dir / "manifest.json")
+        if (lineage_previous_dir / "manifest.json").exists()
+        else previous_manifest
+    )
+    compound_update = bool(
+        args.lineage_previous_benchmark
+        or args.prior_source_bundle
+        or args.prior_source_review_export
+        or args.prior_applied_normal_reviews
+    )
+    if compound_update and not (
+        args.lineage_previous_benchmark
+        and args.prior_source_bundle
+        and args.prior_source_review_export
+        and args.prior_applied_normal_reviews > 0
+    ):
+        raise ValueError(
+            "Compound review provenance requires --lineage-previous-benchmark, "
+            "--prior-source-bundle, --prior-source-review-export, and a positive "
+            "--prior-applied-normal-reviews value"
+        )
 
     built_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     benchmark_version = outdir.name
@@ -465,9 +509,9 @@ def main() -> None:
     manifest = {
         "benchmark_version": benchmark_version,
         "built_at": built_at,
-        "update_type": "compare_review_update",
-        "previous_benchmark": str(previous_dir),
-        "previous_benchmark_version": previous_manifest.get("benchmark_version"),
+        "update_type": "compound_review_update" if compound_update else "compare_review_update",
+        "previous_benchmark": str(lineage_previous_dir),
+        "previous_benchmark_version": lineage_previous_manifest.get("benchmark_version"),
         "source_bundle": str(bundle_path),
         "source_review_export": str(review_path),
         "dataset_id": dataset_id,
@@ -516,6 +560,22 @@ def main() -> None:
             "internal_only_files": [INCLUDED_FILE, LINGUISTIC_ANNOTATIONS_FILE, "dismissed.jsonl"],
         },
     }
+    if compound_update:
+        manifest["counts"]["applied_normal_reviews"] = args.prior_applied_normal_reviews
+        manifest["review_stages"] = [
+            {
+                "mode": "initial",
+                "source_bundle": args.prior_source_bundle,
+                "source_review_export": args.prior_source_review_export,
+                "applied_reviews": args.prior_applied_normal_reviews,
+            },
+            {
+                "mode": "compare",
+                "source_bundle": str(bundle_path),
+                "source_review_export": str(review_path),
+                "applied_reviews": applied,
+            },
+        ]
 
     write_json(outdir / "manifest.json", manifest)
     write_jsonl(outdir / "benchmark.jsonl", benchmark_records)

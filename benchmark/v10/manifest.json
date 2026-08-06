@@ -1,0 +1,117 @@
+{
+  "benchmark_version": "v10",
+  "built_at": "2026-08-06T17:27:04+00:00",
+  "update_type": "compound_review_update",
+  "previous_benchmark": "benchmark/v9",
+  "previous_benchmark_version": "v9",
+  "source_bundle": "review/review_data_v10_0016.js",
+  "source_review_export": "var/review/exports/musparql-review-non-holdout-compare-4e3c969cdc5b09ba-2026-08-06_18-16-55.json",
+  "dataset_id": "4e3c969cdc5b09ba",
+  "previous_run": {
+    "run_id": "llm",
+    "generation_run_id": "llm",
+    "run_label": "llm",
+    "output_path": "var/llm/outputs-v9-0016.jsonl",
+    "manifest_path": null,
+    "purpose": null,
+    "created_at": null
+  },
+  "current_run": {
+    "run_id": "llm",
+    "generation_run_id": "llm",
+    "run_label": "llm",
+    "output_path": "var/llm/outputs-v10-0016.jsonl",
+    "manifest_path": null,
+    "purpose": null,
+    "created_at": null
+  },
+  "sparql_version_policy": "latest_retained",
+  "execution_snapshot": {
+    "source": "var/queries/kg_queries.jsonl",
+    "captured_through": "2026-08-06T17:27:04+00:00",
+    "selected_queries": 100,
+    "selected_versions_with_execution": 100,
+    "status_counts": {
+      "empty": 29,
+      "http_error": 5,
+      "ok": 47,
+      "request_error": 1,
+      "skipped_local_query": 8,
+      "unsupported": 10
+    },
+    "note": "Execution observations are trust provenance only; missing or failed observations do not affect inclusion."
+  },
+  "counts": {
+    "benchmark": 100,
+    "included": 100,
+    "dismissed": 6,
+    "alternatives": 50,
+    "linguistic_annotations": 10,
+    "pipeline_assessment_counts": {
+      "accepted": 63,
+      "prompt_improvement_recommended": 11,
+      "not_applicable": 20,
+      "input_data_improvement_recommended": 6
+    },
+    "benchmark_disposition_counts": {
+      "included": 100,
+      "excluded": 6
+    },
+    "applied_compare_reviews": 1,
+    "applied_pipeline_assessment_counts": {
+      "accepted": 1
+    },
+    "applied_benchmark_disposition_counts": {
+      "included": 1
+    },
+    "superseded_removed_previous_items": 0,
+    "applied_normal_reviews": 2
+  },
+  "files": {
+    "benchmark": "benchmark.jsonl",
+    "alternatives": "alternatives.jsonl"
+  },
+  "working_files": {
+    "included": "included.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
+  },
+  "gold_question_policy": {
+    "benchmark_contains_all_human_confirmed_included_pairs": true,
+    "preferred_question_used_when_present": true,
+    "approved_model_output_used_otherwise": true,
+    "unchanged_previous_items_carried_forward": true
+  },
+  "holdout_policy": {
+    "private_annotations_outside_repository": true,
+    "mixed_private_exports_rejected": true
+  },
+  "release_boundary": {
+    "public_release_files": [
+      "manifest.json",
+      "benchmark.jsonl",
+      "alternatives.jsonl",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "internal_only_files": [
+      "included.jsonl",
+      "linguistic_annotations.jsonl",
+      "dismissed.jsonl"
+    ]
+  },
+  "review_stages": [
+    {
+      "mode": "initial",
+      "source_bundle": "review/review_data.js",
+      "source_review_export": "var/review/exports/musparql-review-non-holdout-227994bdc9c76e98-2026-08-06_18-09-56.json",
+      "applied_reviews": 2
+    },
+    {
+      "mode": "compare",
+      "source_bundle": "review/review_data_v10_0016.js",
+      "source_review_export": "var/review/exports/musparql-review-non-holdout-compare-4e3c969cdc5b09ba-2026-08-06_18-16-55.json",
+      "applied_reviews": 1
+    }
+  ]
+}

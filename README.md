@@ -19,7 +19,7 @@ otherwise erroneous, a human may approve a provenance-linked, append-only
 correction that preserves the source information need. The original source
 query remains immutable as version `0`.
 
-The current public benchmark is under [`benchmark/v9`](benchmark/v9). It
+The current public benchmark is under [`benchmark/v10`](benchmark/v10). It
 contains 100 reviewed pairs from Musical Meetups, the Jazz Ontology, MusOW,
 Organs, and LinkedMusic.
 

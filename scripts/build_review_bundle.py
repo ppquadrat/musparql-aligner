@@ -299,6 +299,18 @@ def main() -> None:
     parser.add_argument("--examples", default="prompts/llm_nl_generation.examples.jsonl")
     parser.add_argument("--kgs", default="catalog/kgs.jsonl")
     parser.add_argument("--kg-queries", default="var/queries/kg_queries.jsonl")
+    parser.add_argument(
+        "--kg-id",
+        action="append",
+        default=[],
+        help="Include every reviewable record for this KG; may be repeated.",
+    )
+    parser.add_argument(
+        "--query-label",
+        action="append",
+        default=[],
+        help="Include this query label; may be repeated and is combined with --kg-id as a union.",
+    )
     parser.add_argument("--run-manifest", default="", help="Optional run manifest to attach explicit run metadata.")
     parser.add_argument("--run-id", default="", help="Optional run id to use when auto-freezing a run.")
     parser.add_argument("--no-freeze", action="store_true", help="Do not auto-freeze a run when no manifest is found.")
@@ -346,6 +358,8 @@ def main() -> None:
     previous_benchmark_path = Path(args.previous_benchmark) if args.previous_benchmark else None
     previous_benchmark = load_previous_benchmark(previous_benchmark_path)
     holdout_selector_keys = load_selector_keys(Path(args.holdout_selectors) if args.holdout_selectors else None)
+    selected_kg_ids = {str(value) for value in args.kg_id if str(value)}
+    selected_query_labels = {str(value) for value in args.query_label if str(value)}
     scope_counts = {
         "new_records": 0,
         "previously_reviewed_records": 0,
@@ -396,6 +410,10 @@ def main() -> None:
             kg_id = str(rec.get("kg_id") or "")
             query_id = str(rec.get("query_id") or "")
             query_label = str(rec.get("query_label") or "")
+            if (selected_kg_ids or selected_query_labels) and not (
+                kg_id in selected_kg_ids or query_label in selected_query_labels
+            ):
+                continue
             key = (kg_id, query_id, query_label)
             source_input = input_index.get(key, {})
             previous_candidate = previous_benchmark.get((kg_id, query_id))

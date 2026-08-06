@@ -95,7 +95,7 @@ def main() -> None:
             path = "scik-2026-musparql-workflow.png"
             label, width = "fig:workflow", "95%"
         else:
-            label, width = "fig:review-ui", "72%"
+            label, width = "fig:review-ui", "100%"
         return f"![{caption}]({path}){{#{label} width={width}}}"
 
     body = figure_pattern.sub(figure, body)
