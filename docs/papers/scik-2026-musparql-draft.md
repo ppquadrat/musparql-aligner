@@ -124,7 +124,7 @@ Table 2 isolates the effect of human review by separating the provenance of the 
 | Generated | 9 | 20 | 29 |
 | **Total** | **52** | **48** | **100** |
 
-**Table 2:** Effect of human review on the canonical question. “Retained” comprises 20 source prompts and 32 approved model outputs. “Aligned” denotes an LLM candidate grounded in cited source evidence; “generated” denotes a candidate formulated from the SPARQL and graph context because no suitable wording was selected. Counts are derived from the stored `nl_question_origin` and gold-question provenance.
+**Table 2:** **!!this table needs updating with new numbers for the new benchmark. And other tables as well** Effect of human review on the canonical question. “Retained” comprises 20 source prompts and 32 approved model outputs. “Aligned” denotes an LLM candidate grounded in cited source evidence; “generated” denotes a candidate formulated from the SPARQL and graph context because no suitable wording was selected. Counts are derived from the stored `nl_question_origin` and gold-question provenance.
 
 Together, Tables 1 and 2 show that 71 of the 100 initial questions were grounded in human-authored source language: 20 were already paired with a query and 51 were aligned from evidence. The remaining 29 required generation without a selected source formulation. Human review still made a substantial contribution, replacing 48 candidates, including 28 evidence-aligned formulations and 20 generated ones.
 
