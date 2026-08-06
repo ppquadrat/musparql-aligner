@@ -1,0 +1,274 @@
+\section{Introduction}\label{introduction}
+
+SPARQL endpoints provide precise access to structured knowledge, yet they remain difficult to use for researchers who are specialists in a subject rather than in Semantic Web technologies \citep{harris2013sparql}. This barrier is particularly relevant in non-technical disciplines such as musicology: researchers must learn not only a query language, but also the terminology and modelling choices of an unfamiliar data representation. Familiar words can take on narrower technical meanings. The Music Ontology, for example, represents an album as \texttt{mo:SignalGroup} and a particular release of it as \texttt{mo:Release}. When these correspond one-to-one, ``album'' may be the more natural wording; when they do not, the distinction matters \citep{raimond2007music}. Natural-language interfaces can mediate this gap by translating researchers' questions into SPARQL, explaining results, or supporting exploration of unfamiliar graph schemas.
+
+Evaluating such interfaces requires more than syntactically valid queries. Benchmark examples must express plausible information needs, use appropriate domain terminology, and faithfully relate a graph pattern to a question that a researcher might ask. Most established NL-SPARQL and knowledge graph question-answering benchmarks are built around general-purpose graphs such as DBpedia or Wikidata \citep{lopez2013evaluating, trivedi2017lcquad, dubey2019lcquad2}. They do not fully represent the conditions of smaller domain knowledge graphs, where documentation is heterogeneous, examples are dispersed across repositories and papers, endpoints may be unstable, and the usefulness of a formulation depends on specialist knowledge.
+
+The resulting methodological problem is how to turn scattered, real-world query material into trustworthy evaluation data without obscuring the interpretation involved. A SPARQL query may be implemented in a repository while the corresponding information need appears in a competency-question table, a paper, or nearby documentation. Establishing the pair may require alignment and reformulation rather than simple extraction. Its provenance should therefore show whether the wording was directly paired with the query, aligned from other source evidence, formulated with model assistance, or rewritten by a reviewer.
+
+Musparql addresses this curation problem through a domain-agnostic workflow for producing NL-SPARQL pairs from existing knowledge graph sources. Musicology supplies the empirical testbed, which spans performances, musical sources, jazz discographies, organs as both historical instruments and complex building projects, surveys of online music resources and ethnomusicological field recordings. The need is broader: many research domains require evaluation data for natural-language access but possess only scattered examples, uneven documentation, and limited expert time.
+
+The paper contributes a reproducible human-in-the-loop method, a public snapshot of 100 curated pairs from five music knowledge graph sources, and an open implementation and artifact model that keep scoring data distinct from provenance, accepted rephrasings, review history, and private holdout data. Together, these contributions make the intervention of domain experts both auditable and strategically focused.
+
+\section{Related Work and Motivation}\label{related-work-and-motivation}
+
+Evaluation has been central to question answering over RDF knowledge graphs because a natural-language interface must bridge both a formal query language and the vocabulary of a particular graph. The QALD campaigns established shared evaluation for this task, while LC-QuAD and LC-QuAD 2.0 supplied larger collections of complex question--SPARQL pairs for data-driven systems \citep{lopez2013evaluating, trivedi2017lcquad, dubey2019lcquad2}. Together with surveys of semantic question answering \citep{hoffner2017survey, diefenbach2018core}, these resources define the technical setting of Musparql. They are not, however, its principal methodological precedent: they mainly support system comparison over large general-purpose graphs, whereas our concern is how reliable evaluation material can be recovered for smaller, heterogeneous domain knowledge graphs.
+
+That distinction matters because benchmark results reflect the construction and maintenance of the benchmark as well as the capability of the system under test. Analyses of KGQA datasets have identified restricted query diversity, dependence on outdated or discontinued graph versions, changing endpoint results, and weak generalisation beyond the dataset on which a system was developed \citep{steinmetz2021kgqa, jiang2022generalizability}. QALD-10 responds to part of this problem by pairing its Wikidata benchmark with a stable graph snapshot and endpoint \citep{usbeck2023qald10}. More recent evaluation campaigns have also moved towards particular knowledge settings: Scholarly-QALD 2023 evaluated question answering over the DBLP and Open Research Knowledge Graphs \citep{banerjee2023scholarlyqald}, and the TEXT2SPARQL challenges in 2025 and 2026 combined general-purpose evaluation with previously unseen organisational data \citep{tramp2025text2sparql, text2sparql2026datasets}. The 2026 edition additionally solicited datasets for custom and low-resource domain graphs. These developments substantiate the need for evaluation resources that are grounded in the schemas, terminology, and information needs of individual research communities rather than transferred only from DBpedia or Wikidata.
+
+Recent datasets have begun to address realism in the provenance of questions and queries. SPINACH derives expert-annotated pairs from requests posted to Wikidata's \texttt{Request\ a\ Query} forum, retaining information needs that arose before benchmark construction \citep{liu2024spinach}. The Wikidata Query Logs dataset instead begins with queries issued to the public endpoint and uses an agentic process to repair anonymised queries and generate corresponding questions \citep{walter2026wdql}. Particularly close to our motivation is the collection by Bolleman et al. \citep{bolleman2025bioinformatics}, which standardises more than one thousand human-written questions and SPARQL queries accumulated across multiple bioinformatics groups and endpoints, including federated examples. These resources show that realistic NL--SPARQL material can be recovered from operational or project activity. Musparql addresses a less uniform case: useful queries, descriptions, and competency questions are dispersed through repositories, papers, guides, and project websites, and the correspondence between them is not always already stated.
+
+Competency questions provide an important bridge between knowledge-graph engineering and benchmark construction. They express the information needs that an ontology or graph is intended to support, but they are rarely published together with executable formal queries. Wiśniewski et al. \citep{wisniewski2019competency} collected competency questions and their SPARQL-OWL translations across several ontologies and showed that linguistic question patterns and formal query structures do not have a one-to-one relationship. Q2Forge more recently introduced an LLM-assisted, human-refined workflow that generates competency questions and their SPARQL translations for a target graph \citep{taghzouti2025q2forge}. Musparql solves the complementary problem. It does not generate benchmark queries: it begins with SPARQL implemented or published by people, seeks existing source-authored language before formulating new wording, and asks a reviewer to determine whether the resulting pair expresses a meaningful domain information need.
+
+The need for this final judgment is especially visible in research and cultural-heritage graphs. Their technical vocabularies encode modelling decisions, while a useful question must also make sense in the language and practices of a domain. The closest system-oriented precedent is SESEMMI for LinkedMusic, which evaluated five LLMs on twenty manually constructed NL--SPARQL pairs spanning single-database and cross-database questions over an integrated music data lake \citep{pond2025sesemmi}. Its sharp decline in accuracy as queries crossed databases demonstrates both the demand for music-domain evaluation and the difficulty of communicating heterogeneous graph structures to models. Musparql addresses the complementary upstream question of how evaluation pairs can be found, repaired, contextualised, and reviewed across independently developed graphs. Within music heritage, the Polifonia Ontology Network was itself developed through competency questions contributed by diverse pilots, including questions subsequently represented in the Musical Meetups graph used here \citep{deberardinis2023polifonia}. A formally faithful verbalisation can nevertheless be misleading to a musicologist, and an executable query can be an administrative or intermediate operation rather than a plausible research question. The task is therefore not merely to translate between two strings, but to mediate between graph semantics, source evidence, and communicative intent.
+
+LLMs make that mediation more tractable without making it automatic. They can search heterogeneous evidence, propose alignments, and verbalise a query for which no suitable wording is found, but fluent text does not establish semantic or pragmatic adequacy. Hybrid human--AI validation has likewise been shown to improve the quality of automatically constructed scientific knowledge graphs \citep{tsaneva2024enhancing}. Musparql applies this principle to the construction of evaluation data and makes the intervention itself inspectable. Its primary contribution relative to previous NL--SPARQL collections is therefore not scale, but an auditable workflow in which source evidence, model assistance, execution evidence, reviewer interpretation, and the published canonical pair remain distinguishable.
+
+\section{Workflow}\label{workflow}
+
+Musparql separates source evidence, model assistance, human judgment, and benchmark publication. The separation is methodological: it prevents generated text from being mistaken for source evidence, prevents execution success from being mistaken for benchmark suitability, and preserves the expert decisions that produce the scoring data. Figure 1 organises the process into four stages, with heterogeneous KG sources as input and a versioned benchmark as output.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.95\linewidth,height=\textheight,keepaspectratio]{scik-2026-musparql-workflow.png}
+\caption{The four-stage Musparql workflow. Human-authored SPARQL is collected with source provenance; existing natural-language evidence is aligned before new wording is formulated; expert review determines semantic and communicative adequacy; and publication separates compact scoring pairs from richer provenance. LLM assistance is confined to Stage 2 and cannot publish a benchmark item without Stage 3.}\label{fig:workflow}
+\end{figure}
+
+\subsection{Source and Query Acquisition}\label{source-and-query-acquisition}
+
+The workflow begins by collecting SPARQL that people have implemented in repositories or published in papers, documentation, and guides. Musparql does not invent queries for the benchmark. Query extraction preserves the repository or document location, revision information where available, and a normalised hash. The same acquisition layer captures nearby comments, prose descriptions, competency questions, table entries, and other human-readable evidence.
+
+The result is an inclusive candidate catalogue. Real-world collections contain user-facing examples alongside administrative queries, intermediate analytical steps, fragments, and queries whose assumptions are only intelligible within a particular application. Retaining this variety at acquisition time makes the source record complete; deciding which items support meaningful natural-language evaluation is deferred to review.
+
+\subsection{Evidence Alignment and Question Formulation}\label{evidence-alignment-and-question-formulation}
+
+The second stage attempts to connect each candidate query to language already written by the source authors. Evidence may occur next to the query as a comment or description, elsewhere in the same project's competency-question list, in a paper, or as a source-authored prompt explicitly paired with a published query example. Competency questions are commonly used to state ontology requirements and to assess whether a graph supports the intended information needs \citep{gruninger1995competency}. Aligning them with implemented queries therefore reuses human formulations that have already played an evaluative role in the source project. More generally, this stage recovers NL-SPARQL material that is present in domain projects but not packaged as a benchmark.
+
+The LLM performs two different tasks within this stage. Where suitable wording exists, it ranks and aligns the evidence to the SPARQL and may propose a faithful paraphrase. Where no suitable wording exists, it formulates a candidate question from the query and available graph context. In either case, the output records its mode and cited evidence and remains provisional until review. Thus the model helps convert scattered source material into reviewable candidates; it neither supplies the SPARQL nor independently establishes gold wording.
+
+Execution results provide an additional diagnostic signal. Queries are submitted to configured endpoints or local dumps and their status, result count, timing, and errors are recorded. The source SPARQL remains immutable as version 0; any correction is retained as an append-only version, and each execution records the exact version and hash used. Execution is not an inclusion rule: a query can run while representing only an intermediate technical operation, whereas a meaningful pair may be temporarily unexecutable because a live endpoint is unavailable or a federated service times out. Pair validity and current endpoint availability are therefore assessed separately.
+
+\subsection{Human Review}\label{human-review}
+
+Human review determines whether a candidate expresses a meaningful information need, whether the natural-language formulation is faithful to the graph pattern, and whether a canonical rewrite is required. It also acts as a semantic filter: a reviewer decides which query operations and returned variables express the information need and which serve only a technical or presentational function. Making this distinction often requires knowledge of both the research domain and the particular graph. Reviewers can accept, correct, or dismiss a pair, distinguish model problems from source-data problems, retain acceptable alternative formulations, and designate eligible material for the private holdout. Section 4 examines this interpretive work in detail.
+
+\subsection{Benchmark Publication}\label{benchmark-publication}
+
+A versioned snapshot publishes one canonical question for each scoring query. The compact scoring file is accompanied by public provenance that records source evidence, review origin, and accepted non-canonical formulations. This division keeps evaluation simple without erasing how a pair was constructed.
+
+Private holdout material follows a different lifecycle. Every candidate has already been processed by the generation model before review, including a candidate that is subsequently marked for holdout. The mechanism therefore does not keep the SPARQL or the model-generated formulation unseen. Instead, it stores the reviewer decision and any reviewer-authored canonical rephrasing separately from the public benchmark and provenance sidecar and excludes them from later prompt development and routine automatic evaluation. This prevents direct tuning against the private gold judgment and wording. The holdout is maintained outside the public snapshot and will be expanded towards 10\% of eligible pairs to improve its coverage of knowledge graphs, query shapes, formulation origins, and difficult interpretive cases.
+
+\section{Human Review as Interpretive Mediation}\label{human-review-as-interpretive-mediation}
+
+Human review is not a final proofreading step but the point at which formal graph operations are interpreted as communicative questions. The observations below are documented cases from successive Musparql review rounds. They show why a benchmark cannot be derived from execution status or literal query verbalisation alone.
+
+\subsection{Initial and Comparative Review}\label{initial-and-comparative-review}
+
+Musparql supports two review modes. \textbf{Initial review} presents a previously unreviewed candidate together with its SPARQL, source evidence, execution metadata, and model rationale. The reviewer accepts, rewrites, or dismisses the pair and can record a literal formulation and alternative acceptable wording. \textbf{Comparative review} is used after a change to the evidence, prompt, model, or extraction pipeline. It places the previous and current candidates side by side so that the reviewer can decide whether the change warrants a benchmark update while retaining the earlier decision as provenance. The second mode has been important to the evolution of the benchmark through nine versions, because it distinguishes targeted reconsideration from rebuilding the benchmark after every experiment.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.72\linewidth,height=\textheight,keepaspectratio]{scik-2026-musparql-review-ui-v2.png}
+\caption{Initial-review workbench for \protect\texttt{jazzontology-0002}. The LLM asks for the named ``album''; the reviewer prefers a shorter imperative formulation and records a literal wording that exposes the queried \protect\texttt{mo:Release}. The evidence panel retains the Jazz Ontology competency questions available during formulation. Comparative review uses the same decision fields while placing previous and current candidates side by side.}\label{fig:review-ui}
+\end{figure}
+
+\subsection{Mismatches Observed in Review}\label{mismatches-observed-in-review}
+
+The first recurring mismatch concerns ontology terminology and domain vocabulary. The query in Figure 2 selects an \texttt{mo:Release} with the title \emph{Bix - A Tribute to Bix Beiderbecke}, while both the model and reviewer use the ordinary term ``album.'' The Jazz Ontology supplement distinguishes the two concepts: an album is represented as \texttt{mo:SignalGroup}, corresponding to a MusicBrainz release group, whereas an \texttt{mo:Release} is a particular publication of an album and may contain one or more media \citep{proutskova2022jazz}. The literal formulation preserves that distinction by asking which releases of the named album occur in the graph. The preferred formulation instead reflects the common situation in which one represented release is the salient object and ordinary language calls it the album. This substitution is contextual rather than an assertion that \texttt{mo:Release} and \texttt{mo:SignalGroup} are equivalent.
+
+A second mismatch arises between computational operations and communicative salience. A query may count encounters by place, order the groups, and return the two highest-ranked places together with their counts. The counts can be the semantic core of a question---``How many encounters occurred at each of the two most frequent places?''---or merely the mechanism used to identify the places---``Where did most encounters occur?'' The SPARQL structure alone does not determine which reading reflects the source information need. Review and reformulation decide whether aggregation, ordering, and returned helper values belong in the canonical question.
+
+Third, provenance fields do not have a uniform communicative role. A Musical Meetups query may return an excerpt labelled as evidence alongside the participants, time, place, and purpose of an encounter. If the excerpt is routinely included to trace graph statements back to a source, asking for ``the supporting evidence text'' may overload the question with implementation detail. In a query concerned with the documentary basis of a historical claim, however, the same field is central. Determining whether to mention it requires knowledge of how evidence is modelled and used in that graph.
+
+Finally, the operational mechanism encoded in SPARQL may differ from the concept a researcher would name. A literal question about pairs of audio signals with the same short fingerprint accurately describes the graph pattern, whereas ``Are there duplicate tracks in the dataset?'' expresses its likely purpose. The latter is communicatively stronger but introduces an interpretation: matching fingerprints are being treated as evidence of duplication. A reviewer must decide whether the domain and data justify that inference.
+
+\subsection{Literal Meaning, Pragmatic Intent, and Ambiguity}\label{literal-meaning-pragmatic-intent-and-ambiguity}
+
+Qualitative analysis of problem cases in our review process uncovered three forms of adequacy: preservation of formal graph semantics, expression of the relevant domain concept, and suitability as a human question. Qualitative analysis of the problem cases suggests three provisional dimensions for describing the movement from literal to preferred formulations. \textbf{Naturalness} concerns the difference between awkward or formal wording and fluent human phrasing. \textbf{Pragmatism} concerns the difference between exhaustive verbalisation of query structure and concise expression of communicatively salient content. \textbf{Room for interpretation} concerns how constrained or open a formulation is; unlike naturalness, more is not necessarily better, because openness may represent either useful conceptual breadth or harmful underspecification.
+
+The present workflow records a preferred canonical question, a literal SPARQL formulation and accepted alternatives. A future interface will operationalise annotations of the linguistic dimensions based on pairwise judgements.
+
+\section{Benchmark Snapshot}\label{benchmark-snapshot}
+
+The current snapshot, \texttt{benchmark/v9}, was built on 5 August 2026 and contains 100 scoring records. Every record is included in the benchmark and its canonical natural-language formulation was confirmed by a human reviewer. The sources were chosen to provide a heterogeneous domain testbed: they differ in project history, documentation style, graph schema, query provenance, and degree of natural-language support; both small specialised graphs and large federated graphs are included. Our expertise domain is music, while the method is domain agnostic. Table 1 describes the published pairs and their provenance.
+
+The five sources cover distinct musical knowledge settings. Musical Meetups and Organs are Polifonia knowledge graphs: Meetups represents documentary evidence of historical encounters between musical figures \citep{morales2024mmkg}, while Organs represents instruments, their components, locations, and changes over time within the Polifonia Ontology Network \citep{deberardinis2023polifonia}. DTL1000 draws on the Jazz Ontology and its large linked jazz discography repositories \citep{proutskova2022jazz}, and MusOW catalogues music-related datasets and digital resources available on the Web \citep{daquino2017musical}. LinkedMusic integrates heterogeneous music resources in a data lake designed to support cross-dataset retrieval \citep{pond2025sesemmi}.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1579}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}@{}}
+\caption{Benchmark coverage and origin of the initial natural-language candidate. ``Direct source wording'' denotes a human-authored prompt already paired with the query example; ``evidence-aligned'' combines candidates that reproduce or paraphrase cited source evidence; ``generated'' denotes candidates formulated without a selected source wording.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+KG source
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Pairs
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Direct source wording
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Evidence-aligned
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Generated
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+KG source
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Pairs
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Direct source wording
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Evidence-aligned
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Generated
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Musical Meetups & 30 & 0 & 20 & 10 \\
+100 Years of Jazz (DTL1000) & 21 & 0 & 10 & 11 \\
+Music On the Web (MusOW) & 20 & 0 & 18 & 2 \\
+LinkedMusic & 20 & 20 & 0 & 0 \\
+Organs & 9 & 0 & 4 & 5 \\
+\textbf{Total} & \textbf{100} & \textbf{20} & \textbf{52} & \textbf{28} \\
+\end{longtable}
+
+Table 2 isolates the effect of human review by separating the provenance of the initial candidate from the source of the final canonical question.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2000}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}@{}}
+\caption{Effect of human review on the canonical question. ``Retained'' comprises 20 source prompts and 32 approved model outputs. ``Aligned'' denotes an LLM candidate grounded in cited source evidence; ``generated'' denotes a candidate formulated from the SPARQL and graph context because no suitable wording was selected. Counts are derived from the stored \protect\texttt{nl\_question\_origin} and gold-question provenance.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Initial NL candidate
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Retained as canonical
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Reviewer rewrite
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Total
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Initial NL candidate
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Retained as canonical
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Reviewer rewrite
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Total
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Direct source prompt & 20 & 0 & 20 \\
+Aligned verbatim & 5 & 3 & 8 \\
+Aligned paraphrase & 18 & 26 & 44 \\
+Generated & 9 & 19 & 28 \\
+\textbf{Total} & \textbf{52} & \textbf{48} & \textbf{100} \\
+\end{longtable}
+
+Together, Tables 1 and 2 show that 72 of the 100 initial questions were grounded in human-authored source language: 20 were already paired with a query and 52 were aligned from evidence. Only 28 required generation without a selected source formulation. Human review still made a substantial contribution, replacing 48 candidates, including 29 evidence-aligned formulations and 19 generated ones.
+
+The queries also vary substantially in formal structure. All 100 are \texttt{SELECT} queries, which makes the snapshot directly usable with conventional result-set execution, but many go well beyond a basic graph pattern. Table 3 reports the presence of selected SPARQL features; categories overlap because one query may use several features.
+
+\begin{longtable}[]{@{}lr@{}}
+\caption{Structural features in the 100 selected SPARQL queries. ``Aggregate'' covers \protect\texttt{COUNT}, \protect\texttt{SUM}, \protect\texttt{AVG}, \protect\texttt{MIN}, \protect\texttt{MAX}, \protect\texttt{GROUP\_CONCAT}, and \protect\texttt{SAMPLE}.}\tabularnewline
+\toprule\noalign{}
+SPARQL feature & Queries \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+SPARQL feature & Queries \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{FILTER} & 43 \\
+Aggregate function & 42 \\
+\texttt{SELECT\ DISTINCT} & 41 \\
+\texttt{ORDER\ BY} & 34 \\
+\texttt{GROUP\ BY} & 33 \\
+\texttt{VALUES} & 21 \\
+\texttt{OPTIONAL} & 14 \\
+\texttt{UNION} & 10 \\
+Subquery & 9 \\
+\texttt{BIND} & 6 \\
+Federated \texttt{SERVICE} & 5 \\
+\texttt{HAVING} & 2 \\
+\end{longtable}
+
+The execution snapshot records an observation for every selected query version (Table 4). Forty-eight returned at least one result and 28 executed successfully with an empty result. Six encountered endpoint or request errors. The remaining 18 required a runtime not provided by the configured runner: eight were recorded as skipped local queries and ten as unsupported in that execution context, principally because they retained parameters or other non-standalone assumptions. These statuses describe a time-stamped infrastructure observation, not correctness or benchmark eligibility. In particular, an empty result may reflect the selected dataset or graph, while a remote failure may arise in a federated service rather than in the query.
+
+\begin{longtable}[]{@{}lr@{}}
+\caption{Latest execution observations for the exact SPARQL versions selected by \protect\texttt{benchmark/v9}, captured through 5 August 2026. Execution is diagnostic provenance and does not determine inclusion.}\tabularnewline
+\toprule\noalign{}
+Recorded status & Queries \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Recorded status & Queries \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Non-empty result (\texttt{ok}) & 48 \\
+Empty result (\texttt{empty}) & 28 \\
+HTTP error & 5 \\
+Request error / timeout & 1 \\
+Skipped local-runtime query & 8 \\
+Unsupported in configured runtime & 10 \\
+\textbf{Total observations} & \textbf{100} \\
+\end{longtable}
+
+SPARQL corrections are used to make retained source queries executable or self-contained without changing their information need. Across the collection, changes resolve runtime placeholders, complete prefixes, instantiate example values, make endpoint-specific examples self-contained, or repair isolated malformed syntax. Version 0 remains immutable, every correction is reviewed, and the benchmark records which version was selected.
+
+LinkedMusic and MusOW illustrate two distinct routes through the workflow. LinkedMusic contributes the complete twenty-pair manually constructed evaluation set published with SESEMMI \citep{pond2025sesemmi}, so its questions are retained as source-authored prompts. The official SPARQL remains version 0 and an attributed, tested working copy is retained as version 1; fifteen edits mainly make endpoint-specific examples self-contained, while five federated queries contain more substantive rewrites that preserve the stated questions. MusOW, by contrast, required no SPARQL changes: natural-language descriptions from its survey documentation were aligned to individual queries and rewritten during review where necessary. The contrast shows why question provenance and query-version provenance are recorded independently.
+
+\section{Reproducibility, Trust, and Artifact Design}\label{reproducibility-trust-and-artifact-design}
+
+The artifact mirrors the conceptual separation of the workflow. Source snapshots and extracted query records establish what existed before model assistance. Frozen generation runs record the prompt, model, evidence citations, and proposed formulation. Review exports capture the expert decision, notes, and rewrite. A benchmark build then derives a versioned scoring file and public provenance from those records without allowing automatic evaluation to update the benchmark itself.
+
+This separation also permits changes to one pipeline component to be evaluated without silently changing the benchmark. In one controlled experiment, adding explicit ontology-term and observed graph-shape context reduced the mean automatic semantic score on a five-point scale from 4.433 to 4.066 and produced questions that were closer to data-model terminology or unnecessarily specific; comparative review did not support adopting the enrichment. A later comparative review\footnote{The complete comparison protocol and reviewer observations are documented in \href{https://github.com/ppquadrat/musparql-aligner/blob/main/docs/experiments/2026-05-28-minimax-comparison.md}{\texttt{docs/experiments/2026-05-28-minimax-comparison.md}}.} found MiniMax-M2.5 sufficiently competitive with OpenAI's \texttt{gpt-5-2025-08-07} for candidate formulation and often more natural or pragmatic, but also identified omitted constraints and systematic evidence-ID drift. MiniMax-M2.5 was adopted only with citation validation and continued human review. These experiments are evidence about pipeline design rather than a general model ranking: repeated review also revealed changes in the reviewer's own understanding of particular graphs.
+
+This structure supports different uses without requiring every user to process the complete history. A model developer can use the compact pairs for regression testing, prompt or model comparison, error analysis, and few-shot examples. A curator can inspect the source evidence and review trail for a disputed item or construct a new snapshot without silently replacing earlier decisions. Accepted alternatives can support analyses that recognise more than one semantically adequate wording, while the single canonical question preserves compatibility with conventional scoring procedures.
+
+The implementation and documentation are available in the \href{https://github.com/ppquadrat/musparql-aligner}{GitHub repository}, and the reviewed v9 benchmark is available as a \href{https://github.com/ppquadrat/musparql-aligner/releases/download/benchmark-v9/musparql-benchmark-v9.zip}{downloadable ZIP archive}. Reproducibility safeguards focus on points where silent change would be most damaging. For example, source SPARQL remains as immutable version 0 while any approved correction is appended and selected explicitly; benchmark builds then audit the selected version and hash. Likewise, each generation run freezes its inputs and configuration so that later comparative review can attribute a wording change to a specific pipeline change. The detailed procedures and checks are documented in the repository's \href{https://github.com/ppquadrat/musparql-aligner/tree/main/docs}{workflow and runbooks}. Live endpoints and federated services can still change, so execution results are treated as dated observations rather than permanent validation.
+
+\subsection{Security and trust boundaries}\label{security-and-trust-boundaries}
+
+Trust boundaries are enforced at the two decisions most liable to be mistaken for automatic evidence. First, model output cannot become a canonical question or SPARQL correction without an explicit human decision; execution success is recorded but cannot approve either one. Second, private holdout annotations are exported separately and kept outside the public repository and agent-assisted workflow. An annotation-free selector can exclude the chosen identities before later prompts and routine evaluation, without exposing reviewer wording or judgments. The \href{https://github.com/ppquadrat/musparql-aligner/blob/main/docs/REVIEW_POLICY.md}{review policy} and \href{https://github.com/ppquadrat/musparql-aligner/blob/main/docs/HOLDOUT_SECURITY.md}{holdout security policy} document the full boundary and failure procedure.
+
+This is defence in depth rather than a claim of cryptographic isolation. The current private workflow is unencrypted, and a plaintext file under the same operating-system account is not a strong barrier against software running with that account's permissions. It therefore relies on human procedure: private review is conducted without an agent active, private exports remain outside agent-readable workflows, and any exposed or published holdout is retired. Stronger future deployments should encrypt private exports before they touch disk and keep the key outside command lines, environment variables, and agent-accessible credential stores; a separate account or review machine would provide a stronger boundary still.
+
+\section{Discussion and Future Work}\label{discussion-and-future-work}
+
+Musparql demonstrates how a domain-grounded curation process can produce reusable evaluation data for natural-language access to heterogeneous research knowledge graphs. Music provides a demanding setting because schemas and documentation vary, federated queries cross institutional boundaries, and the relationship between a graph operation and a research question often requires specialist interpretation. Comparable conditions occur in other domains where structured resources are valuable but evaluation material for natural-language access is scarce. The transferable contribution is therefore not only a music query collection, but a method for turning dispersed human work into traceable evaluation data while applying expert judgment at points of genuine semantic uncertainty.
+
+The snapshot's modest size should be interpreted in this context. It is not intended for training at scale; its intended uses include few-shot prompting, regression testing, controlled comparisons, and qualitative error analysis. More importantly, the artifact reveals what scale alone conceals: whether the wording is source-derived, model-assisted, or reviewer-mediated; what evidence supports it; and where expert intervention changed the apparent meaning of a query.
+
+Three limitations delimit the present claims. First, the empirical results come from one domain and one principal reviewer, although they incorporate multiple initial and comparative review rounds across nine benchmark versions. Cross-domain transfer and reviewer consistency have therefore not yet been measured. Second, the private holdout is not yet large enough to represent the full diversity of knowledge graphs, query structures, formulation origins, and interpretive difficulty in the collection. Third, execution remains dependent on live and federated services for some examples; recorded execution metadata improves diagnosis but cannot guarantee future endpoint availability or target-dataset equivalence.
+
+Future releases will address these limits by expanding the holdout towards 10\% of eligible pairs with broader coverage of the collection's diversity; measuring intra- and inter-reviewer consistency; and extending the collection to additional domains, languages, and types of ambiguity. We will also evaluate current text-to-SPARQL systems on Musparql's executable subset, initially through the TEXT2SPARQL pipeline \citep{tramp2025text2sparql}, using execution-based scoring together with error analysis that distinguishes model failures from query-template, graph-version, endpoint, and federated-service failures. Pairwise comparison with literal NL descriptions will support more precise study of naturalness, pragmatism, communicative salience, and interpretive openness without conflating those dimensions with benchmark correctness. On the acquisition side, KG and source discovery can be augmented by LLMs. These developments retain the central design principle: automation should enlarge and organise the evidence base, while expert effort remains visible and is reserved for decisions that require domain interpretation.
+
+\section*{Acknowledgments}\label{acknowledgments}
+
+The Musparql workflow grew out of the Quagga initiative to collect question--query pairs for knowledge graphs in the social sciences and humanities. The author thanks the Industry Commons Foundation for its institutional support, and Matteo Romanello and Harshdeep Singh of Odoma for initiating Quagga, providing its infrastructure, and offering valuable insights and encouragement.
+
+This work was conducted as part of the GRAPHIA project, which has received funding from the European Union's Horizon Europe research and innovation programme under grant agreement No.~101188018. Views and opinions expressed are those of the author only and do not necessarily reflect those of the European Union or the European Commission; neither the European Union nor the granting authority can be held responsible for them.
+
+\section*{Declaration on Generative AI}\label{declaration-on-generative-ai}
+
+During preparation of this manuscript, the author used OpenAI Codex for assistance with software development, code review, drafting, and summarisation of project artifacts. The author reviewed and edited all outputs and takes responsibility for the content of the manuscript \citep{salatino2025ceurpolicy}.

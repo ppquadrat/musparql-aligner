@@ -1,0 +1,61 @@
+\documentclass[noerr]{ceurart}
+
+\sloppy
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{calc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xurl}
+\usepackage{microtype}
+
+\graphicspath{{../}}
+
+\begin{document}
+
+\copyrightyear{2026}
+\copyrightclause{Copyright for this paper by its authors. Use permitted under
+  Creative Commons License Attribution 4.0 International (CC BY 4.0).}
+\conference{Sci-K 2026: 6th International Workshop on Scientific Knowledge:
+  Representation, Discovery, and Assessment, October 25--26, 2026, Bari, Italy}
+
+\title{Musparql: A Human-Curated NL-SPARQL Benchmark Workflow for Domain Knowledge Graphs}
+
+\author[1]{Polina Proutskova}[email=proutskova@googlemail.com]
+\address[1]{Industry Commons Foundation, Stockholm, Sweden}
+
+\begin{abstract}
+Natural-language interfaces can make knowledge graphs accessible to researchers
+who are not Semantic Web specialists, but evaluating such interfaces requires
+trustworthy natural-language/SPARQL pairs. Existing benchmarks largely concern
+general-purpose graphs and seldom expose how source evidence, model assistance,
+and expert judgment contribute to benchmark construction. We present Musparql,
+a domain-agnostic workflow for curating NL-SPARQL evaluation data and instantiate
+it on music knowledge graphs. The workflow collects real SPARQL queries published
+in repositories, papers, and guides; retrieves existing human-authored
+natural-language evidence; uses an LLM to align that evidence or formulate a
+question when necessary; and subjects every resulting pair to human review. The
+LLM does not invent benchmark queries, and its proposed wording becomes scoring
+data only after review. The resulting public snapshot contains 100 NL-SPARQL
+pairs from five heterogeneous sources: 100 Years of Jazz, Musical Meetups,
+Organs, Music On the Web (MusOW), and LinkedMusic. Each scoring record remains
+traceable to its query source, supporting evidence, formulation process, and
+review decision. Musparql shows how expert effort can be made strategic and
+visible: automation gathers and organises candidate material, while domain
+experts concentrate on the semantic and pragmatic decisions that cannot be
+established by execution or surface fluency alone.
+\end{abstract}
+
+\begin{keywords}
+NL-SPARQL \sep knowledge graph question answering \sep benchmark curation \sep
+human-in-the-loop evaluation \sep research knowledge graphs \sep music knowledge graphs
+\end{keywords}
+
+\maketitle
+
+\input{manuscript.tex}
+
+\bibliography{scik-2026-musparql-references}
+
+\end{document}
