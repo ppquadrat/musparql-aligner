@@ -38,6 +38,7 @@ CITATIONS = {
     24: "proutskova2022jazz",
     25: "daquino2017musical",
     26: "salatino2025ceurpolicy",
+    27: "morales2023meetups",
 }
 
 
