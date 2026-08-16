@@ -101,15 +101,18 @@ def benchmark_review_for_record(record: Dict[str, Any], group: str, source_bench
     review = record.get("review") if isinstance(record.get("review"), dict) else {}
     gold_source = str(record.get("gold_question_source") or "")
     public_comment, internal_comment = review_comments(review)
+    provenance = record.get("provenance") if isinstance(record.get("provenance"), dict) else {}
     return {
+        "review_id": review.get("review_id")
+        or provenance.get("approval_review_id")
+        or record.get("benchmark_id"),
         "benchmark_disposition": group,
         "pipeline_assessment": str(record.get("pipeline_assessment") or ""),
         "preferred_question": record.get("gold_question") if gold_source == "reviewer_rewrite" else "",
         "literal_wording": literal_wording(review),
         "public_comment": public_comment,
         "internal_comment": internal_comment,
-        "reviewer_id": review.get("reviewer_id")
-        or (record.get("provenance", {}).get("reviewer_id") if isinstance(record.get("provenance"), dict) else None),
+        "reviewer_id": review.get("reviewer_id") or provenance.get("reviewer_id"),
         "reviewed_at": review.get("reviewed_at") or review.get("updated_at"),
         "prior_review_ids": review.get("prior_review_ids", []),
         "authored_formulation_ids": review.get("authored_formulation_ids", []),

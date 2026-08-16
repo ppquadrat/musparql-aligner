@@ -1,6 +1,7 @@
 # SPARQL correction workbench runbook
 
-Known follow-up work identified during manual end-to-end testing is tracked in
+Known follow-up work is indexed in [`OPEN_ISSUES.md`](OPEN_ISSUES.md), with the
+detailed correction backlog in
 [`SPARQL_CORRECTION_FOLLOW_UP.md`](SPARQL_CORRECTION_FOLLOW_UP.md).
 
 This workflow assumes holdouts exist. In every command, replace

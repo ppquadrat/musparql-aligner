@@ -111,7 +111,9 @@ Legacy sanitized non-holdout exports can be backfilled explicitly:
 
 The migration accepts only explicit paths under `var/review/exports/`; it
 cannot target a benchmark snapshot or holdout artifact. Published v1-v10
-snapshots remain unchanged.
+snapshots remain unchanged. Re-running it for an existing v2 export is
+idempotent only with that export's declared reviewer ID; it rejects attempts to
+reassign a v2 review to another reviewer.
 
 To backfill matching correction histories in the local query catalogue, add
 `--kg-queries var/queries/kg_queries.jsonl` to the command. That option is

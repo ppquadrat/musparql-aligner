@@ -44,7 +44,7 @@ Acceptance test: apply a synthetic defer with a note, delete the synthetic
 working catalogue, extract again, and confirm that the note and decision are
 restored without restoring unsafe local details.
 
-### Do not retain stale suggestion metadata after manual changes
+### Completed: do not retain stale suggestion metadata after manual changes
 
 Observed failure: an agent returned `no_edit`; the reviewer then changed the
 SPARQL manually. The UI correctly changed the proposal origin to `human` and
@@ -53,19 +53,21 @@ rationale, edit type, and evidence IDs. Approval then succeeded because the
 stale rationale satisfied validation. The applied record consequently could
 claim both that no edit was needed and that a human-authored edit was approved.
 
-When a reviewer changes agent-proposed SPARQL:
+Implemented policy: when a reviewer changes agent-proposed SPARQL, the UI
+clears suggestion provenance, rationale, edit type, and evidence IDs together.
+The reviewer must enter fresh edit metadata before approval.
 
-- either retain explicit `agent_assisted_human_modified` provenance and require
-  the reviewer to reconfirm every inherited metadata field; or
-- clear suggestion-derived rationale, edit type, and evidence IDs together
-  with the suggestion provenance.
+The rejected alternative was to retain explicit
+`agent_assisted_human_modified` provenance and require reconfirmation of every
+inherited field.
 
 Changing an agent `no_edit` response into an edit must always require fresh edit
 metadata. Defer and no-edit decisions must not inherit edit-only metadata unless
 it is deliberately represented as a rejected suggestion.
 
-Acceptance tests should cover agent edit, agent no-edit, manual modification,
-defer, returning to a decision, re-approval, export, and apply.
+Automated coverage verifies that manual proposal changes clear all inherited
+agent metadata. The broader regression walkthrough below still covers defer,
+returning to a decision, re-approval, export, and apply.
 
 ### Make saved decisions visible
 

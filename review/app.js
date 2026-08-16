@@ -68,6 +68,8 @@
     compareHoldoutEligibility,
     sparqlEditHoldoutEligibility,
     reusedPreviousReview,
+    resetFormulationAttribution,
+    editedFormulationAttribution,
     parseHoldoutSelectors,
     validateHoldoutSelector,
     selectorForRecord,
@@ -483,6 +485,11 @@
     const hasPublicComment = review != null
       && Object.prototype.hasOwnProperty.call(review, "public_comment");
     const split = review?.split || (review?.benchmark_disposition === "withheld" ? HOLDOUT_SPLIT : "");
+    const copiedFormulationRoles = Array.isArray(review?.copied_formulation_roles)
+      ? review.copied_formulation_roles.filter((role) => role === "preferred" || role === "literal")
+      : review?.copied_from_review_id
+        ? [review?.preferred_question ? "preferred" : "", literalWording ? "literal" : ""].filter(Boolean)
+        : [];
     return {
       review_id: review?.review_id || "",
       reviewer_id: review?.reviewer_id || data?.reviewer_id || "",
@@ -503,6 +510,7 @@
       prior_review_ids: Array.isArray(review?.prior_review_ids) ? review.prior_review_ids : [],
       authored_formulation_ids: Array.isArray(review?.authored_formulation_ids) ? review.authored_formulation_ids : [],
       approved_formulation_ids: Array.isArray(review?.approved_formulation_ids) ? review.approved_formulation_ids : [],
+      copied_formulation_roles: copiedFormulationRoles,
     };
   }
 
@@ -520,12 +528,17 @@
     const literalId = `${eventReviewId}::formulation::literal`;
     const candidateId = `${eventReviewId}::formulation::candidate`;
     const authored = [...normalized.authored_formulation_ids];
-    if (normalized.preferred_question && !review?.copied_from_review_id && !authored.includes(preferredId)) authored.push(preferredId);
-    if (normalized.literal_wording && !review?.copied_from_review_id && !authored.includes(literalId)) authored.push(literalId);
-    const approved = [...normalized.approved_formulation_ids];
-    if (normalized.status && normalized.status !== "excluded" && !approved.length) {
+    if (normalized.preferred_question && !normalized.copied_formulation_roles.includes("preferred") && !authored.includes(preferredId)) authored.push(preferredId);
+    if (normalized.literal_wording && !normalized.copied_formulation_roles.includes("literal") && !authored.includes(literalId)) authored.push(literalId);
+    const approved = normalized.status && normalized.status !== "excluded"
+      ? [...normalized.approved_formulation_ids]
+      : [];
+    if (normalized.status && normalized.status !== "excluded") {
       const approvedId = normalized.preferred_question ? preferredId : candidateId;
-      if (!approved.includes(approvedId)) approved.push(approvedId);
+      const selectedRole = normalized.preferred_question ? "preferred" : "candidate";
+      const copiedApprovalRetained = normalized.copied_formulation_roles.includes(selectedRole)
+        && approved.length > 0;
+      if (!copiedApprovalRetained && !approved.includes(approvedId)) approved.push(approvedId);
     }
     const priorReviewIds = [...normalized.prior_review_ids];
     if (review?.copied_from_review_id && !priorReviewIds.includes(review.copied_from_review_id)) {
@@ -850,10 +863,39 @@
       internal_comment: previousReview.internal_comment || "",
       split: isHoldoutReview(currentReview) ? HOLDOUT_SPLIT : "",
       copied_from_review_id: priorReviewId || null,
+      copied_formulation_roles: [
+        previousReview.preferred_question ? "preferred" : "",
+        previousReview.literal_wording ? "literal" : "",
+      ].filter(Boolean),
       reviewed_at: new Date().toISOString(),
       prior_review_ids: priorReviewId ? [priorReviewId] : [],
       authored_formulation_ids: [],
       approved_formulation_ids: priorApproved,
+    };
+  }
+
+  function resetFormulationAttribution(patch = {}) {
+    return {
+      ...patch,
+      copied_from_review_id: null,
+      authored_formulation_ids: [],
+      approved_formulation_ids: [],
+      copied_formulation_roles: [],
+    };
+  }
+
+  function editedFormulationAttribution(review, role) {
+    const normalized = normalizeReview(review);
+    const copiedRoles = normalized.copied_formulation_roles.filter((value) => value !== role);
+    return {
+      copied_from_review_id: copiedRoles.length ? review?.copied_from_review_id || null : null,
+      copied_formulation_roles: copiedRoles,
+      authored_formulation_ids: normalized.authored_formulation_ids.filter(
+        (value) => !value.endsWith(`::formulation::${role}`)
+      ),
+      approved_formulation_ids: normalized.approved_formulation_ids.filter(
+        (value) => !value.endsWith(`::formulation::${role}`)
+      ),
     };
   }
 
@@ -1462,6 +1504,7 @@
         updateCompareReview(currentReviewId, {
           preferred_question: previousReview.preferred_question || previousRecord?.output?.nl_question || "",
           copied_from_review_id: previousReview.review_id || pair.previous?.review_id || null,
+          copied_formulation_roles: ["preferred"],
           authored_formulation_ids: [],
           approved_formulation_ids: (previousReview.review_id || pair.previous?.review_id)
             ? [`${previousReview.review_id || pair.previous.review_id}::formulation::${previousReview.preferred_question ? "preferred" : "candidate"}`]
@@ -1478,6 +1521,7 @@
         updateCompareReview(currentReviewId, {
           preferred_question: previousReview.preferred_question || previousRecord?.output?.nl_question || "",
           copied_from_review_id: previousReview.review_id || pair.previous?.review_id || null,
+          copied_formulation_roles: ["preferred"],
           authored_formulation_ids: [],
           approved_formulation_ids: (previousReview.review_id || pair.previous?.review_id)
             ? [`${previousReview.review_id || pair.previous.review_id}::formulation::${previousReview.preferred_question ? "preferred" : "candidate"}`]
@@ -1493,24 +1537,32 @@
         updateCompareReview(currentReviewId, {
           status: "accepted",
           preferred_question: "",
+          ...editedFormulationAttribution(compareReviews[currentReviewId] || currentReview, "preferred"),
         });
       });
       document.getElementById("editBetterBtn").addEventListener("click", () => {
         document.getElementById("comparePreferredInput")?.focus();
       });
       Array.from(els.detailView.querySelectorAll(".decision-btn")).forEach((btn) => {
-        btn.addEventListener("click", () => updateCompareReview(currentReviewId, { status: btn.dataset.status || "" }));
+        btn.addEventListener("click", () => {
+          const status = btn.dataset.status || "";
+          updateCompareReview(currentReviewId, {
+            status,
+            ...(status === "excluded" ? resetFormulationAttribution() : {}),
+          });
+        });
       });
       document.getElementById("comparePreferredInput")?.addEventListener("input", () => {
         updateCompareReview(currentReviewId, {
           preferred_question: document.getElementById("comparePreferredInput").value.trim(),
-          copied_from_review_id: null,
-          authored_formulation_ids: [],
-          approved_formulation_ids: [],
+          ...editedFormulationAttribution(compareReviews[currentReviewId] || currentReview, "preferred"),
         }, false);
       });
       document.getElementById("compareLiteralInput")?.addEventListener("input", () => {
-        updateCompareReview(currentReviewId, { literal_wording: document.getElementById("compareLiteralInput").value.trim() }, false);
+        updateCompareReview(currentReviewId, {
+          literal_wording: document.getElementById("compareLiteralInput").value.trim(),
+          ...editedFormulationAttribution(compareReviews[currentReviewId] || currentReview, "literal"),
+        }, false);
       });
       document.getElementById("comparePublicCommentInput")?.addEventListener("input", () => {
         updateCompareReview(currentReviewId, { public_comment: document.getElementById("comparePublicCommentInput").value.trim() }, false);

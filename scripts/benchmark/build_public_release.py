@@ -9,6 +9,8 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
+from musparql.reviewer_provenance import validate_public_reviewer_ids
+
 from scripts.benchmark.audit_snapshot import audit_snapshot
 from scripts.benchmark.build_benchmark import (
     ALTERNATIVES_FILE,
@@ -142,6 +144,7 @@ def public_alternative_record(record: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def assert_public_safe(value: Any, location: str = "root") -> None:
+    validate_public_reviewer_ids(value, location)
     if isinstance(value, dict):
         for key, item in value.items():
             if key in FORBIDDEN_KEYS:

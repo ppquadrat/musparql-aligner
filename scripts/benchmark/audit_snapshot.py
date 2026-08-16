@@ -25,6 +25,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from musparql.sparql_versions import resolve_sparql_version, sparql_hash
 from musparql.sparql_corrections import retained_sparql_edit_count
+from musparql.reviewer_provenance import validate_public_reviewer_ids
 
 
 def key(record: Dict[str, Any]) -> Tuple[str, str]:
@@ -178,6 +179,11 @@ def audit_snapshot(snapshot: Path) -> List[str]:
         errors.append("snapshot manifest references a private holdout file")
     benchmark = read_jsonl(snapshot / "benchmark.jsonl")
     alternatives = read_jsonl(snapshot / ALTERNATIVES_FILE)
+    for filename, records in (("benchmark.jsonl", benchmark), (ALTERNATIVES_FILE, alternatives)):
+        try:
+            validate_public_reviewer_ids(records, filename)
+        except ValueError as exc:
+            errors.append(str(exc))
     errors.extend(audit_public_sparql_provenance(benchmark, filename="benchmark.jsonl"))
     errors.extend(audit_public_sparql_provenance(alternatives, filename=ALTERNATIVES_FILE))
     for field in ("benchmark_id", "query_id"):

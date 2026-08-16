@@ -83,7 +83,7 @@
     }
     return { schema: EXPORT_SCHEMA, mode: "sparql_correction", reviewer_id: dataset.reviewer_id, dataset_id: dataset.dataset_id, bundle_digest: dataset.bundle_digest, exported_at: new Date().toISOString(), source_bundle_built_at: dataset.built_at, holdout_input_policy: dataset.holdout_input_policy, reviews: output };
   }
-  window.MUSPARQL_CORRECTION_SCHEMA = { normalizeReview, validateReview, exportPayloadFor, lineDiff };
+  window.MUSPARQL_CORRECTION_SCHEMA = { normalizeReview, validateReview, exportPayloadFor, lineDiff, draftAfterInput };
   if (!data || !Array.isArray(data.records) || !data.records.length) return;
   if (!/^reviewer-[0-9]{4,}$/.test(data.reviewer_id || "")) throw new Error("Correction bundle requires a pseudonymous reviewer-NNNN identifier.");
 
@@ -129,9 +129,15 @@
   function updateDraft() {
     const record = currentRecord(); if (!record) return;
     const previous = currentReview();
-    const changedAfterAgent = previous.agent_suggestion && els.proposedSparqlInput.value.trim() !== (previous.agent_suggestion.output?.proposed_sparql || "").trim();
-    reviews[record.candidate_id] = { ...previous, decision: "", proposed_sparql: els.proposedSparqlInput.value.trim(), edit_type: els.editTypeInput.value, rationale: els.rationaleInput.value.trim(), evidence_ids: els.evidenceIdsInput.value.split(",").map((v) => v.trim()).filter(Boolean), reviewer_note: els.reviewerNoteInput.value.trim(), proposal_origin: changedAfterAgent ? "human" : previous.proposal_origin, agent_suggestion: changedAfterAgent ? null : previous.agent_suggestion };
+    const form = { proposed_sparql: els.proposedSparqlInput.value.trim(), edit_type: els.editTypeInput.value, rationale: els.rationaleInput.value.trim(), evidence_ids: els.evidenceIdsInput.value.split(",").map((v) => v.trim()).filter(Boolean), reviewer_note: els.reviewerNoteInput.value.trim() };
+    const changedAfterAgent = previous.agent_suggestion && form.proposed_sparql !== (previous.agent_suggestion.output?.proposed_sparql || "").trim();
+    reviews[record.candidate_id] = draftAfterInput(previous, form);
+    if (changedAfterAgent) { els.editTypeInput.value = ""; els.rationaleInput.value = ""; els.evidenceIdsInput.value = ""; els.proposalOrigin.textContent = "Human-authored proposal"; els.agentProvenance.textContent = "No agent suggestion loaded."; }
     saveReviews(); renderComparison(record, normalizeReview(reviews[record.candidate_id])); showValidation(record, normalizeReview(reviews[record.candidate_id]));
+  }
+  function draftAfterInput(previous, form) {
+    const changedAfterAgent = Boolean(previous.agent_suggestion) && form.proposed_sparql !== (previous.agent_suggestion.output?.proposed_sparql || "").trim();
+    return { ...previous, decision: "", ...form, edit_type: changedAfterAgent ? "" : form.edit_type, rationale: changedAfterAgent ? "" : form.rationale, evidence_ids: changedAfterAgent ? [] : form.evidence_ids, proposal_origin: changedAfterAgent ? "human" : previous.proposal_origin, agent_suggestion: changedAfterAgent ? null : previous.agent_suggestion };
   }
   function setBusy(kind, value) { busy[kind] = value; const anyBusy = busy.execute || busy.suggest || busy.approve; [els.executeBaseBtn,els.executeProposalBtn,els.executeLatestBtn,els.generateSuggestionBtn,els.approveBtn,els.noEditBtn,els.deferBtn,els.prevBtn,els.nextBtn].forEach((button) => button.disabled = anyBusy); [els.searchInput,els.kgFilter,els.categoryFilter,els.decisionFilter,els.proposedSparqlInput,els.editTypeInput,els.rationaleInput,els.evidenceIdsInput,els.reviewerNoteInput].forEach((control) => control.disabled = anyBusy); document.querySelectorAll(".record-item").forEach((button) => button.disabled = anyBusy); }
   async function api(path, payload) { const response = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`); return body; }

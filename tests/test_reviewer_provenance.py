@@ -35,6 +35,38 @@ def test_confidential_reviewer_and_familiarity_validate() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "patch, message",
+    [
+        ({"email": "@"}, "email"),
+        ({"language_expertise": {"NOT_A_LANGUAGE": "native"}}, "language"),
+        ({"unexpected": "accepted"}, "unsupported fields"),
+    ],
+)
+def test_reviewer_validation_matches_profile_contract(patch: dict, message: str) -> None:
+    with pytest.raises(ValueError, match=message):
+        validate_reviewer({**SYNTHETIC_REVIEWER, **patch})
+
+
+def test_familiarity_validation_rejects_unknown_fields() -> None:
+    with pytest.raises(ValueError, match="unsupported fields"):
+        validate_kg_familiarities([{
+            "reviewer_id": "reviewer-0042",
+            "kg_id": "synthetic-kg",
+            "familiarity": "queried",
+            "unexpected": True,
+        }])
+
+
+def test_familiarity_validation_requires_string_kg_id() -> None:
+    with pytest.raises(ValueError, match="requires kg_id"):
+        validate_kg_familiarities([{
+            "reviewer_id": "reviewer-0042",
+            "kg_id": 123,
+            "familiarity": "queried",
+        }])
+
+
 def test_reviewer_ids_are_pseudonymous_numeric_ids() -> None:
     assert validate_reviewer_id("reviewer-0001") == "reviewer-0001"
     with pytest.raises(ValueError, match="reviewer-NNNN"):
@@ -83,7 +115,7 @@ def test_migration_upgrades_unsuffixed_v2_event_ids_and_is_idempotent() -> None:
         "schema": "musparql.review-export.v2",
         "kind": "non_holdout_review_export",
         "reviewer_id": "reviewer-0042",
-        "exported_at": "2026-08-16T11:00:00Z",
+        "exported_at": "2026-08-16T12:00:00Z",
         "reviews": {
             "synthetic-review": {
                 "review_id": "synthetic-review",
@@ -103,6 +135,51 @@ def test_migration_upgrades_unsuffixed_v2_event_ids_and_is_idempotent() -> None:
         "synthetic-review::reviewer-0042::formulation::preferred"
     ]
     assert migrate_payload(migrated, "reviewer-0042") == migrated
+
+
+def test_v2_migration_rejects_reviewer_reassignment() -> None:
+    payload = {
+        "schema": "musparql.review-export.v2",
+        "kind": "non_holdout_review_export",
+        "reviewer_id": "reviewer-0042",
+        "exported_at": "2026-08-16T12:00:00Z",
+        "reviews": {},
+    }
+    with pytest.raises(ValueError, match="does not match"):
+        migrate_payload(payload, "reviewer-0043")
+
+
+@pytest.mark.parametrize("timestamp", ["2026-08-16", "2026-08-16T12:00:00"])
+def test_review_provenance_requires_rfc3339_timezone(timestamp: str) -> None:
+    with pytest.raises(ValueError, match="RFC 3339"):
+        validate_review_provenance({
+            "review_id": "synthetic::reviewer-0042",
+            "reviewer_id": "reviewer-0042",
+            "reviewed_at": timestamp,
+            "prior_review_ids": [],
+            "authored_formulation_ids": [],
+            "approved_formulation_ids": [],
+        })
+
+
+def test_review_provenance_rejects_mismatched_event_and_authorship_roots() -> None:
+    base = {
+        "review_id": "synthetic::reviewer-0042",
+        "reviewer_id": "reviewer-0042",
+        "reviewed_at": "2026-08-16T12:00:00Z",
+        "prior_review_ids": [],
+        "authored_formulation_ids": [],
+        "approved_formulation_ids": [],
+    }
+    with pytest.raises(ValueError, match="must end"):
+        validate_review_provenance({**base, "review_id": "synthetic::reviewer-0043"})
+    with pytest.raises(ValueError, match="rooted"):
+        validate_review_provenance({
+            **base,
+            "authored_formulation_ids": [
+                "other::reviewer-0042::formulation::preferred"
+            ],
+        })
 
 
 def test_legacy_correction_export_migrates_formulation_links() -> None:

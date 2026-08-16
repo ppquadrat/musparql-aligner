@@ -18,6 +18,7 @@ from scripts.benchmark.build_benchmark import (
     alternatives_record_has_content,
     assert_no_private_reviews,
     assert_non_holdout_export,
+    assert_reviewer_assignment,
     benchmark_disposition,
     benchmark_gold_records,
     canonical_execution_snapshot,
@@ -290,6 +291,7 @@ def main() -> None:
         raise ValueError("Benchmark update requires a compare-mode review bundle.")
     review_export = read_json(review_path)
     assert_non_holdout_export(review_export)
+    assert_reviewer_assignment(bundle, review_export)
     if review_export.get("mode") != "compare":
         raise ValueError("Benchmark update requires a compare-mode review export.")
     if bundle.get("dataset_id") and review_export.get("dataset_id") and bundle.get("dataset_id") != review_export.get("dataset_id"):

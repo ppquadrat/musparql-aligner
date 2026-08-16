@@ -86,7 +86,7 @@ the human verifies and places that file at the local path.
 - [`docs/REVIEW_RUNBOOK.md`](docs/REVIEW_RUNBOOK.md) — initial and comparative
   review procedure.
 - [`docs/REVIEWER_PRIVACY_NOTICE.md`](docs/REVIEWER_PRIVACY_NOTICE.md) — privacy
-  notice requirements for the forthcoming reviewer profile form.
+  notice requirements for reviewer profile administration.
 - [`docs/HOLDOUT_SECURITY.md`](docs/HOLDOUT_SECURITY.md) and
   [`docs/HOLDOUT_RUNBOOK.md`](docs/HOLDOUT_RUNBOOK.md) — holdout boundary and
   human-only procedure.
@@ -96,6 +96,8 @@ the human verifies and places that file at the local path.
 - [`benchmark/README.md`](benchmark/README.md) — benchmark snapshot and release
   details.
 - [`review/README.md`](review/README.md) — review application reference.
+- [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md) — maintained implementation and
+  governance backlog.
 
 ## Licensing
 

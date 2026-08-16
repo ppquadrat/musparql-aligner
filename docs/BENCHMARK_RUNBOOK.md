@@ -190,7 +190,8 @@ The release builder audits the working snapshot again and writes an allowlisted
 package with a release manifest and checksums. It excludes raw reviews,
 internal annotations, run request metadata, local working paths, and private
 holdout material. It also reapplies the stable SPARQL-provenance projection as
-defense in depth. It copies the CC BY 4.0 benchmark license and third-party
+defense in depth and rejects every reviewer-bearing value that is not a
+`reviewer-NNNN` pseudonym. It copies the CC BY 4.0 benchmark license and third-party
 notices into the package; publishing a package without either document is not
 allowed. Inspect the package; do not publish the working snapshot directory
 directly.

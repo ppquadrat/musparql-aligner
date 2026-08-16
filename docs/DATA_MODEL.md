@@ -145,7 +145,9 @@ Every v2 review records `reviewer_id`, `reviewed_at`, `prior_review_ids`,
 `authored_formulation_ids`, and `approved_formulation_ids`. These normalized
 links are authoritative. Reviewer activity is derived from them rather than
 duplicated on the confidential profile. A copied or repeated review links its
-predecessor through `prior_review_ids`.
+predecessor through `prior_review_ids`. Review times are timezone-qualified RFC
+3339 date-times. A review event ID ends with its reviewer ID, and formulations
+attributed to the current reviewer are rooted at that event ID.
 
 The export's review-map key remains the bundle lookup key used to join a
 decision to its candidate. The review object's explicit `review_id` is the
@@ -237,6 +239,11 @@ license metadata. The release builder rejects private fields, internal review
 metadata, filesystem paths, credentials, and correction artifacts.
 
 The directory is ignored and may be deleted and rebuilt.
+Both snapshot audit and release packaging validate all reviewer-bearing fields;
+names or other non-pseudonymous strings fail closed before publication. Public
+review event IDs must end in the matching reviewer pseudonym, formulation IDs
+must be rooted at a reviewer-suffixed event with a supported role, and parallel
+approval review/reviewer lists must agree entry by entry.
 
 ## Automatic evaluation reports
 

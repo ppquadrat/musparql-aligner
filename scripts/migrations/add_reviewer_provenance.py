@@ -44,7 +44,8 @@ def migrate_review(review_id: str, review: Dict[str, Any], reviewer_id: str, fal
     event_review_id = _event_id(str(result.get("review_id") or review_id), reviewer_id)
     result["review_id"] = event_review_id
     result["reviewer_id"] = reviewer_id
-    result["reviewed_at"] = str(result.pop("updated_at", "") or fallback_time)
+    result["reviewed_at"] = str(result.get("reviewed_at") or result.pop("updated_at", "") or fallback_time)
+    result.pop("updated_at", None)
     result["prior_review_ids"] = [_event_id(str(value), reviewer_id) for value in (result.get("prior_review_ids") or [])]
     copied = str(result.get("copied_from_review_id") or "")
     if copied:
@@ -67,6 +68,12 @@ def migrate_review(review_id: str, review: Dict[str, Any], reviewer_id: str, fal
 
 def migrate_payload(payload: Dict[str, Any], reviewer_id: str) -> Dict[str, Any]:
     reviewer_id = validate_reviewer_id(reviewer_id)
+    source_schema = str(payload.get("schema") or "")
+    if source_schema in {
+        "musparql.review-export.v2",
+        "musparql.sparql-correction-review-export.v2",
+    } and payload.get("reviewer_id") != reviewer_id:
+        raise ValueError("Existing v2 export reviewer_id does not match --reviewer-id")
     if payload.get("schema") in {
         "musparql.sparql-correction-review-export.v1",
         "musparql.sparql-correction-review-export.v2",
@@ -79,6 +86,8 @@ def migrate_payload(payload: Dict[str, Any], reviewer_id: str) -> Dict[str, Any]
         result["reviewer_id"] = reviewer_id
         migrated_reviews = []
         for review in reviews:
+            if source_schema.endswith(".v2") and review.get("reviewer_id") != reviewer_id:
+                raise ValueError("Existing v2 review reviewer_id does not match --reviewer-id")
             migrated = dict(review)
             review_key = str(migrated.get("candidate_id") or "")
             if not review_key:
@@ -105,6 +114,11 @@ def migrate_payload(payload: Dict[str, Any], reviewer_id: str) -> Dict[str, Any]
     reviews = payload.get("reviews")
     if not isinstance(reviews, dict):
         raise ValueError("Review export requires a reviews object")
+    if source_schema.endswith(".v2") and any(
+        isinstance(review, dict) and review.get("reviewer_id") != reviewer_id
+        for review in reviews.values()
+    ):
+        raise ValueError("Existing v2 review reviewer_id does not match --reviewer-id")
     fallback_time = str(payload.get("exported_at") or "")
     result = dict(payload)
     result["schema"] = "musparql.review-export.v2"

@@ -645,6 +645,78 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
             build_public_release.assert_public_safe(
                 {"provenance": {"prompt_source": "/home/alice/private-review.json"}}
             )
+        with self.assertRaisesRegex(ValueError, "Invalid public reviewer ID"):
+            build_public_release.assert_public_safe(
+                {"provenance": {"reviewer_id": "Alice Example"}}
+            )
+        with self.assertRaisesRegex(ValueError, "approval links"):
+            build_public_release.assert_public_safe({
+                "accepted_alternatives": [{
+                    "text": "Synthetic wording",
+                    "approval_reviewer_ids": ["reviewer-0001", "Alice Example"],
+                }]
+            })
+        with self.assertRaisesRegex(ValueError, "Invalid public review event ID"):
+            build_public_release.assert_public_safe({
+                "provenance": {
+                    "reviewer_id": "reviewer-0001",
+                    "approval_review_id": "Alice Example",
+                    "formulation_id": "Alice Example::preferred",
+                }
+            })
+        with self.assertRaisesRegex(ValueError, "Invalid public review event ID"):
+            build_public_release.assert_public_safe({
+                "provenance": {
+                    "reviewer_id": "reviewer-0001",
+                    "approval_review_id": "Alice Example::reviewer-0001",
+                }
+            })
+        with self.assertRaisesRegex(ValueError, "approval review/reviewer mismatch"):
+            build_public_release.assert_public_safe({
+                "accepted_alternatives": [{
+                    "formulation_id": "event::reviewer-0001::formulation::preferred",
+                    "approval_review_ids": ["approval::reviewer-0002"],
+                    "approval_reviewer_ids": ["reviewer-0001"],
+                }]
+            })
+        build_public_release.assert_public_safe({
+            "accepted_alternatives": [{
+                "formulation_id": "event::reviewer-0001::formulation::preferred",
+                "approval_review_ids": [
+                    "first::reviewer-0001",
+                    "second::reviewer-0001",
+                ],
+                "approval_reviewer_ids": ["reviewer-0001"],
+            }]
+        })
+
+    def test_v2_bundle_must_match_export_reviewer_assignment(self) -> None:
+        bundle = {
+            "schema": "musparql.review-bundle.v2",
+            "reviewer_id": "reviewer-0001",
+        }
+        export = {
+            "schema": "musparql.review-export.v2",
+            "reviewer_id": "reviewer-0002",
+        }
+        with self.assertRaisesRegex(ValueError, "Reviewer mismatch"):
+            build_benchmark.assert_reviewer_assignment(bundle, export)
+
+    def test_snapshot_audit_rejects_non_pseudonymous_reviewer_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot = Path(tmp)
+            write_json(snapshot / "manifest.json", {
+                "benchmark_version": "v11",
+                "counts": {"benchmark": 1, "alternatives": 0},
+            })
+            write_jsonl(snapshot / "benchmark.jsonl", [{
+                "benchmark_id": "synthetic-1",
+                "query_id": "synthetic-query",
+                "provenance": {"reviewer_id": "Alice Example"},
+            }])
+            write_jsonl(snapshot / "alternatives.jsonl", [])
+            errors = audit_snapshot.audit_snapshot(snapshot)
+            self.assertTrue(any("Invalid public reviewer ID" in error for error in errors))
 
     def test_review_comments_remove_only_matching_literal_duplication(self) -> None:
         review = {
@@ -683,6 +755,26 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
         )
         self.assertEqual(explicitly_cleared["public_comment"], "")
         self.assertEqual(explicitly_cleared["internal_comment"], "private")
+
+    def test_compare_bundle_preserves_prior_review_event_identity(self) -> None:
+        working = build_review_diff_bundle.benchmark_review_for_record(
+            {
+                "benchmark_id": "benchmark-1",
+                "review": {"review_id": "event::reviewer-0002"},
+            },
+            "included",
+            Path("benchmark/v11"),
+        )
+        self.assertEqual(working["review_id"], "event::reviewer-0002")
+        public_only = build_review_diff_bundle.benchmark_review_for_record(
+            {
+                "benchmark_id": "benchmark-1",
+                "provenance": {"approval_review_id": "public-event::reviewer-0003"},
+            },
+            "included",
+            Path("benchmark/v11"),
+        )
+        self.assertEqual(public_only["review_id"], "public-event::reviewer-0003")
 
     def test_current_snapshot_has_normalized_public_comments(self) -> None:
         repository = Path(__file__).resolve().parents[1]

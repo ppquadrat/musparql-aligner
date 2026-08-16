@@ -268,6 +268,20 @@ def assert_non_holdout_export(payload: Dict[str, Any]) -> None:
                 raise ValueError("Review reviewer_id does not match the export reviewer_id")
 
 
+def assert_reviewer_assignment(bundle: Dict[str, Any], review_export: Dict[str, Any]) -> None:
+    """Ensure a reviewer cannot apply an export to another reviewer's v2 bundle."""
+    bundle_reviewer = bundle.get("reviewer_id")
+    export_reviewer = review_export.get("reviewer_id")
+    if bundle.get("schema") == "musparql.review-bundle.v2":
+        bundle_reviewer = validate_reviewer_id(bundle_reviewer)
+        export_reviewer = validate_reviewer_id(export_reviewer)
+    if bundle_reviewer and export_reviewer and bundle_reviewer != export_reviewer:
+        raise ValueError(
+            f"Reviewer mismatch: bundle belongs to {bundle_reviewer}, "
+            f"review export belongs to {export_reviewer}"
+        )
+
+
 def pair_key(record: Dict[str, Any]) -> Tuple[str, str]:
     return (str(record.get("kg_id") or ""), str(record.get("query_id") or ""))
 
@@ -673,6 +687,7 @@ def main() -> None:
     bundle = read_review_bundle(bundle_path)
     review_export = read_json(review_path)
     assert_non_holdout_export(review_export)
+    assert_reviewer_assignment(bundle, review_export)
     bundle_dataset_id = str(bundle.get("dataset_id") or "")
     review_dataset_id = str(review_export.get("dataset_id") or "")
     bundle_run_ids = [str(run_id) for run_id in bundle.get("run_ids", []) if str(run_id)]

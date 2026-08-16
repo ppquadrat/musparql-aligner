@@ -27,6 +27,61 @@ validate({}, {reviewer_id:"reviewer-0001"});
     subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
 
 
+def test_compare_semantic_actions_reset_stale_attribution() -> None:
+    script = r'''
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, querySelectorAll:()=>[]}};
+vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
+const schema = sandbox.window.MUSPARQL_REVIEW_SCHEMA;
+const prior = {
+  review_id:"prior::reviewer-0001", reviewer_id:"reviewer-0001",
+  status:"accepted", preferred_question:"Prior wording?",
+  approved_formulation_ids:["prior::reviewer-0001::formulation::preferred"],
+};
+const current = {review_id:"current::reviewer-0002", reviewer_id:"reviewer-0002"};
+const reused = schema.reusedPreviousReview(prior, current, "wrong-bundle-key");
+assert.equal(reused.copied_from_review_id, "prior::reviewer-0001");
+let next = {...reused, ...schema.resetFormulationAttribution({status:"accepted", preferred_question:""})};
+let exported = schema.exportableReview(next, "current-key");
+assert.equal(exported.copied_from_review_id, undefined);
+assert.deepEqual(JSON.parse(JSON.stringify(exported.approved_formulation_ids)), [
+  "current::reviewer-0002::formulation::candidate"
+]);
+next = {...reused, ...schema.resetFormulationAttribution({status:"excluded"})};
+exported = schema.exportableReview(next, "current-key");
+assert.deepEqual(JSON.parse(JSON.stringify(exported.approved_formulation_ids)), []);
+
+const preferredEdited = {
+  ...reused,
+  preferred_question:"New wording?",
+  ...schema.editedFormulationAttribution(reused, "preferred"),
+};
+exported = schema.exportableReview(preferredEdited, "current-key");
+assert.deepEqual(JSON.parse(JSON.stringify(exported.authored_formulation_ids)), [
+  "current::reviewer-0002::formulation::preferred"
+]);
+assert.equal(exported.authored_formulation_ids.includes(
+  "current::reviewer-0002::formulation::literal"
+), false, "unchanged copied literal must not be attributed to the current reviewer");
+
+const literalEdited = {
+  ...reused,
+  literal_wording:"New literal wording?",
+  ...schema.editedFormulationAttribution(reused, "literal"),
+};
+exported = schema.exportableReview(literalEdited, "current-key");
+assert.deepEqual(JSON.parse(JSON.stringify(exported.authored_formulation_ids)), [
+  "current::reviewer-0002::formulation::literal"
+]);
+assert.equal(exported.approved_formulation_ids.includes(
+  "prior::reviewer-0001::formulation::preferred"
+), true, "editing literal must preserve copied preferred approval");
+'''
+    subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
+
+
 def test_initial_review_does_not_collect_linguistic_dimensions() -> None:
     html = (ROOT / "review" / "index.html").read_text(encoding="utf-8")
     app = (ROOT / "review" / "app.js").read_text(encoding="utf-8")
