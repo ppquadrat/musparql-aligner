@@ -19,3 +19,10 @@ Browser-sanitized `non_holdout_review_export` files may be placed in ignored
 Selector-only files containing no reviewer fields may be used only when the
 human owner has explicitly chosen the identity-visible holdout policy described
 in `docs/HOLDOUT_SECURITY.md`.
+
+Reviewer profiles under `confidential/reviewers/` are not holdout data, but
+they contain personal information. Agents may read them only when the user's
+task explicitly requires reviewer administration. Never copy profile or
+familiarity fields into prompts, generated bundles, review exports, benchmark
+artifacts, logs, or tests; only pseudonymous `reviewer-NNNN` IDs may cross that
+boundary. Use synthetic reviewer records in code and tests.

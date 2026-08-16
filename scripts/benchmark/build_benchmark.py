@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+from musparql.reviewer_provenance import validate_reviewer_id, validate_review_provenance
+
 
 HOLDOUT_SPLIT = "private_holdout"
 INCLUDED_FILE = "included.jsonl"
@@ -49,6 +51,7 @@ PUBLIC_SELECTED_EDIT_FIELDS = (
     "rationale",
     "proposal_origin",
     "reviewed_at",
+    "reviewer_id",
     "approved_sparql_version",
     "approved_sparql_hash",
 )
@@ -252,6 +255,17 @@ def assert_non_holdout_export(payload: Dict[str, Any]) -> None:
             "Public benchmark tools require kind='non_holdout_review_export'; "
             "legacy, mixed, and private review exports are rejected"
         )
+    if payload.get("schema") == "musparql.review-export.v2":
+        reviewer_id = validate_reviewer_id(payload.get("reviewer_id"))
+        reviews = payload.get("reviews")
+        if not isinstance(reviews, dict):
+            raise ValueError("Review export missing reviews object")
+        for review in reviews.values():
+            if not isinstance(review, dict):
+                raise ValueError("Every review must be an object")
+            validate_review_provenance(review)
+            if review.get("reviewer_id") != reviewer_id:
+                raise ValueError("Review reviewer_id does not match the export reviewer_id")
 
 
 def pair_key(record: Dict[str, Any]) -> Tuple[str, str]:
@@ -379,8 +393,14 @@ def review_provenance(
     record: Dict[str, Any] | None,
 ) -> Dict[str, Any]:
     run = run_metadata(record or {})
+    event_review_id = str(review.get("review_id") or review_id)
     return {
-        "review_id": review_id,
+        "review_id": event_review_id,
+        "reviewer_id": review.get("reviewer_id"),
+        "reviewed_at": review.get("reviewed_at") or review.get("updated_at"),
+        "prior_review_ids": review.get("prior_review_ids", []),
+        "authored_formulation_ids": review.get("authored_formulation_ids", []),
+        "approved_formulation_ids": review.get("approved_formulation_ids", []),
         "dataset_id": dataset_id,
         "generation_run_id": review.get("generation_run_id") or run.get("generation_run_id"),
         "model": run.get("model"),
@@ -400,10 +420,21 @@ def make_rephrasing_entry(
     clean_text = " ".join(str(text or "").split())
     if not clean_text:
         return None
+    event_review_id = str(review.get("review_id") or review_id)
+    role = "literal" if source_type == "literal_sparql_wording" else "candidate"
+    formulation_identifier = f"{event_review_id}::formulation::{role}"
+    authored_ids = review.get("authored_formulation_ids", [])
     return {
+        "formulation_id": formulation_identifier,
         "text": clean_text,
         "normalized_text": normalize_rephrasing_text(clean_text),
         "source_type": source_type,
+        "authored_by_reviewer_id": review.get("reviewer_id")
+        if formulation_identifier in authored_ids else None,
+        "approval_review_ids": [event_review_id]
+        if formulation_identifier in review.get("approved_formulation_ids", []) else [],
+        "approval_reviewer_ids": [review.get("reviewer_id")]
+        if review.get("reviewer_id") and formulation_identifier in review.get("approved_formulation_ids", []) else [],
         **review_provenance(
             review=review,
             review_id=review_id,
@@ -424,9 +455,16 @@ def add_formulation(record: Dict[str, Any], field: str, entry: Dict[str, Any] | 
             continue
         if normalize_rephrasing_text(item.get("text")) != entry["normalized_text"]:
             continue
-        for key in ("acceptance", "generation_run_id", "model"):
+        for key in ("acceptance", "generation_run_id", "model", "authored_by_reviewer_id"):
             if item.get(key) in (None, "") and entry.get(key) not in (None, ""):
                 item[key] = entry[key]
+        for key in ("approval_review_ids", "approval_reviewer_ids"):
+            merged = list(item.get(key) or [])
+            for value in entry.get(key) or []:
+                if value not in merged:
+                    merged.append(value)
+            if merged:
+                item[key] = merged
         return
     record.setdefault(field, []).append(entry)
 
@@ -583,6 +621,15 @@ def benchmark_gold_records(
             "source_type": source.get("source_type") or "human_review",
         }
         review = rec.get("review") if isinstance(rec.get("review"), dict) else {}
+        reviewer_id = review.get("reviewer_id")
+        review_id = review.get("review_id") or rec.get("benchmark_id")
+        if reviewer_id:
+            provenance["reviewer_id"] = reviewer_id
+            provenance["approval_review_id"] = review_id
+            role = "preferred" if rec.get("gold_question_source") == "reviewer_rewrite" else "candidate"
+            provenance["formulation_id"] = f"{review_id}::formulation::{role}"
+            if role == "preferred":
+                provenance["authored_by_reviewer_id"] = reviewer_id
         public_comment, _ = review_comments(review)
         if public_comment:
             provenance["reviewer_comment"] = public_comment
@@ -692,7 +739,12 @@ def main() -> None:
             "pipeline_assessment": assessment or None,
             "split": split,
             "review": {
-                "review_id": review_id,
+                "review_id": review.get("review_id") or review_id,
+                "reviewer_id": review.get("reviewer_id"),
+                "reviewed_at": review.get("reviewed_at") or review.get("updated_at"),
+                "prior_review_ids": review.get("prior_review_ids", []),
+                "authored_formulation_ids": review.get("authored_formulation_ids", []),
+                "approved_formulation_ids": review.get("approved_formulation_ids", []),
                 "review_export": str(review_path),
                 "dataset_id": review_dataset_id or bundle_dataset_id,
                 "run_id": review_run_id or record.get("run_id"),
@@ -700,7 +752,6 @@ def main() -> None:
                 "literal_wording": literal_wording(review),
                 "public_comment": review_comments(review)[0],
                 "internal_comment": review_comments(review)[1],
-                "updated_at": review.get("updated_at"),
             },
             "run": {
                 **run_metadata(record),

@@ -5,12 +5,14 @@ handling holdouts, also follow [HOLDOUT_RUNBOOK.md](HOLDOUT_RUNBOOK.md).
 
 ## Before review
 
-1. Finish the relevant pipeline run and freeze it under `var/runs/`.
-2. Decide whether this is initial or comparative review.
-3. Gather every applicable previous benchmark and sanitized review export.
-4. Supply an explicit holdout selector, or use `--no-holdout` only when the
+1. Confirm the reviewer's pseudonymous ID in the confidential registry. Do not
+   copy profile fields into the bundle or command line.
+2. Finish the relevant pipeline run and freeze it under `var/runs/`.
+3. Decide whether this is initial or comparative review.
+4. Gather every applicable previous benchmark and sanitized review export.
+5. Supply an explicit holdout selector, or use `--no-holdout` only when the
    human owner confirms no holdout exists.
-5. Use `--assert-complete-review-provenance` only after confirming that the
+6. Use `--assert-complete-review-provenance` only after confirming that the
    supplied sources cover all earlier reviewer decisions. This assertion enables
    new holdout selection and must not be guessed.
 
@@ -20,6 +22,7 @@ Build the bundle:
 
 ```bash
 .venv/bin/python -m scripts.build_review_bundle \
+  --reviewer-id reviewer-0001 \
   --latest-run \
   --previous-benchmark benchmark/vN \
   --holdout-selectors var/holdout/selectors.jsonl \
@@ -40,6 +43,7 @@ Build a side-by-side bundle:
 
 ```bash
 .venv/bin/python -m scripts.build_review_diff_bundle \
+  --reviewer-id reviewer-0001 \
   --previous-outputs var/runs/<old-run>/llm_outputs.jsonl \
   --current-outputs var/runs/<new-run>/llm_outputs.jsonl \
   --previous-run-manifest var/runs/<old-run>/manifest.json \
@@ -96,6 +100,22 @@ The current UI intentionally has no linguistic-dimension controls.
 
 Do not ask an agent to inspect, move, count, validate, or migrate a private
 holdout export.
+
+Legacy sanitized non-holdout exports can be backfilled explicitly:
+
+```bash
+.venv/bin/python -m scripts.migrations.add_reviewer_provenance \
+  --reviewer-id reviewer-0001 \
+  --write var/review/exports/<legacy-export>.json
+```
+
+The migration accepts only explicit paths under `var/review/exports/`; it
+cannot target a benchmark snapshot or holdout artifact. Published v1-v10
+snapshots remain unchanged.
+
+To backfill matching correction histories in the local query catalogue, add
+`--kg-queries var/queries/kg_queries.jsonl` to the command. That option is
+restricted to the canonical local path.
 
 ## Apply the review
 

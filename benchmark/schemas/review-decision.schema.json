@@ -4,6 +4,12 @@
   "title": "MuSPARQL review decision",
   "type": "object",
   "properties": {
+    "review_id": {"type": "string", "minLength": 1},
+    "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "prior_review_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "authored_formulation_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "approved_formulation_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
     "benchmark_disposition": {
       "type": "string",
       "enum": ["included", "excluded", "withheld"]
@@ -24,7 +30,11 @@
     "internal_comment": {"type": "string"},
     "split": {"type": "string"}
   },
-  "required": ["benchmark_disposition"],
+  "required": [
+    "review_id", "reviewer_id", "reviewed_at", "prior_review_ids",
+    "authored_formulation_ids", "approved_formulation_ids",
+    "benchmark_disposition"
+  ],
   "allOf": [
     {
       "if": {"properties": {"benchmark_disposition": {"const": "included"}}},

@@ -17,7 +17,7 @@ identity-visible examples use the selector path.
 1. Build the browser data bundle:
 
 ```bash
-.venv/bin/python -m scripts.build_review_bundle --no-holdout
+.venv/bin/python -m scripts.build_review_bundle --reviewer-id reviewer-0001 --no-holdout
 ```
 
 By default, the builder ensures the bundle points to exactly one frozen LLM generation run. If the
@@ -28,6 +28,7 @@ If you want to review an already-frozen generation run explicitly:
 
 ```bash
 .venv/bin/python -m scripts.build_review_bundle \
+  --reviewer-id reviewer-0001 \
   --no-holdout \
   --outputs var/runs/<run-id>/llm_outputs.jsonl \
   --run-manifest var/runs/<run-id>/manifest.json
@@ -37,6 +38,7 @@ For later initial-review rounds, pass the latest benchmark snapshot:
 
 ```bash
 .venv/bin/python -m scripts.build_review_bundle \
+  --reviewer-id reviewer-0001 \
   --holdout-selectors var/holdout/selectors.jsonl \
   --outputs var/runs/<run-id>/llm_outputs.jsonl \
   --run-manifest var/runs/<run-id>/manifest.json \
@@ -56,6 +58,7 @@ To build a comparative review of a previous generation run and a new run:
 
 ```bash
 .venv/bin/python -m scripts.build_next_review_round \
+  --reviewer-id reviewer-0001 \
   --holdout-selectors var/holdout/selectors.jsonl \
   --previous-run var/runs/<old-run-id> \
   --current-run var/runs/<new-run-id> \
@@ -143,6 +146,7 @@ bundle and start the same-origin correction service:
 
 ```bash
 .venv/bin/python -m scripts.build_sparql_correction_bundle \
+  --reviewer-id reviewer-0001 \
   --holdout-selectors var/holdout/selectors.jsonl
 .venv/bin/python -m scripts.correction_service \
   --holdout-selectors var/holdout/selectors.jsonl

@@ -3,10 +3,11 @@
   "title": "SPARQL correction review export",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "mode", "dataset_id", "bundle_digest", "exported_at", "reviews"],
+  "required": ["schema", "mode", "reviewer_id", "dataset_id", "bundle_digest", "exported_at", "reviews"],
   "properties": {
-    "schema": {"const": "musparql.sparql-correction-review-export.v1"},
+    "schema": {"const": "musparql.sparql-correction-review-export.v2"},
     "mode": {"const": "sparql_correction"},
+    "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
     "dataset_id": {"type": "string", "minLength": 1},
     "bundle_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "exported_at": {"type": "string", "format": "date-time"},
@@ -16,9 +17,10 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["candidate_id", "candidate_digest", "kg_id", "query_id", "base_sparql_version", "base_sparql_hash", "bundle_digest", "decision", "proposal_origin", "reviewed_at"],
+        "required": ["review_id", "candidate_id", "candidate_digest", "kg_id", "query_id", "base_sparql_version", "base_sparql_hash", "bundle_digest", "decision", "proposal_origin", "reviewer_id", "reviewed_at", "prior_review_ids", "authored_formulation_ids", "approved_formulation_ids"],
         "properties": {
           "candidate_id": {"type": "string"}, "candidate_digest": {"type": "string"},
+          "review_id": {"type": "string", "minLength": 1},
           "kg_id": {"type": "string"}, "query_id": {"type": "string"},
           "base_sparql_version": {"type": "integer", "minimum": 0}, "base_sparql_hash": {"type": "string"},
           "bundle_digest": {"type": "string"}, "decision": {"enum": ["approve_edit", "no_edit", "defer"]},
@@ -27,6 +29,10 @@
           "proposal_origin": {"enum": ["human", "agent", "source_artifact"]},
           "agent_suggestion": {"type": ["object", "null"]}, "execution_attempts": {"type": "array"},
           "reviewer_note": {"type": ["string", "null"]}, "reviewed_at": {"type": "string", "format": "date-time"}
+          ,"reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"}
+          ,"prior_review_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+          ,"authored_formulation_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+          ,"approved_formulation_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
         }
       }
     }

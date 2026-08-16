@@ -52,6 +52,8 @@ data remain distinguishable instead of being flattened into one file.
 - `scripts/` contains commands for collection, generation, review, benchmark
   maintenance, evaluation, and migration.
 - `review/` contains the browser review applications.
+- `confidential/reviewers/` is the durable, Git-ignored reviewer registry;
+  only pseudonymous reviewer IDs leave it.
 - `benchmark/` contains versioned benchmark snapshots and schemas.
 - `prompts/` and `schemas/` contain tracked model instructions and data
   contracts.
@@ -83,6 +85,8 @@ the human verifies and places that file at the local path.
   and how review data is handled.
 - [`docs/REVIEW_RUNBOOK.md`](docs/REVIEW_RUNBOOK.md) — initial and comparative
   review procedure.
+- [`docs/REVIEWER_PRIVACY_NOTICE.md`](docs/REVIEWER_PRIVACY_NOTICE.md) — privacy
+  notice requirements for the forthcoming reviewer profile form.
 - [`docs/HOLDOUT_SECURITY.md`](docs/HOLDOUT_SECURITY.md) and
   [`docs/HOLDOUT_RUNBOOK.md`](docs/HOLDOUT_RUNBOOK.md) — holdout boundary and
   human-only procedure.

@@ -9,6 +9,13 @@ lies.
 
 For the step-by-step procedure, use [HOLDOUT_RUNBOOK.md](HOLDOUT_RUNBOOK.md).
 
+The confidential reviewer registry is not holdout annotation data and lives at
+`confidential/reviewers/`, outside the prohibited `review/private/` tree. It may
+be used for authorised reviewer administration, but profile fields must never
+be copied into holdout selectors, review bundles, review exports, or benchmark
+artifacts. Holdout annotations remain subject to the stricter human-only rules
+below.
+
 ## What is the holdout?
 
 The project starts with candidate pairs. Each pair contains a SPARQL query, its

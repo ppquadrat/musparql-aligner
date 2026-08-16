@@ -142,6 +142,7 @@ For initial review:
 
 ```bash
 .venv/bin/python -m scripts.build_review_bundle \
+  --reviewer-id reviewer-0001 \
   --latest-run \
   --previous-benchmark benchmark/vN \
   --holdout-selectors var/holdout/selectors.jsonl \

@@ -20,6 +20,7 @@ from scripts.build_review_bundle import (
 from scripts.benchmark.build_benchmark import literal_wording, review_comments
 from musparql.holdout_selectors import add_holdout_filter_arguments, holdout_input_policy
 from musparql.sparql_corrections import assert_input_provenance_current
+from musparql.reviewer_provenance import validate_reviewer_id
 
 
 PairKey = Tuple[str, str]
@@ -107,7 +108,12 @@ def benchmark_review_for_record(record: Dict[str, Any], group: str, source_bench
         "literal_wording": literal_wording(review),
         "public_comment": public_comment,
         "internal_comment": internal_comment,
-        "updated_at": review.get("updated_at"),
+        "reviewer_id": review.get("reviewer_id")
+        or (record.get("provenance", {}).get("reviewer_id") if isinstance(record.get("provenance"), dict) else None),
+        "reviewed_at": review.get("reviewed_at") or review.get("updated_at"),
+        "prior_review_ids": review.get("prior_review_ids", []),
+        "authored_formulation_ids": review.get("authored_formulation_ids", []),
+        "approved_formulation_ids": review.get("approved_formulation_ids", []),
         "benchmark_id": record.get("benchmark_id"),
         "source_benchmark": str(source_benchmark),
     }
@@ -333,6 +339,7 @@ def has_review_worthy_change(status: str, flags: List[str]) -> bool:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build a browser review bundle comparing two LLM review runs.")
+    parser.add_argument("--reviewer-id", required=True, help="Anonymous reviewer ID, for example reviewer-0001.")
     parser.add_argument("--previous-outputs", required=True)
     parser.add_argument("--current-outputs", required=True)
     parser.add_argument("--previous-inputs", default="", help="Defaults to llm_inputs.jsonl beside previous outputs, then ./llm_inputs.jsonl.")
@@ -370,6 +377,7 @@ def main() -> None:
         help="Human assertion that supplied benchmark/review sources cover every prior reviewer decision; required to enable holdout selection.",
     )
     args = parser.parse_args()
+    reviewer_id = validate_reviewer_id(args.reviewer_id)
 
     previous_outputs_path = Path(args.previous_outputs)
     current_outputs_path = Path(args.current_outputs)
@@ -480,6 +488,8 @@ def main() -> None:
         )
 
     payload = {
+        "schema": "musparql.review-bundle.v2",
+        "reviewer_id": reviewer_id,
         "mode": "compare",
         "dataset_id": sha256_text(
             stable_json_dumps(

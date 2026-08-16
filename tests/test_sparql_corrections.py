@@ -92,6 +92,7 @@ def statically_flagged_query() -> dict:
 def review_export(candidate: dict, **overrides) -> dict:
     review = {
         "candidate_id": candidate["candidate_id"],
+        "review_id": f"{candidate['candidate_id']}::reviewer-0001",
         "candidate_digest": candidate_digest(candidate),
         "candidate_reason_code": candidate["triage"]["reason_code"],
         "kg_id": candidate["kg_id"],
@@ -107,12 +108,17 @@ def review_export(candidate: dict, **overrides) -> dict:
         "proposal_origin": "human",
         "proposal_model": None,
         "candidate_execution": candidate["execution"],
+        "reviewer_id": "reviewer-0001",
         "reviewed_at": "2026-08-05T11:00:00+00:00",
+        "prior_review_ids": [],
+        "authored_formulation_ids": [f"{candidate['candidate_id']}::reviewer-0001::formulation::sparql"],
+        "approved_formulation_ids": [f"{candidate['candidate_id']}::reviewer-0001::formulation::sparql"],
     }
     review.update(overrides)
     return {
         "schema": REVIEW_EXPORT_SCHEMA,
         "mode": "sparql_correction",
+        "reviewer_id": "reviewer-0001",
         "dataset_id": "synthetic-dataset",
         "exported_at": "2026-08-05T11:00:00+00:00",
         "reviews": [review],

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/formulation_provenance.schema.json",
+  "title": "MuSPARQL formulation provenance",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["formulation_id", "text", "source_type", "approval_review_ids", "approval_reviewer_ids"],
+  "properties": {
+    "formulation_id": {"type": "string", "minLength": 1},
+    "text": {"type": "string", "minLength": 1},
+    "source_type": {"type": "string", "minLength": 1},
+    "authored_by_reviewer_id": {
+      "type": ["string", "null"],
+      "pattern": "^reviewer-[0-9]{4,}$"
+    },
+    "approval_review_ids": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "approval_reviewer_ids": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"}
+    }
+  }
+}

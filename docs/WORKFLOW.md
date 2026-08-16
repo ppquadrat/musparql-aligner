@@ -143,6 +143,12 @@ Initial review assesses candidates that have not previously received a reviewer
 decision. Comparative review places an earlier and current candidate side by
 side after a pipeline change.
 
+Every review bundle is assigned to a pseudonymous reviewer ID. Review provenance
+links earlier reviews and distinguishes formulations written by that reviewer
+from formulations merely approved by them. Confidential identity, contact,
+expertise, language, familiarity, and notice-acknowledgment data remain outside
+generated pipeline state and are never published.
+
 Review determines:
 
 - whether the query expresses a meaningful information need;

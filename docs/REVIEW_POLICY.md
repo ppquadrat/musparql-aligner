@@ -22,6 +22,21 @@ For each pair, the reviewer checks:
 Execution success does not settle these questions. A literal verbalization can
 also be formally accurate but pragmatically misleading.
 
+## Reviewer identity and formulation provenance
+
+Each review is attributed to a pseudonymous `reviewer-NNNN` identifier. The
+confidential profile behind that ID is not a review or benchmark artifact.
+Reviews link prior reviews of the same item and separately identify formulations
+the reviewer authored and formulations the review approved. Thus "reviewed
+before", "wrote this wording", and "approved this wording" are distinct facts.
+
+Reviewer activity is derived from review and formulation links rather than
+stored as mutable backlink arrays on the confidential profile.
+
+Browser draft state is namespaced by both dataset and reviewer ID. A reviewer
+must not inherit or overwrite another reviewer's local draft merely because
+they open the same bundle on the same browser profile.
+
 ## Review modes
 
 Initial review is for pairs with no earlier reviewer decision. Comparative
@@ -77,6 +92,10 @@ Sanitized exports go to `var/review/exports/`. Agent-facing tools reject
 private, mixed, legacy, or mislabeled review files rather than attempting to
 sanitize them. The browser downloads selector updates; a human verifies and
 places them at `var/holdout/selectors.jsonl`.
+
+Names, affiliations, email addresses, expertise profiles, KG familiarity, and
+privacy-notice acknowledgments stay in `confidential/reviewers/`. Only the
+pseudonymous reviewer ID may cross the export and publication boundary.
 
 ## Benchmark authority
 

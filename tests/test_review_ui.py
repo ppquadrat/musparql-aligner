@@ -5,6 +5,28 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_browser_review_state_is_scoped_to_reviewer() -> None:
+    app = (ROOT / "review" / "app.js").read_text(encoding="utf-8")
+    assert "musparql-review:schema4:${data.dataset_id}:${data.reviewer_id}" in app
+    assert "musparql-review-compare:schema4:${data.dataset_id}:${data.reviewer_id}" in app
+    assert 'data.reviewer_id === "reviewer-0001"' in app
+
+
+def test_imports_reject_cross_reviewer_and_non_owner_legacy_state() -> None:
+    script = r'''
+const fs = require("node:fs");
+const vm = require("node:vm");
+const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, querySelectorAll:()=>[]}};
+vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
+const validate = sandbox.window.MUSPARQL_REVIEW_SCHEMA.validateReviewerImport;
+validate({reviewer_id:"reviewer-0002"}, {reviewer_id:"reviewer-0002"});
+if (!(() => { try { validate({reviewer_id:"reviewer-0001"}, {reviewer_id:"reviewer-0002"}); return false; } catch (_) { return true; } })()) process.exit(1);
+if (!(() => { try { validate({}, {reviewer_id:"reviewer-0002"}); return false; } catch (_) { return true; } })()) process.exit(2);
+validate({}, {reviewer_id:"reviewer-0001"});
+'''
+    subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
+
+
 def test_initial_review_does_not_collect_linguistic_dimensions() -> None:
     html = (ROOT / "review" / "index.html").read_text(encoding="utf-8")
     app = (ROOT / "review" / "app.js").read_text(encoding="utf-8")

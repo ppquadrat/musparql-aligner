@@ -69,7 +69,7 @@ async function makeData(bundleDigest) {
     sparql_provenance: { retained_edit_count: 0 }, execution: { status: "not_attempted" },
     evidence: [{ evidence_id: "e1", type: "synthetic", snippet: "Synthetic public evidence." }],
   }));
-  return { mode: "sparql_correction", dataset_id: "synthetic-ui", bundle_digest: bundleDigest, built_at: "2026-08-05T10:00:00Z", holdout_input_policy: "synthetic", record_count: 2, records };
+  return { mode: "sparql_correction", reviewer_id: "reviewer-0001", dataset_id: "synthetic-ui", bundle_digest: bundleDigest, built_at: "2026-08-05T10:00:00Z", holdout_input_policy: "synthetic", record_count: 2, records };
 }
 
 async function boot(bundleDigest, backing) {
@@ -139,7 +139,8 @@ async function boot(bundleDigest, backing) {
   assert.equal(decision.bundle_digest, "sha256:bundle-a"); assert.equal(decision.candidate_digest, "sha256:" + "1".padStart(64, "0"));
   assert.equal(decision.base_sparql_version, 0); assert.equal(decision.base_sparql_hash, await digest("SELECT * WHERE { ?s ?p ?o }"));
   assert.equal(decision.agent_suggestion.suggestion_id, "suggestion-1"); assert.equal(decision.execution_attempts[0].attempt_id, "attempt-1");
-  const keys = [...backing.keys()]; assert.equal(keys.length, 1); assert.match(keys[0], /sha256:bundle-a$/);
+  assert.equal(decision.reviewer_id, "reviewer-0001"); assert.equal(exported.reviewer_id, "reviewer-0001");
+  const keys = [...backing.keys()]; assert.equal(keys.length, 1); assert.match(keys[0], /sha256:bundle-a:reviewer-0001$/);
 
   const restored = await boot("sha256:bundle-a", backing);
   assert.equal(restored.document.elements.reviewedCount.textContent, 1, "same-bundle decisions must restore");

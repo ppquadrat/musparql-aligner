@@ -102,6 +102,7 @@ class DismissedExclusionTests(unittest.TestCase):
     def test_next_review_wrapper_forwards_provenance_assertion(self) -> None:
         with patch.object(sys, "argv", [
             "build_next_review_round.py",
+            "--reviewer-id", "reviewer-0001",
             "--previous-run", "old",
             "--previous-reviews", "reviews.json",
             "--current-run", "new",
@@ -163,6 +164,8 @@ class DismissedExclusionTests(unittest.TestCase):
                 "argv",
                 [
                     "build_review_bundle.py",
+                    "--reviewer-id",
+                    "reviewer-0001",
                     "--inputs",
                     str(inputs_path),
                     "--outputs",
@@ -210,6 +213,8 @@ class DismissedExclusionTests(unittest.TestCase):
                 "argv",
                 [
                     "build_review_bundle.py",
+                    "--reviewer-id",
+                    "reviewer-0001",
                     "--inputs",
                     str(inputs_path),
                     "--outputs",
@@ -239,6 +244,8 @@ class DismissedExclusionTests(unittest.TestCase):
                 "argv",
                 [
                     "build_review_bundle.py",
+                    "--reviewer-id",
+                    "reviewer-0001",
                     "--inputs",
                     str(inputs_path),
                     "--outputs",
@@ -291,7 +298,8 @@ class DismissedExclusionTests(unittest.TestCase):
                 encoding="utf-8",
             )
             with patch.object(sys, "argv", [
-                "build_review_bundle.py", "--inputs", str(inputs_path), "--outputs", str(outputs_path),
+                "build_review_bundle.py", "--reviewer-id", "reviewer-0001",
+                "--inputs", str(inputs_path), "--outputs", str(outputs_path),
                 "--previous-benchmark", str(benchmark_dir), "--assert-complete-review-provenance",
                 "--kg-queries", str(canonical_path),
                 "--no-holdout",
@@ -737,6 +745,8 @@ class DismissedExclusionTests(unittest.TestCase):
                 "argv",
                 [
                     "build_review_diff_bundle.py",
+                    "--reviewer-id",
+                    "reviewer-0001",
                     "--previous-outputs",
                     str(previous_outputs),
                     "--current-outputs",

@@ -1,23 +1,29 @@
 (function () {
   "use strict";
   const data = window.SPARQL_CORRECTION_DATA || null;
-  const EXPORT_SCHEMA = "musparql.sparql-correction-review-export.v1";
+  const EXPORT_SCHEMA = "musparql.sparql-correction-review-export.v2";
   const EDIT_TYPES = ["syntax_correction", "endpoint_dialect_adaptation", "parameter_instantiation", "benchmark_specialization", "federation_rewrite", "performance_optimization", "other"];
   const busy = { execute: false, suggest: false, approve: false };
 
   function normalizeReview(value) {
     return {
+      review_id: value?.review_id || "",
       decision: value?.decision || "", proposed_sparql: value?.proposed_sparql || "",
       edit_type: value?.edit_type || "", rationale: value?.rationale || "",
       evidence_ids: Array.isArray(value?.evidence_ids) ? value.evidence_ids : [],
       proposal_origin: value?.proposal_origin || "human", reviewer_note: value?.reviewer_note || "",
+      reviewer_id: value?.reviewer_id || data?.reviewer_id || "",
       reviewed_at: value?.reviewed_at || "", agent_suggestion: value?.agent_suggestion || null,
+      prior_review_ids: Array.isArray(value?.prior_review_ids) ? value.prior_review_ids : [],
+      authored_formulation_ids: Array.isArray(value?.authored_formulation_ids) ? value.authored_formulation_ids : [],
+      approved_formulation_ids: Array.isArray(value?.approved_formulation_ids) ? value.approved_formulation_ids : [],
       execution_attempts: Array.isArray(value?.execution_attempts) ? value.execution_attempts : [],
     };
   }
   function validateReview(record, review) {
     const errors = [];
     if (!review.decision) return errors;
+    if (!/^reviewer-[0-9]{4,}$/.test(review.reviewer_id)) errors.push("A pseudonymous reviewer ID is required.");
     if (review.decision === "approve_edit") {
       if (!review.proposed_sparql.trim()) errors.push("Changed SPARQL is required.");
       if (review.proposed_sparql.trim() === record.base_sparql.trim()) errors.push("Change the SPARQL before approval.");
@@ -53,7 +59,10 @@
       if (!review.decision) continue;
       const errors = validateReview(record, review);
       if (errors.length) throw new Error(`${record.query_label}: ${errors.join(" ")}`);
+      const reviewId = review.review_id || `${record.candidate_id}::${review.reviewer_id}`;
+      const formulationId = `${reviewId}::formulation::sparql`;
       output.push({
+        review_id: reviewId,
         candidate_id: record.candidate_id, candidate_digest: record.candidate_digest,
         candidate_reason_code: record.triage?.reason_code, kg_id: record.kg_id, query_id: record.query_id,
         query_label: record.query_label, base_sparql_version: record.base_sparql_version,
@@ -63,18 +72,25 @@
         evidence_ids: review.evidence_ids, proposal_origin: review.proposal_origin,
         proposal_model: review.agent_suggestion?.model || null,
         agent_suggestion: review.agent_suggestion, execution_attempts: review.execution_attempts,
-        reviewer_note: review.reviewer_note || null, reviewed_at: review.reviewed_at,
+        reviewer_note: review.reviewer_note || null, reviewer_id: review.reviewer_id,
+        reviewed_at: review.reviewed_at,
+        prior_review_ids: review.prior_review_ids,
+        authored_formulation_ids: review.decision === "approve_edit" && review.proposal_origin === "human"
+          ? [formulationId] : review.authored_formulation_ids,
+        approved_formulation_ids: review.decision === "approve_edit"
+          ? [formulationId] : review.approved_formulation_ids,
       });
     }
-    return { schema: EXPORT_SCHEMA, mode: "sparql_correction", dataset_id: dataset.dataset_id, bundle_digest: dataset.bundle_digest, exported_at: new Date().toISOString(), source_bundle_built_at: dataset.built_at, holdout_input_policy: dataset.holdout_input_policy, reviews: output };
+    return { schema: EXPORT_SCHEMA, mode: "sparql_correction", reviewer_id: dataset.reviewer_id, dataset_id: dataset.dataset_id, bundle_digest: dataset.bundle_digest, exported_at: new Date().toISOString(), source_bundle_built_at: dataset.built_at, holdout_input_policy: dataset.holdout_input_policy, reviews: output };
   }
   window.MUSPARQL_CORRECTION_SCHEMA = { normalizeReview, validateReview, exportPayloadFor, lineDiff };
   if (!data || !Array.isArray(data.records) || !data.records.length) return;
+  if (!/^reviewer-[0-9]{4,}$/.test(data.reviewer_id || "")) throw new Error("Correction bundle requires a pseudonymous reviewer-NNNN identifier.");
 
   const ids = ["datasetId","recordCount","visibleCount","reviewedCount","searchInput","kgFilter","categoryFilter","decisionFilter","recordList","emptyState","detailView","detailMeta","detailTitle","priorityBadge","categoryBadge","holdoutWarning","baseSparql","baseVersionLabel","latestSparql","latestVersionLabel","proposedSparqlInput","proposalHash","sparqlDiff","triageSummary","pipelineObservation","executionHistory","agentStatus","agentProvenance","generateSuggestionBtn","executeBaseBtn","executeProposalBtn","executeLatestBtn","approveBtn","noEditBtn","deferBtn","prevBtn","nextBtn","editTypeInput","rationaleInput","evidenceIdsInput","reviewerNoteInput","proposalOrigin","validationMessage","evidenceCount","evidenceList","exportCorrectionsBtn","clearCorrectionStateBtn","saveState"];
   const els = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
   els.detailTitle.setAttribute("tabindex", "-1");
-  const storageKey = `musparql-sparql-correction:v2:${data.dataset_id}:${data.bundle_digest}`;
+  const storageKey = `musparql-sparql-correction:v3:${data.dataset_id}:${data.bundle_digest}:${data.reviewer_id}`;
   let reviews = loadReviews();
   let hashRenderToken = 0;
   let decisionLockUntil = 0;
@@ -88,7 +104,7 @@
   function unique(values) { return [...new Set(values.filter(Boolean))].sort(); }
   function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c])); }
   function fillSelect(select, values, first) { select.innerHTML = ""; values.forEach((value, i) => { const option = document.createElement("option"); option.value = value; option.textContent = i ? value.replaceAll("_", " ") : first; select.appendChild(option); }); }
-  function loadReviews() { try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch (_) { return {}; } }
+  function loadReviews() { try { const legacy = data.reviewer_id === "reviewer-0001" ? localStorage.getItem(`musparql-sparql-correction:v2:${data.dataset_id}:${data.bundle_digest}`) : null; return JSON.parse(localStorage.getItem(storageKey) || legacy || "{}"); } catch (_) { return {}; } }
   function saveReviews() { localStorage.setItem(storageKey, JSON.stringify(reviews)); els.saveState.textContent = `Saved locally ${new Date().toLocaleTimeString()}`; }
   function currentRecord() { return data.records.find((r) => r.candidate_id === state.selected) || null; }
   function currentReview() { return normalizeReview(reviews[state.selected]); }

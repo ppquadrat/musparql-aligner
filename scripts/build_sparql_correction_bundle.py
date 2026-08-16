@@ -11,6 +11,7 @@ from typing import Any, Dict
 
 from musparql.holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selector_record, validate_selectors_current
 from musparql.sparql_corrections import candidate_digest, load_jsonl, validate_candidate
+from musparql.reviewer_provenance import validate_reviewer_id
 
 
 def load_selector_keys(path: Path | None) -> set[tuple[str, str]]:
@@ -27,7 +28,9 @@ def build_payload(
     selector_keys: set[tuple[str, str]],
     source_path: str,
     input_policy: str,
+    reviewer_id: str = "reviewer-0001",
 ) -> Dict[str, Any]:
+    reviewer_id = validate_reviewer_id(reviewer_id)
     filtered = []
     excluded = 0
     seen: set[str] = set()
@@ -53,6 +56,7 @@ def build_payload(
     payload = {
         "mode": "sparql_correction",
         "schema": "musparql.sparql-correction-bundle.v1",
+        "reviewer_id": reviewer_id,
         "dataset_id": hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16],
         "built_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "source_path": source_path,
@@ -72,6 +76,7 @@ def main() -> None:
     parser.add_argument("--candidates", default="var/queries/sparql_correction_candidates.jsonl")
     parser.add_argument("--out", default="review/sparql_correction_data.js")
     parser.add_argument("--queries", default="var/queries/kg_queries.jsonl")
+    parser.add_argument("--reviewer-id", required=True, help="Anonymous reviewer ID, for example reviewer-0001.")
     add_holdout_filter_arguments(parser)
     args = parser.parse_args()
     candidates_path = Path(args.candidates)
@@ -82,6 +87,7 @@ def main() -> None:
         selector_keys=selector_keys,
         source_path=str(candidates_path),
         input_policy=holdout_input_policy(args),
+        reviewer_id=args.reviewer_id,
     )
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -13,10 +13,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping, Sequence
 
 from musparql.sparql_versions import available_sparql_versions, resolve_sparql_version, sparql_hash, validate_execution_versions
+from musparql.reviewer_provenance import validate_reviewer_id, validate_review_provenance
 
 
 CANDIDATE_SCHEMA = "musparql.sparql-correction-candidate.v1"
-REVIEW_EXPORT_SCHEMA = "musparql.sparql-correction-review-export.v1"
+REVIEW_EXPORT_SCHEMA = "musparql.sparql-correction-review-export.v2"
 DECISIONS = {"approve_edit", "no_edit", "defer"}
 EDIT_TYPES = {
     "syntax_correction",
@@ -152,7 +153,7 @@ def sparql_provenance(record: Mapping[str, Any], resolved: Mapping[str, Any]) ->
         provenance = resolved.get("provenance") or {}
         public_fields = (
             "candidate_id", "candidate_digest", "decision", "edit_type", "rationale",
-            "evidence_ids", "proposal_origin", "proposal_model", "reviewed_at",
+            "evidence_ids", "proposal_origin", "proposal_model", "reviewer_id", "reviewed_at",
             "review_export_hash", "approved_sparql_version", "approved_sparql_hash",
         )
         result["selected_edit"] = {
@@ -541,22 +542,26 @@ def validate_review_export(payload: Mapping[str, Any]) -> None:
     reviews = payload.get("reviews")
     if not isinstance(reviews, list):
         raise ValueError("Correction review export requires a reviews list")
-    for field in ("dataset_id", "exported_at"):
+    for field in ("reviewer_id", "dataset_id", "exported_at"):
         if not isinstance(payload.get(field), str) or not str(payload[field]).strip():
             raise ValueError(f"Correction review export requires {field}")
     try:
         datetime.fromisoformat(str(payload["exported_at"]).replace("Z", "+00:00"))
     except ValueError as exc:
         raise ValueError("Correction review export requires an ISO exported_at timestamp") from exc
+    validate_reviewer_id(payload.get("reviewer_id"))
     for review in reviews:
         if not isinstance(review, Mapping):
             raise ValueError("Each correction review must be an object")
         decision = review.get("decision")
         if decision not in DECISIONS:
             raise ValueError(f"Unsupported correction decision: {decision!r}")
-        for field in ("candidate_id", "candidate_digest", "kg_id", "query_id", "base_sparql_hash", "reviewed_at"):
+        for field in ("review_id", "candidate_id", "candidate_digest", "kg_id", "query_id", "base_sparql_hash", "reviewer_id", "reviewed_at"):
             if not isinstance(review.get(field), str) or not str(review[field]).strip():
                 raise ValueError(f"Correction review requires {field}")
+        validate_review_provenance(review)
+        if review.get("reviewer_id") != payload.get("reviewer_id"):
+            raise ValueError("Correction review reviewer_id does not match the export reviewer_id")
         if not isinstance(review.get("candidate_reason_code"), str) or not str(
             review["candidate_reason_code"]
         ).strip():
@@ -726,6 +731,7 @@ def apply_reviews(
             raise ValueError(f"Correction candidate already applied: {candidate}")
         reviewed_at = str(review["reviewed_at"])
         provenance = {
+            "review_id": review.get("review_id"),
             "candidate_id": candidate,
             "base_sparql_version": latest["sparql_version"],
             "base_sparql_hash": latest["sparql_hash"],
@@ -744,6 +750,10 @@ def apply_reviews(
             "candidate_capture_provenance": deepcopy(anchored.get("capture_provenance") or {}),
             "candidate_execution": deepcopy(execution_snapshot),
             "reviewed_at": reviewed_at,
+            "reviewer_id": review.get("reviewer_id"),
+            "prior_review_ids": list(review.get("prior_review_ids") or []),
+            "authored_formulation_ids": list(review.get("authored_formulation_ids") or []),
+            "approved_formulation_ids": list(review.get("approved_formulation_ids") or []),
             "review_export": export_path,
             "review_export_hash": export_hash,
             "reviewer_note": review.get("reviewer_note"),

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/review_provenance.schema.json",
+  "title": "MuSPARQL review provenance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "review_id", "reviewer_id", "reviewed_at", "prior_review_ids",
+    "authored_formulation_ids", "approved_formulation_ids"
+  ],
+  "properties": {
+    "review_id": {"type": "string", "minLength": 1},
+    "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "prior_review_ids": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "authored_formulation_ids": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "approved_formulation_ids": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

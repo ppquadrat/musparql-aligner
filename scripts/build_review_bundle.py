@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from musparql.holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selector_record
+from musparql.reviewer_provenance import validate_reviewer_id
 from scripts.runs.build_run_snapshot import create_run_snapshot
 from musparql.sparql_corrections import assert_input_provenance_current
 
@@ -86,6 +87,15 @@ def load_previous_benchmark(path: Optional[Path]) -> Dict[Tuple[str, str], Dict[
             records[(kg_id, query_id)] = {
                 "reviewed": True,
                 "benchmark_id": rec.get("benchmark_id"),
+                "review_id": (
+                    rec.get("review", {}).get("review_id")
+                    if isinstance(rec.get("review"), dict) else None
+                ) or (
+                    rec.get("provenance", {}).get("approval_review_id")
+                    if isinstance(rec.get("provenance"), dict) else None
+                ) or rec.get("benchmark_id"),
+                "reviewer_id": rec.get("provenance", {}).get("reviewer_id")
+                if isinstance(rec.get("provenance"), dict) else None,
                 "benchmark_disposition": disposition,
                 "pipeline_assessment": assessment,
                 "split": split,
@@ -285,6 +295,7 @@ def ensure_single_run_manifest(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build a browser review bundle from LLM inputs and outputs.")
+    parser.add_argument("--reviewer-id", required=True, help="Anonymous reviewer ID, for example reviewer-0001.")
     parser.add_argument("--inputs", default=None)
     parser.add_argument("--outputs", nargs="+", default=None)
     parser.add_argument(
@@ -336,6 +347,7 @@ def main() -> None:
         help="Human assertion that supplied benchmark/review sources cover every prior reviewer decision; required to enable holdout selection.",
     )
     args = parser.parse_args()
+    reviewer_id = validate_reviewer_id(args.reviewer_id)
 
     if args.latest_run:
         if args.inputs is not None or args.outputs is not None or args.run_manifest:
@@ -453,6 +465,8 @@ def main() -> None:
             review_id = f"{kg_id}::{query_label}::{token}"
             review_record = {
                 "review_id": review_id,
+                "prior_review_ids": [str(previous_candidate["review_id"])]
+                if previous_candidate and previous_candidate.get("review_id") else [],
                 "review_scope": review_scope,
                 "has_prior_pair_review": has_prior_pair_review,
                 "run_id": run_id or None,
@@ -502,6 +516,8 @@ def main() -> None:
             )
 
     dataset_payload = {
+        "schema": "musparql.review-bundle.v2",
+        "reviewer_id": reviewer_id,
         "dataset_id": sha256_text(
             stable_json_dumps(
                 {

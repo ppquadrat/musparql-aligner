@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/reviewer_kg_familiarity.schema.json",
+  "title": "MuSPARQL reviewer KG familiarity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["reviewer_id", "kg_id", "familiarity"],
+  "properties": {
+    "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
+    "kg_id": {"type": "string", "minLength": 1},
+    "familiarity": {
+      "type": "string",
+      "enum": ["none", "inspected", "queried", "regular_user", "creator"]
+    }
+  }
+}

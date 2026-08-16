@@ -15,6 +15,8 @@ FORBIDDEN_PATHS = (
     "benchmark/v*/holdout.jsonl",
     "review/exports/*",
     "review/private/*",
+    "confidential/reviewers/*.json",
+    "confidential/reviewers/*.jsonl",
     "review/public_exports/*",
     "benchmark/v*/included.jsonl",
     "benchmark/v*/dismissed.jsonl",
@@ -45,6 +47,7 @@ CORRECTION_SCHEMAS = {
     "musparql.sparql-correction-candidate.v1",
     "musparql.sparql-correction-bundle.v1",
     "musparql.sparql-correction-review-export.v1",
+    "musparql.sparql-correction-review-export.v2",
     "musparql.sparql-correction-ui-execution.v1",
     "musparql.sparql-correction-agent-suggestion.v1",
 }

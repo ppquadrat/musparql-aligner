@@ -227,13 +227,17 @@ def test_generate_approve_round_trip_retains_authoritative_agent_provenance(tmp_
     attempt = wb.execute({"candidate_id": candidate["candidate_id"], "candidate_digest": digest, "target": "proposal", "sparql": PROPOSAL, "sparql_hash": sparql_hash(PROPOSAL)})
     review = {
         "candidate_id": candidate["candidate_id"], "candidate_digest": digest,
+        "review_id": f"{candidate['candidate_id']}::reviewer-0001",
         "candidate_reason_code": candidate["triage"]["reason_code"], "kg_id": row["kg_id"], "query_id": row["query_id"],
         "base_sparql_version": 0, "base_sparql_hash": sparql_hash(BASE), "decision": "approve_edit",
         "proposed_sparql": PROPOSAL, "edit_type": "syntax_correction", "rationale": "Synthetic correction.",
         "evidence_ids": [], "proposal_origin": "agent", "proposal_model": "synthetic-model",
         "agent_suggestion": suggestion, "execution_attempts": [attempt], "reviewed_at": "2026-08-05T12:00:00+00:00",
+        "reviewer_id": "reviewer-0001", "prior_review_ids": [],
+        "authored_formulation_ids": [],
+        "approved_formulation_ids": [f"{candidate['candidate_id']}::reviewer-0001::formulation::sparql"],
     }
-    export = {"schema": REVIEW_EXPORT_SCHEMA, "mode": "sparql_correction", "dataset_id": "synthetic", "exported_at": "2026-08-05T12:00:00+00:00", "reviews": [review]}
+    export = {"schema": REVIEW_EXPORT_SCHEMA, "mode": "sparql_correction", "reviewer_id": "reviewer-0001", "dataset_id": "synthetic", "exported_at": "2026-08-05T12:00:00+00:00", "reviews": [review]}
     apply_reviews([row], export, export_path="synthetic.json", candidates=[candidate], authoritative_suggestions=[suggestion], authoritative_executions=[attempt])
     provenance = row["sparql_edits"][0]["provenance"]
     assert provenance["agent_suggestion"]["request_id"] == "req-synthetic"

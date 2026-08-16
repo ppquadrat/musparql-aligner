@@ -25,6 +25,10 @@ prompts/llm_nl_generation.inputs.jsonl
 review/exports/
 review/private/
 review/public_exports/
+# Durable confidential reviewer profiles are backed up separately by the owner.
+# Schemas and handling instructions remain tracked in this directory.
+confidential/reviewers/*.jsonl
+confidential/reviewers/*.json
 benchmark/v*/holdout.jsonl
 benchmark/v*/included.jsonl
 benchmark/v*/dismissed.jsonl

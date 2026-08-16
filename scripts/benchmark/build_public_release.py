@@ -53,7 +53,11 @@ ALTERNATIVE_FIELDS = (
     "canonical_question",
     "canonical_question_source",
 )
-FORMULATION_FIELDS = ("text", "source_type", "acceptance", "generation_run_id", "model")
+FORMULATION_FIELDS = (
+    "formulation_id", "text", "source_type", "acceptance",
+    "authored_by_reviewer_id", "approval_review_ids", "approval_reviewer_ids",
+    "generation_run_id", "model",
+)
 EVIDENCE_FIELDS = (
     "evidence_count",
     "evidence_types",
@@ -69,6 +73,10 @@ PROVENANCE_FIELDS = (
     "dataset",
     "reported_result_rows",
     "reviewer_comment",
+    "reviewer_id",
+    "approval_review_id",
+    "formulation_id",
+    "authored_by_reviewer_id",
 )
 FORBIDDEN_KEYS = {
     "note",

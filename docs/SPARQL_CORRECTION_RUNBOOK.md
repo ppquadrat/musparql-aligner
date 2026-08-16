@@ -33,6 +33,7 @@ The selected version and hash are recorded explicitly. Without that option,
 
 ```bash
 .venv/bin/python -m scripts.build_sparql_correction_bundle \
+  --reviewer-id reviewer-0001 \
   --holdout-selectors var/holdout/selectors.jsonl
 ```
 
@@ -187,6 +188,7 @@ Continue with the normal generation and review commands:
 .venv/bin/python -m scripts.run_llm_generation
 
 .venv/bin/python -m scripts.build_review_bundle \
+  --reviewer-id reviewer-0001 \
   --holdout-selectors var/holdout/selectors.jsonl \
   --outputs llm_outputs.jsonl \
   --assert-complete-review-provenance

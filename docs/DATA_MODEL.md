@@ -115,15 +115,47 @@ file whenever possible.
 
 ## Review bundles and exports
 
+### Confidential reviewer registry
+
+Reviewer profiles are durable human-supplied data under
+`confidential/reviewers/`, not rebuildable pipeline state under `var/`.
+`reviewers.jsonl` stores pseudonymous IDs, names, affiliations, email addresses,
+four experience levels, language expertise keyed by language tag, and the
+acknowledged privacy-notice version and time. `kg_familiarity.jsonl` stores one
+`reviewer_id`/`kg_id` familiarity assertion. Both data files are ignored by Git
+and require an owner-managed confidential backup. Their contracts are
+`schemas/reviewer.schema.json` and
+`schemas/reviewer_kg_familiarity.schema.json`.
+
+Only IDs matching `reviewer-NNNN` may cross into review artifacts. Profile and
+familiarity fields never enter bundles, exports, benchmarks, logs, or fixtures.
+
 The browser bundle is generated and ignored. It contains candidate records,
 their run provenance, source evidence, SPARQL provenance, and holdout eligibility
 information.
 
-A sanitized review export has `kind: non_holdout_review_export` and contains no
+A new sanitized review export has schema `musparql.review-export.v2`, kind
+`non_holdout_review_export`, and contains no
 holdout entry. Review records can contain a benchmark decision, preferred
 question, literal wording, public and internal comments, and copied-review
 provenance. Historical interpretive fields remain readable but are not collected
 by the current UI.
+
+Every v2 review records `reviewer_id`, `reviewed_at`, `prior_review_ids`,
+`authored_formulation_ids`, and `approved_formulation_ids`. These normalized
+links are authoritative. Reviewer activity is derived from them rather than
+duplicated on the confidential profile. A copied or repeated review links its
+predecessor through `prior_review_ids`.
+
+The export's review-map key remains the bundle lookup key used to join a
+decision to its candidate. The review object's explicit `review_id` is the
+globally distinct review-event ID and includes the reviewer ID. Provenance links
+must target the explicit event ID, allowing two reviewers to assess the same
+bundle candidate without identity collision.
+
+Formulation entries follow `schemas/formulation_provenance.schema.json` and
+separate `authored_by_reviewer_id` from the review and reviewer IDs that
+approved the formulation.
 
 Sanitized exports belong in `var/review/exports/`. Private or mixed exports are
 rejected by agent-facing tools.
@@ -158,6 +190,14 @@ separate human-controlled private repository.
 The scoring dataset. Each record contains a benchmark identity, KG and query
 identity, selected SPARQL text/version/hash, one canonical gold question, gold
 question provenance, evidence summary, and safe source provenance.
+
+Snapshots created under the v2 review model expose only the pseudonymous reviewer
+ID and review/formulation links needed for provenance. Published snapshots v1
+through v10 remain immutable legacy single-reviewer artifacts.
+
+When identical formulation text is approved more than once, the alternatives
+sidecar merges `approval_review_ids` and `approval_reviewer_ids` rather than
+discarding later approvals. `authored_by_reviewer_id` remains distinct.
 
 For an edited SPARQL pin, public `sparql_provenance` is an allowlisted
 projection. It may retain the edit count, selected version/hash, history digest,

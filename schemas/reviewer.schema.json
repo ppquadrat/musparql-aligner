@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/reviewer.schema.json",
+  "title": "MuSPARQL confidential reviewer profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "name", "affiliation", "email", "domain_expertise",
+    "kg_ontology_experience", "sparql_experience", "nlp_llm_experience",
+    "language_expertise", "privacy_notice_version",
+    "privacy_notice_acknowledged_at"
+  ],
+  "properties": {
+    "id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
+    "name": {"type": "string", "minLength": 1},
+    "affiliation": {"type": "string"},
+    "email": {"type": "string", "format": "email"},
+    "domain_expertise": {"$ref": "#/$defs/experience"},
+    "kg_ontology_experience": {"$ref": "#/$defs/experience"},
+    "sparql_experience": {"$ref": "#/$defs/experience"},
+    "nlp_llm_experience": {"$ref": "#/$defs/experience"},
+    "language_expertise": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z]{2,3}(-[A-Z]{2})?$"},
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["basic", "advanced", "fluent", "native"]
+      }
+    },
+    "privacy_notice_version": {"type": "string", "minLength": 1},
+    "privacy_notice_acknowledged_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "experience": {
+      "type": "string",
+      "enum": ["none", "occasional", "regular", "expert"]
+    }
+  }
+}

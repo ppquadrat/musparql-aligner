@@ -58,6 +58,7 @@
     internalReviews,
     partitionReviewMap,
     validateCompareImportPayload,
+    validateReviewerImport,
     validateImportedReviews,
     matchPrivateRecords,
     rejectPrivateImport,
@@ -77,6 +78,9 @@
   if (!data || !Array.isArray(data.records) || !data.records.length) {
     return;
   }
+  if (!/^reviewer-[0-9]{4,}$/.test(data.reviewer_id || "")) {
+    throw new Error("Review bundle requires a pseudonymous reviewer-NNNN identifier.");
+  }
 
   const selectorExportAllowed = data.holdout_input_policy !== "identity_private_filtered_upstream";
   els.exportHoldoutSelectorsBtn.classList.toggle("hidden", !selectorExportAllowed);
@@ -86,7 +90,7 @@
     return;
   }
 
-  const reviewStorageKey = `musparql-review:schema3:${data.dataset_id}`;
+  const reviewStorageKey = `musparql-review:schema4:${data.dataset_id}:${data.reviewer_id}`;
   let reviews = loadReviews();
   let privateExportReady = false;
   const state = {
@@ -111,9 +115,12 @@
 
   function loadReviews() {
     try {
-      const raw = window.localStorage.getItem(reviewStorageKey)
-        || window.localStorage.getItem(`musparql-review:schema2:${data.dataset_id}`)
-        || window.localStorage.getItem(`musparql-review:${data.dataset_id}`);
+      const legacyRaw = data.reviewer_id === "reviewer-0001"
+        ? window.localStorage.getItem(`musparql-review:schema3:${data.dataset_id}`)
+          || window.localStorage.getItem(`musparql-review:schema2:${data.dataset_id}`)
+          || window.localStorage.getItem(`musparql-review:${data.dataset_id}`)
+        : null;
+      const raw = window.localStorage.getItem(reviewStorageKey) || legacyRaw;
       if (!raw) return {};
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === "object" ? parsed : {};
@@ -421,6 +428,8 @@
     const selectorSelected = els.holdoutSplitInput.checked;
     const keepAnnotationPrivate = isHoldoutReview(current);
     reviews[reviewId] = {
+      review_id: current.review_id || `${reviewId}::${data.reviewer_id}`,
+      reviewer_id: data.reviewer_id || current.reviewer_id || "",
       status: nextStatus,
       preferred_question: els.preferredQuestionInput.value.trim(),
       literal_wording: els.literalWordingInput.value.trim(),
@@ -430,7 +439,10 @@
       holdout_selection_touched: options.holdoutSelectionTouched === true || current.holdout_selection_touched,
       holdout_selector_selected: selectorSelected,
       interpretive,
-      updated_at: new Date().toISOString(),
+      reviewed_at: new Date().toISOString(),
+      prior_review_ids: Array.isArray(record?.prior_review_ids) ? record.prior_review_ids : [],
+      authored_formulation_ids: current.authored_formulation_ids,
+      approved_formulation_ids: current.approved_formulation_ids,
     };
     if (
       !reviews[reviewId].status &&
@@ -472,6 +484,8 @@
       && Object.prototype.hasOwnProperty.call(review, "public_comment");
     const split = review?.split || (review?.benchmark_disposition === "withheld" ? HOLDOUT_SPLIT : "");
     return {
+      review_id: review?.review_id || "",
+      reviewer_id: review?.reviewer_id || data?.reviewer_id || "",
       status,
       preferred_question: review?.preferred_question || "",
       literal_wording: literalWording,
@@ -485,11 +499,16 @@
         ? review.holdout_selector_selected
         : split === HOLDOUT_SPLIT,
       interpretive: normalizeInterpretive(review?.interpretive),
+      reviewed_at: review?.reviewed_at || review?.updated_at || "",
+      prior_review_ids: Array.isArray(review?.prior_review_ids) ? review.prior_review_ids : [],
+      authored_formulation_ids: Array.isArray(review?.authored_formulation_ids) ? review.authored_formulation_ids : [],
+      approved_formulation_ids: Array.isArray(review?.approved_formulation_ids) ? review.approved_formulation_ids : [],
     };
   }
 
-  function exportableReview(review) {
+  function exportableReview(review, reviewId = "") {
     const normalized = normalizeReview(review);
+    const eventReviewId = normalized.review_id || `${reviewId}::${normalized.reviewer_id}`;
     const benchmarkDisposition = normalized.split === HOLDOUT_SPLIT
       ? "withheld"
       : normalized.status === "excluded"
@@ -497,7 +516,28 @@
         : normalized.status
           ? "included"
           : null;
+    const preferredId = `${eventReviewId}::formulation::preferred`;
+    const literalId = `${eventReviewId}::formulation::literal`;
+    const candidateId = `${eventReviewId}::formulation::candidate`;
+    const authored = [...normalized.authored_formulation_ids];
+    if (normalized.preferred_question && !review?.copied_from_review_id && !authored.includes(preferredId)) authored.push(preferredId);
+    if (normalized.literal_wording && !review?.copied_from_review_id && !authored.includes(literalId)) authored.push(literalId);
+    const approved = [...normalized.approved_formulation_ids];
+    if (normalized.status && normalized.status !== "excluded" && !approved.length) {
+      const approvedId = normalized.preferred_question ? preferredId : candidateId;
+      if (!approved.includes(approvedId)) approved.push(approvedId);
+    }
+    const priorReviewIds = [...normalized.prior_review_ids];
+    if (review?.copied_from_review_id && !priorReviewIds.includes(review.copied_from_review_id)) {
+      priorReviewIds.push(review.copied_from_review_id);
+    }
     return {
+      review_id: eventReviewId,
+      reviewer_id: normalized.reviewer_id,
+      reviewed_at: normalized.reviewed_at || null,
+      prior_review_ids: priorReviewIds,
+      authored_formulation_ids: authored,
+      approved_formulation_ids: approved,
       benchmark_disposition: benchmarkDisposition,
       pipeline_assessment: normalized.status && normalized.status !== "excluded" ? normalized.status : null,
       preferred_question: normalized.preferred_question,
@@ -506,14 +546,13 @@
       internal_comment: normalized.internal_comment,
       split: normalized.split,
       interpretive: normalized.interpretive,
-      updated_at: review?.updated_at || null,
       ...(review?.copied_from_review_id ? { copied_from_review_id: review.copied_from_review_id } : {}),
     };
   }
 
   function exportableReviews(reviewMap) {
     return Object.fromEntries(
-      Object.entries(reviewMap).map(([reviewId, review]) => [reviewId, exportableReview(review)])
+      Object.entries(reviewMap).map(([reviewId, review]) => [reviewId, exportableReview(review, reviewId)])
     );
   }
 
@@ -521,7 +560,7 @@
     return Object.fromEntries(
       Object.entries(reviewMap).map(([reviewId, review]) => [reviewId, {
         ...normalizeReview(review),
-        updated_at: review?.updated_at || null,
+        reviewed_at: review?.reviewed_at || review?.updated_at || null,
         ...(review?.copied_from_review_id ? { copied_from_review_id: review.copied_from_review_id } : {}),
       }])
     );
@@ -531,7 +570,7 @@
     const publicReviews = {};
     const privateReviews = {};
     Object.entries(reviewMap || {}).forEach(([reviewId, review]) => {
-      const exported = exportableReview(review);
+      const exported = exportableReview(review, reviewId);
       if (exported.split === HOLDOUT_SPLIT || exported.benchmark_disposition === "withheld") {
         privateReviews[reviewId] = exported;
       } else {
@@ -567,6 +606,15 @@
     const { privateReviews } = partitionReviewMap(imported);
     if (Object.keys(privateReviews).length) {
       throw new Error("Private holdout annotations cannot be imported into the agent-visible workbench.");
+    }
+  }
+
+  function validateReviewerImport(payload, currentData = data) {
+    if (payload.reviewer_id && payload.reviewer_id !== currentData?.reviewer_id) {
+      throw new Error("This review export belongs to a different reviewer.");
+    }
+    if (!payload.reviewer_id && currentData?.reviewer_id !== "reviewer-0001") {
+      throw new Error("Only reviewer-0001 may import a legacy export without reviewer provenance.");
     }
   }
 
@@ -606,6 +654,14 @@
     const dispositions = new Set(["included", "excluded", "withheld"]);
     for (const [reviewId, review] of Object.entries(reviewMap || {})) {
       if (!review || typeof review !== "object") throw new Error(`Bad review record: ${reviewId}`);
+      if (review.reviewer_id && !/^reviewer-[0-9]{4,}$/.test(review.reviewer_id)) {
+        throw new Error(`Review ${reviewId} has an invalid pseudonymous reviewer ID.`);
+      }
+      for (const field of ["prior_review_ids", "authored_formulation_ids", "approved_formulation_ids"]) {
+        if (field in review && (!Array.isArray(review[field]) || review[field].some((value) => typeof value !== "string" || !value))) {
+          throw new Error(`Review ${reviewId} has invalid ${field}.`);
+        }
+      }
       if (
         Object.prototype.hasOwnProperty.call(review, "holdout_selection_touched")
         || Object.prototype.hasOwnProperty.call(review, "holdout_selector_selected")
@@ -689,6 +745,7 @@
       "internal_comment",
       "note",
       "split",
+      "reviewed_at",
       "updated_at",
       "copied_from_review_id",
     ];
@@ -776,15 +833,27 @@
   }
 
   function reusedPreviousReview(previousReview, currentReview, copiedFromReviewId) {
+    const priorReviewId = previousReview.review_id || copiedFromReviewId;
+    const priorApproved = Array.isArray(previousReview.approved_formulation_ids)
+      && previousReview.approved_formulation_ids.length
+      ? previousReview.approved_formulation_ids
+      : priorReviewId
+        ? [`${priorReviewId}::formulation::${previousReview.preferred_question ? "preferred" : "candidate"}`]
+        : [];
     return {
+      review_id: currentReview.review_id || "",
+      reviewer_id: data?.reviewer_id || currentReview?.reviewer_id || "",
       status: previousReview.status || "",
       preferred_question: previousReview.preferred_question || "",
       literal_wording: previousReview.literal_wording || "",
       public_comment: previousReview.public_comment || "",
       internal_comment: previousReview.internal_comment || "",
       split: isHoldoutReview(currentReview) ? HOLDOUT_SPLIT : "",
-      copied_from_review_id: copiedFromReviewId || null,
-      updated_at: new Date().toISOString(),
+      copied_from_review_id: priorReviewId || null,
+      reviewed_at: new Date().toISOString(),
+      prior_review_ids: priorReviewId ? [priorReviewId] : [],
+      authored_formulation_ids: [],
+      approved_formulation_ids: priorApproved,
     };
   }
 
@@ -805,7 +874,9 @@
   function exportReviews() {
     const { publicReviews } = partitionReviewMap(reviews);
     const payload = {
+      schema: "musparql.review-export.v2",
       kind: "non_holdout_review_export",
+      reviewer_id: data.reviewer_id,
       dataset_id: data.dataset_id,
       run_id: data.single_run_id,
       run_ids: data.run_ids || [],
@@ -837,7 +908,9 @@
     const timestamp = timestampForFilename(new Date());
     downloadJson(
       {
+        schema: "musparql.private-holdout-export.v2",
         kind: "private_holdout_export",
+        reviewer_id: data.reviewer_id,
         schema_version: 1,
         dataset_id: data.dataset_id,
         exported_at: new Date().toISOString(),
@@ -903,6 +976,7 @@
           throw new Error("Bad review file format.");
         }
         validateImportedReviews(imported);
+        validateReviewerImport(payload);
         rejectPrivateImport(payload, imported);
         reviews = internalReviews(imported);
         privateExportReady = false;
@@ -1146,7 +1220,7 @@
   }
 
   function initCompareMode() {
-    const compareStorageKey = `musparql-review-compare:schema3:${data.dataset_id}`;
+    const compareStorageKey = `musparql-review-compare:schema4:${data.dataset_id}:${data.reviewer_id}`;
     let compareReviews = loadCompareReviews();
     let privateCompareExportReady = false;
     const compareState = {
@@ -1225,9 +1299,12 @@
 
     function loadCompareReviews() {
       try {
-        const raw = window.localStorage.getItem(compareStorageKey)
-          || window.localStorage.getItem(`musparql-review-compare:schema2:${data.dataset_id}`)
-          || window.localStorage.getItem(`musparql-review-compare:${data.dataset_id}`);
+        const legacyRaw = data.reviewer_id === "reviewer-0001"
+          ? window.localStorage.getItem(`musparql-review-compare:schema3:${data.dataset_id}`)
+            || window.localStorage.getItem(`musparql-review-compare:schema2:${data.dataset_id}`)
+            || window.localStorage.getItem(`musparql-review-compare:${data.dataset_id}`)
+          : null;
+        const raw = window.localStorage.getItem(compareStorageKey) || legacyRaw;
         if (!raw) return {};
         const parsed = JSON.parse(raw);
         return parsed && typeof parsed === "object" ? parsed : {};
@@ -1384,6 +1461,11 @@
       document.getElementById("usePreviousWordingBtn").addEventListener("click", () => {
         updateCompareReview(currentReviewId, {
           preferred_question: previousReview.preferred_question || previousRecord?.output?.nl_question || "",
+          copied_from_review_id: previousReview.review_id || pair.previous?.review_id || null,
+          authored_formulation_ids: [],
+          approved_formulation_ids: (previousReview.review_id || pair.previous?.review_id)
+            ? [`${previousReview.review_id || pair.previous.review_id}::formulation::${previousReview.preferred_question ? "preferred" : "candidate"}`]
+            : [],
         });
       });
       document.getElementById("reusePreviousInlineBtn")?.addEventListener("click", () => {
@@ -1395,6 +1477,11 @@
       document.getElementById("usePreviousWordingInlineBtn")?.addEventListener("click", () => {
         updateCompareReview(currentReviewId, {
           preferred_question: previousReview.preferred_question || previousRecord?.output?.nl_question || "",
+          copied_from_review_id: previousReview.review_id || pair.previous?.review_id || null,
+          authored_formulation_ids: [],
+          approved_formulation_ids: (previousReview.review_id || pair.previous?.review_id)
+            ? [`${previousReview.review_id || pair.previous.review_id}::formulation::${previousReview.preferred_question ? "preferred" : "candidate"}`]
+            : [],
         });
       });
       document.getElementById("usePreviousPublicCommentInlineBtn")?.addEventListener("click", () => {
@@ -1415,7 +1502,12 @@
         btn.addEventListener("click", () => updateCompareReview(currentReviewId, { status: btn.dataset.status || "" }));
       });
       document.getElementById("comparePreferredInput")?.addEventListener("input", () => {
-        updateCompareReview(currentReviewId, { preferred_question: document.getElementById("comparePreferredInput").value.trim() }, false);
+        updateCompareReview(currentReviewId, {
+          preferred_question: document.getElementById("comparePreferredInput").value.trim(),
+          copied_from_review_id: null,
+          authored_formulation_ids: [],
+          approved_formulation_ids: [],
+        }, false);
       });
       document.getElementById("compareLiteralInput")?.addEventListener("input", () => {
         updateCompareReview(currentReviewId, { literal_wording: document.getElementById("compareLiteralInput").value.trim() }, false);
@@ -1626,10 +1718,16 @@
     function updateCompareReview(reviewId, patch, rerender = true) {
       privateCompareExportReady = false;
       const existing = compareReviews[reviewId] || { status: "", preferred_question: "", literal_wording: "", public_comment: "", internal_comment: "", split: "" };
+      const pair = data.records.find((item) => (item.current?.review_id || item.pair_id) === reviewId);
+      const priorReviewIds = pair?.previous?.review_id ? [pair.previous.review_id] : [];
       compareReviews[reviewId] = {
         ...existing,
         ...patch,
-        updated_at: new Date().toISOString(),
+        review_id: existing.review_id || `${reviewId}::${data.reviewer_id}`,
+        reviewer_id: data.reviewer_id,
+        reviewed_at: new Date().toISOString(),
+        prior_review_ids: patch.prior_review_ids
+          || (Array.isArray(existing.prior_review_ids) && existing.prior_review_ids.length ? existing.prior_review_ids : priorReviewIds),
       };
       cleanupEmptyCompareReview(reviewId);
       saveCompareReviews();
@@ -1662,7 +1760,9 @@
     function exportCompareReviews() {
       const { publicReviews } = partitionReviewMap(compareReviews);
       const payload = {
+        schema: "musparql.review-export.v2",
         kind: "non_holdout_review_export",
+        reviewer_id: data.reviewer_id,
         dataset_id: data.dataset_id,
         mode: "compare",
         previous_run: data.previous_run,
@@ -1690,7 +1790,9 @@
       const timestamp = timestampForFilename(new Date());
       downloadJson(
         {
+          schema: "musparql.private-holdout-export.v2",
           kind: "private_holdout_export",
+          reviewer_id: data.reviewer_id,
           schema_version: 1,
           mode: "compare",
           dataset_id: data.dataset_id,
@@ -1740,6 +1842,7 @@
             throw new Error("Private holdout exports cannot be imported into the agent-visible workbench.");
           }
           validateCompareImportPayload(payload);
+          validateReviewerImport(payload);
           const imported = payload.reviews;
           validateImportedReviews(imported);
           rejectPrivateImport(payload, imported);
