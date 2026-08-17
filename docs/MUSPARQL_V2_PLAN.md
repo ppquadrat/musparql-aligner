@@ -1,0 +1,1301 @@
+# Musparql v2: remote expert-review platform plan
+
+Status: proposed implementation plan
+
+Date: 2026-08-17
+
+Scope: reviewer administration, remote review, longitudinal expertise data,
+controlled processing, and deployment
+
+## 1. What “Musparql v2” means
+
+Musparql v2 is the next operational form of the project. It preserves the
+existing benchmark methodology, provenance model, review semantics, and holdout
+boundary, while turning the local, file-mediated review workbench into a small
+server-backed research application.
+
+This name describes the overall application and workflow. It is independent of
+existing artifact version names such as `musparql.review-export.v2`; those
+schemas keep their own version histories.
+
+The central change is:
+
+> Reviewers work remotely in an authenticated browser session, while a trusted
+> Musparql server identifies them pseudonymously, collects confidential profile
+> and expertise information, serves their assignments, receives their reviews,
+> and runs narrowly defined post-review processing.
+
+Musparql v2 is a research UI for a small invited pool, not a general-purpose
+product or public crowdsourcing platform. The implementation should optimise
+for low reviewer friction, strong provenance, comprehensible operation, and a
+small maintenance burden.
+
+## 2. Goals
+
+Musparql v2 should:
+
+1. Recognise an invited reviewer by a verified email address without requiring
+   a password.
+2. Support a pasted email one-time code rather than a magic link.
+3. Optionally remember a private browser for a bounded period.
+4. Collect general profile and expertise information once and allow later
+   correction.
+5. Measure KG-specific subject expertise and KG familiarity immediately before
+   each review round.
+6. Preserve repeated expertise assessments as longitudinal research data.
+7. Avoid asking reviewers to re-enter unchanged information unnecessarily.
+8. Keep personal information out of review bundles, review exports, benchmark
+   artifacts, logs, prompts, and tests.
+9. Let remote reviewers conduct initial and comparative review without access
+   to the repository or command line.
+10. Replace browser-download-and-manual-file-moving with authenticated review
+    submission.
+11. Run deterministic, allowlisted post-review processing automatically.
+12. Leave an explicit owner approval boundary before an authoritative benchmark
+    update is committed or published.
+13. Exclude private holdout items from all ordinary remote-review assignments.
+14. Support a workshop cohort of up to ten reviewers submitting at approximately
+    the same time without lost, duplicated, or partially written work.
+15. Run at small scale using Flask, SQLite, and a single application instance.
+16. Be deployable in an isolated Musparql WSL environment and reachable through
+    Tailscale Funnel without purchasing a domain.
+
+## 3. Non-goals for the first release
+
+The first Musparql v2 release will not:
+
+- support public self-registration;
+- use passwords, passkeys, social login, or enterprise single sign-on;
+- support many application instances or horizontal scaling;
+- put all pipeline artifacts into a database;
+- allow reviewers to supply arbitrary repository paths, shell commands,
+  endpoints, or processing recipes;
+- automatically push to Git, publish a release, or replace an authoritative
+  benchmark without owner approval;
+- execute SPARQL through the hosted Flask portal in the first release;
+- allow ordinary external reviewers to select, see, or re-review holdout items;
+- upload private holdout annotations to the ordinary Flask application;
+- promise uninterrupted commercial-product availability; or
+- reuse, modify, restart, or otherwise operate the Multichannel/VocalLanes
+  application or its server resources.
+
+Read-only inspection of VocalLanes is permitted only when a future task
+genuinely requires comparison. Musparql deployment work must remain scoped to
+an explicitly separate environment and must not change VocalLanes files,
+processes, ports, credentials, services, or configuration. When changing server settings, restarting or otherwise working with the server, remember that VocalLanes has priority and must not be compromised - ask before doing anything that can affect it.
+
+## 4. Invariants carried forward from the current system
+
+The following boundaries are not relaxed by the new application:
+
+- Email authenticates a person; `reviewer-NNNN` attributes their review work.
+- Reviewer IDs are allocated independently of email addresses. They must never
+  be email hashes or other guessable derivatives of identity.
+- Only pseudonymous reviewer IDs may cross into review bundles, exports,
+  benchmarks, and publication provenance.
+- Profile, language, expertise, familiarity, privacy-notice, authentication,
+  and session data remain confidential.
+- Reviewer activity is derived from review and formulation provenance rather
+  than stored as mutable backlink lists on a profile.
+- Model output cannot approve a benchmark question or SPARQL correction.
+- A review submission is evidence of a human decision; deterministic processing
+  validates and stages that decision but does not replace human authority.
+- Holdout annotations remain human-only data under the existing holdout policy.
+- Agent-facing processing accepts only sanitized non-holdout review exports.
+
+## 5. Proposed system shape
+
+```mermaid
+flowchart TD
+    Reviewer["Remote reviewer browser"]
+    Funnel["Tailscale Funnel HTTPS endpoint"]
+    Flask["Flask review portal"]
+    DB[("SQLite confidential and operational data")]
+    Bundle["Reviewer-neutral assignment bundle"]
+    Export["Sanitized review export"]
+    Worker["Allowlisted background processor"]
+    Candidate["Candidate benchmark snapshot and audit"]
+    Owner["Owner approval"]
+    Benchmark["Authoritative benchmark update"]
+
+    Reviewer --> Funnel --> Flask
+    Flask --> DB
+    Flask --> Bundle
+    Flask --> Export
+    Export --> Worker
+    Worker --> Candidate
+    Candidate --> Owner
+    Owner --> Benchmark
+```
+
+The browser never needs repository access. Flask runs on the machine containing
+the trusted Musparql working copy and mediates every permitted operation.
+
+## 6. Reviewer experience
+
+### 6.1 First visit
+
+1. The invited reviewer opens an assignment URL.
+2. They enter their email address.
+3. The application sends a short-lived numeric code.
+4. They paste the code into the same browser.
+5. They may select:
+
+   > Keep me signed in for 30 days on this browser. Do not select this on a
+   > shared computer.
+
+6. If their profile is incomplete, they complete onboarding.
+7. They answer the assignment-specific pre-review questions.
+8. The review workbench opens.
+
+### 6.2 Returning on a private browser
+
+If the remembered session remains valid, the assignment opens without another
+code. The application asks only for the new round's KG-specific assessments.
+
+### 6.3 Returning on a shared browser
+
+Remembered login is off by default. Reviewers should use a private/incognito
+window when practical and sign out after completion. Signing out revokes the
+server session and clears its cookie. A “sign out all browsers” action revokes
+all remembered sessions for that account.
+
+Authentication recognises a browser profile through a secure cookie. It does
+not fingerprint or attempt to recognise the physical computer.
+
+### 6.4 Profile correction
+
+Reviewers can revisit a compact “My profile” page to correct their name,
+affiliation, general expertise domains, languages, or other profile answers.
+Material changes should be timestamped so the current value and relevant
+history can be reconstructed.
+
+## 7. Expertise model
+
+Musparql v2 should distinguish three measurements.
+
+### 7.1 General domain expertise
+
+Collected during onboarding and editable later. Examples include:
+
+- Musicology — expert
+- Digital humanities — advanced
+- Musical instrument studies — working knowledge
+
+A reviewer can enter multiple domains. This replaces the current single scalar
+`domain_expertise` field.
+
+### 7.2 KG-specific subject expertise
+
+Collected before each review round for each KG in the assignment. It asks about
+the subject matter needed to interpret that particular KG, for example:
+
+> How would you describe your expertise in pipe organs, organology, organ
+> builders, and associated historical records?
+
+This is intentionally more specific than a reviewer's general domain list.
+
+### 7.3 Familiarity with the KG
+
+Also collected before each review round. It asks about direct experience with
+the graph as a resource and data model, for example:
+
+> Before beginning this review, how familiar are you with the Organs Knowledge
+> Graph itself?
+
+Subject expertise and KG familiarity must remain separate. A domain expert can
+be unfamiliar with a graph, while a graph engineer can know its schema without
+being a subject specialist.
+
+## 8. Controlled-vocabulary recommendation
+
+### 8.1 Recommended approach: assisted vocabulary, not forced classification
+
+General domain expertise should use a hybrid entry control:
+
+- searchable suggestions from a maintained vocabulary;
+- multiple domain entries;
+- one expertise level per entry;
+- free-text entry always available;
+- exact reviewer wording always preserved; and
+- an optional vocabulary identifier stored only when a suggestion is selected
+  or later curated with confidence.
+
+The UI must not require reviewers to browse a large taxonomy tree. Their task is
+to describe their expertise, not to perform knowledge-organisation work.
+
+### 8.2 Preferred suggestion source: EuroSciVoc
+
+The preferred external suggestion source is the European Science Vocabulary
+(EuroSciVoc), maintained by the Publications Office of the European Union:
+
+<https://op.europa.eu/en/web/eu-vocabularies/euroscivoc>
+
+Reasons:
+
+- it covers more than one thousand scientific categories;
+- it is substantially more specific than broad statistical classifications;
+- it is multilingual;
+- it is available in RDF and Turtle;
+- it follows Linked Open Data conventions; and
+- it is intended as a reference vocabulary for Open Science.
+
+Musparql should not depend on a live EuroSciVoc service during onboarding.
+Instead, it should retain a small, versioned local cache of relevant preferred
+labels, alternative labels, concept URIs, languages, and broader concepts. This
+keeps the UI responsive and makes historical interpretation reproducible.
+
+### 8.3 Optional broad mapping: OECD FORD
+
+The OECD Fields of Research and Development classification may be retained as
+an optional broad analytical mapping:
+
+<https://uis.unesco.org/en/glossary-term/fields-research-and-development-ford>
+
+FORD's top-level areas, such as “Humanities and the arts,” are too coarse to be
+the primary reviewer control. They can nevertheless support aggregate reporting
+or cross-project comparison. A EuroSciVoc or reviewer-entered domain may have
+an optional curated FORD mapping, but the reviewer should not have to supply it.
+
+### 8.4 Free-text domains
+
+Free text is required because:
+
+- specialist fields may not appear in EuroSciVoc;
+- reviewers may identify with interdisciplinary or historically specific
+  terminology;
+- a controlled label may be technically present but pragmatically wrong; and
+- forced classification can distort the evidence about who the reviewer is.
+
+For each domain, store:
+
+```text
+entered_label              exact reviewer-supplied or selected label
+normalized_label           conservative search/display normalization
+vocabulary_name            for example euroscivoc, or null
+vocabulary_concept_uri     stable concept URI, or null
+vocabulary_version         local snapshot/version identifier, or null
+expertise_level            ordinal self-assessment
+first_asserted_at          initial assertion time
+updated_at                 latest change time
+```
+
+Do not overwrite `entered_label` during later normalization. Do not merge two
+reviewer-entered domains automatically. Owner curation may add a mapping while
+preserving the original assertion.
+
+### 8.5 Initial suggestion set
+
+The first suggestion set should be deliberately small and informed by the KGs
+actually present in Musparql. It can contain relevant EuroSciVoc concepts plus
+carefully chosen project-specific labels. Reviewers should search suggestions
+as they type and use “Add as written” when none is suitable.
+
+The initial set should be reviewed by the project owner before deployment. It
+should not be generated blindly from ontology class names.
+
+### 8.6 KG-specific domains are project-authored, not vocabulary-controlled
+
+The domain prompt attached to a KG should be plain language written for that
+specific review task. A controlled-vocabulary concept may optionally accompany
+it for internal analysis, but it must not constrain the question shown to the
+reviewer.
+
+Proposed seed shape:
+
+```yaml
+review_domain:
+  label: "Organs and organology"
+  description: >
+    Pipe organs, organ builders, instruments, specifications, places,
+    institutions, and associated historical records.
+  vocabulary_mappings:
+    - vocabulary: "euroscivoc"
+      concept_uri: "<optional URI after human verification>"
+```
+
+The label and description are required for a remotely reviewable KG. Vocabulary
+mappings are optional and must be human-verified.
+
+## 9. Assessment scales
+
+The final wording should be piloted with at least one synthetic or trusted
+reviewer before collection. The recommended scales are below.
+
+### 9.1 Subject expertise
+
+Use one stable five-level scale for both general domain expertise and
+assignment-specific subject expertise:
+
+| Stored value | Reviewer-facing label | Suggested explanation |
+|---|---|---|
+| `none` | None | No meaningful prior knowledge of this subject. |
+| `basic` | Basic familiarity | General awareness or limited informal exposure. |
+| `working` | Working knowledge | Enough study or practice to work with ordinary material in the area. |
+| `advanced` | Advanced | Substantial research or professional experience. |
+| `expert` | Specialist / expert | Deep specialist knowledge or recognised contribution to the area. |
+
+For the onboarding domain list, `none` normally need not be shown: a reviewer
+would simply omit a domain in which they have no expertise. It remains available
+for KG-specific subject assessment.
+
+The existing `none`, `occasional`, `regular`, and `expert` experience enum
+should not silently be reused. Musparql v2 needs a documented migration or an
+explicit legacy mapping because “occasional” and “regular” measure frequency
+more naturally than expertise.
+
+### 9.2 KG familiarity
+
+Retain the existing graph-specific progression with clearer UI wording:
+
+| Stored value | Reviewer-facing label | Suggested explanation |
+|---|---|---|
+| `none` | Not previously familiar | I had not meaningfully inspected this KG before this round. |
+| `inspected` | Inspected | I have browsed its data, documentation, or ontology. |
+| `queried` | Queried | I have written or examined queries against it. |
+| `regular_user` | Regular user | I use or maintain it repeatedly in my work. |
+| `creator` | Creator / core contributor | I created it or made substantial contributions to its design or data. |
+
+These categories are ordered operationally, but `creator` should not be treated
+as proof of subject expertise. The two measures remain analytically separate.
+
+## 10. Repeated pre-review assessment
+
+KG-specific subject expertise and KG familiarity should be recorded before
+every assignment or review round, before review items are shown.
+
+The application should display the most recent answers as defaults and ask the
+reviewer to confirm or change them. A single “Continue” action records a new
+timestamped assessment even when the values are unchanged.
+
+This design:
+
+- acknowledges that reviewing a KG increases familiarity;
+- supports longitudinal analysis;
+- avoids making reviewers reconstruct previous answers;
+- costs only a few seconds per KG per round; and
+- records the state that applied before the new review work began.
+
+Showing the previous value may create some anchoring. The project accepts that
+trade-off initially in favour of low friction. If independent re-measurement
+later becomes a research objective, a study-specific assignment can hide the
+previous values.
+
+## 11. Proposed confidential and operational data model
+
+Table and column names remain provisional until schema implementation.
+
+### 11.1 `reviewers`
+
+```text
+id                          reviewer-NNNN primary key
+name
+affiliation
+email_display               original verified spelling
+email_normalized            unique login lookup value
+status                      invited, active, disabled, withdrawn
+created_at
+updated_at
+privacy_notice_version
+privacy_notice_acknowledged_at
+```
+
+Email changes require verification before replacing the login identity. Email
+normalization must be conservative; the original address remains preserved.
+
+### 11.2 `reviewer_experience`
+
+```text
+reviewer_id
+kg_ontology_experience
+sparql_experience
+nlp_llm_experience
+assessed_at
+```
+
+These general technical experience fields remain separate from subject-domain
+expertise.
+
+### 11.3 `reviewer_languages`
+
+```text
+reviewer_id
+language_tag
+level                       basic, advanced, fluent, native
+first_asserted_at
+updated_at
+```
+
+### 11.4 `expertise_domains`
+
+```text
+id                          internal opaque ID
+entered_label
+normalized_label
+vocabulary_name             nullable
+vocabulary_concept_uri      nullable
+vocabulary_version          nullable
+created_by                  reviewer or owner-curation source
+```
+
+### 11.5 `reviewer_domain_expertise`
+
+```text
+id
+reviewer_id
+domain_id
+expertise_level
+asserted_at
+supersedes_id               nullable link to earlier assertion
+```
+
+The current value is the latest non-retired assertion; earlier assertions are
+retained for research provenance.
+
+### 11.6 `login_codes`
+
+```text
+id
+email_normalized
+code_hash
+requested_at
+expires_at
+consumed_at                 nullable
+failed_attempt_count
+request_context_digest      privacy-preserving abuse-control metadata
+```
+
+Codes are numeric, single-use, short-lived, stored only as hashes, rate-limited,
+and never written to logs. Login responses must not reveal whether an email is
+registered.
+
+### 11.7 `auth_sessions`
+
+```text
+id                          random opaque server-side session ID
+reviewer_id
+token_hash
+created_at
+last_used_at
+expires_at
+revoked_at                  nullable
+remembered                  boolean
+```
+
+The browser receives an opaque `Secure`, `HttpOnly`, `SameSite` cookie. It does
+not receive a reusable token in `localStorage`.
+
+### 11.8 `review_assignments`
+
+```text
+id
+reviewer_id
+mode                        initial, compare, sparql_correction
+status                      draft, ready, active, submitted, processing,
+                            ready_for_owner_review, approved, failed
+bundle_path
+bundle_digest
+previous_benchmark_path     nullable
+processing_recipe
+holdout_capability          false for ordinary remote review
+created_at
+opened_at                   nullable
+submitted_at                nullable
+```
+
+Assignment paths and recipes are selected by trusted server code or an owner
+control. They are never accepted verbatim from a reviewer request.
+
+### 11.9 `assignment_kg_assessments`
+
+```text
+id
+assignment_id
+reviewer_id
+kg_id
+review_domain_label         confidential snapshot of the prompt shown
+subject_expertise_level
+kg_familiarity_level
+assessed_at
+previous_assessment_id      nullable
+```
+
+These records are confidential. They do not enter the bundle, submitted review
+export, benchmark, or public provenance.
+
+### 11.10 `review_submissions`
+
+```text
+id
+assignment_id
+reviewer_id
+export_path
+export_digest
+submitted_at
+revision
+validation_status
+```
+
+The server derives `export_path`; the browser cannot choose it.
+
+### 11.11 `processing_jobs`
+
+```text
+id
+assignment_id
+submission_id
+recipe
+status                      queued, running, succeeded, failed
+created_at
+started_at                  nullable
+finished_at                 nullable
+safe_summary                nullable
+candidate_output_path       nullable
+```
+
+Detailed logs must be bounded and scrubbed. They must not contain reviewer
+profiles, authentication values, secrets, private holdout annotations, or
+arbitrary environment dumps.
+
+## 12. Why SQLite is sufficient
+
+SQLite is the preferred first database because Musparql v2 has a small reviewer
+pool, low write concurrency, one trusted application instance, and modest data
+volume.
+
+Required operating choices:
+
+- SQLAlchemy for application access;
+- Alembic for migrations;
+- foreign keys enabled;
+- WAL mode;
+- short transactions;
+- atomic file submission alongside transactional database registration;
+- a dedicated application user;
+- encrypted disk storage;
+- automatic encrypted backups; and
+- a tested restoration procedure.
+
+Postgres should be reconsidered only if Musparql moves to multiple application
+instances, a platform with an ephemeral filesystem, materially higher
+concurrency, or a managed-database operational model.
+
+The move to SQLite applies to confidential reviewer administration and portal
+operations. Generated bundles, sanitized exports, benchmark snapshots, run
+manifests, and publication artifacts remain files with explicit schemas and
+digests.
+
+### 12.1 Workshop concurrency target
+
+The initial capacity target is ten reviewers working concurrently and
+submitting within the same short end-of-workshop interval. This does not require
+Postgres or a distributed queue.
+
+Submission requests must do only bounded foreground work: authenticate the
+reviewer, check the assignment and payload envelope, validate the review,
+calculate its digest, perform an atomic file write, register a short SQLite
+transaction, and enqueue processing. Each reviewer should receive a durable
+submission receipt without waiting for benchmark construction or audits.
+
+SQLite may serialize the brief registration transactions. At this scale those
+writes should complete quickly, while the heavier jobs wait in a persistent
+queue and run one at a time. The queue protects the repository and avoids ten
+simultaneous benchmark builds; it is not needed because SQLite cannot accept
+ten submissions.
+
+Before a workshop, an end-to-end load test must simulate at least ten distinct
+reviewers submitting valid assignments concurrently. It must verify:
+
+- every accepted submission has exactly one durable file and database record;
+- each reviewer receives a unique receipt;
+- duplicate retries are idempotent or create an explicit new revision;
+- queued processing survives an application restart;
+- one failed job does not block later jobs; and
+- reviewer-facing submission requests remain responsive while processing is
+  underway.
+
+## 13. Assignment and bundle design
+
+### 13.1 Reviewer-neutral bundles
+
+Current bundles contain `reviewer_id`. Musparql v2 should generate or retain a
+reviewer-neutral bundle on disk. Flask combines the authenticated assignment
+with the bundle in memory and supplies only the permitted pseudonymous ID to
+the workbench.
+
+The server must ignore or reject a browser-supplied conflicting identity. A
+reviewer cannot change attribution by editing a request payload.
+
+### 13.2 Assignment preparation
+
+The owner selects:
+
+- reviewer;
+- initial, comparative, or correction mode;
+- source generation run or bundle;
+- previous benchmark and sanitized prior-review inputs;
+- included KGs and queries;
+- complete-review-provenance assertion where applicable;
+- processing recipe.
+
+Ordinary remote assignments always set `holdout_capability: false` and are built
+after holdout identities have been filtered according to the existing policy.
+
+### 13.3 Browser draft state
+
+For the first release, review decisions may continue to use browser local
+storage namespaced by assignment, dataset, and authenticated reviewer ID. The
+server must never serve another reviewer's namespace.
+
+Once external reviewers cannot encounter or create holdouts, server-side draft
+autosave may be added safely for those assignments. It should be a later,
+explicit phase rather than bundled into the first authentication change.
+
+## 14. Submission instead of browser file-moving
+
+“Export Non-Holdout” becomes “Submit review” for ordinary remote assignments.
+
+Submission processing is:
+
+1. Require an authenticated active assignment.
+2. Apply request-size and content-type limits.
+3. Partition or reject any private/holdout marker before accepting the payload.
+4. Validate the canonical export schema.
+5. Validate assignment, reviewer, bundle, dataset, run, and event provenance.
+6. Stamp or confirm the authenticated `reviewer-NNNN` server-side.
+7. Compute an authoritative digest.
+8. Write to a temporary file under the server-controlled export directory.
+9. Flush and atomically rename to the final assignment-derived filename.
+10. Register the submission and digest transactionally.
+11. Enqueue the fixed processing recipe.
+12. Return a submission receipt and visible job status.
+
+The reviewer may optionally download a copy, but repository placement no longer
+depends on their browser or computer.
+
+Benchmark construction, snapshot auditing, and other substantial work must not
+run inside the submission request. They begin only after the receipt is durable.
+This keeps a burst of workshop submissions short and independent: reviewers do
+not wait for earlier processing jobs, and a later processing failure cannot
+erase an accepted submission.
+
+## 15. Automated post-review processing
+
+### 15.1 Processing recipes
+
+The initial allowlist should contain only:
+
+```text
+validate_initial_review
+stage_initial_benchmark_update
+validate_comparative_review
+stage_comparative_benchmark_update
+```
+
+A request identifies an existing assignment; it does not contain a command
+line. The worker resolves all paths and arguments from trusted assignment data.
+
+### 15.2 Candidate output
+
+Automatic processing may:
+
+- validate the submission;
+- stage the appropriate benchmark build/update;
+- run snapshot audits;
+- run targeted tests;
+- calculate a concise change summary;
+- produce an owner-readable diff; and
+- mark the assignment ready for owner review.
+
+It should write candidate outputs to a staging location until approved. It must
+not silently replace `benchmark/vN`, choose a version ambiguously, commit to Git,
+push, or publish a release.
+
+### 15.3 Owner approval
+
+The owner dashboard should show:
+
+- reviewer pseudonym and assignment;
+- reviewed, accepted, excluded, and improvement counts;
+- validation and audit status;
+- candidate snapshot path;
+- benchmark diff summary;
+- safe failures and remediation guidance; and
+- an explicit approve/reject/reopen action.
+
+The first release may leave final Git operations manual. A later phase may add
+an owner-only “create branch and commit” action after the workflow has proved
+reliable. Automatic push and publication remain out of scope unless separately
+authorised and designed.
+
+## 16. Deferred option: SPARQL execution from the browser
+
+Hosted SPARQL execution is not part of the first Musparql v2 release. Workshop
+review is annotation-only, and reviewers submitting in parallel will not send
+queries through Flask. The existing local correction service remains the
+appropriate execution interface for the owner.
+
+If remote execution becomes useful later, Flask could expose the correction
+workbench's non-mutating execution capability as a separately approved phase.
+The following constraints are retained as future design requirements rather
+than current implementation work.
+
+The browser requests execution for an assignment record and target such as
+`base`, `proposal`, or `latest_approved`. The server resolves the authoritative
+query and endpoint. It must enforce:
+
+- authenticated assignment membership;
+- candidate and bundle digest checks;
+- holdout exclusion before evidence or endpoint access;
+- an endpoint allowlist from trusted KG configuration;
+- no browser-supplied arbitrary endpoint URL;
+- query timeout;
+- response-byte and row limits;
+- bounded concurrency, preferably one active observation per KG;
+- safe projection of returned data;
+- credential and internal-path redaction; and
+- append-only execution provenance where required.
+
+Execution success remains an observation, not approval of a question or query.
+
+## 17. Holdout approach for Musparql v2
+
+The first release deliberately narrows remote-review authority:
+
+- external reviewers cannot add items to the holdout;
+- external reviewers cannot review or re-review existing holdout items;
+- remote bundles exclude selected holdout identities upstream;
+- the hosted workbench does not render a holdout control;
+- the submission API rejects private or holdout-bearing payloads; and
+- ordinary server draft/autosave data are therefore non-holdout by construction.
+
+The owner retains the existing local, human-controlled holdout workflow. Its
+private annotations do not enter the Flask database, submission directory,
+processing queue, logs, backups, or ordinary server administration.
+
+If policy later permits a handful of designated holdout reviewers, that is a
+new security phase. It requires an explicit role, separate assignment path,
+separate encrypted storage, revised privacy and threat analysis, and new tests.
+It must not be implemented by merely revealing the hidden checkbox.
+
+## 18. Authentication and session design
+
+### 18.1 Email code
+
+- Invite-only email addresses.
+- Numeric copyable code.
+- Single use.
+- Short expiration, provisionally ten minutes.
+- Request throttling per address and request context.
+- Attempt limit per code.
+- Requesting a replacement invalidates the older code.
+- Constant outward response whether or not the address is invited.
+- Hashed storage only.
+- No codes, email bodies, or secrets in logs.
+
+The email delivery mechanism remains an implementation prerequisite. Preferred
+options, in order of operational simplicity, are:
+
+1. an existing institutional transactional SMTP service that permits this use;
+2. a dedicated transactional-email provider; or
+3. a small managed authentication provider if email delivery cannot be operated
+   responsibly in Flask.
+
+The project should not embed a personal mailbox password. Use a dedicated
+account, scoped credential, or app password and document rotation.
+
+### 18.2 Browser sessions
+
+- Server-side, random, revocable sessions.
+- Cookie contains only an opaque value.
+- `Secure`, `HttpOnly`, and explicit `SameSite` configuration.
+- Non-remembered session ends with the browser session or a short inactivity
+  timeout.
+- Remembered session has a bounded lifetime, provisionally 30 days.
+- Session rotation after successful login.
+- Logout, logout-all, and owner revocation.
+- Reverification for email changes and sensitive profile operations where
+  appropriate.
+
+## 19. Privacy and security requirements
+
+Before collecting real profiles, the project must document:
+
+- controller identity and contact route;
+- processing purposes;
+- lawful basis;
+- fields collected;
+- retention and deletion periods;
+- access, correction, withdrawal, and deletion procedures;
+- recipients and processors;
+- international transfers and safeguards;
+- hosting and backup locations;
+- incident response; and
+- whether acknowledgement is merely notice acknowledgement or legal consent.
+
+The notice must disclose relevant processors used for hosting, tunnelling, email
+delivery, monitoring, and backups.
+
+Application controls include:
+
+- CSRF protection for state-changing browser requests;
+- strict origin and host validation;
+- security headers and a restrictive Content Security Policy;
+- HTTPS-only production cookies;
+- bounded request sizes;
+- output escaping;
+- no sensitive query parameters;
+- no profile data in analytics;
+- redacted operational logs;
+- least-privilege filesystem permissions;
+- secrets outside Git;
+- dependency update procedure;
+- database backup and restore testing; and
+- a documented account disable/delete procedure.
+
+## 20. Deployment plan
+
+### 20.1 Development
+
+Develop and test Musparql v2 in the existing Musparql workspace first. No home
+server or VocalLanes operation is required during the application-development
+phases.
+
+### 20.2 Dedicated WSL environment
+
+The proposed server environment is a new WSL2 distribution provisionally named
+`MusparqlReview`, containing:
+
+- its own unprivileged Linux user;
+- its own Musparql clone;
+- its own virtual environment;
+- its own SQLite and backup paths;
+- Gunicorn serving Flask;
+- a separate background-worker service;
+- Tailscale and Funnel confined to the environment where supported;
+- explicit service ports; and
+- no mounts, credentials, paths, or service dependencies belonging to
+  VocalLanes.
+
+A separate WSL distribution is useful operational isolation but not a complete
+security boundary. Both applications still share the Windows host, physical
+CPU, memory, disk, networking, update cycle, and power supply. If this residual
+risk proves unacceptable, deploy the same single-instance Flask and SQLite
+application to a separate small VM or VPS.
+
+### 20.3 Public address
+
+Tailscale Funnel can supply a public HTTPS address under the tailnet's `ts.net`
+domain, for example:
+
+```text
+https://musparql-review.<tailnet>.ts.net
+```
+
+No purchased domain or reviewer-side Tailscale installation is required.
+Funnel provides connectivity and TLS, not application authentication. Flask's
+email-code and session controls remain mandatory.
+
+Tailscale currently documents Funnel as beta. Before inviting real reviewers,
+the project must verify its current limits, acceptable-use terms, stability, and
+fit for the expected low traffic.
+
+### 20.4 Restart and availability
+
+The deployment is ready only when:
+
+- Windows security updates are current;
+- Linux security updates are current;
+- disk encryption is enabled;
+- SSH uses keys;
+- Flask is not running in debug mode;
+- services run unprivileged;
+- no router port forwarding exposes Flask, WSL, or SSH;
+- the dedicated WSL distribution starts after Windows boot;
+- Flask, the worker, and Funnel restart automatically;
+- a deliberate Windows reboot has been tested;
+- disk space and service health are monitored;
+- automatic encrypted database backups run;
+- restoration from backup has been tested; and
+- temporary unavailability has an owner-visible alert and reviewer-friendly
+  message.
+
+## 21. Migration and compatibility
+
+### 21.1 Confidential reviewer data
+
+Provide an explicit, owner-run migration from the current confidential JSONL
+registry into SQLite. The migration must:
+
+- accept only the documented confidential registry location;
+- validate records before insertion;
+- preserve pseudonymous IDs;
+- never print profile fields;
+- produce counts and pseudonymous diagnostics only;
+- be idempotent or fail clearly on duplicates;
+- avoid copying data into fixtures or logs; and
+- leave source files intact until the owner verifies the database and backup.
+
+### 21.2 Existing browser review artifacts
+
+Existing bundles and sanitized exports remain readable during transition.
+Reviewer-specific bundle generation may remain available as a local legacy
+path until all ordinary review is assignment-backed.
+
+### 21.3 Schema versioning
+
+Changes to reviewer profiles, domain expertise, repeated assessments,
+assignments, and exports require independent version identifiers. “Musparql v2”
+must not be used as a substitute for artifact-specific schema versions.
+
+## 22. Implementation phases and gates
+
+Each phase should be completed, reviewed, and tested before beginning the next.
+
+### Phase 0 — approve research and governance decisions
+
+Work:
+
+- approve the three-part expertise model;
+- approve assessment scales and wording;
+- approve the EuroSciVoc-assisted/free-text strategy;
+- define controller, lawful basis, retention, rights, backup, and processors;
+- choose the login-code email delivery method; and
+- decide the exact owner approval boundary.
+
+Exit criteria:
+
+- no unresolved field or privacy decision blocks schema implementation;
+- the reviewer-facing wording is recorded; and
+- real reviewer data will not be collected prematurely.
+
+### Phase 1 — schemas and KG review domains
+
+Work:
+
+- replace scalar general domain expertise with repeatable domain assertions;
+- create repeated assignment assessment schemas;
+- define `review_domain` in the KG seed contract;
+- add reviewed domain descriptions for every initially eligible KG;
+- add vocabulary snapshot metadata; and
+- update validators, data-model documentation, and synthetic tests.
+
+Exit criteria:
+
+- all relevant schemas validate synthetic examples;
+- every pilot KG has an owner-approved prompt; and
+- no personal field can enter a public artifact.
+
+### Phase 2 — SQLite foundation and migration
+
+Work:
+
+- introduce SQLAlchemy and Alembic;
+- create confidential and operational tables;
+- implement repository/service boundaries;
+- implement migration using synthetic tests; and
+- implement backup and restore commands.
+
+Exit criteria:
+
+- schema creation, upgrade, backup, and restore tests pass;
+- migration diagnostics reveal only pseudonymous data; and
+- SQLite concurrency and atomicity tests pass.
+
+### Phase 3 — Flask application and authentication
+
+Work:
+
+- application factory and configuration;
+- login, code verification, logout, and logout-all;
+- session rotation and revocation;
+- invitation and owner account controls;
+- CSRF, headers, cookie policy, rate limits, and safe logs; and
+- synthetic email sender for tests followed by the selected real sender.
+
+Exit criteria:
+
+- authentication abuse and expiry tests pass;
+- shared-browser behaviour is tested;
+- no credential enters local storage or logs; and
+- owner can disable a reviewer immediately.
+
+### Phase 4 — onboarding and profile administration
+
+Work:
+
+- privacy notice and acknowledgement;
+- name, affiliation, technical experience, and languages;
+- multi-domain autocomplete with free-text fallback;
+- versioned local EuroSciVoc suggestion cache;
+- profile correction; and
+- owner-visible pseudonymous administration status.
+
+Exit criteria:
+
+- a synthetic reviewer completes onboarding without repository access;
+- free-text and vocabulary-backed domains coexist correctly;
+- profile changes preserve required provenance; and
+- onboarding can be completed quickly on desktop and mobile.
+
+### Phase 5 — assignments and pre-review assessments
+
+Work:
+
+- owner assignment creation;
+- reviewer-neutral bundle integration;
+- assignment access control;
+- KG-specific prompt display;
+- prior-value confirmation and append-only assessment recording; and
+- external-review holdout exclusion.
+
+Exit criteria:
+
+- reviewers see only their own assignments;
+- assessments are recorded before review items become available;
+- subsequent rounds preserve history; and
+- holdout identities cannot reach the hosted UI.
+
+### Phase 6 — integrate initial and comparative workbenches
+
+Work:
+
+- serve existing static assets through Flask;
+- inject authenticated assignment context;
+- namespace drafts safely;
+- preserve import/export compatibility where needed;
+- add visible signed-in identity and profile/logout controls; and
+- test initial and comparison parity with the current local UI.
+
+Exit criteria:
+
+- the same review decisions produce contract-equivalent sanitized exports;
+- one reviewer cannot inherit another's draft; and
+- legacy local workflow remains available during transition.
+
+### Phase 7 — submission and controlled processing
+
+Work:
+
+- canonical review-export JSON Schema;
+- authenticated submission endpoint;
+- atomic server-side export storage;
+- persistent job queue;
+- initial and comparative processing recipes;
+- candidate snapshot audit and summary; and
+- owner approval dashboard.
+
+Exit criteria:
+
+- a remote synthetic reviewer needs no file-moving step;
+- duplicate submission is idempotent or visibly versioned;
+- ten concurrent synthetic submissions each receive a durable unique receipt;
+- heavy processing is queued and does not delay submission acknowledgements;
+- failure is recoverable without corrupting the prior benchmark; and
+- no reviewer action can select paths or commands.
+
+### Phase 8 — workshop concurrency verification
+
+Work:
+
+- simulate at least ten distinct reviewers submitting concurrently;
+- verify atomic files, database registrations, and unique receipts;
+- verify duplicate retries and explicit revisions;
+- exercise processing-queue ordering and failure isolation;
+- restart the application with queued and running jobs; and
+- measure reviewer-facing submission latency while the worker is busy.
+
+Exit criteria:
+
+- no accepted review is lost, duplicated, truncated, or misattributed;
+- the queue recovers safely after restart;
+- a failed job does not block unrelated submissions or later jobs; and
+- the workshop load target is documented with measured local results.
+
+### Phase 9 — local hardening and synthetic pilot
+
+Work:
+
+- end-to-end synthetic reviewer exercises;
+- private and shared-browser tests;
+- mobile login-code test;
+- restart during processing;
+- database restore exercise;
+- privacy/log inspection; and
+- usability timing and feedback.
+
+Exit criteria:
+
+- all critical flows survive realistic failures;
+- onboarding and repeat assessment meet the friction target; and
+- the owner can diagnose failures from safe summaries.
+
+### Phase 10 — isolated deployment
+
+Work:
+
+- provision the dedicated WSL distribution;
+- clone and configure Musparql independently;
+- install production services;
+- configure backup and monitoring;
+- expose only Flask via Tailscale Funnel;
+- perform an external synthetic review; and
+- deliberately reboot and verify recovery.
+
+Exit criteria:
+
+- no VocalLanes resource was changed;
+- Musparql services recover automatically;
+- the public URL exposes only the intended application;
+- backups and alerts work; and
+- an external browser completes the full synthetic workflow.
+
+### Phase 11 — one-reviewer real pilot
+
+Work:
+
+- invite one trusted reviewer;
+- assign a small non-holdout batch;
+- observe only operational metrics permitted by the privacy notice;
+- collect usability feedback; and
+- repair friction or reliability problems before expansion.
+
+Exit criteria:
+
+- the reviewer completes without manual file transfer;
+- automated processing produces a correct candidate result;
+- the owner approval step is understandable; and
+- there is no personal or holdout-data boundary violation.
+
+## 23. Testing strategy
+
+All tests and fixtures use obviously synthetic people and synthetic familiarity
+histories.
+
+Required groups include:
+
+- schema and enum parity tests;
+- vocabulary snapshot and free-text preservation tests;
+- email normalization and duplicate-account tests;
+- code expiry, single-use, throttling, and attempt-limit tests;
+- session rotation, revocation, and cross-reviewer isolation tests;
+- profile/privacy-notice version tests;
+- assignment authorization tests;
+- pre-review ordering and repeated-assessment tests;
+- reviewer-neutral bundle attribution tests;
+- submission size, schema, digest, and atomic-write tests;
+- holdout-marker and identity-filtering rejection tests;
+- processing recipe allowlist and idempotency tests;
+- at least ten concurrent submission and receipt tests;
+- queue restart and failed-job isolation tests;
+- candidate benchmark audit tests;
+- backup and restore tests; and
+- browser end-to-end tests for onboarding, review, submission, and owner review.
+
+No test, fixture, screenshot, log assertion, or example may contain real
+reviewer profile information or real private holdout annotations.
+
+## 24. Operational runbooks to add
+
+Before real deployment, add concise runbooks for:
+
+- inviting, disabling, correcting, and deleting a reviewer;
+- rotating the email credential and application secrets;
+- creating and reopening assignments;
+- resolving failed processing jobs;
+- approving a candidate benchmark update;
+- applying database migrations;
+- creating, checking, and restoring encrypted backups;
+- updating the EuroSciVoc suggestion snapshot;
+- starting, stopping, and diagnosing only the Musparql WSL services;
+- verifying recovery after Windows restart;
+- handling Tailscale Funnel failure or URL change;
+- responding to suspected account or personal-data exposure; and
+- migrating away from the home server if isolation or availability is
+  insufficient.
+
+## 25. Principal risks and mitigations
+
+| Risk | Mitigation |
+|---|---|
+| Reviewer taxonomy burden | Autocomplete, small relevant cache, and free-text “add as written.” |
+| Synonymous free-text domains | Preserve originals; add optional owner mappings without destructive merging. |
+| Expertise changes over time | Append-only timestamped assertions and per-round pre-review assessment. |
+| Shared-computer account leakage | Remembering off by default, explicit warning, private-window guidance, logout-all. |
+| Forged reviewer attribution | Server derives identity from the authenticated assignment. |
+| Arbitrary code execution | Fixed processing recipes; no browser-provided commands or paths. |
+| Corrupt benchmark update | Staged candidate output, audits, atomic operations, owner approval. |
+| SPARQL abuse or endpoint overload | Allowlisted endpoints, timeouts, row/byte limits, and bounded concurrency. |
+| Holdout disclosure | Exclude upstream, remove controls, reject markers, retain owner-only local workflow. |
+| Home-server outage | Autosave/draft preservation, service restart, health alert, tested reboot. |
+| Impact on VocalLanes | Dedicated WSL environment and no shared files, credentials, services, or configuration. |
+| WSL isolation proves insufficient | Move the same single-instance application to a separate VM or VPS. |
+| Tailscale Funnel beta limitation | Pilot first; retain a documented alternate deployment route. |
+| Confidential database loss | Encrypted automatic backup plus tested restoration. |
+
+## 26. Decisions still required from the owner
+
+Before Phase 1:
+
+- approve or amend the proposed expertise scale;
+- approve EuroSciVoc as the primary suggestion source;
+- decide whether an optional FORD mapping is worth retaining;
+- author or approve `review_domain` labels and descriptions for pilot KGs; and
+- decide whether previous KG assessments should be preselected or merely shown
+  alongside blank controls.
+
+Before Phase 3:
+
+- choose the email delivery service and sending address;
+- choose code and session lifetimes;
+- complete the privacy and retention decisions; and
+- decide who may invite or disable reviewers.
+
+Before Phase 7:
+
+- decide whether automatic processing stops after validation or after building
+  and auditing a candidate snapshot; and
+- decide what remains manual after owner approval.
+
+Before Phase 10:
+
+- approve the exact dedicated WSL name, storage paths, ports, resource limits,
+  backup destination, and monitoring method;
+- confirm the residual shared-Windows-host risk is acceptable; and
+- approve Tailscale Funnel for the real-review pilot.
+
+## 27. Recommended first step
+
+Begin with Phase 0 and Phase 1 only. Specifically:
+
+1. Approve the expertise concepts, levels, and controlled-vocabulary strategy.
+2. Add the `review_domain` contract and write descriptions for a small pilot set
+   of KGs.
+3. Design the new schemas and synthetic examples.
+4. Update validators and durable data-model documentation.
+
+Do not begin Flask, authentication, database migration, or server configuration
+until those research-data contracts are settled. The UI and storage should be
+derived from the measurement design, not the other way around.
+
+## 28. Definition of the first Musparql v2 release
+
+The first release is complete when one invited external reviewer can, from a
+remote browser:
+
+1. sign in using a copied email code;
+2. complete or confirm their confidential profile;
+3. record general domain expertise using suggestions or free text;
+4. record pre-review KG-specific expertise and familiarity;
+5. complete an initial or comparative non-holdout review;
+6. submit the review without downloading or moving files; and
+7. see a successful submission receipt;
+
+and the owner can:
+
+1. see the pseudonymous assignment and processing status;
+2. inspect a validated, audited candidate benchmark result;
+3. approve or reject that result explicitly;
+4. administer the reviewer and their assignments;
+5. back up and restore the confidential database; and
+6. operate the isolated Musparql service without changing VocalLanes.

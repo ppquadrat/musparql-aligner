@@ -13,12 +13,6 @@ a faithful wording where it is missing, and ask a human reviewer to decide what
 belongs in the benchmark. Generated wording never becomes gold data without
 human review.
 
-SPARQL editing is a narrow exception path, not a second query-authoring track.
-When a retained source query is malformed, incomplete, parameterized, or
-otherwise erroneous, a human may approve a provenance-linked, append-only
-correction that preserves the source information need. The original source
-query remains immutable as version `0`.
-
 The current public benchmark is under [`benchmark/v10`](benchmark/v10). It
 contains 100 reviewed pairs from Musical Meetups, the Jazz Ontology, MusOW,
 Organs, and LinkedMusic.
@@ -98,6 +92,9 @@ the human verifies and places that file at the local path.
 - [`review/README.md`](review/README.md) — review application reference.
 - [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md) — maintained implementation and
   governance backlog.
+- [`docs/MUSPARQL_V2_PLAN.md`](docs/MUSPARQL_V2_PLAN.md) — phased plan for the
+  remote reviewer portal, longitudinal expertise data, controlled processing,
+  and isolated deployment.
 
 ## Licensing
 
