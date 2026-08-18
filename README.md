@@ -112,7 +112,7 @@ Create or activate a virtual environment, install the repository package in
 editable mode, and run the tests:
 
 ```bash
-.venv/bin/pip install --no-build-isolation -e .
+.venv/bin/pip install --no-build-isolation -e '.[test]'
 .venv/bin/python -m pytest -q
 ```
 

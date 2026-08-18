@@ -36,6 +36,10 @@
           "suggestion_id", "preferred_label", "alternative_labels", "language",
           "broader_suggestion_ids", "source_id"
         ],
+        "dependentRequired": {
+          "vocabulary_concept_uri": ["vocabulary_version"],
+          "vocabulary_version": ["vocabulary_concept_uri"]
+        },
         "properties": {
           "suggestion_id": {"type": "string", "minLength": 1},
           "preferred_label": {"type": "string", "minLength": 1},

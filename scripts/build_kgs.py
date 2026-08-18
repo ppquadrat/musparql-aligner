@@ -20,7 +20,9 @@ from musparql.source_catalog import load_hydrated_seeds
 class SparqlConfig:
     endpoint: str
     auth: str = "none"
+    graph: Optional[str] = None
     expected_namespaces: Optional[List[str]] = None
+    fallbacks: Optional[List[Dict[str, Any]]] = None
 
 
 @dataclass
@@ -333,11 +335,15 @@ def parse_kg_seed(raw: Dict[str, Any]) -> KGSeed:
             raise ValueError(f"KG '{kg_id}': 'sparql' must be a mapping (dict).")
         endpoint = sparql.get("endpoint")
         auth = sparql.get("auth", "none")
+        graph = sparql.get("graph")
         expected_namespaces = sparql.get("expected_namespaces")
+        fallbacks = sparql.get("fallbacks")
         if not isinstance(endpoint, str) or not endpoint.strip():
             raise ValueError(f"KG '{kg_id}': sparql.endpoint must be a non-empty string.")
         if not isinstance(auth, str):
             raise ValueError(f"KG '{kg_id}': sparql.auth must be a string.")
+        if graph is not None and not isinstance(graph, str):
+            raise ValueError(f"KG '{kg_id}': sparql.graph must be a string.")
         if expected_namespaces is not None:
             if not isinstance(expected_namespaces, list) or not all(
                 isinstance(x, str) for x in expected_namespaces
@@ -345,10 +351,17 @@ def parse_kg_seed(raw: Dict[str, Any]) -> KGSeed:
                 raise ValueError(
                     f"KG '{kg_id}': sparql.expected_namespaces must be a list of strings."
                 )
+        if fallbacks is not None and (
+            not isinstance(fallbacks, list)
+            or not all(isinstance(fallback, dict) for fallback in fallbacks)
+        ):
+            raise ValueError(f"KG '{kg_id}': sparql.fallbacks must be a list of mappings.")
         sparql_cfg = SparqlConfig(
             endpoint=endpoint.strip(),
             auth=auth.strip(),
+            graph=graph.strip() if isinstance(graph, str) else None,
             expected_namespaces=expected_namespaces,
+            fallbacks=[dict(fallback) for fallback in fallbacks] if fallbacks else [],
         )
 
     dataset_cfg = None
@@ -397,10 +410,12 @@ def kgseed_to_record(kg: KGSeed) -> Dict[str, Any]:
         sparql_obj = {
             "endpoint": kg.sparql.endpoint,
             "auth": kg.sparql.auth,
-            "graph": None,
+            "graph": kg.sparql.graph,
         }
         if kg.sparql.expected_namespaces:
             sparql_obj["expected_namespaces"] = list(kg.sparql.expected_namespaces)
+        if kg.sparql.fallbacks:
+            sparql_obj["fallbacks"] = [dict(fallback) for fallback in kg.sparql.fallbacks]
     dataset_obj = {"dump_url": None, "local_path": None, "format": None}
     if kg.dataset:
         dataset_obj = {

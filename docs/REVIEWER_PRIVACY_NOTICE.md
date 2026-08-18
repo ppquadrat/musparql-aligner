@@ -23,8 +23,13 @@ as the lawful basis and implemented freely given, specific, informed,
 unambiguous, and withdrawable consent.
 
 The v2 form should collect only the fields in
-`schemas/reviewer_profile_v2.schema.json`. Repeated pre-review and profile-page
-assessments must use `schemas/reviewer_kg_domain_assessment.schema.json` and
-`schemas/reviewer_resource_familiarity_assessment.schema.json`. The legacy
+`schemas/reviewer_profile_v2.schema.json`. That profile is a current-state
+projection; its general-domain history must use the append-only
+`schemas/reviewer_domain_expertise_assertion.schema.json` contract. Repeated
+pre-review and profile-page assessments must use
+`schemas/reviewer_kg_domain_assessment.schema.json` and
+`schemas/reviewer_resource_familiarity_assessment.schema.json`. Superseded
+assertions remain confidential personal data and follow the same access,
+retention, correction, and deletion policy as the current profile. The legacy
 `schemas/reviewer.schema.json` remains valid only for the pre-migration local
 registry. Tests and examples must use synthetic people.

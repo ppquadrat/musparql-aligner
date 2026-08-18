@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/reviewer_domain_expertise_assertion.schema.json",
+  "title": "MuSPARQL append-only reviewer domain expertise assertion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "id", "reviewer_id", "domain_id", "entered_label",
+    "normalized_label", "vocabulary_name", "vocabulary_concept_uri",
+    "vocabulary_version", "expertise_level", "asserted_at", "supersedes_id"
+  ],
+  "properties": {
+    "schema": {"const": "musparql.reviewer-domain-expertise-assertion.v1"},
+    "id": {"type": "string", "minLength": 1},
+    "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
+    "domain_id": {"type": "string", "minLength": 1},
+    "entered_label": {"type": "string", "minLength": 1},
+    "normalized_label": {"type": "string", "minLength": 1},
+    "vocabulary_name": {"$ref": "#/$defs/nullable_nonempty_string"},
+    "vocabulary_concept_uri": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "minLength": 1
+    },
+    "vocabulary_version": {"$ref": "#/$defs/nullable_nonempty_string"},
+    "expertise_level": {
+      "enum": ["none", "basic", "working", "advanced", "expert"]
+    },
+    "asserted_at": {"type": "string", "format": "date-time"},
+    "supersedes_id": {"$ref": "#/$defs/nullable_nonempty_string"}
+  },
+  "$defs": {
+    "nullable_nonempty_string": {
+      "type": ["string", "null"],
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"vocabulary_name": {"type": "null"}}},
+      "then": {
+        "properties": {
+          "vocabulary_concept_uri": {"type": "null"},
+          "vocabulary_version": {"type": "null"}
+        }
+      },
+      "else": {
+        "properties": {
+          "vocabulary_concept_uri": {
+            "type": "string",
+            "format": "uri",
+            "minLength": 1
+          },
+          "vocabulary_version": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  ]
+}

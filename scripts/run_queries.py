@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import requests
-import yaml
 from rdflib import Graph
 
 from musparql.sparql_versions import (
@@ -25,7 +24,7 @@ from musparql.sparql_versions import (
     validate_execution_versions,
 )
 from musparql.sparql_corrections import load_jsonl as load_correction_candidates
-from musparql.source_catalog import validate_kg_seeds
+from musparql.source_catalog import load_current_kg_seeds
 from musparql.sparql_corrections import exclude_candidate_pairs, merge_candidates, write_jsonl as write_correction_candidates
 from musparql.holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selectors_current
 
@@ -58,10 +57,7 @@ class KGDataset:
 def load_seeds(path: Path) -> List[Dict[str, object]]:
     if not path.exists():
         raise FileNotFoundError(f"Missing seeds file: {path}")
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError("seeds.yaml must contain a top-level mapping (dictionary).")
-    return validate_kg_seeds(data, location=str(path))
+    return load_current_kg_seeds(path)
 
 
 def load_endpoints(path: Path) -> Dict[str, KGEndpoint]:

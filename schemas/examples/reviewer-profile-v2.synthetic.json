@@ -6,6 +6,8 @@
   "email": "synthetic@example.invalid",
   "domain_expertise": [
     {
+      "domain_id": "synthetic-general-domain-0001",
+      "assertion_id": "synthetic-domain-expertise-0001",
       "entered_label": "Synthetic music studies",
       "normalized_label": "synthetic music studies",
       "vocabulary_name": null,

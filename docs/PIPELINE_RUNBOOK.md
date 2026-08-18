@@ -6,7 +6,7 @@ commands that expose options document them with `--help`.
 ## 1. Prepare the environment
 
 ```bash
-.venv/bin/pip install --no-build-isolation -e .
+.venv/bin/pip install --no-build-isolation -e '.[test]'
 .venv/bin/python -m pytest -q
 ```
 
@@ -17,6 +17,17 @@ git config core.hooksPath .githooks
 ```
 
 ## 2. Build the tracked KG catalogue
+
+If `catalog/seeds.yaml` changed, increment every affected `seed_version` and
+append the complete new seed to the immutable history first:
+
+```bash
+.venv/bin/python -m scripts.snapshot_kg_seeds
+```
+
+The command is idempotent. It rejects content changes that reuse an archived
+version and validates that every current seed is the unique digest-chain head.
+Never edit or remove older entries in `catalog/kg_seed_snapshots.yaml`.
 
 ```bash
 .venv/bin/python -m scripts.build_kgs

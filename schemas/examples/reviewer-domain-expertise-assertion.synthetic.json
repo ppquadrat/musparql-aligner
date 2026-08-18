@@ -1,0 +1,14 @@
+{
+  "schema": "musparql.reviewer-domain-expertise-assertion.v1",
+  "id": "synthetic-domain-expertise-0001",
+  "reviewer_id": "reviewer-0042",
+  "domain_id": "synthetic-general-domain-0001",
+  "entered_label": "Synthetic music studies",
+  "normalized_label": "synthetic music studies",
+  "vocabulary_name": null,
+  "vocabulary_concept_uri": null,
+  "vocabulary_version": null,
+  "expertise_level": "working",
+  "asserted_at": "2026-01-01T10:00:00Z",
+  "supersedes_id": null
+}

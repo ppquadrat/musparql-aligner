@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/kg_seed_snapshots.schema.json",
+  "title": "MuSPARQL immutable KG seed snapshot archive",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "snapshots"],
+  "properties": {
+    "schema": {"const": "musparql.kg-seed-snapshots.v1"},
+    "snapshots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/snapshot"}
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kg_id", "seed_version", "seed_digest", "previous_seed_digest", "seed"
+      ],
+      "properties": {
+        "kg_id": {"type": "string", "minLength": 1},
+        "seed_version": {"type": "string", "minLength": 1},
+        "seed_digest": {"$ref": "#/$defs/digest"},
+        "previous_seed_digest": {
+          "oneOf": [
+            {"$ref": "#/$defs/digest"},
+            {"type": "null"}
+          ]
+        },
+        "seed": {"$ref": "kg_seeds.schema.json#/$defs/kg_seed"}
+      }
+    }
+  }
+}

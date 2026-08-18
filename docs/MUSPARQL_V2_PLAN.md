@@ -427,10 +427,14 @@ Approved policy:
 Federation evolution remains an open methodological issue. The system does not
 learn a new domain automatically when a federation adds a named graph. A human
 must update and approve a new version of the KG seed before the new domain enters
-review. Each assignment records the seed version it used, so existing assignments
-retain their original questions. Whether Musparql should monitor federations for
-unrecorded named graphs, and whether the underlying KG data must also be frozen,
-remain separate open questions.
+review. The complete seed is appended to `catalog/kg_seed_snapshots.yaml`, where
+its canonical digest links to the preceding version. Each assignment records the
+seed version and digest it used, so existing assignments resolve their original
+labels and descriptions without depending on the mutable current seed or Git
+history. Reusing a version with changed content, branching the digest history, or
+referencing a non-head current seed is rejected. Whether Musparql should monitor
+federations for unrecorded named graphs, and whether the underlying KG data must
+also be frozen, remain separate open questions.
 
 ## 9. Assessment scales
 
@@ -592,6 +596,14 @@ supersedes_id               nullable link to earlier assertion
 The current value is the latest non-retired assertion; earlier assertions are
 retained for research provenance.
 
+The serialized v2 profile is explicitly a current-state projection. Each
+projected domain carries its stable `domain_id` and latest `assertion_id`; the
+append-only source of truth uses
+`schemas/reviewer_domain_expertise_assertion.schema.json`. Its collection
+validator requires one chronological, non-branching supersession chain per
+reviewer/domain. Phase 2 normalizes the repeated label and vocabulary fields into
+`expertise_domains` while retaining every assertion event.
+
 ### 11.6 `login_codes`
 
 ```text
@@ -639,6 +651,7 @@ previous_benchmark_path     nullable
 processing_recipe
 holdout_capability          false for ordinary remote review
 kg_seed_versions            mapping of assigned kg_id to frozen seed version
+kg_seed_digests             mapping of assigned kg_id to archived seed digest
 created_at
 opened_at                   nullable
 submitted_at                nullable
@@ -664,6 +677,8 @@ previous_assessment_id      nullable
 ```
 
 One row is recorded for every domain declared by the assigned KG seed.
+The complete label and description shown are recoverable from the immutable
+snapshot selected by `kg_id`, `seed_version`, and the assignment's seed digest.
 
 ### 11.9b `reviewer_resource_familiarity_assessments`
 
@@ -687,6 +702,11 @@ current component resources and the federation. Both assessment tables are
 confidential. They do not enter the bundle, submitted review export, benchmark,
 or public provenance. Profile updates append new rows and never overwrite earlier
 assessments.
+
+Both assessment collections enforce predecessor existence, matching reviewer
+and assessment subject, strictly increasing timestamps, a single root and head,
+and no branches, cycles, or disconnected records. Phase 2 must repeat these
+invariants with foreign keys, uniqueness constraints, and transactional writes.
 
 ### 11.10 `review_submissions`
 
@@ -1137,25 +1157,35 @@ Exit criteria:
 ### Phase 1 — schemas and KG review domains
 
 Status: completed on 2026-08-18. The tracked implementation consists of the v2
-profile and repeated-assessment schemas, synthetic examples and Python
-validators; versioned review domains and familiarity scopes in
-`catalog/seeds.yaml`; the versioned local expertise suggestion snapshot; and
-the corresponding data-model and privacy documentation. Legacy confidential
-registry contracts remain explicit inputs to the owner-run Phase 2 migration.
+current-profile projection, append-only general-expertise assertion contract,
+and repeated-assessment schemas, with synthetic examples and Python validators;
+versioned review domains and familiarity scopes in `catalog/seeds.yaml`; the
+digest-linked immutable seed archive; the versioned local expertise suggestion
+snapshot; and the corresponding data-model and privacy documentation. Legacy
+confidential registry contracts remain explicit inputs to the owner-run Phase 2
+migration.
 
 Work:
 
 - replace scalar general domain expertise with repeatable domain assertions;
+- separate the current profile projection from append-only expertise history;
 - create repeated assignment assessment schemas;
 - define repeatable `review_domains` and `familiarity_scopes` in the versioned KG
   seed contract;
 - add reviewed domain descriptions for every initially eligible KG;
-- add vocabulary snapshot metadata; and
+- add vocabulary snapshot metadata;
+- archive every complete seed version with a canonical digest and predecessor;
+- validate assertion and assessment predecessor chains; and
 - update validators, data-model documentation, and synthetic tests.
 
 Exit criteria:
 
-- all relevant schemas validate synthetic examples;
+- all relevant schemas and runtime validators have consistent synthetic examples;
+- Draft 2020-12 schemas execute with format checking and local reference
+  resolution in the test suite;
+- every current seed equals the unique head of its immutable archive;
+- append-only histories reject dangling, cross-subject, non-chronological,
+  branching, cyclic, and disconnected predecessor links;
 - every pilot KG has an owner-approved prompt; and
 - no personal field can enter a public artifact.
 
@@ -1165,6 +1195,8 @@ Work:
 
 - introduce SQLAlchemy and Alembic;
 - create confidential and operational tables;
+- enforce seed-digest references and append-only assertion/assessment chains
+  with database constraints and transactional writes;
 - implement repository/service boundaries;
 - implement migration using synthetic tests; and
 - implement backup and restore commands.
@@ -1428,6 +1460,10 @@ Before Phase 1 (completed):
 - [decided] preselect the latest KG assessment for returning reviewers, ask
   explicitly whether it has changed, and allow later profile-page updates
   without overwriting historical assessments.
+- [decided] treat the serialized reviewer profile as a current-state projection
+  and retain general-domain history in a separate append-only assertion contract;
+- [decided] preserve complete KG seed versions in a digest-linked immutable
+  archive and require assignments to record both seed version and digest.
 
 Before Phase 3:
 
@@ -1449,19 +1485,15 @@ Before Phase 10:
 - confirm the residual shared-Windows-host risk is acceptable; and
 - approve Tailscale Funnel for the real-review pilot.
 
-## 27. Recommended first step
+## 27. Recommended next step
 
-Begin with Phase 0 and Phase 1 only. Specifically:
-
-1. Approve the expertise concepts, levels, and controlled-vocabulary strategy.
-2. Add the `review_domains` contract and write descriptions for a small pilot set
-   of KGs.
-3. Design the new schemas and synthetic examples.
-4. Update validators and durable data-model documentation.
-
-Do not begin Flask, authentication, database migration, or server configuration
-until those research-data contracts are settled. The UI and storage should be
-derived from the measurement design, not the other way around.
+Phase 0 and Phase 1 are complete. Proceed to Phase 2 only: implement the SQLite
+schema, migrations, repository boundaries, and backup/restore path from the
+settled contracts. In particular, database constraints must preserve immutable
+seed-digest references and the validated append-only expertise/assessment
+chains. Do not collect real reviewer data or begin remote deployment until the
+remaining privacy, authentication, and operational decisions for later phases
+are approved.
 
 ## 28. Definition of the first Musparql v2 release
 

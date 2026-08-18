@@ -11,11 +11,12 @@ notes.
 
 Reviewer profiles, repeatable general-domain expertise, KG-specific subject
 expertise, and resource/data-model/KG familiarity have versioned Phase 1 schemas,
-validation helpers, synthetic examples, a privacy notice, and a confidential
-storage boundary, but there is no owner-only profile administration form or v2
-database yet. Until Phase 2 migration and the later administration UI exist, the
-human owner must maintain the legacy ignored registry outside agent-visible
-workflows. The legacy values must not be silently reinterpreted as v2 levels.
+append-only history contracts, chain and seed-snapshot validation, synthetic
+examples, a privacy notice, and a confidential storage boundary, but there is no
+owner-only profile administration form or v2 database yet. Until Phase 2
+migration and the later administration UI exist, the human owner must maintain
+the legacy ignored registry outside agent-visible workflows. The legacy values
+must not be silently reinterpreted as v2 levels.
 
 Before implementing the form, decide and document:
 

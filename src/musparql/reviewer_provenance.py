@@ -5,6 +5,8 @@ from datetime import datetime
 import re
 from typing import Any, Mapping, Sequence
 
+from .source_catalog import validate_kg_seed_snapshots
+
 
 REVIEWER_ID_RE = re.compile(r"^reviewer-[0-9]{4,}$")
 RFC3339_DATETIME_RE = re.compile(
@@ -32,8 +34,14 @@ REVIEWER_PROFILE_V2_FIELDS = frozenset({
     "language_expertise", "privacy_notice_version", "privacy_notice_acknowledged_at",
 })
 DOMAIN_EXPERTISE_FIELDS = frozenset({
-    "entered_label", "normalized_label", "vocabulary_name", "vocabulary_concept_uri",
-    "vocabulary_version", "expertise_level", "first_asserted_at", "updated_at",
+    "domain_id", "assertion_id", "entered_label", "normalized_label", "vocabulary_name",
+    "vocabulary_concept_uri", "vocabulary_version", "expertise_level",
+    "first_asserted_at", "updated_at",
+})
+REVIEWER_DOMAIN_EXPERTISE_ASSERTION_FIELDS = frozenset({
+    "schema", "id", "reviewer_id", "domain_id", "entered_label", "normalized_label",
+    "vocabulary_name", "vocabulary_concept_uri", "vocabulary_version",
+    "expertise_level", "asserted_at", "supersedes_id",
 })
 KG_DOMAIN_ASSESSMENT_FIELDS = frozenset({
     "schema", "id", "reviewer_id", "kg_id", "review_domain_id", "review_domain_label",
@@ -60,7 +68,7 @@ def validate_reviewer_id(value: Any) -> str:
     return reviewer_id
 
 
-def _iso_datetime(value: Any, field: str) -> str:
+def _parsed_datetime(value: Any, field: str) -> datetime:
     text = str(value or "")
     if not text:
         raise ValueError(f"{field} is required")
@@ -72,6 +80,12 @@ def _iso_datetime(value: Any, field: str) -> str:
         raise ValueError(f"{field} must be an RFC 3339 date-time with a timezone") from exc
     if parsed.utcoffset() is None:
         raise ValueError(f"{field} must be an RFC 3339 date-time with a timezone")
+    return parsed
+
+
+def _iso_datetime(value: Any, field: str) -> str:
+    text = str(value or "")
+    _parsed_datetime(value, field)
     return text
 
 
@@ -141,8 +155,10 @@ def validate_reviewer_profile_v2(record: Mapping[str, Any]) -> None:
         raise ValueError("Unsupported language expertise level")
     domains = record.get("domain_expertise")
     if not isinstance(domains, list) or not domains:
-        raise ValueError("Reviewer profile requires domain_expertise assertions")
+        raise ValueError("Reviewer profile requires domain_expertise projections")
     seen_domains: set[str] = set()
+    seen_domain_ids: set[str] = set()
+    seen_assertion_ids: set[str] = set()
     for index, domain in enumerate(domains):
         if not isinstance(domain, Mapping):
             raise ValueError(f"domain_expertise[{index}] must be an object")
@@ -152,6 +168,14 @@ def validate_reviewer_profile_v2(record: Mapping[str, Any]) -> None:
         unknown_domain = set(domain) - DOMAIN_EXPERTISE_FIELDS
         if unknown_domain:
             raise ValueError(f"Domain expertise has unsupported fields: {sorted(unknown_domain)}")
+        domain_id = _required_text(domain, "domain_id", "Domain expertise")
+        assertion_id = _required_text(domain, "assertion_id", "Domain expertise")
+        if domain_id in seen_domain_ids:
+            raise ValueError(f"Duplicate domain expertise ID: {domain_id}")
+        if assertion_id in seen_assertion_ids:
+            raise ValueError(f"Duplicate domain expertise assertion ID: {assertion_id}")
+        seen_domain_ids.add(domain_id)
+        seen_assertion_ids.add(assertion_id)
         _required_text(domain, "entered_label", "Domain expertise")
         normalized = _required_text(domain, "normalized_label", "Domain expertise")
         if normalized in seen_domains:
@@ -182,6 +206,170 @@ def validate_reviewer_profile_v2(record: Mapping[str, Any]) -> None:
 
 def _nonempty_string(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
+
+def _validate_predecessor_chains(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    id_field: str,
+    predecessor_field: str,
+    subject_fields: tuple[str, ...],
+    timestamp_field: str,
+    subject: str,
+) -> None:
+    by_id = {str(record[id_field]): record for record in records}
+    successors: dict[str, str] = {}
+    groups: dict[tuple[Any, ...], list[Mapping[str, Any]]] = {}
+    for record in records:
+        record_id = str(record[id_field])
+        group_key = tuple(record.get(field) for field in subject_fields)
+        groups.setdefault(group_key, []).append(record)
+        predecessor_id = record.get(predecessor_field)
+        if predecessor_id is None:
+            continue
+        predecessor = by_id.get(str(predecessor_id))
+        if predecessor is None:
+            raise ValueError(f"Dangling {predecessor_field}: {predecessor_id}")
+        if any(predecessor.get(field) != record.get(field) for field in subject_fields):
+            raise ValueError(f"{subject} predecessor must describe the same subject")
+        predecessor_time = _parsed_datetime(predecessor.get(timestamp_field), timestamp_field)
+        current_time = _parsed_datetime(record.get(timestamp_field), timestamp_field)
+        if predecessor_time >= current_time:
+            raise ValueError(f"{subject} predecessor must be earlier than its successor")
+        if str(predecessor_id) in successors:
+            raise ValueError(f"{subject} predecessor chain branches at {predecessor_id}")
+        successors[str(predecessor_id)] = record_id
+
+    for group_records in groups.values():
+        roots = [record for record in group_records if record.get(predecessor_field) is None]
+        if len(roots) != 1:
+            raise ValueError(f"{subject} history must have exactly one root per subject")
+        visited: set[str] = set()
+        current = str(roots[0][id_field])
+        while current in successors:
+            if current in visited:
+                raise ValueError(f"{subject} predecessor chain contains a cycle")
+            visited.add(current)
+            current = successors[current]
+        visited.add(current)
+        expected = {str(record[id_field]) for record in group_records}
+        if visited != expected:
+            raise ValueError(f"{subject} predecessor history is disconnected")
+
+
+def validate_reviewer_domain_expertise_assertions(
+    records: Sequence[Mapping[str, Any]], *, reviewer_ids: set[str] | None = None
+) -> None:
+    """Validate the complete append-only history behind profile projections."""
+    seen_ids: set[str] = set()
+    for record in records:
+        missing = REVIEWER_DOMAIN_EXPERTISE_ASSERTION_FIELDS - set(record)
+        if missing:
+            raise ValueError(f"Domain expertise assertion is missing fields: {sorted(missing)}")
+        unknown = set(record) - REVIEWER_DOMAIN_EXPERTISE_ASSERTION_FIELDS
+        if unknown:
+            raise ValueError(f"Domain expertise assertion has unsupported fields: {sorted(unknown)}")
+        if record.get("schema") != "musparql.reviewer-domain-expertise-assertion.v1":
+            raise ValueError(
+                "Domain expertise assertion requires schema "
+                "musparql.reviewer-domain-expertise-assertion.v1"
+            )
+        assertion_id = _required_text(record, "id", "Domain expertise assertion")
+        if assertion_id in seen_ids:
+            raise ValueError(f"Duplicate domain expertise assertion id: {assertion_id}")
+        seen_ids.add(assertion_id)
+        reviewer_id = validate_reviewer_id(record.get("reviewer_id"))
+        if reviewer_ids is not None and reviewer_id not in reviewer_ids:
+            raise ValueError(f"Unknown reviewer_id in domain expertise assertion: {reviewer_id}")
+        for field in ("domain_id", "entered_label", "normalized_label"):
+            _required_text(record, field, "Domain expertise assertion")
+        if record.get("expertise_level") not in SUBJECT_EXPERTISE_LEVELS:
+            raise ValueError("Unsupported domain expertise assertion level")
+        vocabulary_values = [
+            record.get("vocabulary_name"), record.get("vocabulary_concept_uri"),
+            record.get("vocabulary_version"),
+        ]
+        if any(value is not None and not _nonempty_string(value) for value in vocabulary_values):
+            raise ValueError("Domain expertise vocabulary fields must be non-empty strings or null")
+        if record.get("vocabulary_concept_uri") is not None and not re.match(
+            r"^https?://", str(record["vocabulary_concept_uri"])
+        ):
+            raise ValueError("Domain expertise vocabulary URI must use http or https")
+        if record.get("vocabulary_name") is None and any(
+            value is not None for value in vocabulary_values[1:]
+        ):
+            raise ValueError("Domain expertise vocabulary URI/version requires vocabulary_name")
+        if record.get("vocabulary_name") is not None and any(
+            value is None for value in vocabulary_values[1:]
+        ):
+            raise ValueError("Domain expertise vocabulary selection requires URI and version")
+        supersedes_id = record.get("supersedes_id")
+        if supersedes_id is not None and not _nonempty_string(supersedes_id):
+            raise ValueError("supersedes_id must be a non-empty string or null")
+        if supersedes_id == assertion_id:
+            raise ValueError("supersedes_id cannot reference the current assertion")
+        _iso_datetime(record.get("asserted_at"), "asserted_at")
+
+    _validate_predecessor_chains(
+        records,
+        id_field="id",
+        predecessor_field="supersedes_id",
+        subject_fields=("reviewer_id", "domain_id"),
+        timestamp_field="asserted_at",
+        subject="Domain expertise assertion",
+    )
+
+
+def validate_reviewer_profile_projection(
+    profile: Mapping[str, Any], assertions: Sequence[Mapping[str, Any]]
+) -> None:
+    """Require a profile's projected domains to equal its assertion-chain heads."""
+    validate_reviewer_profile_v2(profile)
+    reviewer_id = str(profile["id"])
+    relevant = [record for record in assertions if record.get("reviewer_id") == reviewer_id]
+    if not relevant:
+        raise ValueError("Reviewer profile has no domain expertise assertion history")
+    validate_reviewer_domain_expertise_assertions(relevant, reviewer_ids={reviewer_id})
+
+    by_id = {str(record["id"]): record for record in relevant}
+    superseded_ids = {
+        str(record["supersedes_id"])
+        for record in relevant
+        if record.get("supersedes_id") is not None
+    }
+    heads = {
+        str(record["domain_id"]): record
+        for record in relevant
+        if str(record["id"]) not in superseded_ids
+    }
+    projections = {
+        str(domain["domain_id"]): domain
+        for domain in profile["domain_expertise"]
+    }
+    if set(projections) != set(heads):
+        raise ValueError("Reviewer profile domains do not match assertion history heads")
+
+    projected_fields = (
+        "entered_label", "normalized_label", "vocabulary_name",
+        "vocabulary_concept_uri", "vocabulary_version", "expertise_level",
+    )
+    for domain_id, projection in projections.items():
+        head = heads[domain_id]
+        if projection.get("assertion_id") != head.get("id"):
+            raise ValueError("Reviewer profile assertion_id is not the current history head")
+        if any(projection.get(field) != head.get(field) for field in projected_fields):
+            raise ValueError("Reviewer profile domain values do not match the current assertion")
+        root = head
+        while root.get("supersedes_id") is not None:
+            root = by_id[str(root["supersedes_id"])]
+        if _parsed_datetime(projection.get("first_asserted_at"), "first_asserted_at") != (
+            _parsed_datetime(root.get("asserted_at"), "asserted_at")
+        ):
+            raise ValueError("Reviewer profile first_asserted_at does not match history root")
+        if _parsed_datetime(projection.get("updated_at"), "updated_at") != _parsed_datetime(
+            head.get("asserted_at"), "asserted_at"
+        ):
+            raise ValueError("Reviewer profile updated_at does not match history head")
 
 
 def _validate_longitudinal_assessments(
@@ -235,6 +423,19 @@ def _validate_longitudinal_assessments(
             raise ValueError("previous_assessment_id cannot reference the current assessment")
         _iso_datetime(record.get("assessed_at"), "assessed_at")
 
+    _validate_predecessor_chains(
+        records,
+        id_field="id",
+        predecessor_field="previous_assessment_id",
+        subject_fields=(
+            ("reviewer_id", "kg_id", "review_domain_id")
+            if domain
+            else ("reviewer_id", "kg_id", "familiarity_scope_id")
+        ),
+        timestamp_field="assessed_at",
+        subject=subject,
+    )
+
 
 def validate_kg_domain_assessments(
     records: Sequence[Mapping[str, Any]], *, reviewer_ids: set[str] | None = None
@@ -246,6 +447,60 @@ def validate_resource_familiarity_assessments(
     records: Sequence[Mapping[str, Any]], *, reviewer_ids: set[str] | None = None
 ) -> None:
     _validate_longitudinal_assessments(records, domain=False, reviewer_ids=reviewer_ids)
+
+
+def validate_assessments_against_kg_seed_snapshots(
+    domain_records: Sequence[Mapping[str, Any]],
+    familiarity_records: Sequence[Mapping[str, Any]],
+    archive_payload: Mapping[str, Any],
+) -> None:
+    """Resolve every assessment to the immutable seed prompt it snapshots."""
+    snapshots = validate_kg_seed_snapshots(archive_payload)
+    seeds = {
+        (str(snapshot.get("kg_id")), str(snapshot.get("seed_version"))): snapshot.get("seed")
+        for snapshot in snapshots
+    }
+    for record in domain_records:
+        key = (str(record.get("kg_id")), str(record.get("seed_version")))
+        seed = seeds.get(key)
+        if not isinstance(seed, Mapping):
+            raise ValueError(f"KG domain assessment references an unknown seed snapshot: {key}")
+        domains = seed.get("review_domains")
+        match = next(
+            (
+                item for item in domains
+                if isinstance(item, Mapping)
+                and item.get("domain_id") == record.get("review_domain_id")
+            ),
+            None,
+        ) if isinstance(domains, list) else None
+        if match is None:
+            raise ValueError("KG domain assessment references an unknown review_domain_id")
+        if match.get("label") != record.get("review_domain_label"):
+            raise ValueError("KG domain assessment label does not match its seed snapshot")
+
+    for record in familiarity_records:
+        key = (str(record.get("kg_id")), str(record.get("seed_version")))
+        seed = seeds.get(key)
+        if not isinstance(seed, Mapping):
+            raise ValueError(
+                f"Resource familiarity assessment references an unknown seed snapshot: {key}"
+            )
+        scopes = seed.get("familiarity_scopes")
+        match = next(
+            (
+                item for item in scopes
+                if isinstance(item, Mapping)
+                and item.get("scope_id") == record.get("familiarity_scope_id")
+            ),
+            None,
+        ) if isinstance(scopes, list) else None
+        if match is None:
+            raise ValueError(
+                "Resource familiarity assessment references an unknown familiarity_scope_id"
+            )
+        if match.get("label") != record.get("familiarity_scope_label"):
+            raise ValueError("Resource familiarity label does not match its seed snapshot")
 
 
 def validate_kg_familiarities(

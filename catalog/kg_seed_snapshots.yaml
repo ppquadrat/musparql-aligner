@@ -1,0 +1,294 @@
+schema: musparql.kg-seed-snapshots.v1
+snapshots:
+- kg_id: organs
+  seed_version: 2026-08-18.1
+  seed_digest: sha256:d65976b7bfc5f8708cc574a3dbd4473655486f1a12d6ba020b4f4c99c1ce2323
+  previous_seed_digest: null
+  seed:
+    kg_id: organs
+    seed_version: 2026-08-18.1
+    name: Polifonia Organs Knowledge Graph
+    project: Polifonia
+    description_hint: 'Knowledge graph describing historical pipe organs, their builders,
+      locations, construction events, and related heritage information.
+
+      '
+    sparql:
+      endpoint: https://polifonia.disi.unibo.it/organs/sparql
+      auth: none
+      graph: http://w3id.org/polifonia/resource/organs/
+      fallbacks:
+      - endpoint: https://data.open.ac.uk/sparql
+        auth: none
+    source_ids:
+    - organs-knowledge-graph-repository
+    - organs-ontology-readme
+    - organs-ontology-curated-extract
+    priority: high
+    notes: 'Already partially curated manually. Use as baseline for automation tests.
+
+      '
+    review_domains:
+    - domain_id: pipe-organs-organology
+      label: Pipe organs and organology
+      description: 'Pipe organs, their builders, components and specifications, construction
+        and modification events, locations and institutions, and associated historical
+        and heritage records.
+
+        '
+    familiarity_scopes:
+    - scope_id: organs
+      label: Polifonia Organs Knowledge Graph
+      kind: knowledge_graph
+- kg_id: meetups
+  seed_version: 2026-08-18.1
+  seed_digest: sha256:2c0bd586ffa7cf1b0f74cce92899718ef510a243c8009937cd028474c121aaf7
+  previous_seed_digest: null
+  seed:
+    kg_id: meetups
+    seed_version: 2026-08-18.1
+    name: Polifonia MEETUPS Knowledge Graph
+    project: Polifonia
+    description_hint: 'Knowledge graph describing musical events, meetings, performances,
+      participants, places, and times.
+
+      '
+    sparql:
+      endpoint: https://polifonia.disi.unibo.it/meetups/sparql
+      auth: none
+      fallbacks:
+      - endpoint: https://data.open.ac.uk/sparql
+        auth: none
+    source_ids:
+    - meetups-knowledge-graph-repository
+    - meetups-query-examples
+    - meetups-semmes-2023-paper
+    - meetups-eswc-2024-paper
+    priority: high
+    notes: 'Provides a page of example SPARQL queries – ideal for bootstrapping pairs.
+
+      '
+    review_domains:
+    - domain_id: historical-musical-encounters-events
+      label: Historical musical encounters and events
+      description: 'Documented encounters and collaborations in music history; the
+        people and roles involved; their places, dates and purposes; and the biographical
+        evidence used to describe them. The nominal European c. 1800–1945 period describes
+        source provenance rather than the expertise boundary or balanced geographic
+        coverage.
+
+        '
+    familiarity_scopes:
+    - scope_id: meetups
+      label: Polifonia MEETUPS Knowledge Graph
+      kind: knowledge_graph
+- kg_id: musow
+  seed_version: 2026-08-18.1
+  seed_digest: sha256:120c78327d45c6219e8b91a225559b2702ca3f5b5962605b738e7b6f21733e01
+  previous_seed_digest: null
+  seed:
+    kg_id: musow
+    seed_version: 2026-08-18.1
+    name: MUSOW Knowledge Graph
+    project: Polifonia
+    description_hint: 'Conceptual and registry-style knowledge graph modelling musicological
+      concepts, vocabularies, and scholarly classifications using SKOS and related
+      ontologies.
+
+      '
+    sparql:
+      endpoint: https://data.open.ac.uk/sparql
+      auth: none
+      expected_namespaces:
+      - http://w3id.org/polifonia/ontology/musow#
+      - http://www.w3.org/2004/02/skos/core#
+    source_ids:
+    - musow-registry-data-repository
+    - musow-licence-experiments-repository
+    - musow-project-page
+    priority: medium
+    notes: 'MUSOW is a conceptual and registry-style knowledge graph developed in
+      the Polifonia project, modelling musicological concepts, vocabularies, and scholarly
+      classifications using SKOS and related ontologies. While it is not an event-based
+      KG, it is accompanied by curated SPARQL query examples and query guides, making
+      it suitable for collecting runnable SELECT queries and generating natural-language
+      question–SPARQL pairs.
+
+      '
+    review_domains:
+    - domain_id: digital-music-research-resources
+      label: Digital music research resources available online
+      description: 'Online catalogues, digital libraries and repositories, datasets,
+        linked open data, digital editions, services and software, schemas, ontologies,
+        formats and symbolic-music resources included in the musoW survey.
+
+        '
+    familiarity_scopes:
+    - scope_id: musow
+      label: MUSOW Knowledge Graph
+      kind: knowledge_graph
+- kg_id: musicbo
+  seed_version: 2026-08-18.1
+  seed_digest: sha256:2c2e87f4b89303a5380031bbdfeda3f3d433ca2229c8a9dc846d0590282a9627
+  previous_seed_digest: null
+  seed:
+    kg_id: musicbo
+    seed_version: 2026-08-18.1
+    name: Polifonia MusicBO Knowledge Graph
+    project: Polifonia
+    description_hint: 'Knowledge graph derived from Bologna’s musical heritage, focusing
+      on composers, works, performances, and archival sources.
+
+      '
+    sparql:
+      endpoint: https://polifonia.disi.unibo.it/musicbo/sparql
+      auth: none
+    source_ids:
+    - musicbo-knowledge-graph-repository
+    priority: medium
+    notes: 'Repo contains SPARQL examples embedded in documentation rather than .rq
+      files.
+
+      '
+    review_domains:
+    - domain_id: bologna-musical-heritage
+      label: Bologna's musical heritage
+      description: 'Composers, musical works, performances, archival sources, institutions
+        and places associated with Bologna''s musical history.
+
+        '
+    familiarity_scopes:
+    - scope_id: musicbo
+      label: Polifonia MusicBO Knowledge Graph
+      kind: knowledge_graph
+- kg_id: jazzontology
+  seed_version: 2026-08-18.1
+  seed_digest: sha256:8129c363486eb99185137844ca8dbbbebe3b3d07bffe086ba707cb780160e1b9
+  previous_seed_digest: null
+  seed:
+    kg_id: jazzontology
+    seed_version: 2026-08-18.1
+    name: Jazz Ontology (Dig That Lick)
+    project: Dig That Lick
+    description_hint: 'Ontology and RDF datasets for jazz metadata, performances,
+      sessions, recordings, and related discographic information.
+
+      '
+    dataset:
+      dump_url: https://osf.io/qnb4k/download
+      local_path: var/cache/dumps/jazzontology.ttl
+      format: turtle
+    source_ids:
+    - jazz-ontology-repository
+    - jazz-ontology-supplement
+    - jazz-ontology-2022-paper
+    priority: medium
+    notes: 'RDF data dump (TTL) referenced at https://osf.io/bwg42/files/qnb4k.
+
+      '
+    review_domains:
+    - domain_id: jazz-discography-performance
+      label: Jazz discography and performance
+      description: 'Jazz musicians, instruments, performances, recording sessions,
+        recordings, solos, tracks, releases and the discographic evidence used to
+        document them.
+
+        '
+    familiarity_scopes:
+    - scope_id: jazzontology
+      label: Jazz Ontology (Dig That Lick)
+      kind: knowledge_graph
+- kg_id: linkedmusic
+  seed_version: 2026-08-18.1
+  seed_digest: sha256:ad77a30edee47a9e498d0e94f4562ba7a467ad8e8608a6c5e4f7c6b1c49877aa
+  previous_seed_digest: null
+  seed:
+    kg_id: linkedmusic
+    seed_version: 2026-08-18.1
+    name: LinkedMusic Data Lake
+    project: LinkedMusic
+    description_hint: 'Integrated music knowledge graph that reconciles metadata through
+      Wikidata and exposes named RDF graphs for DIAMM, Dig That Lick, the Weimar Jazz
+      Database, The Global Jukebox, the University of Tennessee Song Index, MusicBrainz,
+      The Session, RISM, Cantus Database, Cantus Index, SIMSSA DB, and the NFDI4Culture
+      APSearch, Detmolder Hoftheater, and musiconn.performance knowledge graphs.
+
+      '
+    sparql:
+      endpoint: https://virtuoso.simssa.ca/sparql/
+      auth: none
+      expected_namespaces:
+      - https://linkedmusic.ca/graphs/
+      - http://www.wikidata.org/prop/direct/
+    source_ids:
+    - linkedmusic-datalake-repository
+    - linkedmusic-queries-repository
+    - linkedmusic-project-website
+    - linkedmusic-sample-queries
+    - linkedmusic-prefix-catalogue
+    - linkedmusic-public-query-database
+    - sesemmi-linkedmusic-2025-paper
+    - linkedmusic-integrating-databases-2025-article
+    - linkedmusic-sustainable-archiving-2025-paper
+    - linkedmusic-corrected-examples-working-copy
+    priority: high
+    notes: 'Official sources provide twenty public NLQ-SPARQL benchmark pairs across
+      four challenge levels, plus repository and wiki documentation for the constituent
+      named graphs and cross-graph querying.
+
+      '
+    review_domains:
+    - domain_id: medieval-european-music-manuscripts
+      label: Medieval European music manuscripts
+      description: 'Medieval European music manuscripts, their sources, contents,
+        provenance, institutions, people and scholarly catalogue metadata.
+
+        '
+    - domain_id: jazz-discography-performance
+      label: Jazz discography and performance
+      description: 'Jazz musicians, instruments, performances, recording sessions,
+        recordings, solos, tracks, releases and the discographic evidence used to
+        document them.
+
+        '
+    - domain_id: global-song-comparative-analysis
+      label: 'Traditional, Indigenous, folk and popular song worldwide; cross-cultural
+        comparative music analysis
+
+        '
+      description: 'Traditional, Indigenous, folk and popular song traditions worldwide,
+        including their musical, geographic and cultural attributes and their use
+        in cross-cultural comparative music analysis.
+
+        '
+    - domain_id: recorded-music-discography
+      label: Recorded music discography
+      description: 'Recorded music releases, recordings, tracks, artists, labels and
+        the identifiers and relationships used in discographic metadata.
+
+        '
+    - domain_id: irish-traditional-music
+      label: Irish traditional music
+      description: 'Irish traditional tunes, tune types, settings, sessions, recordings,
+        musicians and related community-contributed metadata.
+
+        '
+    familiarity_scopes:
+    - scope_id: diamm
+      label: Digital Image Archive of Medieval Music (DIAMM)
+      kind: resource
+    - scope_id: dig-that-lick
+      label: Dig That Lick
+      kind: resource
+    - scope_id: global-jukebox
+      label: The Global Jukebox
+      kind: resource
+    - scope_id: musicbrainz
+      label: MusicBrainz
+      kind: resource
+    - scope_id: the-session
+      label: The Session
+      kind: resource
+    - scope_id: linkedmusic
+      label: LinkedMusic Data Lake
+      kind: federation

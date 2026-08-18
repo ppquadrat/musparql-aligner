@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 from scripts import correction_service
 from scripts import run_queries
@@ -13,6 +14,7 @@ from scripts.build_llm_inputs import build_prompt_input
 from scripts.build_sparql_correction_bundle import build_payload
 from scripts.benchmark.build_benchmark import neutral_execution_snapshot
 from scripts.correction_service import Workbench, allowed_static_path, safe_endpoint, safe_error
+from scripts.snapshot_kg_seeds import update_snapshot_archive
 from musparql.holdout_selectors import validate_selectors_current
 from musparql.sparql_corrections import REVIEW_EXPORT_SCHEMA, apply_reviews, build_candidate, candidate_digest, safe_error as correction_safe_error
 from musparql.sparql_versions import sparql_hash
@@ -72,6 +74,12 @@ def workbench(tmp_path: Path, row: dict, candidate: dict, provider=None, holdout
         "        label: Synthetic knowledge graph\n"
         "        kind: knowledge_graph\n",
         encoding="utf-8",
+    )
+    snapshot_archive, _ = update_snapshot_archive(
+        yaml.safe_load(seeds.read_text(encoding="utf-8")), None
+    )
+    seeds.with_name("kg_seed_snapshots.yaml").write_text(
+        yaml.safe_dump(snapshot_archive, sort_keys=False), encoding="utf-8"
     )
     bundle = build_payload([candidate], selector_keys=set(), source_path="synthetic", input_policy="synthetic")
     return Workbench(

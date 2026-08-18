@@ -5,12 +5,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 from musparql.source_catalog import (
     load_hydrated_seeds,
     load_source_catalog,
     validate_catalogued_local_files,
 )
 from scripts.normalize_source_provenance import normalize_kgs, normalize_query_catalog
+from scripts.snapshot_kg_seeds import update_snapshot_archive
 
 
 class SourceProvenanceTests(unittest.TestCase):
@@ -103,6 +106,12 @@ class SourceProvenanceTests(unittest.TestCase):
                 "        label: Synthetic graph\n"
                 "        kind: knowledge_graph\n",
                 encoding="utf-8",
+            )
+            snapshot_archive, _ = update_snapshot_archive(
+                yaml.safe_load(seeds.read_text(encoding="utf-8")), None
+            )
+            seeds.with_name("kg_seed_snapshots.yaml").write_text(
+                yaml.safe_dump(snapshot_archive, sort_keys=False), encoding="utf-8"
             )
             kgs.write_text(
                 json.dumps(

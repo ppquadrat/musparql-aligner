@@ -19,7 +19,7 @@
     "domain_expertise": {
       "type": "array",
       "minItems": 1,
-      "items": {"$ref": "#/$defs/domain_assertion"}
+      "items": {"$ref": "#/$defs/domain_projection"}
     },
     "kg_ontology_experience": {"$ref": "#/$defs/technical_experience"},
     "sparql_experience": {"$ref": "#/$defs/technical_experience"},
@@ -49,15 +49,17 @@
       "type": ["string", "null"],
       "minLength": 1
     },
-    "domain_assertion": {
+    "domain_projection": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "entered_label", "normalized_label", "vocabulary_name",
+        "domain_id", "assertion_id", "entered_label", "normalized_label", "vocabulary_name",
         "vocabulary_concept_uri", "vocabulary_version", "expertise_level",
         "first_asserted_at", "updated_at"
       ],
       "properties": {
+        "domain_id": {"type": "string", "minLength": 1},
+        "assertion_id": {"type": "string", "minLength": 1},
         "entered_label": {"type": "string", "minLength": 1},
         "normalized_label": {"type": "string", "minLength": 1},
         "vocabulary_name": {"$ref": "#/$defs/nullable_nonempty_string"},

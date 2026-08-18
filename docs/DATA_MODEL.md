@@ -30,9 +30,34 @@ stores operational and reviewer-measurement configuration:
 
 Repository and document lists are hydrated from the source catalogue rather
 than duplicated manually. `schemas/kg_seeds.schema.json` and the Python seed
-loader enforce the contract. The application asks every domain and familiarity
-scope declared by the frozen seed; it does not infer them from queries or named
-graphs.
+loader enforce the complete contract, including required and unknown fields,
+nested SPARQL/dataset structure, URLs, unique source IDs, domain mappings, and
+familiarity scopes. The application asks every domain and familiarity scope
+declared by the frozen seed; it does not infer them from queries or named graphs.
+
+### `catalog/kg_seed_snapshots.yaml`
+
+An append-only archive of every complete KG seed version. Each record contains
+the canonical SHA-256 digest of its embedded seed and the preceding digest for
+that KG, forming one non-branching history. The current entry in
+`catalog/seeds.yaml` must equal the unique archived head for its `kg_id`; reusing
+a `seed_version` with changed content is rejected. This preserves the full
+domain descriptions and familiarity wording needed to reconstruct historical
+assignments rather than relying on the mutable current catalogue or Git history.
+Normal hydrated/build/query seed loaders require and validate this archive.
+Retiring a KG removes it only from the current seed catalogue; its archived
+history remains intact and resolvable.
+
+After intentionally incrementing a seed version, append and verify its snapshot:
+
+```bash
+.venv/bin/python -m scripts.snapshot_kg_seeds
+```
+
+The contracts are `schemas/kg_seed_snapshots.schema.json` and the snapshot
+validators in `musparql.source_catalog`. Contract tests execute the Draft
+2020-12 schemas with format checking and local `$ref` resolution in addition to
+the runtime validators.
 
 ### `catalog/expertise_domain_suggestions.yaml`
 
@@ -44,14 +69,18 @@ contains owner-reviewed specialist music terms and records EuroSciVoc as a
 reference-only source; it does not claim unverified EuroSciVoc mappings.
 
 Free-text entry remains valid even when the file has no matching suggestion.
-The contract is `schemas/expertise_domain_suggestions.schema.json`.
+The contract is `schemas/expertise_domain_suggestions.schema.json`. Its runtime
+loader rejects incomplete or unknown fields, invalid snapshot dates and language
+tags, references to unknown/broader entries, and vocabulary provenance that does
+not provide the concept URI and vocabulary version together.
 
 ### `catalog/kgs.jsonl`
 
 One generated catalogue record per KG. It contains endpoint and dump metadata,
-resolved source URLs, captured revisions, local snapshot paths, source IDs, and
-catalog provenance. This file is tracked because it is a compact, reviewable
-description of the collected source state.
+including configured named graphs and fallback endpoints; resolved source URLs,
+captured revisions, local snapshot paths, source IDs, and catalog provenance.
+This file is tracked because it is a compact, reviewable description of the
+collected source state.
 
 ### `catalog/curated/Approved_SPARQL_Edits.jsonl`
 
@@ -147,9 +176,13 @@ expertise levels.
 The Phase 1 v2 confidential contracts are:
 
 - `schemas/reviewer_profile_v2.schema.json`: identity, contact and technical
-  experience plus repeatable general-domain assertions. Each assertion preserves
-  entered and normalized labels, the semantic 0–4 expertise value, timestamps,
-  and nullable vocabulary provenance.
+  experience plus a current-state projection of repeatable general-domain
+  expertise. Each projected value records the stable domain ID and latest
+  assertion ID as well as labels, level, timestamps, and nullable vocabulary
+  provenance. It is not the historical source of truth.
+- `schemas/reviewer_domain_expertise_assertion.schema.json`: the append-only
+  history behind that projection. Each event has an assertion ID, stable domain
+  ID, timestamp, and nullable `supersedes_id`; earlier events are retained.
 - `schemas/reviewer_kg_domain_assessment.schema.json`: an append-only subject
   expertise assertion for one domain in a frozen KG seed.
 - `schemas/reviewer_resource_familiarity_assessment.schema.json`: an append-only
@@ -158,7 +191,12 @@ The Phase 1 v2 confidential contracts are:
 Assessment rows snapshot the prompt label and seed version, record whether they
 came from a pre-review confirmation or profile change, link the preceding
 assertion when present, and require an assignment ID only for pre-review rows.
-Examples under `schemas/examples/` are obviously synthetic.
+Their full prompt descriptions resolve through the immutable seed snapshot
+archive. Assertion and assessment collection validators reject dangling,
+cross-subject, non-chronological, branching, cyclic, or disconnected predecessor
+histories. A separate projection validator requires every profile domain to equal
+the head of its append-only assertion chain and checks its first/latest
+timestamps. Examples under `schemas/examples/` are obviously synthetic.
 
 Only IDs matching `reviewer-NNNN` may cross into review artifacts. Profile,
 domain-assessment, and familiarity fields never enter bundles, submitted review

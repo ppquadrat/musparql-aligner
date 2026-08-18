@@ -9,5 +9,11 @@ description = "Human-curated NL-SPARQL benchmark workflow for domain knowledge g
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
 
+[project.optional-dependencies]
+test = [
+    "jsonschema[format]>=4.23,<5",
+    "pytest>=8,<10",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
