@@ -92,6 +92,8 @@ the human verifies and places that file at the local path.
 - [`review/README.md`](review/README.md) — review application reference.
 - [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md) — maintained implementation and
   governance backlog.
+- [`docs/DATABASE_RUNBOOK.md`](docs/DATABASE_RUNBOOK.md) — create, upgrade, and
+  inspect the confidential v2 SQLite schema without exposing profile fields.
 - [`docs/MUSPARQL_V2_PLAN.md`](docs/MUSPARQL_V2_PLAN.md) — phased plan for the
   remote reviewer portal, longitudinal expertise data, controlled processing,
   and isolated deployment.

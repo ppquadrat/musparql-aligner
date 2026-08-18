@@ -13,10 +13,9 @@ Reviewer profiles, repeatable general-domain expertise, KG-specific subject
 expertise, and resource/data-model/KG familiarity have versioned Phase 1 schemas,
 append-only history contracts, chain and seed-snapshot validation, synthetic
 examples, a privacy notice, and a confidential storage boundary, but there is no
-owner-only profile administration form or v2 database yet. Until Phase 2
-migration and the later administration UI exist, the human owner must maintain
-the legacy ignored registry outside agent-visible workflows. The legacy values
-must not be silently reinterpreted as v2 levels.
+owner-only profile administration form yet. The documented legacy registry was
+never populated, so Phase 2 creates the v2 database directly and deliberately
+does not add legacy-value tables or infer v2 assertions from legacy scales.
 
 Before implementing the form, decide and document:
 
@@ -24,10 +23,33 @@ Before implementing the form, decide and document:
 - the lawful basis for processing;
 - retention and deletion periods;
 - access, correction, and deletion procedures; and
-- the owner-managed encrypted backup and recovery procedure.
+- the data-retention consequences of profile withdrawal and deletion.
 
 The form must never place names, email addresses, affiliation, experience, or
 KG-familiarity fields in review bundles, exports, benchmarks, logs, or tests.
+
+### Durable backup and recovery
+
+Backup and recovery are a separate implementation phase rather than part of the
+SQLite-foundation phase. The design must protect more than the database: review
+outcomes remain irreplaceable before benchmark publication, and substantial
+provenance is intentionally Git-ignored.
+
+Define, implement, and test an encrypted, authenticated, versioned backup of:
+
+- the confidential and operational SQLite database;
+- server-received non-holdout review submissions and sanitized exports;
+- the working query catalogue and its local execution/correction provenance;
+- frozen generation runs and any model output not already frozen into a run; and
+- separately, through a human-only process, any private or holdout-bearing
+  review material that application and agent workflows must never access.
+
+The phase must choose an on-site destination on physically separate storage, an
+off-site versioned destination, key custody and rotation, retention, monitoring,
+restore isolation, and recovery objectives. A second directory on the same disk
+is not an adequate backup. Until hosted durable submission exists, completed
+browser reviews must be exported promptly because browser local storage is not
+a recovery mechanism.
 
 ### One canonical v2 review-export contract
 

@@ -1109,17 +1109,13 @@ The deployment is ready only when:
 
 ### 21.1 Confidential reviewer data
 
-Provide an explicit, owner-run migration from the current confidential JSONL
-registry into SQLite. The migration must:
-
-- accept only the documented confidential registry location;
-- validate records before insertion;
-- preserve pseudonymous IDs;
-- never print profile fields;
-- produce counts and pseudonymous diagnostics only;
-- be idempotent or fail clearly on duplicates;
-- avoid copying data into fixtures or logs; and
-- leave source files intact until the owner verifies the database and backup.
+The documented confidential JSONL registry was confirmed never to have been
+populated. Phase 2 therefore starts directly with the v2 SQLite model and does
+not introduce legacy-value tables or infer mappings between incompatible scales.
+Alembic schema upgrades and database checks print only schema versions, counts,
+and pseudonymous reviewer IDs. If an unexpected legacy registry is discovered
+later, stop rather than importing or reinterpreting it; the owner must define a
+separate, explicit migration policy first.
 
 ### 21.2 Existing browser review artifacts
 
@@ -1191,6 +1187,15 @@ Exit criteria:
 
 ### Phase 2 — SQLite foundation and migration
 
+Status: completed on 2026-08-18. The tracked implementation introduces
+SQLAlchemy models, an explicit Alembic revision, SQLite foreign-key/WAL/full-sync
+configuration, normalized immutable seed snapshots and prompt scopes,
+repository/service boundaries, append-only provenance services and database
+triggers, pseudonymous schema diagnostics, and synthetic migration, constraint,
+atomicity, and ten-writer concurrency tests. The documented legacy registry was
+confirmed absent, so no legacy values were migrated or reinterpreted. Backup and
+recovery were moved by owner decision to Phase 2b.
+
 Work:
 
 - introduce SQLAlchemy and Alembic;
@@ -1198,14 +1203,44 @@ Work:
 - enforce seed-digest references and append-only assertion/assessment chains
   with database constraints and transactional writes;
 - implement repository/service boundaries;
-- implement migration using synthetic tests; and
-- implement backup and restore commands.
+- record that the documented legacy registry was never populated and start with
+  the v2 model without legacy-value tables or inferred scale mappings; and
+- implement migrations and migration diagnostics using synthetic tests.
 
 Exit criteria:
 
-- schema creation, upgrade, backup, and restore tests pass;
+- schema creation and upgrade tests pass;
 - migration diagnostics reveal only pseudonymous data; and
 - SQLite concurrency and atomicity tests pass.
+
+### Phase 2b — durable backup and recovery
+
+Status: deliberately separated from the SQLite foundation by owner decision on
+2026-08-18. This phase must be completed before real reviewer data is collected.
+
+Work:
+
+- define the complete durable set: the SQLite database, accepted non-holdout
+  submission files, sanitized review exports, the working query catalogue,
+  frozen generation runs, and unfrozen model outputs worth retaining;
+- keep private or holdout-bearing review material outside application and agent
+  workflows under a separate human-only backup procedure;
+- implement encrypted, authenticated, versioned backups with manifests and
+  integrity checks;
+- choose physically separate on-site storage and an off-site versioned copy;
+- define key custody, rotation, retention, monitoring, and recovery objectives;
+  and
+- test restoration into an isolated destination without overwriting live data.
+
+Exit criteria:
+
+- a documented inventory distinguishes unique state from reproducible output;
+- scheduled backups produce verifiable encrypted copies in both destinations;
+- a restore exercise recovers database and file-backed review state together;
+- loss of browser-local drafts is addressed by prompt export until hosted
+  durable submission is available; and
+- neither application backups nor agent workflows cross the private-holdout
+  boundary.
 
 ### Phase 3 — Flask application and authentication
 
@@ -1487,12 +1522,12 @@ Before Phase 10:
 
 ## 27. Recommended next step
 
-Phase 0 and Phase 1 are complete. Proceed to Phase 2 only: implement the SQLite
-schema, migrations, repository boundaries, and backup/restore path from the
-settled contracts. In particular, database constraints must preserve immutable
-seed-digest references and the validated append-only expertise/assessment
-chains. Do not collect real reviewer data or begin remote deployment until the
-remaining privacy, authentication, and operational decisions for later phases
+Phases 0, 1, and 2 are complete. Proceed to Phase 2b to design and implement
+durable backup and recovery for both the confidential database and irreplaceable
+Git-ignored review/provenance files. Phase 3 application and authentication work
+may be developed independently, but no real reviewer data should be collected
+until Phase 2b and the remaining privacy and authentication decisions are
+complete. Do not begin remote deployment until the later operational decisions
 are approved.
 
 ## 28. Definition of the first Musparql v2 release

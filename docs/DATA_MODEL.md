@@ -166,12 +166,10 @@ file whenever possible.
 
 ### Confidential reviewer registry
 
-Reviewer profiles are durable human-supplied data under
-`confidential/reviewers/`, not rebuildable pipeline state under `var/`. The
-legacy JSONL registry remains governed by `schemas/reviewer.schema.json` and
-`schemas/reviewer_kg_familiarity.schema.json` until the owner-run Phase 2
-migration. Those legacy frequency-like values must not be reinterpreted as v2
-expertise levels.
+Reviewer profiles are durable human-supplied data in the v2 SQLite database,
+not rebuildable pipeline state. The documented legacy JSONL registry was never
+populated, so Phase 2 created no legacy tables and inferred no mappings from its
+frequency-like values to v2 expertise levels.
 
 The Phase 1 v2 confidential contracts are:
 
@@ -202,6 +200,17 @@ Only IDs matching `reviewer-NNNN` may cross into review artifacts. Profile,
 domain-assessment, and familiarity fields never enter bundles, submitted review
 exports, benchmarks, prompts, or logs. Synthetic fixtures are the sole exception
 for schema and validator testing.
+
+The SQLAlchemy models live under `musparql.database`; the initial Alembic
+revision creates confidential profile/authentication tables, frozen seed and
+assignment tables, append-only expertise/assessment histories, submissions, and
+processing jobs. SQLite connections enable foreign keys, WAL journal mode, full
+synchronous durability, and a bounded busy timeout. Composite foreign keys bind
+assignments and assessments to exact immutable seed versions, digests, and
+prompt labels. Unique partial indexes, predecessor foreign keys, transactional
+services, and immutable-row triggers preserve one non-branching history per
+subject. Operational commands and handling rules are in
+`docs/DATABASE_RUNBOOK.md`.
 
 The browser bundle is generated and ignored. It contains candidate records,
 their run provenance, source evidence, SPARQL provenance, and holdout eligibility

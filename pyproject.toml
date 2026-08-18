@@ -8,6 +8,13 @@ version = "0.1.0"
 description = "Human-curated NL-SPARQL benchmark workflow for domain knowledge graphs"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
+dependencies = [
+    "alembic>=1.16,<2",
+    "SQLAlchemy>=2.0,<3",
+]
+
+[project.scripts]
+musparql-db = "musparql.database.cli:main"
 
 [project.optional-dependencies]
 test = [
