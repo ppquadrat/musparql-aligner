@@ -25,6 +25,7 @@ from musparql.sparql_versions import (
     validate_execution_versions,
 )
 from musparql.sparql_corrections import load_jsonl as load_correction_candidates
+from musparql.source_catalog import validate_kg_seeds
 from musparql.sparql_corrections import exclude_candidate_pairs, merge_candidates, write_jsonl as write_correction_candidates
 from musparql.holdout_selectors import add_holdout_filter_arguments, holdout_input_policy, validate_selectors_current
 
@@ -60,10 +61,7 @@ def load_seeds(path: Path) -> List[Dict[str, object]]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError("seeds.yaml must contain a top-level mapping (dictionary).")
-    kgs = data.get("kgs")
-    if not isinstance(kgs, list):
-        raise ValueError("seeds.yaml must have a top-level key 'kgs' containing a list.")
-    return kgs
+    return validate_kg_seeds(data, location=str(path))
 
 
 def load_endpoints(path: Path) -> Dict[str, KGEndpoint]:

@@ -40,7 +40,7 @@ Musparql v2 should:
 3. Optionally remember a private browser for a bounded period.
 4. Collect general profile and expertise information once and allow later
    correction.
-5. Measure KG-specific subject expertise and KG familiarity immediately before
+5. Measure KG-specific subject expertise and resource/data-model/KG familiarity immediately before
    each review round.
 6. Preserve repeated expertise assessments as longitudinal research data.
 7. Avoid asking reviewers to re-enter unchanged information unnecessarily.
@@ -195,17 +195,18 @@ the subject matter needed to interpret that particular KG, for example:
 
 This is intentionally more specific than a reviewer's general domain list.
 
-### 7.3 Familiarity with the KG
+### 7.3 Familiarity with the resource, data model and KG
 
 Also collected before each review round. It asks about direct experience with
-the graph as a resource and data model, for example:
+the resource, its data, data model and knowledge-graph representation, for
+example:
 
 > Before beginning this review, how familiar are you with the Organs Knowledge
-> Graph itself?
+> Graph, including its data, data model and knowledge-graph representation?
 
-Subject expertise and KG familiarity must remain separate. A domain expert can
-be unfamiliar with a graph, while a graph engineer can know its schema without
-being a subject specialist.
+Subject expertise and familiarity must remain separate. A domain expert can be
+unfamiliar with a resource or its model, while a graph engineer can know its
+schema without being a subject specialist.
 
 ## 8. Controlled-vocabulary recommendation
 
@@ -224,9 +225,9 @@ General domain expertise should use a hybrid entry control:
 The UI must not require reviewers to browse a large taxonomy tree. Their task is
 to describe their expertise, not to perform knowledge-organisation work.
 
-### 8.2 Preferred suggestion source: EuroSciVoc
+### 8.2 Reference suggestion source: EuroSciVoc
 
-The preferred external suggestion source is the European Science Vocabulary
+The initial external reference source is the European Science Vocabulary
 (EuroSciVoc), maintained by the Publications Office of the European Union:
 
 <https://op.europa.eu/en/web/eu-vocabularies/euroscivoc>
@@ -240,22 +241,49 @@ Reasons:
 - it follows Linked Open Data conventions; and
 - it is intended as a reference vocabulary for Open Science.
 
-Musparql should not depend on a live EuroSciVoc service during onboarding.
-Instead, it should retain a small, versioned local cache of relevant preferred
+EuroSciVoc is not sufficiently complete for specialist music research. In
+particular, reviewers must not be forced to replace fields such as performance
+studies, computational musicology, music cognition, music information
+retrieval, music computing, or singing research with a broader but less accurate
+term.
+
+Musparql should therefore not present EuroSciVoc as the boundary of the domain
+list or depend on a live EuroSciVoc service during onboarding. It should retain
+a small, versioned local suggestion set containing relevant EuroSciVoc entries
+and owner-reviewed project terms. For vocabulary entries, cache preferred
 labels, alternative labels, concept URIs, languages, and broader concepts. This
-keeps the UI responsive and makes historical interpretation reproducible.
+keeps the UI responsive, makes historical interpretation reproducible, and
+allows a specialist local term to be promoted to a suggestion without falsely
+claiming that it belongs to EuroSciVoc.
+
+Other scholarly infrastructures do not supply a better general replacement:
+
+- ORKG uses its own community-maintained hierarchy of research-field resources.
+  It includes useful headings such as Musicology and Theatre and Performance
+  Studies, but its live hierarchy mixes levels of specificity and contains
+  independently added roots, so it is unsuitable as the authoritative source.
+- GoTriple uses 27 broad MORESS-based SSH disciplines and a separate multilingual
+  TRIPLE subject vocabulary aligned with sources including Library of Congress
+  Subject Headings. It is valuable for SSH resource discovery but is too broad
+  and SSH-specific to govern reviewer self-description. Individual terms may be
+  considered for the local suggestion set only after owner review.
+- OpenCitations Meta describes bibliographic and citation metadata and does not
+  expose a subject-domain classification suitable for this control.
 
 ### 8.3 Optional broad mapping: OECD FORD
 
 The OECD Fields of Research and Development classification may be retained as
-an optional broad analytical mapping:
+an optional broad analytical mapping. It is an OECD classification from the
+Frascati Manual, not a UNESCO taxonomy. The former UNESCO UIS glossary page is
+no longer a reliable entry point; use the OECD publication page:
 
-<https://uis.unesco.org/en/glossary-term/fields-research-and-development-ford>
+<https://www.oecd.org/en/publications/frascati-manual-2015_9789264239012-en.html>
 
 FORD's top-level areas, such as “Humanities and the arts,” are too coarse to be
-the primary reviewer control. They can nevertheless support aggregate reporting
-or cross-project comparison. A EuroSciVoc or reviewer-entered domain may have
-an optional curated FORD mapping, but the reviewer should not have to supply it.
+the primary reviewer control. Musparql v2 will not implement FORD mapping in
+Phase 1. It may be reconsidered later if aggregate reporting or cross-project
+comparison creates a concrete need. Deferral loses no reviewer evidence because
+any later mapping can be curated from the preserved domain assertions.
 
 ### 8.4 Free-text domains
 
@@ -304,18 +332,105 @@ reviewer.
 Proposed seed shape:
 
 ```yaml
-review_domain:
-  label: "Organs and organology"
-  description: >
-    Pipe organs, organ builders, instruments, specifications, places,
-    institutions, and associated historical records.
-  vocabulary_mappings:
-    - vocabulary: "euroscivoc"
-      concept_uri: "<optional URI after human verification>"
+review_domains:
+  - domain_id: "pipe-organs-organology"
+    label: "Pipe organs and organology"
+    description: >
+      Pipe organs, organ builders, instruments, specifications, places,
+      institutions, and associated historical records.
+    vocabulary_mappings:
+      - vocabulary: "euroscivoc"
+        concept_uri: "<optional URI after human verification>"
+familiarity_scopes:
+  - scope_id: "organs"
+    label: "Polifonia Organs Knowledge Graph"
+    kind: "knowledge_graph"
 ```
 
-The label and description are required for a remotely reviewable KG. Vocabulary
+Every remotely reviewable KG must declare one or more `review_domains` in its
+seed alongside the graph description. The seed is the authoritative research
+contract: all listed domains are asked once before an assignment for that KG.
+The application does not inspect SPARQL `GRAPH` clauses or discover expertise
+domains at runtime. A simple KG normally declares one entry under
+`familiarity_scopes`; a federation can declare its component resources and the
+federation itself. Domain IDs, labels and descriptions are required; vocabulary
 mappings are optional and must be human-verified.
+
+Owner-approved initial prompts:
+
+- `organs` — **Pipe organs and organology.** Pipe organs, their builders,
+  components and specifications, construction and modification events,
+  locations and institutions, and associated historical and heritage records.
+- `meetups` — **Historical musical encounters and events.** Documented
+  encounters and collaborations in music history; the people and roles involved;
+  their places, dates and purposes; and the biographical evidence used to
+  describe them. The papers frame the intended scope as European musical culture
+  “across Europe” from c. 1800 to 1945, not Western Europe specifically.
+  However, the released corpus includes Eastern European, American and Latin
+  American figures, and its extracted evidence includes non-European places and
+  events after 1945. Treat the nominal European period as source provenance, not
+  as the expertise boundary or a claim of balanced geographic coverage.
+- `musow` — **Digital music research resources available online.** Online
+  catalogues, digital libraries and repositories, datasets, linked open data,
+  digital editions, services and software, schemas, ontologies, formats and
+  symbolic-music resources included in the musoW survey.
+- `musicbo` — **Bologna's musical heritage.** Composers, musical works,
+  performances, archival sources, institutions and places associated with
+  Bologna's musical history.
+- `jazzontology` — **Jazz discography and performance.** Jazz musicians,
+  instruments, performances, recording sessions, recordings, solos, tracks,
+  releases and the discographic evidence used to document them.
+
+`linkedmusic` is an integration resource, not one coherent subject domain. Its
+seed should declare these five domains:
+
+- **Medieval European music manuscripts**
+- **Jazz discography and performance**
+- **Traditional, Indigenous, folk and popular song worldwide; cross-cultural
+  comparative music analysis**
+- **Recorded music discography**
+- **Irish traditional music**
+
+The seed should also declare six familiarity scopes: DIAMM, Dig That Lick, The
+Global Jukebox, MusicBrainz, The Session, and the LinkedMusic federation itself.
+Each scope receives one broadened familiarity rating covering the resource, its
+data, its data model and its knowledge-graph representation. These are not
+separate ratings for source data and graph representation.
+
+Some queries additionally use Wikidata as a lookup service. This does not create
+a separate subject-expertise question.
+
+### 8.7 Federated, broad and general-purpose graphs
+
+Approved policy:
+
+1. Attach expertise to the bounded subject domains declared in the KG seed, not
+   to the endpoint, platform, graph brand or individual query.
+2. Ask about every domain listed for the assigned KG once before the assignment.
+   A federated or broad KG may therefore present several upfront domain questions.
+3. Do not infer domains from named-graph IRIs or inspect queries to decide which
+   expertise questions to show.
+4. Keep familiarity separate from subject expertise. A simple KG normally has
+   one familiarity scope. A federation may declare its components plus the
+   federation itself as separate scopes. LinkedMusic therefore has five
+   subject-domain assessments and six familiarity assessments.
+5. Wikidata, Europeana or another general graph used for identifiers, labels,
+   reconciliation or incidental enrichment adds no expertise domain. Record the
+   dependency in query provenance only.
+6. If a broad graph is itself a Musparql source, its seed must declare the bounded
+   subject domains represented by the selected query collection. Never ask for
+   generic “Wikidata expertise” or “Europeana expertise.”
+7. If no defensible bounded domains can be declared, exclude that KG or query
+   collection from expertise-stratified review rather than assigning a
+   meaningless general expertise score.
+
+Federation evolution remains an open methodological issue. The system does not
+learn a new domain automatically when a federation adds a named graph. A human
+must update and approve a new version of the KG seed before the new domain enters
+review. Each assignment records the seed version it used, so existing assignments
+retain their original questions. Whether Musparql should monitor federations for
+unrecorded named graphs, and whether the underlying KG data must also be frozen,
+remain separate open questions.
 
 ## 9. Assessment scales
 
@@ -329,44 +444,69 @@ assignment-specific subject expertise:
 
 | Stored value | Reviewer-facing label | Suggested explanation |
 |---|---|---|
-| `none` | None | No meaningful prior knowledge of this subject. |
-| `basic` | Basic familiarity | General awareness or limited informal exposure. |
-| `working` | Working knowledge | Enough study or practice to work with ordinary material in the area. |
-| `advanced` | Advanced | Substantial research or professional experience. |
-| `expert` | Specialist / expert | Deep specialist knowledge or recognised contribution to the area. |
+| `none` | 0 — None | No meaningful prior knowledge of this subject. |
+| `basic` | 1 — Basic | General awareness or limited informal exposure. |
+| `working` | 2 — Working knowledge | Enough study or practice to work with ordinary material in the area. |
+| `advanced` | 3 — Advanced | Substantial research or professional experience. |
+| `expert` | 4 — Expert | Deep specialist knowledge or recognised contribution to the area. |
 
-For the onboarding domain list, `none` normally need not be shown: a reviewer
-would simply omit a domain in which they have no expertise. It remains available
-for KG-specific subject assessment.
+Show the complete 0–4 scale, including `0 — None`, for both onboarding domain
+entries and KG-specific subject assessment. Displaying the lower anchor makes
+the measurement explicit and discourages reviewers from inventing unnecessary
+granularity at the expert end. Store the semantic value rather than relying on
+the number alone; the displayed number is its stable ordinal.
 
 The existing `none`, `occasional`, `regular`, and `expert` experience enum
 should not silently be reused. Musparql v2 needs a documented migration or an
 explicit legacy mapping because “occasional” and “regular” measure frequency
 more naturally than expertise.
 
-### 9.2 KG familiarity
+### 9.2 Resource, data-model and KG familiarity
 
-Retain the existing graph-specific progression with clearer UI wording:
+Use one broadened question for each familiarity scope:
+
+> Before beginning this review, how familiar are you with [resource], including
+> its data, data model and knowledge-graph representation?
+
+For a federation-level scope, use:
+
+> Before beginning this review, how familiar are you with [federation] as a
+> federation, including its integrated data, data model, named graphs and
+> cross-graph query environment?
+
+Use this five-stage progression:
 
 | Stored value | Reviewer-facing label | Suggested explanation |
 |---|---|---|
-| `none` | Not previously familiar | I had not meaningfully inspected this KG before this round. |
-| `inspected` | Inspected | I have browsed its data, documentation, or ontology. |
-| `queried` | Queried | I have written or examined queries against it. |
-| `regular_user` | Regular user | I use or maintain it repeatedly in my work. |
-| `creator` | Creator / core contributor | I created it or made substantial contributions to its design or data. |
+| `none` | Not previously familiar | I had no meaningful prior familiarity with the resource, its data or its graph representation. |
+| `inspected` | Inspected / browsed | I have browsed the resource or inspected its data, documentation, ontology or data model. |
+| `worked` | Worked with / queried | I have worked with its data or written or examined queries against it. |
+| `regular_user` | Regular user / maintainer | I use or maintain the resource, data or graph repeatedly in my work. |
+| `creator` | Creator / core contributor | I created it or made substantial contributions to its source data, design, model or graph representation. |
 
 These categories are ordered operationally, but `creator` should not be treated
 as proof of subject expertise. The two measures remain analytically separate.
 
 ## 10. Repeated pre-review assessment
 
-KG-specific subject expertise and KG familiarity should be recorded before
-every assignment or review round, before review items are shown.
+KG-specific subject expertise and declared familiarity scopes should be recorded
+before every assignment or review round, before review items are shown.
 
-The application should display the most recent answers as defaults and ask the
-reviewer to confirm or change them. A single “Continue” action records a new
-timestamped assessment even when the values are unchanged.
+For a first assessment, the application should show blank controls. For a
+returning reviewer, it should preselect the most recent answers and ask:
+
+> Have any of these changed since your previous assessment?
+
+The reviewer can change any answer or confirm that they are unchanged. A single
+“Confirm and continue” action records a new timestamped assessment even when the
+values are unchanged. Add a short note:
+
+> You can update these answers later from your profile page.
+
+Profile-page changes must create another timestamped assertion; they must not
+overwrite the assessment that applied before an earlier review. The next
+pre-review screen uses the most recent profile or pre-review assertion as its
+default and asks for confirmation again.
 
 This design:
 
@@ -498,6 +638,7 @@ bundle_digest
 previous_benchmark_path     nullable
 processing_recipe
 holdout_capability          false for ordinary remote review
+kg_seed_versions            mapping of assigned kg_id to frozen seed version
 created_at
 opened_at                   nullable
 submitted_at                nullable
@@ -506,22 +647,46 @@ submitted_at                nullable
 Assignment paths and recipes are selected by trusted server code or an owner
 control. They are never accepted verbatim from a reviewer request.
 
-### 11.9 `assignment_kg_assessments`
+### 11.9a `reviewer_kg_domain_assessments`
 
 ```text
 id
-assignment_id
 reviewer_id
 kg_id
+review_domain_id
 review_domain_label         confidential snapshot of the prompt shown
 subject_expertise_level
-kg_familiarity_level
 assessed_at
+context                     pre_review, profile
+assignment_id               required for pre_review; null for profile
+seed_version
 previous_assessment_id      nullable
 ```
 
-These records are confidential. They do not enter the bundle, submitted review
-export, benchmark, or public provenance.
+One row is recorded for every domain declared by the assigned KG seed.
+
+### 11.9b `reviewer_resource_familiarity_assessments`
+
+```text
+id
+reviewer_id
+kg_id
+familiarity_scope_id
+familiarity_scope_label     confidential snapshot of the resource shown
+familiarity_level
+assessed_at
+context                     pre_review, profile
+assignment_id               required for pre_review; null for profile
+seed_version
+previous_assessment_id      nullable
+```
+
+One familiarity row is recorded for every scope declared by the assigned KG
+seed. A simple KG normally declares one scope; LinkedMusic declares its five
+current component resources and the federation. Both assessment tables are
+confidential. They do not enter the bundle, submitted review export, benchmark,
+or public provenance. Profile updates append new rows and never overwrite earlier
+assessments.
 
 ### 11.10 `review_submissions`
 
@@ -971,11 +1136,19 @@ Exit criteria:
 
 ### Phase 1 — schemas and KG review domains
 
+Status: completed on 2026-08-18. The tracked implementation consists of the v2
+profile and repeated-assessment schemas, synthetic examples and Python
+validators; versioned review domains and familiarity scopes in
+`catalog/seeds.yaml`; the versioned local expertise suggestion snapshot; and
+the corresponding data-model and privacy documentation. Legacy confidential
+registry contracts remain explicit inputs to the owner-run Phase 2 migration.
+
 Work:
 
 - replace scalar general domain expertise with repeatable domain assertions;
 - create repeated assignment assessment schemas;
-- define `review_domain` in the KG seed contract;
+- define repeatable `review_domains` and `familiarity_scopes` in the versioned KG
+  seed contract;
 - add reviewed domain descriptions for every initially eligible KG;
 - add vocabulary snapshot metadata; and
 - update validators, data-model documentation, and synthetic tests.
@@ -1235,14 +1408,26 @@ Before real deployment, add concise runbooks for:
 
 ## 26. Decisions still required from the owner
 
-Before Phase 1:
+Before Phase 1 (completed):
 
-- approve or amend the proposed expertise scale;
-- approve EuroSciVoc as the primary suggestion source;
-- decide whether an optional FORD mapping is worth retaining;
-- author or approve `review_domain` labels and descriptions for pilot KGs; and
-- decide whether previous KG assessments should be preselected or merely shown
-  alongside blank controls.
+- [decided] keep general domain expertise, KG-specific subject expertise, and
+  resource/data-model/KG familiarity as three separate measurements;
+- [decided] use the displayed 0–4 expertise scale: none, basic, working
+  knowledge, advanced, and expert;
+- [decided] use the broadened five familiarity stages: not previously familiar,
+  inspected/browsed, worked with/queried, regular user/maintainer, and
+  creator/core contributor;
+- [decided] use a hybrid local suggestion set, initially informed by EuroSciVoc
+  but always allowing exact free text;
+- [decided] defer FORD mapping unless a later reporting requirement justifies
+  it;
+- [decided] use the reviewed `review_domains` labels and descriptions recorded
+  in `catalog/seeds.yaml` for every initially eligible KG;
+- [decided] declare federated and broad KG domains in the versioned seed without
+  runtime query or named-graph inspection;
+- [decided] preselect the latest KG assessment for returning reviewers, ask
+  explicitly whether it has changed, and allow later profile-page updates
+  without overwriting historical assessments.
 
 Before Phase 3:
 
@@ -1269,7 +1454,7 @@ Before Phase 10:
 Begin with Phase 0 and Phase 1 only. Specifically:
 
 1. Approve the expertise concepts, levels, and controlled-vocabulary strategy.
-2. Add the `review_domain` contract and write descriptions for a small pilot set
+2. Add the `review_domains` contract and write descriptions for a small pilot set
    of KGs.
 3. Design the new schemas and synthetic examples.
 4. Update validators and durable data-model documentation.

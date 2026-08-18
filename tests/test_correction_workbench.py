@@ -48,7 +48,31 @@ def candidate_for(row: dict, status: str = "http_error") -> dict:
 
 def workbench(tmp_path: Path, row: dict, candidate: dict, provider=None, holdouts=set()) -> Workbench:
     seeds = tmp_path / "seeds.yaml"
-    seeds.write_text("kgs: []\n", encoding="utf-8")
+    seeds.write_text(
+        "schema: musparql.kg-seeds.v2\n"
+        "kgs:\n"
+        "  - kg_id: synthetic-kg\n"
+        "    seed_version: synthetic-v1\n"
+        "    name: Synthetic Knowledge Graph\n"
+        "    project: Synthetic Project\n"
+        "    description_hint: Obviously synthetic graph used by the test.\n"
+        "    dataset:\n"
+        "      dump_url: https://example.invalid/synthetic.ttl\n"
+        "      local_path: var/cache/dumps/synthetic.ttl\n"
+        "      format: turtle\n"
+        "    source_ids: [synthetic-source]\n"
+        "    priority: low\n"
+        "    notes: Synthetic test seed.\n"
+        "    review_domains:\n"
+        "      - domain_id: synthetic-domain\n"
+        "        label: Synthetic domain\n"
+        "        description: Obviously synthetic test subject.\n"
+        "    familiarity_scopes:\n"
+        "      - scope_id: synthetic-kg\n"
+        "        label: Synthetic knowledge graph\n"
+        "        kind: knowledge_graph\n",
+        encoding="utf-8",
+    )
     bundle = build_payload([candidate], selector_keys=set(), source_path="synthetic", input_policy="synthetic")
     return Workbench(
         bundle=bundle, queries=[row], holdout_pairs=holdouts, seeds_path=seeds,

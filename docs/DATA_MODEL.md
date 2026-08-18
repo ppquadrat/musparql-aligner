@@ -15,16 +15,36 @@ Derivatives identify their parent sources.
 
 ### `catalog/seeds.yaml`
 
-Selects source IDs for each KG and stores operational KG configuration:
+Declares schema `musparql.kg-seeds.v2`, selects source IDs for each KG, and
+stores operational and reviewer-measurement configuration:
 
-- `kg_id` and display name;
+- `kg_id`, display name, and independently frozen `seed_version`;
 - source IDs;
 - SPARQL endpoint, authentication mode, and optional graph;
 - optional local dump path and format; and
+- one or more owner-approved `review_domains`, each with a stable ID, label,
+  description, and optional owner-verified vocabulary mappings;
+- one or more `familiarity_scopes`, each identifying a resource, knowledge
+  graph, or federation; and
 - project-specific notes.
 
 Repository and document lists are hydrated from the source catalogue rather
-than duplicated manually.
+than duplicated manually. `schemas/kg_seeds.schema.json` and the Python seed
+loader enforce the contract. The application asks every domain and familiarity
+scope declared by the frozen seed; it does not infer them from queries or named
+graphs.
+
+### `catalog/expertise_domain_suggestions.yaml`
+
+A small, versioned local suggestion set for general reviewer expertise. It
+records a snapshot ID, creation date, source/version metadata, preferred and
+alternative labels, language, broader local concepts, and vocabulary URI/version
+when a concept has actually been imported and verified. The Phase 1 snapshot
+contains owner-reviewed specialist music terms and records EuroSciVoc as a
+reference-only source; it does not claim unverified EuroSciVoc mappings.
+
+Free-text entry remains valid even when the file has no matching suggestion.
+The contract is `schemas/expertise_domain_suggestions.schema.json`.
 
 ### `catalog/kgs.jsonl`
 
@@ -118,17 +138,32 @@ file whenever possible.
 ### Confidential reviewer registry
 
 Reviewer profiles are durable human-supplied data under
-`confidential/reviewers/`, not rebuildable pipeline state under `var/`.
-`reviewers.jsonl` stores pseudonymous IDs, names, affiliations, email addresses,
-four experience levels, language expertise keyed by language tag, and the
-acknowledged privacy-notice version and time. `kg_familiarity.jsonl` stores one
-`reviewer_id`/`kg_id` familiarity assertion. Both data files are ignored by Git
-and require an owner-managed confidential backup. Their contracts are
-`schemas/reviewer.schema.json` and
-`schemas/reviewer_kg_familiarity.schema.json`.
+`confidential/reviewers/`, not rebuildable pipeline state under `var/`. The
+legacy JSONL registry remains governed by `schemas/reviewer.schema.json` and
+`schemas/reviewer_kg_familiarity.schema.json` until the owner-run Phase 2
+migration. Those legacy frequency-like values must not be reinterpreted as v2
+expertise levels.
 
-Only IDs matching `reviewer-NNNN` may cross into review artifacts. Profile and
-familiarity fields never enter bundles, exports, benchmarks, logs, or fixtures.
+The Phase 1 v2 confidential contracts are:
+
+- `schemas/reviewer_profile_v2.schema.json`: identity, contact and technical
+  experience plus repeatable general-domain assertions. Each assertion preserves
+  entered and normalized labels, the semantic 0–4 expertise value, timestamps,
+  and nullable vocabulary provenance.
+- `schemas/reviewer_kg_domain_assessment.schema.json`: an append-only subject
+  expertise assertion for one domain in a frozen KG seed.
+- `schemas/reviewer_resource_familiarity_assessment.schema.json`: an append-only
+  familiarity assertion for one resource/KG/federation scope in that seed.
+
+Assessment rows snapshot the prompt label and seed version, record whether they
+came from a pre-review confirmation or profile change, link the preceding
+assertion when present, and require an assignment ID only for pre-review rows.
+Examples under `schemas/examples/` are obviously synthetic.
+
+Only IDs matching `reviewer-NNNN` may cross into review artifacts. Profile,
+domain-assessment, and familiarity fields never enter bundles, submitted review
+exports, benchmarks, prompts, or logs. Synthetic fixtures are the sole exception
+for schema and validator testing.
 
 The browser bundle is generated and ignored. It contains candidate records,
 their run provenance, source evidence, SPARQL provenance, and holdout eligibility

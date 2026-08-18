@@ -1,0 +1,56 @@
+schema: musparql.expertise-domain-suggestions.v1
+snapshot_id: musparql-expertise-domains-2026-08-18.1
+created_on: "2026-08-18"
+sources:
+  - source_id: musparql-owner-reviewed-terms
+    kind: owner_reviewed_project_terms
+    title: Musparql owner-reviewed specialist domain terms
+    source_version: "1"
+    usage: suggestion_entries
+  - source_id: euroscivoc-reference
+    kind: external_vocabulary
+    title: European Science Vocabulary (EuroSciVoc)
+    url: https://op.europa.eu/en/web/eu-vocabularies/euroscivoc
+    source_version: null
+    usage: reference_only
+    note: >
+      Phase 1 records EuroSciVoc as an initial reference source but imports no
+      unverified concepts. Later snapshots must record the source release and
+      stable concept URIs for any imported entries.
+suggestions:
+  - suggestion_id: computational-musicology
+    preferred_label: Computational musicology
+    alternative_labels: []
+    language: en
+    broader_suggestion_ids: []
+    source_id: musparql-owner-reviewed-terms
+  - suggestion_id: music-information-retrieval
+    preferred_label: Music information retrieval
+    alternative_labels: [MIR]
+    language: en
+    broader_suggestion_ids: []
+    source_id: musparql-owner-reviewed-terms
+  - suggestion_id: performance-studies
+    preferred_label: Performance studies
+    alternative_labels: []
+    language: en
+    broader_suggestion_ids: []
+    source_id: musparql-owner-reviewed-terms
+  - suggestion_id: music-cognition
+    preferred_label: Music cognition
+    alternative_labels: []
+    language: en
+    broader_suggestion_ids: []
+    source_id: musparql-owner-reviewed-terms
+  - suggestion_id: music-computing
+    preferred_label: Music computing
+    alternative_labels: []
+    language: en
+    broader_suggestion_ids: []
+    source_id: musparql-owner-reviewed-terms
+  - suggestion_id: singing-research
+    preferred_label: Singing research
+    alternative_labels: []
+    language: en
+    broader_suggestion_ids: []
+    source_id: musparql-owner-reviewed-terms

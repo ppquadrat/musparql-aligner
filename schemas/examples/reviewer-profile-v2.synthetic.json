@@ -1,0 +1,25 @@
+{
+  "schema": "musparql.reviewer-profile.v2",
+  "id": "reviewer-0042",
+  "name": "Synthetic Reviewer",
+  "affiliation": "Example Institute",
+  "email": "synthetic@example.invalid",
+  "domain_expertise": [
+    {
+      "entered_label": "Synthetic music studies",
+      "normalized_label": "synthetic music studies",
+      "vocabulary_name": null,
+      "vocabulary_concept_uri": null,
+      "vocabulary_version": null,
+      "expertise_level": "working",
+      "first_asserted_at": "2026-01-01T10:00:00Z",
+      "updated_at": "2026-01-01T10:00:00Z"
+    }
+  ],
+  "kg_ontology_experience": "regular",
+  "sparql_experience": "occasional",
+  "nlp_llm_experience": "none",
+  "language_expertise": {"en": "fluent"},
+  "privacy_notice_version": "synthetic-v2",
+  "privacy_notice_acknowledged_at": "2026-01-01T10:00:00Z"
+}

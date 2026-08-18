@@ -78,6 +78,10 @@ def normalize_kgs(path: Path, seeds_path: Path, sources_path: Path) -> int:
         seed = hydrated.get(str(record.get("kg_id")))
         if seed is None:
             continue
+        for field in ("seed_version", "review_domains", "familiarity_scopes"):
+            if record.get(field) != seed.get(field):
+                record[field] = seed.get(field)
+                changed += 1
         source_records = seed.get("source_records") or []
         source_ids = [source.get("source_id") for source in source_records]
         if record.get("source_ids") != source_ids:

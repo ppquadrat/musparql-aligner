@@ -27,6 +27,7 @@ class SparqlConfig:
 class KGSeed:
     kg_id: str
     name: str
+    seed_version: str
     project: Optional[str] = None
     description_hint: Optional[str] = None
     sparql: Optional[SparqlConfig] = None
@@ -37,6 +38,8 @@ class KGSeed:
     dataset: Optional["KGDataset"] = None
     source_ids: List[str] = None
     source_records: List[Dict[str, Any]] = None
+    review_domains: List[Dict[str, Any]] = None
+    familiarity_scopes: List[Dict[str, Any]] = None
 
 
 @dataclass
@@ -371,6 +374,7 @@ def parse_kg_seed(raw: Dict[str, Any]) -> KGSeed:
     return KGSeed(
         kg_id=kg_id.strip(),
         name=name.strip(),
+        seed_version=str(raw["seed_version"]),
         project=raw.get("project"),
         description_hint=raw.get("description_hint"),
         sparql=sparql_cfg,
@@ -381,6 +385,8 @@ def parse_kg_seed(raw: Dict[str, Any]) -> KGSeed:
         dataset=dataset_cfg,
         source_ids=list(raw.get("source_ids") or []),
         source_records=list(raw.get("source_records") or []),
+        review_domains=list(raw.get("review_domains") or []),
+        familiarity_scopes=list(raw.get("familiarity_scopes") or []),
     )
 
 
@@ -404,6 +410,7 @@ def kgseed_to_record(kg: KGSeed) -> Dict[str, Any]:
         }
     return {
         "kg_id": kg.kg_id,
+        "seed_version": kg.seed_version,
         "name": kg.name,
         "project": kg.project,
         "description": None,
@@ -417,6 +424,8 @@ def kgseed_to_record(kg: KGSeed) -> Dict[str, Any]:
         "updated_at": today,
         "description_hint": kg.description_hint,
         "priority": kg.priority,
+        "review_domains": list(kg.review_domains or []),
+        "familiarity_scopes": list(kg.familiarity_scopes or []),
     }
 
 

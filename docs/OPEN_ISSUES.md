@@ -9,13 +9,13 @@ notes.
 
 ### Reviewer profile administration UI
 
-Reviewer profiles and per-KG familiarity have schemas, validation helpers, a
-privacy notice, and a confidential storage contract, but there is no owner-only
-profile administration form yet. Until one exists, the human owner must create
-and update those ignored files outside agent-visible workflows and validate
-them with the documented contracts. The Python validators enforce the tracked
-schemas' field sets, enumerations, language-tag pattern, email shape, reviewer
-IDs, and timezone-qualified timestamps.
+Reviewer profiles, repeatable general-domain expertise, KG-specific subject
+expertise, and resource/data-model/KG familiarity have versioned Phase 1 schemas,
+validation helpers, synthetic examples, a privacy notice, and a confidential
+storage boundary, but there is no owner-only profile administration form or v2
+database yet. Until Phase 2 migration and the later administration UI exist, the
+human owner must maintain the legacy ignored registry outside agent-visible
+workflows. The legacy values must not be silently reinterpreted as v2 levels.
 
 Before implementing the form, decide and document:
 

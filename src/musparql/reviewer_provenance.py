@@ -13,6 +13,10 @@ RFC3339_DATETIME_RE = re.compile(
 EXPERIENCE_LEVELS = frozenset({"none", "occasional", "regular", "expert"})
 LANGUAGE_LEVELS = frozenset({"basic", "advanced", "fluent", "native"})
 KG_FAMILIARITY_LEVELS = frozenset({"none", "inspected", "queried", "regular_user", "creator"})
+SUBJECT_EXPERTISE_LEVELS = frozenset({"none", "basic", "working", "advanced", "expert"})
+RESOURCE_FAMILIARITY_LEVELS = frozenset(
+    {"none", "inspected", "worked", "regular_user", "creator"}
+)
 PUBLIC_REVIEWER_ID_FIELDS = frozenset({"reviewer_id", "authored_by_reviewer_id"})
 PUBLIC_REVIEWER_ID_LIST_FIELDS = frozenset({"approval_reviewer_ids"})
 REVIEWER_PROFILE_FIELDS = frozenset({
@@ -22,6 +26,25 @@ REVIEWER_PROFILE_FIELDS = frozenset({
     "privacy_notice_acknowledged_at",
 })
 KG_FAMILIARITY_FIELDS = frozenset({"reviewer_id", "kg_id", "familiarity"})
+REVIEWER_PROFILE_V2_FIELDS = frozenset({
+    "schema", "id", "name", "affiliation", "email", "domain_expertise",
+    "kg_ontology_experience", "sparql_experience", "nlp_llm_experience",
+    "language_expertise", "privacy_notice_version", "privacy_notice_acknowledged_at",
+})
+DOMAIN_EXPERTISE_FIELDS = frozenset({
+    "entered_label", "normalized_label", "vocabulary_name", "vocabulary_concept_uri",
+    "vocabulary_version", "expertise_level", "first_asserted_at", "updated_at",
+})
+KG_DOMAIN_ASSESSMENT_FIELDS = frozenset({
+    "schema", "id", "reviewer_id", "kg_id", "review_domain_id", "review_domain_label",
+    "subject_expertise_level", "assessed_at", "context", "assignment_id", "seed_version",
+    "previous_assessment_id",
+})
+RESOURCE_FAMILIARITY_ASSESSMENT_FIELDS = frozenset({
+    "schema", "id", "reviewer_id", "kg_id", "familiarity_scope_id",
+    "familiarity_scope_label", "familiarity_level", "assessed_at", "context",
+    "assignment_id", "seed_version", "previous_assessment_id",
+})
 LANGUAGE_TAG_RE = re.compile(r"^[a-z]{2,3}(?:-[A-Z]{2})?$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+$")
 REVIEW_EVENT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]*::(reviewer-[0-9]{4,})$")
@@ -53,6 +76,7 @@ def _iso_datetime(value: Any, field: str) -> str:
 
 
 def validate_reviewer(record: Mapping[str, Any]) -> None:
+    """Validate the legacy confidential registry contract pending Phase 2 migration."""
     unknown = set(record) - REVIEWER_PROFILE_FIELDS
     if unknown:
         raise ValueError(f"Reviewer has unsupported fields: {sorted(unknown)}")
@@ -79,6 +103,149 @@ def validate_reviewer(record: Mapping[str, Any]) -> None:
     if any(level not in LANGUAGE_LEVELS for level in languages.values()):
         raise ValueError("Unsupported language expertise level")
     _iso_datetime(record.get("privacy_notice_acknowledged_at"), "privacy_notice_acknowledged_at")
+
+
+def _required_text(record: Mapping[str, Any], field: str, subject: str) -> str:
+    value = record.get(field)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{subject} requires {field}")
+    return value
+
+
+def validate_reviewer_profile_v2(record: Mapping[str, Any]) -> None:
+    missing = REVIEWER_PROFILE_V2_FIELDS - set(record)
+    if missing:
+        raise ValueError(f"Reviewer profile is missing fields: {sorted(missing)}")
+    unknown = set(record) - REVIEWER_PROFILE_V2_FIELDS
+    if unknown:
+        raise ValueError(f"Reviewer profile has unsupported fields: {sorted(unknown)}")
+    if record.get("schema") != "musparql.reviewer-profile.v2":
+        raise ValueError("Reviewer profile requires schema musparql.reviewer-profile.v2")
+    validate_reviewer_id(record.get("id"))
+    for field in ("name", "privacy_notice_version"):
+        _required_text(record, field, "Reviewer profile")
+    for field in ("affiliation", "email"):
+        if not isinstance(record.get(field), str):
+            raise ValueError(f"Reviewer profile requires string field {field}")
+    if not EMAIL_RE.fullmatch(str(record["email"])):
+        raise ValueError("Reviewer profile email is invalid")
+    for field in ("kg_ontology_experience", "sparql_experience", "nlp_llm_experience"):
+        if record.get(field) not in EXPERIENCE_LEVELS:
+            raise ValueError(f"Unsupported {field}")
+    languages = record.get("language_expertise")
+    if not isinstance(languages, Mapping) or not languages:
+        raise ValueError("Reviewer profile requires language_expertise")
+    if any(not isinstance(tag, str) or not LANGUAGE_TAG_RE.fullmatch(tag) for tag in languages):
+        raise ValueError("Reviewer profile language_expertise keys must be language tags")
+    if any(level not in LANGUAGE_LEVELS for level in languages.values()):
+        raise ValueError("Unsupported language expertise level")
+    domains = record.get("domain_expertise")
+    if not isinstance(domains, list) or not domains:
+        raise ValueError("Reviewer profile requires domain_expertise assertions")
+    seen_domains: set[str] = set()
+    for index, domain in enumerate(domains):
+        if not isinstance(domain, Mapping):
+            raise ValueError(f"domain_expertise[{index}] must be an object")
+        missing_domain = DOMAIN_EXPERTISE_FIELDS - set(domain)
+        if missing_domain:
+            raise ValueError(f"Domain expertise is missing fields: {sorted(missing_domain)}")
+        unknown_domain = set(domain) - DOMAIN_EXPERTISE_FIELDS
+        if unknown_domain:
+            raise ValueError(f"Domain expertise has unsupported fields: {sorted(unknown_domain)}")
+        _required_text(domain, "entered_label", "Domain expertise")
+        normalized = _required_text(domain, "normalized_label", "Domain expertise")
+        if normalized in seen_domains:
+            raise ValueError(f"Duplicate normalized domain expertise: {normalized}")
+        seen_domains.add(normalized)
+        if domain.get("expertise_level") not in SUBJECT_EXPERTISE_LEVELS:
+            raise ValueError("Unsupported domain expertise level")
+        vocabulary_values = [
+            domain.get("vocabulary_name"), domain.get("vocabulary_concept_uri"),
+            domain.get("vocabulary_version"),
+        ]
+        if any(value is not None and not _nonempty_string(value) for value in vocabulary_values):
+            raise ValueError("Domain vocabulary fields must be non-empty strings or null")
+        if domain.get("vocabulary_concept_uri") is not None and not re.match(
+            r"^https?://", str(domain["vocabulary_concept_uri"])
+        ):
+            raise ValueError("Domain vocabulary_concept_uri must use http or https")
+        if domain.get("vocabulary_name") is None and any(value is not None for value in vocabulary_values[1:]):
+            raise ValueError("Domain vocabulary URI/version requires vocabulary_name")
+        if domain.get("vocabulary_name") is not None and any(
+            value is None for value in vocabulary_values[1:]
+        ):
+            raise ValueError("Domain vocabulary selection requires URI and version")
+        _iso_datetime(domain.get("first_asserted_at"), "first_asserted_at")
+        _iso_datetime(domain.get("updated_at"), "updated_at")
+    _iso_datetime(record.get("privacy_notice_acknowledged_at"), "privacy_notice_acknowledged_at")
+
+
+def _nonempty_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _validate_longitudinal_assessments(
+    records: Sequence[Mapping[str, Any]], *, domain: bool, reviewer_ids: set[str] | None
+) -> None:
+    expected_schema = (
+        "musparql.reviewer-kg-domain-assessment.v1"
+        if domain else "musparql.reviewer-resource-familiarity-assessment.v1"
+    )
+    allowed_fields = KG_DOMAIN_ASSESSMENT_FIELDS if domain else RESOURCE_FAMILIARITY_ASSESSMENT_FIELDS
+    subject = "KG domain assessment" if domain else "Resource familiarity assessment"
+    seen_ids: set[str] = set()
+    for record in records:
+        missing = allowed_fields - set(record)
+        if missing:
+            raise ValueError(f"{subject} is missing fields: {sorted(missing)}")
+        unknown = set(record) - allowed_fields
+        if unknown:
+            raise ValueError(f"{subject} has unsupported fields: {sorted(unknown)}")
+        if record.get("schema") != expected_schema:
+            raise ValueError(f"{subject} requires schema {expected_schema}")
+        assessment_id = _required_text(record, "id", subject)
+        if assessment_id in seen_ids:
+            raise ValueError(f"Duplicate assessment id: {assessment_id}")
+        seen_ids.add(assessment_id)
+        reviewer_id = validate_reviewer_id(record.get("reviewer_id"))
+        if reviewer_ids is not None and reviewer_id not in reviewer_ids:
+            raise ValueError(f"Unknown reviewer_id in {subject.lower()}: {reviewer_id}")
+        for field in ("kg_id", "seed_version"):
+            _required_text(record, field, subject)
+        id_field = "review_domain_id" if domain else "familiarity_scope_id"
+        label_field = "review_domain_label" if domain else "familiarity_scope_label"
+        _required_text(record, id_field, subject)
+        _required_text(record, label_field, subject)
+        level_field = "subject_expertise_level" if domain else "familiarity_level"
+        levels = SUBJECT_EXPERTISE_LEVELS if domain else RESOURCE_FAMILIARITY_LEVELS
+        if record.get(level_field) not in levels:
+            raise ValueError(f"Unsupported {level_field}")
+        context = record.get("context")
+        assignment_id = record.get("assignment_id")
+        if context not in {"pre_review", "profile"}:
+            raise ValueError(f"Unsupported {subject.lower()} context")
+        if context == "pre_review" and not _nonempty_string(assignment_id):
+            raise ValueError(f"{subject} pre_review context requires assignment_id")
+        if context == "profile" and assignment_id is not None:
+            raise ValueError(f"{subject} profile context requires null assignment_id")
+        previous = record.get("previous_assessment_id")
+        if previous is not None and not _nonempty_string(previous):
+            raise ValueError("previous_assessment_id must be a non-empty string or null")
+        if previous == assessment_id:
+            raise ValueError("previous_assessment_id cannot reference the current assessment")
+        _iso_datetime(record.get("assessed_at"), "assessed_at")
+
+
+def validate_kg_domain_assessments(
+    records: Sequence[Mapping[str, Any]], *, reviewer_ids: set[str] | None = None
+) -> None:
+    _validate_longitudinal_assessments(records, domain=True, reviewer_ids=reviewer_ids)
+
+
+def validate_resource_familiarity_assessments(
+    records: Sequence[Mapping[str, Any]], *, reviewer_ids: set[str] | None = None
+) -> None:
+    _validate_longitudinal_assessments(records, domain=False, reviewer_ids=reviewer_ids)
 
 
 def validate_kg_familiarities(

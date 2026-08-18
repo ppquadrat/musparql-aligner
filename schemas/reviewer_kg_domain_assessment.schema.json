@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/reviewer_kg_domain_assessment.schema.json",
+  "title": "MuSPARQL confidential repeated KG-domain assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "id", "reviewer_id", "kg_id", "review_domain_id",
+    "review_domain_label", "subject_expertise_level", "assessed_at", "context",
+    "assignment_id", "seed_version", "previous_assessment_id"
+  ],
+  "properties": {
+    "schema": {"const": "musparql.reviewer-kg-domain-assessment.v1"},
+    "id": {"type": "string", "minLength": 1},
+    "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
+    "kg_id": {"type": "string", "minLength": 1},
+    "review_domain_id": {"type": "string", "minLength": 1},
+    "review_domain_label": {"type": "string", "minLength": 1},
+    "subject_expertise_level": {
+      "type": "string",
+      "enum": ["none", "basic", "working", "advanced", "expert"]
+    },
+    "assessed_at": {"type": "string", "format": "date-time"},
+    "context": {"type": "string", "enum": ["pre_review", "profile"]},
+    "assignment_id": {"type": ["string", "null"], "minLength": 1},
+    "seed_version": {"type": "string", "minLength": 1},
+    "previous_assessment_id": {"type": ["string", "null"], "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"context": {"const": "pre_review"}}},
+      "then": {"properties": {"assignment_id": {"type": "string", "minLength": 1}}},
+      "else": {"properties": {"assignment_id": {"type": "null"}}}
+    }
+  ]
+}

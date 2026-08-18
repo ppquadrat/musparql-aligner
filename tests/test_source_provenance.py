@@ -81,7 +81,27 @@ class SourceProvenanceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             seeds.write_text(
-                "kgs:\n  - kg_id: test\n    source_ids: [first, second]\n",
+                "schema: musparql.kg-seeds.v2\n"
+                "kgs:\n"
+                "  - kg_id: test\n"
+                "    seed_version: synthetic-v1\n"
+                "    name: Synthetic Knowledge Graph\n"
+                "    project: Synthetic Project\n"
+                "    description_hint: Obviously synthetic graph used by the test.\n"
+                "    sparql:\n"
+                "      endpoint: https://example.invalid/sparql\n"
+                "      auth: none\n"
+                "    source_ids: [first, second]\n"
+                "    priority: low\n"
+                "    notes: Synthetic test seed.\n"
+                "    review_domains:\n"
+                "      - domain_id: synthetic\n"
+                "        label: Synthetic domain\n"
+                "        description: Obviously synthetic test subject.\n"
+                "    familiarity_scopes:\n"
+                "      - scope_id: synthetic\n"
+                "        label: Synthetic graph\n"
+                "        kind: knowledge_graph\n",
                 encoding="utf-8",
             )
             kgs.write_text(

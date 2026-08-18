@@ -1,0 +1,14 @@
+{
+  "schema": "musparql.reviewer-resource-familiarity-assessment.v1",
+  "id": "synthetic-familiarity-assessment-0001",
+  "reviewer_id": "reviewer-0042",
+  "kg_id": "synthetic-kg",
+  "familiarity_scope_id": "synthetic-resource",
+  "familiarity_scope_label": "Synthetic Music Resource",
+  "familiarity_level": "worked",
+  "assessed_at": "2026-01-02T10:00:00Z",
+  "context": "pre_review",
+  "assignment_id": "synthetic-assignment-0001",
+  "seed_version": "synthetic-seed-v1",
+  "previous_assessment_id": null
+}

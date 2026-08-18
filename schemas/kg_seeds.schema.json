@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/kg_seeds.schema.json",
+  "title": "MuSPARQL versioned KG seed catalogue v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "kgs"],
+  "properties": {
+    "schema": {"const": "musparql.kg-seeds.v2"},
+    "kgs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/kg_seed"}
+    }
+  },
+  "$defs": {
+    "nonempty": {"type": "string", "minLength": 1},
+    "vocabulary_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vocabulary", "concept_uri", "owner_verified"],
+      "properties": {
+        "vocabulary": {"$ref": "#/$defs/nonempty"},
+        "concept_uri": {"type": "string", "format": "uri"},
+        "owner_verified": {"const": true}
+      }
+    },
+    "review_domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain_id", "label", "description"],
+      "properties": {
+        "domain_id": {"$ref": "#/$defs/nonempty"},
+        "label": {"$ref": "#/$defs/nonempty"},
+        "description": {"$ref": "#/$defs/nonempty"},
+        "vocabulary_mappings": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/vocabulary_mapping"}
+        }
+      }
+    },
+    "familiarity_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope_id", "label", "kind"],
+      "properties": {
+        "scope_id": {"$ref": "#/$defs/nonempty"},
+        "label": {"$ref": "#/$defs/nonempty"},
+        "kind": {"enum": ["resource", "knowledge_graph", "federation"]}
+      }
+    },
+    "sparql_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint", "auth"],
+      "properties": {
+        "endpoint": {"type": "string", "format": "uri"},
+        "auth": {"$ref": "#/$defs/nonempty"},
+        "graph": {"type": "string", "format": "uri"},
+        "expected_namespaces": {
+          "type": "array",
+          "items": {"type": "string", "format": "uri"}
+        },
+        "fallbacks": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/sparql_fallback"}
+        }
+      }
+    },
+    "sparql_fallback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint", "auth"],
+      "properties": {
+        "endpoint": {"type": "string", "format": "uri"},
+        "auth": {"$ref": "#/$defs/nonempty"},
+        "graph": {"type": "string", "format": "uri"}
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dump_url", "local_path", "format"],
+      "properties": {
+        "dump_url": {"type": "string", "format": "uri"},
+        "local_path": {"$ref": "#/$defs/nonempty"},
+        "format": {"$ref": "#/$defs/nonempty"}
+      }
+    },
+    "kg_seed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kg_id", "seed_version", "name", "project", "description_hint",
+        "source_ids", "priority", "notes", "review_domains", "familiarity_scopes"
+      ],
+      "properties": {
+        "kg_id": {"$ref": "#/$defs/nonempty"},
+        "seed_version": {"$ref": "#/$defs/nonempty"},
+        "name": {"$ref": "#/$defs/nonempty"},
+        "project": {"$ref": "#/$defs/nonempty"},
+        "description_hint": {"$ref": "#/$defs/nonempty"},
+        "sparql": {"$ref": "#/$defs/sparql_target"},
+        "dataset": {"$ref": "#/$defs/dataset"},
+        "source_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/nonempty"}
+        },
+        "priority": {"enum": ["high", "medium", "low"]},
+        "notes": {"$ref": "#/$defs/nonempty"},
+        "review_domains": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/review_domain"}
+        },
+        "familiarity_scopes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/familiarity_scope"}
+        }
+      },
+      "anyOf": [{"required": ["sparql"]}, {"required": ["dataset"]}]
+    }
+  }
+}

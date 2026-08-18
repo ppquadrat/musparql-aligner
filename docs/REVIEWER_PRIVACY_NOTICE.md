@@ -22,5 +22,9 @@ it must not be described as consent unless the controller has selected consent
 as the lawful basis and implemented freely given, specific, informed,
 unambiguous, and withdrawable consent.
 
-The form should collect only the fields in `schemas/reviewer.schema.json`.
-Tests and examples must use synthetic people.
+The v2 form should collect only the fields in
+`schemas/reviewer_profile_v2.schema.json`. Repeated pre-review and profile-page
+assessments must use `schemas/reviewer_kg_domain_assessment.schema.json` and
+`schemas/reviewer_resource_familiarity_assessment.schema.json`. The legacy
+`schemas/reviewer.schema.json` remains valid only for the pre-migration local
+registry. Tests and examples must use synthetic people.
