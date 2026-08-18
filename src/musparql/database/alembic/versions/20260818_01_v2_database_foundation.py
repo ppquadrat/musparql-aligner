@@ -132,7 +132,7 @@ def upgrade() -> None:
         sa.Column("submitted_at", sa.String()),
         sa.UniqueConstraint("id", "reviewer_id", name="uq_assignment_reviewer"),
         sa.UniqueConstraint("id", "processing_recipe", name="uq_assignment_recipe"),
-        sa.CheckConstraint("mode IN ('initial','compare','sparql_correction')", name="ck_assignment_mode"),
+        sa.CheckConstraint("mode IN ('initial','compare')", name="ck_assignment_mode"),
         sa.CheckConstraint(
             "status IN ('draft','ready','active','submitted','processing','ready_for_owner_review','approved','failed')",
             name="ck_assignment_status",
@@ -143,6 +143,13 @@ def upgrade() -> None:
             "processing_recipe IN ('validate_initial_review','stage_initial_benchmark_update',"
             "'validate_comparative_review','stage_comparative_benchmark_update')",
             name="ck_assignment_recipe",
+        ),
+        sa.CheckConstraint(
+            "(mode = 'initial' AND processing_recipe IN "
+            "('validate_initial_review','stage_initial_benchmark_update')) OR "
+            "(mode = 'compare' AND processing_recipe IN "
+            "('validate_comparative_review','stage_comparative_benchmark_update'))",
+            name="ck_assignment_mode_recipe",
         ),
     )
     op.create_table(
@@ -250,9 +257,23 @@ def upgrade() -> None:
             f"BEFORE DELETE ON {table} BEGIN "
             "SELECT RAISE(ABORT, 'append-only table'); END"
         )
+    op.execute(
+        "CREATE TRIGGER expertise_domains_immutable_update "
+        "BEFORE UPDATE ON expertise_domains "
+        "WHEN EXISTS (SELECT 1 FROM reviewer_domain_expertise WHERE domain_id = OLD.id) "
+        "BEGIN SELECT RAISE(ABORT, 'referenced expertise domain is immutable'); END"
+    )
+    op.execute(
+        "CREATE TRIGGER expertise_domains_immutable_delete "
+        "BEFORE DELETE ON expertise_domains "
+        "WHEN EXISTS (SELECT 1 FROM reviewer_domain_expertise WHERE domain_id = OLD.id) "
+        "BEGIN SELECT RAISE(ABORT, 'referenced expertise domain is immutable'); END"
+    )
 
 
 def downgrade() -> None:
+    op.execute("DROP TRIGGER IF EXISTS expertise_domains_immutable_update")
+    op.execute("DROP TRIGGER IF EXISTS expertise_domains_immutable_delete")
     for table in APPEND_ONLY_TABLES:
         op.execute(f"DROP TRIGGER IF EXISTS {table}_immutable_update")
         op.execute(f"DROP TRIGGER IF EXISTS {table}_immutable_delete")

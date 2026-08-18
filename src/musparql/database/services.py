@@ -23,7 +23,7 @@ from .models import (
     ReviewerKgDomainAssessment,
     ReviewerResourceFamiliarityAssessment,
 )
-from .repositories import ProvenanceRepository, SeedRepository
+from .repositories import AssignmentRepository, ProvenanceRepository, SeedRepository
 
 
 def normalize_email(value: str) -> str:
@@ -163,66 +163,130 @@ class ProvenanceService:
             session.flush()
 
     def append_domain_assessment(self, record: Mapping[str, Any]) -> None:
-        self._append_assessment(record, domain=True)
+        if record.get("context") == "pre_review":
+            raise ValueError("Pre-review assessments must use the atomic batch service")
+        with self.sessions.begin() as session:
+            self._append_assessment(session, record, domain=True)
 
     def append_familiarity_assessment(self, record: Mapping[str, Any]) -> None:
-        self._append_assessment(record, domain=False)
+        if record.get("context") == "pre_review":
+            raise ValueError("Pre-review assessments must use the atomic batch service")
+        with self.sessions.begin() as session:
+            self._append_assessment(session, record, domain=False)
 
-    def _append_assessment(self, record: Mapping[str, Any], *, domain: bool) -> None:
+    def append_pre_review_assessments(
+        self,
+        domain_records: Sequence[Mapping[str, Any]],
+        familiarity_records: Sequence[Mapping[str, Any]],
+    ) -> None:
+        """Atomically record the complete frozen prompt set for one assignment."""
+        records = [*domain_records, *familiarity_records]
+        if not records:
+            raise ValueError("Pre-review assessment set must not be empty")
+        assignment_ids = {record.get("assignment_id") for record in records}
+        if len(assignment_ids) != 1 or None in assignment_ids:
+            raise ValueError("Pre-review assessments must identify one assignment")
+        if any(record.get("context") != "pre_review" for record in records):
+            raise ValueError("Pre-review assessment batch requires pre_review context")
+        assignment_id = str(next(iter(assignment_ids)))
+
+        with self.sessions.begin() as session:
+            assignments = AssignmentRepository(session)
+            assignment = assignments.get(assignment_id)
+            if assignment is None:
+                raise ValueError(f"Unknown review assignment: {assignment_id}")
+            reviewer_ids = {validate_reviewer_id(record.get("reviewer_id")) for record in records}
+            if reviewer_ids != {assignment.reviewer_id}:
+                raise ValueError("Pre-review assessments must belong to the assigned reviewer")
+
+            provided_domains = {
+                (
+                    str(record.get("kg_id")),
+                    str(record.get("seed_version")),
+                    str(record.get("review_domain_id")),
+                    str(record.get("review_domain_label")),
+                )
+                for record in domain_records
+            }
+            provided_familiarities = {
+                (
+                    str(record.get("kg_id")),
+                    str(record.get("seed_version")),
+                    str(record.get("familiarity_scope_id")),
+                    str(record.get("familiarity_scope_label")),
+                )
+                for record in familiarity_records
+            }
+            if len(provided_domains) != len(domain_records):
+                raise ValueError("Pre-review domain assessment set contains duplicates")
+            if len(provided_familiarities) != len(familiarity_records):
+                raise ValueError("Pre-review familiarity assessment set contains duplicates")
+            if provided_domains != assignments.domain_prompts(assignment_id):
+                raise ValueError("Pre-review domain assessments do not match the assignment")
+            if provided_familiarities != assignments.familiarity_prompts(assignment_id):
+                raise ValueError("Pre-review familiarity assessments do not match the assignment")
+
+            for record in domain_records:
+                self._append_assessment(session, record, domain=True)
+            for record in familiarity_records:
+                self._append_assessment(session, record, domain=False)
+
+    def _append_assessment(
+        self, session: Session, record: Mapping[str, Any], *, domain: bool
+    ) -> None:
         validator = validate_kg_domain_assessments if domain else validate_resource_familiarity_assessments
         reviewer_id = validate_reviewer_id(record.get("reviewer_id"))
         subject_id = str(record["review_domain_id" if domain else "familiarity_scope_id"])
-        with self.sessions.begin() as session:
-            repository = ProvenanceRepository(session)
-            history = (
-                repository.domain_assessments(reviewer_id, str(record["kg_id"]), subject_id)
-                if domain
-                else repository.familiarity_assessments(reviewer_id, str(record["kg_id"]), subject_id)
-            )
-            _assert_head(history, record.get("previous_assessment_id"), "assessment")
-            history_records: list[dict[str, Any]] = []
-            for item in history:
-                saved = dict(
-                    schema=(
-                        "musparql.reviewer-kg-domain-assessment.v1"
-                        if domain else "musparql.reviewer-resource-familiarity-assessment.v1"
-                    ),
-                    id=item.id, reviewer_id=item.reviewer_id, kg_id=item.kg_id,
-                    assessed_at=item.assessed_at, context=item.context,
-                    assignment_id=item.assignment_id, seed_version=item.seed_version,
-                    previous_assessment_id=item.previous_assessment_id,
-                )
-                if domain:
-                    saved.update(
-                        review_domain_id=item.review_domain_id,
-                        review_domain_label=item.review_domain_label,
-                        subject_expertise_level=item.subject_expertise_level,
-                    )
-                else:
-                    saved.update(
-                        familiarity_scope_id=item.familiarity_scope_id,
-                        familiarity_scope_label=item.familiarity_scope_label,
-                        familiarity_level=item.familiarity_level,
-                    )
-                history_records.append(saved)
-            validator([*history_records, record])
-            common = dict(
-                id=record["id"], reviewer_id=reviewer_id, kg_id=record["kg_id"],
-                assessed_at=record["assessed_at"], context=record["context"],
-                assignment_id=record.get("assignment_id"), seed_version=record["seed_version"],
-                previous_assessment_id=record.get("previous_assessment_id"),
+        repository = ProvenanceRepository(session)
+        history = (
+            repository.domain_assessments(reviewer_id, str(record["kg_id"]), subject_id)
+            if domain
+            else repository.familiarity_assessments(reviewer_id, str(record["kg_id"]), subject_id)
+        )
+        _assert_head(history, record.get("previous_assessment_id"), "assessment")
+        history_records: list[dict[str, Any]] = []
+        for item in history:
+            saved = dict(
+                schema=(
+                    "musparql.reviewer-kg-domain-assessment.v1"
+                    if domain else "musparql.reviewer-resource-familiarity-assessment.v1"
+                ),
+                id=item.id, reviewer_id=item.reviewer_id, kg_id=item.kg_id,
+                assessed_at=item.assessed_at, context=item.context,
+                assignment_id=item.assignment_id, seed_version=item.seed_version,
+                previous_assessment_id=item.previous_assessment_id,
             )
             if domain:
-                value = ReviewerKgDomainAssessment(
-                    review_domain_id=record["review_domain_id"],
-                    review_domain_label=record["review_domain_label"],
-                    subject_expertise_level=record["subject_expertise_level"], **common,
+                saved.update(
+                    review_domain_id=item.review_domain_id,
+                    review_domain_label=item.review_domain_label,
+                    subject_expertise_level=item.subject_expertise_level,
                 )
             else:
-                value = ReviewerResourceFamiliarityAssessment(
-                    familiarity_scope_id=record["familiarity_scope_id"],
-                    familiarity_scope_label=record["familiarity_scope_label"],
-                    familiarity_level=record["familiarity_level"], **common,
+                saved.update(
+                    familiarity_scope_id=item.familiarity_scope_id,
+                    familiarity_scope_label=item.familiarity_scope_label,
+                    familiarity_level=item.familiarity_level,
                 )
-            repository.add(value)
-            session.flush()
+            history_records.append(saved)
+        validator([*history_records, record])
+        common = dict(
+            id=record["id"], reviewer_id=reviewer_id, kg_id=record["kg_id"],
+            assessed_at=record["assessed_at"], context=record["context"],
+            assignment_id=record.get("assignment_id"), seed_version=record["seed_version"],
+            previous_assessment_id=record.get("previous_assessment_id"),
+        )
+        if domain:
+            value = ReviewerKgDomainAssessment(
+                review_domain_id=record["review_domain_id"],
+                review_domain_label=record["review_domain_label"],
+                subject_expertise_level=record["subject_expertise_level"], **common,
+            )
+        else:
+            value = ReviewerResourceFamiliarityAssessment(
+                familiarity_scope_id=record["familiarity_scope_id"],
+                familiarity_scope_label=record["familiarity_scope_label"],
+                familiarity_level=record["familiarity_level"], **common,
+            )
+        repository.add(value)
+        session.flush()

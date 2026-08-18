@@ -23,7 +23,7 @@ Create or upgrade an explicitly selected database:
 
 The command is idempotent. It enables SQLite foreign keys, WAL journal mode,
 full synchronous durability, and a bounded busy timeout. Alembic revisions are
-tracked under `migrations/`; never replace a deployed database with
+packaged under `src/musparql/database/alembic/`; never replace a deployed database with
 `Base.metadata.create_all()`.
 
 ## Safe checks

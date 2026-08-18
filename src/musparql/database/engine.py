@@ -3,13 +3,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine, URL, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
 
-def sqlite_url(database_path: Path | str) -> str:
+def sqlite_url(database_path: Path | str) -> URL:
     path = Path(database_path).expanduser().resolve()
-    return f"sqlite:///{path}"
+    return URL.create("sqlite", database=str(path))
 
 
 def create_database_engine(

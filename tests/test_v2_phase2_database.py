@@ -17,9 +17,12 @@ from musparql.database import Base, create_database_engine, session_factory
 from musparql.database.migrations import alembic_config, current_revision, upgrade_database
 from musparql.database.models import (
     AssignmentKgSeed,
+    ExpertiseDomain,
     Reviewer,
     ReviewerDomainExpertise,
     ReviewerExperience,
+    ReviewerKgDomainAssessment,
+    ReviewerResourceFamiliarityAssessment,
     ReviewAssignment,
 )
 from musparql.database.services import ProvenanceService, SeedSnapshotService
@@ -131,6 +134,19 @@ def test_alembic_downgrade_and_reupgrade(tmp_path: Path) -> None:
     assert current_revision(database_path) == "20260818_01"
 
 
+def test_database_path_with_url_delimiters_is_not_reparsed(tmp_path: Path) -> None:
+    database_path = tmp_path / "musparql?review%2.sqlite3"
+    upgrade_database(database_path)
+    assert database_path.is_file()
+    assert not (tmp_path / "musparql").exists()
+    assert current_revision(database_path) == "20260818_01"
+    engine = create_database_engine(database_path)
+    try:
+        assert set(inspect(engine).get_table_names()) >= {"reviewers", "review_assignments"}
+    finally:
+        engine.dispose()
+
+
 def test_seed_archive_import_is_idempotent_and_assignment_digest_is_enforced(database) -> None:
     _path, _engine, sessions = database
     service = SeedSnapshotService(sessions)
@@ -211,6 +227,13 @@ def test_append_only_expertise_requires_linear_chronological_history(database) -
         count = connection.execute(select(ReviewerDomainExpertise)).all()
         assert len(count) == 2
 
+    with sessions.begin() as session:
+        domain = session.get(ExpertiseDomain, root["domain_id"])
+        assert domain is not None
+        domain.normalized_label = "rewritten-history"
+        with pytest.raises(IntegrityError, match="referenced expertise domain is immutable"):
+            session.flush()
+
 
 def test_assessments_resolve_frozen_prompt_and_assignment_reviewer(database) -> None:
     _path, _engine, sessions = database
@@ -218,8 +241,7 @@ def test_assessments_resolve_frozen_prompt_and_assignment_reviewer(database) -> 
     service = ProvenanceService(sessions)
     domain = _json("reviewer-kg-domain-assessment.synthetic.json")
     familiarity = _json("reviewer-resource-familiarity-assessment.synthetic.json")
-    service.append_domain_assessment(domain)
-    service.append_familiarity_assessment(familiarity)
+    service.append_pre_review_assessments([domain], [familiarity])
 
     wrong_label = deepcopy(domain)
     wrong_label.update(
@@ -227,9 +249,36 @@ def test_assessments_resolve_frozen_prompt_and_assignment_reviewer(database) -> 
         assessed_at="2026-02-02T10:00:00Z",
         previous_assessment_id=domain["id"],
         review_domain_label="Changed prompt",
+        context="profile",
+        assignment_id=None,
     )
     with pytest.raises(IntegrityError):
         service.append_domain_assessment(wrong_label)
+
+
+def test_pre_review_assessment_set_is_complete_and_atomic(database) -> None:
+    _path, _engine, sessions = database
+    _seed_database(sessions)
+    service = ProvenanceService(sessions)
+    domain = _json("reviewer-kg-domain-assessment.synthetic.json")
+    familiarity = _json("reviewer-resource-familiarity-assessment.synthetic.json")
+    invalid_familiarity = deepcopy(familiarity)
+    invalid_familiarity["familiarity_level"] = "invented"
+
+    with pytest.raises(ValueError, match="atomic batch service"):
+        service.append_domain_assessment(domain)
+    with pytest.raises(ValueError, match="Unsupported familiarity_level"):
+        service.append_pre_review_assessments([domain], [invalid_familiarity])
+    with sessions() as session:
+        assert session.get(ReviewerKgDomainAssessment, domain["id"]) is None
+        assert session.get(ReviewerResourceFamiliarityAssessment, familiarity["id"]) is None
+
+    with pytest.raises(ValueError, match="familiarity assessments do not match"):
+        service.append_pre_review_assessments([domain], [])
+    service.append_pre_review_assessments([domain], [familiarity])
+    with sessions() as session:
+        assert session.get(ReviewerKgDomainAssessment, domain["id"]) is not None
+        assert session.get(ReviewerResourceFamiliarityAssessment, familiarity["id"]) is not None
 
 
 def test_failed_multirow_transaction_is_atomic(database) -> None:
@@ -248,6 +297,55 @@ def test_failed_multirow_transaction_is_atomic(database) -> None:
             )
     with sessions() as session:
         assert session.get(Reviewer, "reviewer-0042") is None
+
+
+def test_assignment_modes_accept_only_matching_supported_recipes(database) -> None:
+    _path, _engine, sessions = database
+    with sessions.begin() as session:
+        session.add(_reviewer())
+
+    def assignment(assignment_id: str, mode: str, recipe: str) -> ReviewAssignment:
+        return ReviewAssignment(
+            id=assignment_id,
+            reviewer_id="reviewer-0042",
+            mode=mode,
+            status="draft",
+            bundle_path="synthetic/bundle.json",
+            bundle_digest="sha256:" + "a" * 64,
+            previous_benchmark_path=None,
+            processing_recipe=recipe,
+            holdout_capability=False,
+            created_at="2026-01-01T09:30:00Z",
+            opened_at=None,
+            submitted_at=None,
+        )
+
+    with pytest.raises(IntegrityError, match="ck_assignment_mode_recipe"):
+        with sessions.begin() as session:
+            session.add(
+                assignment(
+                    "synthetic-mismatched-recipe",
+                    "compare",
+                    "validate_initial_review",
+                )
+            )
+    with pytest.raises(IntegrityError, match="ck_assignment_mode"):
+        with sessions.begin() as session:
+            session.add(
+                assignment(
+                    "synthetic-unsupported-mode",
+                    "sparql_correction",
+                    "validate_initial_review",
+                )
+            )
+    with sessions.begin() as session:
+        session.add(
+            assignment(
+                "synthetic-comparative-assignment",
+                "compare",
+                "validate_comparative_review",
+            )
+        )
 
 
 def test_ten_concurrent_short_writes_complete(database) -> None:

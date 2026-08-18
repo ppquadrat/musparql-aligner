@@ -22,10 +22,11 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 TECHNICAL_LEVELS = "'none','occasional','regular','expert'"
 SUBJECT_LEVELS = "'none','basic','working','advanced','expert'"
 FAMILIARITY_LEVELS = "'none','inspected','worked','regular_user','creator'"
-PROCESSING_RECIPES = (
-    "'validate_initial_review','stage_initial_benchmark_update',"
+INITIAL_PROCESSING_RECIPES = "'validate_initial_review','stage_initial_benchmark_update'"
+COMPARATIVE_PROCESSING_RECIPES = (
     "'validate_comparative_review','stage_comparative_benchmark_update'"
 )
+PROCESSING_RECIPES = f"{INITIAL_PROCESSING_RECIPES},{COMPARATIVE_PROCESSING_RECIPES}"
 
 
 class Base(DeclarativeBase):
@@ -222,7 +223,7 @@ class ReviewAssignment(Base):
     __table_args__ = (
         UniqueConstraint("id", "reviewer_id", name="uq_assignment_reviewer"),
         UniqueConstraint("id", "processing_recipe", name="uq_assignment_recipe"),
-        CheckConstraint("mode IN ('initial','compare','sparql_correction')", name="ck_assignment_mode"),
+        CheckConstraint("mode IN ('initial','compare')", name="ck_assignment_mode"),
         CheckConstraint(
             "status IN ('draft','ready','active','submitted','processing','ready_for_owner_review','approved','failed')",
             name="ck_assignment_status",
@@ -231,6 +232,11 @@ class ReviewAssignment(Base):
         CheckConstraint("bundle_digest LIKE 'sha256:%'", name="ck_assignment_bundle_digest"),
         CheckConstraint(
             f"processing_recipe IN ({PROCESSING_RECIPES})", name="ck_assignment_recipe"
+        ),
+        CheckConstraint(
+            f"(mode = 'initial' AND processing_recipe IN ({INITIAL_PROCESSING_RECIPES})) OR "
+            f"(mode = 'compare' AND processing_recipe IN ({COMPARATIVE_PROCESSING_RECIPES}))",
+            name="ck_assignment_mode_recipe",
         ),
     )
 

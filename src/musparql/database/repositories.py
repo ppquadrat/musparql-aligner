@@ -59,6 +59,52 @@ class AssignmentRepository:
         self.session.flush()
         self.session.add_all(list(seeds))
 
+    def get(self, assignment_id: str) -> ReviewAssignment | None:
+        return self.session.get(ReviewAssignment, assignment_id)
+
+    def domain_prompts(self, assignment_id: str) -> set[tuple[str, str, str, str]]:
+        return {
+            tuple(row)
+            for row in self.session.execute(
+                select(
+                    KgSeedReviewDomain.kg_id,
+                    KgSeedReviewDomain.seed_version,
+                    KgSeedReviewDomain.domain_id,
+                    KgSeedReviewDomain.label,
+                )
+                .join(
+                    AssignmentKgSeed,
+                    (AssignmentKgSeed.kg_id == KgSeedReviewDomain.kg_id)
+                    & (AssignmentKgSeed.seed_version == KgSeedReviewDomain.seed_version),
+                )
+                .where(AssignmentKgSeed.assignment_id == assignment_id)
+            )
+        }
+
+    def familiarity_prompts(
+        self, assignment_id: str
+    ) -> set[tuple[str, str, str, str]]:
+        return {
+            tuple(row)
+            for row in self.session.execute(
+                select(
+                    KgSeedFamiliarityScope.kg_id,
+                    KgSeedFamiliarityScope.seed_version,
+                    KgSeedFamiliarityScope.scope_id,
+                    KgSeedFamiliarityScope.label,
+                )
+                .join(
+                    AssignmentKgSeed,
+                    (AssignmentKgSeed.kg_id == KgSeedFamiliarityScope.kg_id)
+                    & (
+                        AssignmentKgSeed.seed_version
+                        == KgSeedFamiliarityScope.seed_version
+                    ),
+                )
+                .where(AssignmentKgSeed.assignment_id == assignment_id)
+            )
+        }
+
 
 class ProvenanceRepository:
     def __init__(self, session: Session) -> None:

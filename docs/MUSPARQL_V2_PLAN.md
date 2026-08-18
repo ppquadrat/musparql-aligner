@@ -642,7 +642,8 @@ not receive a reusable token in `localStorage`.
 ```text
 id
 reviewer_id
-mode                        initial, compare, sparql_correction
+mode                        initial, compare; sparql_correction is reserved for
+                            a later hosted recipe and is not currently accepted
 status                      draft, ready, active, submitted, processing,
                             ready_for_owner_review, approved, failed
 bundle_path
