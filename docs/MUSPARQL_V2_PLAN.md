@@ -1217,7 +1217,11 @@ Exit criteria:
 ### Phase 2b — durable backup and recovery
 
 Status: deliberately separated from the SQLite foundation by owner decision on
-2026-08-18. This phase must be completed before real reviewer data is collected.
+2026-08-18 and currently on hold pending end-to-end confirmation of the
+VocalLanes backup healthcheck/dead-man design. This phase must be completed
+before real reviewer data is collected. The detailed design, recorded owner
+decisions, activation gate, and later-phase boundary are in
+[`PHASE_2B_BACKUP_RECOVERY_PLAN.md`](PHASE_2B_BACKUP_RECOVERY_PLAN.md).
 
 Work:
 
@@ -1228,7 +1232,8 @@ Work:
   workflows under a separate human-only backup procedure;
 - implement encrypted, authenticated, versioned backups with manifests and
   integrity checks;
-- choose physically separate on-site storage and an off-site versioned copy;
+- use Google Drive as the sole encrypted, versioned backup destination for now,
+  with a physically separate on-site copy explicitly deferred by owner decision;
 - define key custody, rotation, retention, monitoring, and recovery objectives;
   and
 - test restoration into an isolated destination without overwriting live data.
@@ -1236,7 +1241,7 @@ Work:
 Exit criteria:
 
 - a documented inventory distinguishes unique state from reproducible output;
-- scheduled backups produce verifiable encrypted copies in both destinations;
+- scheduled backups produce a verifiable encrypted Google Drive copy;
 - a restore exercise recovers database and file-backed review state together;
 - loss of browser-local drafts is addressed by prompt export until hosted
   durable submission is available; and

@@ -35,6 +35,13 @@ SQLite-foundation phase. The design must protect more than the database: review
 outcomes remain irreplaceable before benchmark publication, and substantial
 provenance is intentionally Git-ignored.
 
+The detailed Phase 2b plan is in
+[`PHASE_2B_BACKUP_RECOVERY_PLAN.md`](PHASE_2B_BACKUP_RECOVERY_PLAN.md). The phase
+is on hold pending end-to-end confirmation of the VocalLanes backup
+healthcheck/dead-man design. Synthetic-only development in later phases may
+continue, but no real reviewer data may be collected before Phase 2b passes its
+backup, monitoring, and restore gates.
+
 Define, implement, and test an encrypted, authenticated, versioned backup of:
 
 - the confidential and operational SQLite database;
@@ -44,12 +51,13 @@ Define, implement, and test an encrypted, authenticated, versioned backup of:
 - separately, through a human-only process, any private or holdout-bearing
   review material that application and agent workflows must never access.
 
-The phase must choose an on-site destination on physically separate storage, an
-off-site versioned destination, key custody and rotation, retention, monitoring,
-restore isolation, and recovery objectives. A second directory on the same disk
-is not an adequate backup. Until hosted durable submission exists, completed
-browser reviews must be exported promptly because browser local storage is not
-a recovery mechanism.
+The owner chose Google Drive as the sole encrypted, versioned destination for
+Phase 2b on 2026-08-18 and explicitly deferred a physically separate on-site
+copy as future hardening. The phase must still define key custody and rotation,
+retention, monitoring, restore isolation, and recovery objectives. A second
+directory on the same disk must not be represented as a backup. Until hosted
+durable submission exists, completed browser reviews must be exported promptly
+because browser local storage is not a recovery mechanism.
 
 ### One canonical v2 review-export contract
 
