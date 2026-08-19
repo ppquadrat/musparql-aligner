@@ -1451,6 +1451,41 @@ Exit criteria:
 - one reviewer cannot inherit another's draft; and
 - legacy local workflow remains available during transition.
 
+### Phase 6b — linguistic-dimensions workbench
+
+Status: specified; implementation not started. See
+[`LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md`](LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md).
+
+This is a separate annotation task rather than an extension of initial or
+comparative review. A reviewer sees the SPARQL, a pre-validated literal
+formulation fixed as the zero reference, and two randomly ordered non-literal
+formulations. Each candidate is rated relative to the literal for naturalness,
+pragmatism or communicative salience, and room for interpretation or ambiguity.
+
+Work:
+
+- versioned linguistic stimulus and annotation contracts;
+- deterministic non-holdout bundle construction and assignment sampling;
+- a provenance-blinded three-way rating interface with fine-grained bipolar
+  sliders;
+- random queue, skip, cannot-assess, literal-error, pause, partial-finish and
+  resume behaviour;
+- authenticated attribution, digest validation and browser-draft isolation;
+- explicit separation and calibration of any later two-way presentation mode;
+  and
+- analysis-ready normalized output with planned reviewer overlap.
+
+Exit criteria:
+
+- all ordinary stimuli have a frozen SPARQL, validated literal and two eligible
+  non-literal formulations;
+- untouched controls cannot be submitted as zero ratings;
+- A/B order and complete presentation context are recorded;
+- reviewers can stop without exhausting their queue;
+- literal-error reports cannot mutate the active anchor or retain ratings; and
+- ordinary reviewers cannot see provenance, holdout controls, or manual
+  stimulus selection.
+
 ### Phase 7 — submission and controlled processing
 
 Work:
@@ -1459,7 +1494,7 @@ Work:
 - authenticated submission endpoint;
 - atomic server-side export storage;
 - persistent job queue;
-- initial and comparative processing recipes;
+- initial, comparative, and linguistic-annotation processing recipes;
 - candidate snapshot audit and summary; and
 - owner approval dashboard.
 

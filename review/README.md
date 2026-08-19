@@ -181,10 +181,11 @@ open it and verify its holdout count before using **Clear Private State**. Legac
 files under `review/private/` or `review/exports/`
 remain agent-forbidden quarantine material, not normal destinations.
 No review export is a paper-repository artifact.
-The current review form does not collect linguistic or interpretive dimensions.
-Historical exports containing those fields remain readable so that old review
-data is not destroyed. Linguistic annotation will move to a separate review
-interface in future.
+The current initial/comparative review form does not collect linguistic or
+interpretive dimensions. Historical exports containing those fields remain
+readable so that old review data is not destroyed. The separate planned
+linguistic task is specified in
+[`LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md`](../docs/LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md).
 
 The form also exports optional literal SPARQL wording in `literal_wording`.
 Use this for wording that follows the SPARQL more exactly than the preferred

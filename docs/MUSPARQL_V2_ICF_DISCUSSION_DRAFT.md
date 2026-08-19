@@ -61,13 +61,24 @@ If a reviewer sees the same or a revised item in a later round, it may also be p
 
 ### Linguistic dimensions
 
-A separate annotation task may compare alternative formulations pairwise. The provisional dimensions are:
+A separate annotation task will show the SPARQL, a pre-validated literal
+formulation used as a fixed zero reference, and two randomly ordered
+non-literal formulations. Reviewers rate each non-literal formulation relative
+to the literal reference. The provisional dimensions are:
 
 - naturalness;
 - pragmatism or communicative salience; and
 - room for interpretation or ambiguity.
 
-Pairwise comparison is preferable to asking for isolated scores because a score has no clear comparison target, and greater openness is not necessarily better: it can represent useful breadth or harmful underspecification. These observations would remain separate from the basic decision about whether a question correctly represents a query.
+The fine-grained bipolar scales retain negative values because a formulation
+can be less natural, less pragmatically focused, or more constrained than the
+literal reference. Greater openness is not necessarily better: it can represent
+useful breadth or harmful underspecification. A reviewer may skip, report that
+they cannot assess a triple, flag an inaccurate literal with an optional
+correction, pause, or finish a partial assignment. These observations remain
+separate from the basic decision about whether a question correctly represents
+a query. The full design is in
+[`LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md`](LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md).
 
 ## Information I would collect
 

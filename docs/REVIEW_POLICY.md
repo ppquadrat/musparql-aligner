@@ -51,9 +51,13 @@ and naturally. Optional literal wording may record a closer verbalization of the
 SPARQL when that helps explain a reviewer rewrite. Literal wording is not a
 second canonical answer.
 
-The current review UI does not collect linguistic-dimension ratings or a
-graph-context checkbox. Historical values remain readable, but future
-linguistic annotation will use a separate interface with its own task design.
+The current initial/comparative review UI does not collect linguistic-dimension
+ratings or a graph-context checkbox. Historical values remain readable.
+Linguistic annotation is a separate task with a pre-validated literal reference,
+two randomly ordered non-literal formulations, and anchor-relative ratings for
+naturalness, pragmatism or communicative salience, and room for interpretation
+or ambiguity. Its task and data boundaries are specified in
+[`LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md`](LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md).
 
 ## Comments
 

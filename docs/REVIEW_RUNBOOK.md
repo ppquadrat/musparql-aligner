@@ -83,7 +83,9 @@ closing the tab does not clear it.
    internal comment field.
 7. Follow the separate holdout procedure before marking any private holdout.
 
-The current UI intentionally has no linguistic-dimension controls.
+The current initial/comparative UI intentionally has no linguistic-dimension
+controls. The separate planned task is specified in
+[`LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md`](LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md).
 
 ## Export
 

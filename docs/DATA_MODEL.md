@@ -231,6 +231,13 @@ question, literal wording, public and internal comments, and copied-review
 provenance. Historical interpretive fields remain readable but are not collected
 by the current UI.
 
+The planned linguistic-dimensions workbench uses a separate versioned stimulus
+and annotation contract. It must not reuse the historical single-review
+`interpretive` object: one linguistic trial contains a validated literal anchor,
+two jointly displayed candidate formulations, randomized order, six
+anchor-relative ratings, and complete presentation context. See
+[`LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md`](LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md).
+
 Every v2 review records `reviewer_id`, `reviewed_at`, `prior_review_ids`,
 `authored_formulation_ids`, and `approved_formulation_ids`. These normalized
 links are authoritative. Reviewer activity is derived from them rather than
