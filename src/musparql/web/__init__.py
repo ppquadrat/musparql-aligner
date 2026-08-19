@@ -12,7 +12,7 @@ from musparql.database.migrations import upgrade_database
 from musparql.database.models import Reviewer
 
 from .auth import AuthService, DigestRateLimiter
-from .email import SyntheticEmailSender
+from .email import AsyncEmailDispatcher, SyntheticEmailSender
 from .security import install_security
 
 
@@ -31,6 +31,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         LOGIN_REQUEST_WINDOW_SECONDS=15 * 60,
         LOGIN_REQUESTS_PER_ADDRESS=3,
         LOGIN_REQUESTS_PER_CONTEXT=10,
+        LOGIN_LIMITER_MAX_ADDRESS_KEYS=4096,
+        LOGIN_LIMITER_MAX_CONTEXT_KEYS=4096,
+        LOGIN_DELIVERY_MAX_PENDING=256,
         REVIEWER_IDLE_SECONDS=2 * 60 * 60,
         REVIEWER_ABSOLUTE_SECONDS=24 * 60 * 60,
         REMEMBERED_IDLE_SECONDS=7 * 24 * 60 * 60,
@@ -72,13 +75,18 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         window_seconds=app.config["LOGIN_REQUEST_WINDOW_SECONDS"],
         address_limit=app.config["LOGIN_REQUESTS_PER_ADDRESS"],
         context_limit=app.config["LOGIN_REQUESTS_PER_CONTEXT"],
+        max_address_keys=app.config["LOGIN_LIMITER_MAX_ADDRESS_KEYS"],
+        max_context_keys=app.config["LOGIN_LIMITER_MAX_CONTEXT_KEYS"],
     )
+    dispatcher = AsyncEmailDispatcher(max_pending=app.config["LOGIN_DELIVERY_MAX_PENDING"])
     app.extensions["musparql_engine"] = engine
     app.extensions["musparql_sessions"] = sessions
     app.extensions["musparql_email_sender"] = sender
+    app.extensions["musparql_email_dispatcher"] = dispatcher
     app.extensions["musparql_auth"] = AuthService(
         sessions=sessions,
         sender=sender,
+        dispatcher=dispatcher,
         limiter=limiter,
         config=app.config,
     )

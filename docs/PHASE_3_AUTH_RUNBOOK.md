@@ -11,8 +11,11 @@ Phase 10 gates in `MUSPARQL_V2_PLAN.md`.
   as keyed hashes.
 - Login requests have per-address and per-request-context limits. Persistent
   records enforce the invited-address limit across process restarts; the
-  in-process keyed-digest limiter also covers unknown addresses without storing
-  their email addresses.
+  bounded in-process keyed-digest limiter also covers unknown addresses without
+  storing their email addresses. Login lookup and delivery use a bounded
+  in-process background queue so provider latency cannot disclose account
+  membership or create an unbounded request backlog. Provider failures roll
+  back the unusable challenge and release its in-process rate-limit reservation.
 - Successful login creates a random, server-side, revocable session. The browser
   receives only an opaque `HttpOnly` cookie; authentication data is never put in
   local storage.
@@ -20,8 +23,10 @@ Phase 10 gates in `MUSPARQL_V2_PLAN.md`.
   recorded in the v2 plan. Owner sessions are never remembered.
 - The configured sole owner can invite, disable, restore, or erase a reviewer's
   identity data after recent authentication. Disable and erasure immediately
-  revoke the affected sessions. The configured owner cannot be changed through
-  the web UI.
+  revoke the affected sessions. Restore returns a never-accepted invitation to
+  `invited`, rather than activating it without verification. Failed invitation
+  delivery rolls back the reviewer and audit rows so the owner can retry. The
+  configured owner cannot be changed through the web UI.
 - Owner actions are recorded in an append-only table using pseudonymous IDs,
   without names or email addresses.
 - Phase 3 contains only the `SyntheticEmailSender`. A real sender must implement
@@ -81,7 +86,9 @@ The Phase 3 tests cover membership-neutral login responses, hashed and
 single-use codes, replacement and expiry, request and attempt limits, session
 rotation, ordinary shared-browser defaults, logout-all, idle and absolute
 expiry, CSRF, security headers, recent-owner authentication, immediate disable,
-identity erasure, audit immutability, and non-owner isolation.
+state-preserving restore, retryable delivery failures, identity erasure, audit
+immutability, migration from the original Phase 3 schema, and non-owner
+isolation.
 
 ## Real-sender handoff
 
@@ -97,6 +104,11 @@ must:
    the exception text;
 5. support credential revocation and rotation; and
 6. be tested with synthetic recipients before the real-data gate is opened.
+
+The Phase 3 background queue is process-local and deliberately non-durable.
+Before real invitations are enabled, the selected production delivery design
+must define crash recovery and retry semantics; a durable outbox or equivalent
+provider-supported idempotency is preferred.
 
 The Flask development server is not a deployment server. Remote exposure,
 service units, tunnelling, and server operations remain outside this phase and

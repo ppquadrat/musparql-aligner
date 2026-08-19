@@ -41,6 +41,7 @@ class Reviewer(Base):
     email_display: Mapped[str] = mapped_column(Text)
     email_normalized: Mapped[str] = mapped_column(Text, unique=True)
     status: Mapped[str] = mapped_column(String)
+    disabled_from_status: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[str] = mapped_column(String)
     updated_at: Mapped[str] = mapped_column(String)
     privacy_notice_version: Mapped[str | None] = mapped_column(String, nullable=True)

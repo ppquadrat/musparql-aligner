@@ -541,6 +541,7 @@ affiliation
 email_display               original verified spelling
 email_normalized            unique login lookup value
 status                      invited, active, disabled, withdrawn
+disabled_from_status        nullable; invited or active while status is disabled
 created_at
 updated_at
 privacy_notice_version
@@ -1330,7 +1331,9 @@ Exit criteria:
 Implementation status (19 August 2026): the application factory, synthetic
 email adapter, passwordless login, revocable sessions, owner controls, security
 headers, CSRF protection, rate limits, audit migration, and synthetic tests are
-implemented on the Phase 3 development branch. The application fails closed
+implemented. Login lookup and delivery are decoupled from the HTTP response by
+a bounded in-process queue, and delivery failures roll back unusable login or
+invitation state so the action can be retried. The application fails closed
 unless an email sender is explicitly supplied or synthetic email is explicitly
 enabled. Selecting and integrating the real sender remains pending ICF's
 response and is still a real-invitation gate. See

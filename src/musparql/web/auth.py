@@ -1,7 +1,7 @@
 """Passwordless authentication and owner account-control services."""
 from __future__ import annotations
 
-from collections import defaultdict, deque
+from collections import OrderedDict, deque
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from musparql.database.models import AuthSession, LoginCode, OwnerAuditEvent, Reviewer
 from musparql.database.services import normalize_email
-from .email import EmailSender
+from .email import AsyncEmailDispatcher, EmailSender
 
 
 UTC = timezone.utc
@@ -38,12 +38,26 @@ def parse_timestamp(value: str) -> datetime:
 class DigestRateLimiter:
     """Small single-process limiter that retains keyed digests, never addresses."""
 
-    def __init__(self, *, secret: bytes, window_seconds: int, address_limit: int, context_limit: int) -> None:
+    def __init__(
+        self,
+        *,
+        secret: bytes,
+        window_seconds: int,
+        address_limit: int,
+        context_limit: int,
+        max_address_keys: int,
+        max_context_keys: int,
+    ) -> None:
+        if max_address_keys < 1 or max_context_keys < 1:
+            raise ValueError("Rate-limiter key bounds must be positive")
         self.secret = secret
         self.window_seconds = window_seconds
         self.address_limit = address_limit
         self.context_limit = context_limit
-        self._events: dict[str, deque[float]] = defaultdict(deque)
+        self.max_address_keys = max_address_keys
+        self.max_context_keys = max_context_keys
+        self._address_events: OrderedDict[str, deque[float]] = OrderedDict()
+        self._context_events: OrderedDict[str, deque[float]] = OrderedDict()
         self._lock = threading.Lock()
 
     def digest(self, namespace: str, value: str) -> str:
@@ -55,18 +69,62 @@ class DigestRateLimiter:
         context_key = self.digest("context", request_context)
         cutoff = now.timestamp() - self.window_seconds
         with self._lock:
-            for key in (address_key, context_key):
-                queue = self._events[key]
-                while queue and queue[0] <= cutoff:
-                    queue.popleft()
+            address_queue = self._queue(
+                self._address_events, address_key, cutoff, self.max_address_keys
+            )
+            context_queue = self._queue(
+                self._context_events, context_key, cutoff, self.max_context_keys
+            )
             allowed = (
-                len(self._events[address_key]) < self.address_limit
-                and len(self._events[context_key]) < self.context_limit
+                len(address_queue) < self.address_limit
+                and len(context_queue) < self.context_limit
             )
             if allowed:
-                self._events[address_key].append(now.timestamp())
-                self._events[context_key].append(now.timestamp())
+                address_queue.append(now.timestamp())
+                context_queue.append(now.timestamp())
         return allowed, context_key
+
+    def release(self, email_normalized: str, request_context: str, now: datetime) -> None:
+        """Release a reservation whose asynchronous delivery failed."""
+
+        keys_and_stores = (
+            (self.digest("address", email_normalized), self._address_events),
+            (self.digest("context", request_context), self._context_events),
+        )
+        with self._lock:
+            for key, store in keys_and_stores:
+                queue = store.get(key)
+                if queue is None:
+                    continue
+                try:
+                    queue.remove(now.timestamp())
+                except ValueError:
+                    continue
+                if not queue:
+                    del store[key]
+
+    @staticmethod
+    def _queue(
+        store: OrderedDict[str, deque[float]],
+        key: str,
+        cutoff: float,
+        max_keys: int,
+    ) -> deque[float]:
+        queue = store.get(key)
+        if queue is not None:
+            while queue and queue[0] <= cutoff:
+                queue.popleft()
+            if not queue:
+                del store[key]
+                queue = None
+        if queue is None:
+            while len(store) >= max_keys:
+                store.popitem(last=False)
+            queue = deque()
+            store[key] = queue
+        else:
+            store.move_to_end(key)
+        return queue
 
 
 class AuthService:
@@ -75,12 +133,14 @@ class AuthService:
         *,
         sessions: sessionmaker[Session],
         sender: EmailSender,
+        dispatcher: AsyncEmailDispatcher,
         limiter: DigestRateLimiter,
         config: Config,
         clock: Callable[[], datetime] = utc_now,
     ) -> None:
         self.sessions = sessions
         self.sender = sender
+        self.dispatcher = dispatcher
         self.limiter = limiter
         self.config = config
         self.clock = clock
@@ -103,65 +163,81 @@ class AuthService:
             return challenge_id
         allowed, context_digest = self.limiter.allow(normalized, request_context, now)
         code = f"{secrets.randbelow(1_000_000):06d}"
-        recipient: str | None = None
         if allowed:
-            with self.sessions.begin() as session:
-                reviewer = session.scalar(
-                    select(Reviewer).where(Reviewer.email_normalized == normalized)
-                )
-                if reviewer is not None and reviewer.status in {"invited", "active"}:
-                    cutoff = timestamp(
-                        now - timedelta(seconds=self.config["LOGIN_REQUEST_WINDOW_SECONDS"])
-                    )
-                    address_count = session.scalar(
-                        select(func.count())
-                        .select_from(LoginCode)
-                        .where(
-                            LoginCode.email_normalized == normalized,
-                            LoginCode.requested_at >= cutoff,
-                        )
-                    ) or 0
-                    context_count = session.scalar(
-                        select(func.count())
-                        .select_from(LoginCode)
-                        .where(
-                            LoginCode.request_context_digest == context_digest,
-                            LoginCode.requested_at >= cutoff,
-                        )
-                    ) or 0
-                    if (
-                        address_count >= self.config["LOGIN_REQUESTS_PER_ADDRESS"]
-                        or context_count >= self.config["LOGIN_REQUESTS_PER_CONTEXT"]
-                    ):
-                        return challenge_id
-                    session.execute(
-                        update(LoginCode)
-                        .where(
-                            LoginCode.email_normalized == normalized,
-                            LoginCode.consumed_at.is_(None),
-                        )
-                        .values(consumed_at=timestamp(now))
-                    )
-                    session.add(
-                        LoginCode(
-                            id=challenge_id,
-                            email_normalized=normalized,
-                            code_hash=self._digest("login-code", f"{challenge_id}\0{code}"),
-                            requested_at=timestamp(now),
-                            expires_at=timestamp(
-                                now + timedelta(seconds=self.config["LOGIN_CODE_TTL_SECONDS"])
-                            ),
-                            consumed_at=None,
-                            failed_attempt_count=0,
-                            request_context_digest=context_digest,
-                        )
-                    )
-                    recipient = reviewer.email_display
+            future = self.dispatcher.submit(
+                lambda: self._issue_and_send_login_code(
+                    normalized, context_digest, challenge_id, code, now
+                ),
+                on_failure=lambda: self.limiter.release(normalized, request_context, now),
+            )
+            if future is None:
+                self.limiter.release(normalized, request_context, now)
         else:
             self._digest("dummy-code", code)
-        if recipient is not None:
-            self.sender.send_login_code(recipient, code)
         return challenge_id
+
+    def _issue_and_send_login_code(
+        self,
+        normalized: str,
+        context_digest: str,
+        challenge_id: str,
+        code: str,
+        now: datetime,
+    ) -> None:
+        with self.sessions.begin() as session:
+            reviewer = session.scalar(
+                select(Reviewer).where(Reviewer.email_normalized == normalized)
+            )
+            if reviewer is None or reviewer.status not in {"invited", "active"}:
+                self._digest("dummy-code", code)
+                return
+            cutoff = timestamp(
+                now - timedelta(seconds=self.config["LOGIN_REQUEST_WINDOW_SECONDS"])
+            )
+            address_count = session.scalar(
+                select(func.count())
+                .select_from(LoginCode)
+                .where(
+                    LoginCode.email_normalized == normalized,
+                    LoginCode.requested_at >= cutoff,
+                )
+            ) or 0
+            context_count = session.scalar(
+                select(func.count())
+                .select_from(LoginCode)
+                .where(
+                    LoginCode.request_context_digest == context_digest,
+                    LoginCode.requested_at >= cutoff,
+                )
+            ) or 0
+            if (
+                address_count >= self.config["LOGIN_REQUESTS_PER_ADDRESS"]
+                or context_count >= self.config["LOGIN_REQUESTS_PER_CONTEXT"]
+            ):
+                return
+            session.execute(
+                update(LoginCode)
+                .where(
+                    LoginCode.email_normalized == normalized,
+                    LoginCode.consumed_at.is_(None),
+                )
+                .values(consumed_at=timestamp(now))
+            )
+            session.add(
+                LoginCode(
+                    id=challenge_id,
+                    email_normalized=normalized,
+                    code_hash=self._digest("login-code", f"{challenge_id}\0{code}"),
+                    requested_at=timestamp(now),
+                    expires_at=timestamp(
+                        now + timedelta(seconds=self.config["LOGIN_CODE_TTL_SECONDS"])
+                    ),
+                    consumed_at=None,
+                    failed_attempt_count=0,
+                    request_context_digest=context_digest,
+                )
+            )
+            self.sender.send_login_code(reviewer.email_display, code)
 
     def verify_login_code(
         self, challenge_id: str, code: str, *, remembered: bool, current_token: str | None
@@ -303,22 +379,27 @@ class AuthService:
             )
             session.add(reviewer)
             self._audit(session, actor_id, reviewer_id, "invite", now)
-        self.sender.send_invitation(display, "/auth/login")
+            self.sender.send_invitation(display, "/auth/login")
         return reviewer
 
     def change_reviewer_status(self, actor_id: str, target_id: str, action: str) -> None:
         if target_id == self.config["OWNER_REVIEWER_ID"]:
             raise ValueError("The configured owner account cannot be changed in the web UI")
-        transitions = {"disable": ({"invited", "active"}, "disabled"), "restore": ({"disabled"}, "active")}
+        transitions = {"disable": {"invited", "active"}, "restore": {"disabled"}}
         if action not in transitions:
             raise ValueError("Unsupported account action")
-        allowed_from, target_status = transitions[action]
+        allowed_from = transitions[action]
         now = self.clock()
         with self.sessions.begin() as session:
             reviewer = session.get(Reviewer, target_id)
             if reviewer is None or reviewer.status not in allowed_from:
                 raise ValueError("The account is not eligible for that action")
-            reviewer.status = target_status
+            if action == "disable":
+                reviewer.disabled_from_status = reviewer.status
+                reviewer.status = "disabled"
+            else:
+                reviewer.status = reviewer.disabled_from_status or "active"
+                reviewer.disabled_from_status = None
             reviewer.updated_at = timestamp(now)
             if action == "disable":
                 self._revoke_reviewer_sessions(session, target_id, now)
@@ -339,6 +420,7 @@ class AuthService:
             reviewer.email_display = f"withdrawn-{random_mailbox}@example.invalid"
             reviewer.email_normalized = reviewer.email_display
             reviewer.status = "withdrawn"
+            reviewer.disabled_from_status = None
             reviewer.updated_at = timestamp(now)
             reviewer.privacy_notice_version = None
             reviewer.privacy_notice_acknowledged_at = None

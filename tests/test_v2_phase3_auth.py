@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import threading
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.exc import IntegrityError
 
 from musparql.database import create_database_engine, session_factory
 from musparql.database.migrations import current_revision, upgrade_database
 from musparql.database.models import AuthSession, LoginCode, OwnerAuditEvent, Reviewer
 from musparql.web import create_app
-from musparql.web.auth import timestamp, utc_now
+from musparql.web.auth import DigestRateLimiter, timestamp, utc_now
 from musparql.web.email import SyntheticEmailSender
 
 
@@ -59,6 +60,7 @@ def portal_app(tmp_path: Path):
         }
     )
     yield app, sender, database_path
+    app.extensions["musparql_email_dispatcher"].shutdown()
     app.extensions["musparql_engine"].dispose()
 
 
@@ -72,16 +74,14 @@ def csrf(client) -> str:
 
 
 def login(client, sender: SyntheticEmailSender, email: str, *, remembered: bool = False):
+    outbox_position = sender.position()
     response = client.post(
         "/auth/login",
         data={"csrf_token": csrf(client), "email": email},
     )
     assert response.status_code == 302
-    message = next(
-        message
-        for message in reversed(sender.outbox)
-        if message.kind == "login_code" and message.recipient == email
-    )
+    message = sender.wait_for("login_code", email, after_index=outbox_position)
+    client.application.extensions["musparql_email_dispatcher"].wait_for_idle()
     data = {"csrf_token": csrf(client), "code": message.value}
     if remembered:
         data["remembered"] = "yes"
@@ -106,9 +106,29 @@ def sessions_for(database_path: Path, reviewer_id: str) -> list[AuthSession]:
         engine.dispose()
 
 
+def test_digest_limiter_has_hard_key_bounds() -> None:
+    limiter = DigestRateLimiter(
+        secret=SECRET.encode(),
+        window_seconds=900,
+        address_limit=3,
+        context_limit=10,
+        max_address_keys=3,
+        max_context_keys=2,
+    )
+    now = datetime(2026, 8, 19, tzinfo=timezone.utc)
+    for index in range(20):
+        limiter.allow(
+            f"synthetic-{index}@example.invalid",
+            f"192.0.2.{index}\0synthetic-agent",
+            now,
+        )
+    assert len(limiter._address_events) <= 3
+    assert len(limiter._context_events) <= 2
+
+
 def test_phase3_migration_is_current_and_audit_is_append_only(portal_app) -> None:
     _app, _sender, database_path = portal_app
-    assert current_revision(database_path) == "20260819_02"
+    assert current_revision(database_path) == "20260819_03"
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
     try:
@@ -131,6 +151,21 @@ def test_phase3_migration_is_current_and_audit_is_append_only(portal_app) -> Non
         engine.dispose()
 
 
+def test_auth_hardening_migrates_an_existing_phase3_database(tmp_path: Path) -> None:
+    database_path = tmp_path / "existing-phase3.sqlite3"
+    upgrade_database(database_path, "20260819_02")
+    assert current_revision(database_path) == "20260819_02"
+    upgrade_database(database_path)
+    assert current_revision(database_path) == "20260819_03"
+
+    engine = create_database_engine(database_path)
+    try:
+        columns = {column["name"] for column in inspect(engine).get_columns("reviewers")}
+        assert "disabled_from_status" in columns
+    finally:
+        engine.dispose()
+
+
 def test_login_response_does_not_disclose_membership_and_codes_are_hashed(
     portal_app, caplog
 ) -> None:
@@ -149,7 +184,8 @@ def test_login_response_does_not_disclose_membership_and_codes_are_hashed(
         unknown_response.status_code,
         unknown_response.location,
     )
-    code = sender.outbox[-1].value
+    code = sender.wait_for("login_code", "reviewer@example.invalid").value
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
     assert code not in invited_response.get_data(as_text=True)
     assert "reviewer@example.invalid" not in caplog.text
     assert code not in caplog.text
@@ -166,6 +202,77 @@ def test_login_response_does_not_disclose_membership_and_codes_are_hashed(
         engine.dispose()
 
 
+def test_login_response_does_not_wait_for_email_delivery(portal_app) -> None:
+    app, sender, _database_path = portal_app
+    started = threading.Event()
+    release = threading.Event()
+
+    class BlockingSender:
+        def send_login_code(self, recipient: str, code: str) -> None:
+            started.set()
+            assert release.wait(2)
+            sender.send_login_code(recipient, code)
+
+        def send_invitation(self, recipient: str, login_path: str) -> None:
+            sender.send_invitation(recipient, login_path)
+
+    app.extensions["musparql_auth"].sender = BlockingSender()
+    client = app.test_client()
+    response = client.post(
+        "/auth/login",
+        data={"csrf_token": csrf(client), "email": "reviewer@example.invalid"},
+    )
+    assert response.status_code == 302
+    assert started.wait(1)
+    release.set()
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
+
+
+def test_failed_login_delivery_rolls_back_and_does_not_consume_limit(
+    portal_app, caplog
+) -> None:
+    app, sender, database_path = portal_app
+
+    class FailingSender:
+        def send_login_code(self, recipient: str, code: str) -> None:
+            raise RuntimeError("synthetic provider failure")
+
+        def send_invitation(self, recipient: str, login_path: str) -> None:
+            sender.send_invitation(recipient, login_path)
+
+    auth = app.extensions["musparql_auth"]
+    auth.sender = FailingSender()
+    client = app.test_client()
+    client.post(
+        "/auth/login",
+        data={"csrf_token": csrf(client), "email": "reviewer@example.invalid"},
+    )
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            assert session.scalar(select(LoginCode)) is None
+    finally:
+        engine.dispose()
+
+    auth.sender = sender
+    for _ in range(app.config["LOGIN_REQUESTS_PER_ADDRESS"]):
+        client.post(
+            "/auth/login",
+            data={"csrf_token": csrf(client), "email": "reviewer@example.invalid"},
+        )
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
+    delivered = [
+        message
+        for message in sender.outbox
+        if message.kind == "login_code" and message.recipient == "reviewer@example.invalid"
+    ]
+    assert len(delivered) == app.config["LOGIN_REQUESTS_PER_ADDRESS"]
+    assert "synthetic provider failure" not in caplog.text
+
+
 def test_code_is_single_use_and_attempt_limited(portal_app) -> None:
     app, sender, database_path = portal_app
     client = app.test_client()
@@ -173,7 +280,8 @@ def test_code_is_single_use_and_attempt_limited(portal_app) -> None:
         "/auth/login",
         data={"csrf_token": csrf(client), "email": "reviewer@example.invalid"},
     )
-    code = sender.outbox[-1].value
+    code = sender.wait_for("login_code", "reviewer@example.invalid").value
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
     for _ in range(app.config["LOGIN_CODE_MAX_ATTEMPTS"]):
         response = client.post(
             "/auth/verify", data={"csrf_token": csrf(client), "code": "000000"}
@@ -205,6 +313,7 @@ def test_replacement_expires_prior_code_and_requests_are_throttled(portal_app) -
             "/auth/login",
             data={"csrf_token": csrf(client), "email": "reviewer@example.invalid"},
         )
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
     delivered = [
         message for message in sender.outbox
         if message.kind == "login_code" and message.recipient == "reviewer@example.invalid"
@@ -236,7 +345,8 @@ def test_expired_code_is_rejected(portal_app) -> None:
         "/auth/login",
         data={"csrf_token": csrf(client), "email": "reviewer@example.invalid"},
     )
-    code = sender.outbox[-1].value
+    code = sender.wait_for("login_code", "reviewer@example.invalid").value
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
     try:
@@ -420,6 +530,80 @@ def test_owner_controls_require_recent_auth_and_audit_actions(portal_app) -> Non
             data={"csrf_token": csrf(owner)},
         )
         assert response.status_code == 401
+    finally:
+        engine.dispose()
+
+
+def test_failed_invitation_rolls_back_and_can_be_retried(portal_app) -> None:
+    app, sender, database_path = portal_app
+    owner = app.test_client()
+    login(owner, sender, "owner@example.invalid")
+
+    class FailingInvitationSender:
+        def send_login_code(self, recipient: str, code: str) -> None:
+            sender.send_login_code(recipient, code)
+
+        def send_invitation(self, recipient: str, login_path: str) -> None:
+            raise RuntimeError("synthetic provider failure")
+
+    auth = app.extensions["musparql_auth"]
+    auth.sender = FailingInvitationSender()
+    response = owner.post(
+        "/owner/invitations",
+        data={
+            "csrf_token": csrf(owner),
+            "name": "Retry Invitee",
+            "email": "retry@example.invalid",
+        },
+    )
+    assert response.status_code == 302
+    assert "delivery-failed" in response.location
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            assert session.scalar(
+                select(Reviewer).where(Reviewer.email_normalized == "retry@example.invalid")
+            ) is None
+            assert session.scalar(
+                select(OwnerAuditEvent).where(OwnerAuditEvent.action == "invite")
+            ) is None
+    finally:
+        engine.dispose()
+
+    auth.sender = sender
+    response = owner.post(
+        "/owner/invitations",
+        data={
+            "csrf_token": csrf(owner),
+            "name": "Retry Invitee",
+            "email": "retry@example.invalid",
+        },
+    )
+    assert response.status_code == 302
+    assert "result=invited" in response.location
+
+
+def test_restore_preserves_pending_invitation_state(portal_app) -> None:
+    app, sender, database_path = portal_app
+    owner = app.test_client()
+    login(owner, sender, "owner@example.invalid")
+    for action in ("disable", "restore"):
+        response = owner.post(
+            f"/owner/reviewers/reviewer-0042/{action}",
+            data={"csrf_token": csrf(owner)},
+        )
+        assert response.status_code == 302
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            restored = session.get(Reviewer, "reviewer-0042")
+            assert restored is not None
+            assert restored.status == "invited"
+            assert restored.disabled_from_status is None
     finally:
         engine.dispose()
 
