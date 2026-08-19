@@ -23,7 +23,29 @@
   }
 
   function freshState(bundle) {
-    return {queue: shuffled(bundle.records.map((item) => item.trial_id)), completed: {}, drafts: {}, skips: {}, finished: false};
+    return {queue: shuffled(bundle.records.map((item) => item.trial_id)), completed: {}, drafts: {}, skips: {}, includeSkipped: false, finished: false};
+  }
+
+  function mergeState(current, stored, validIds = null, discardedDraftIds = []) {
+    if (!stored || typeof stored !== "object" || !Array.isArray(stored.queue) || !stored.completed || !stored.drafts || !stored.skips) return current;
+    const completed = {...stored.completed, ...current.completed};
+    const allowed = validIds ? new Set(validIds) : null;
+    const queue = [];
+    for (const id of [...current.queue, ...stored.queue]) {
+      if ((!allowed || allowed.has(id)) && !completed[id] && !queue.includes(id)) queue.push(id);
+    }
+    const drafts = {...stored.drafts, ...current.drafts};
+    for (const id of Object.keys(completed)) delete drafts[id];
+    for (const id of discardedDraftIds) delete drafts[id];
+    const skips = {...stored.skips};
+    for (const [id, count] of Object.entries(current.skips)) skips[id] = Math.max(Number(skips[id]) || 0, Number(count) || 0);
+    return {queue, completed, drafts, skips, includeSkipped: current.includeSkipped === true, finished: current.finished === true};
+  }
+
+  function hasTouchedRatings(draft) {
+    return Object.values(draft?.ratings || {}).some((ratings) =>
+      Object.values(ratings).some((answer) => answer?.touched === true)
+    );
   }
 
   function validateBundle(bundle, context) {
@@ -66,7 +88,7 @@
     return record;
   }
 
-  window.MUSPARQL_LINGUISTIC = {shuffled, stateKey, freshState, validateBundle, normalizedTrial};
+  window.MUSPARQL_LINGUISTIC = {shuffled, stateKey, freshState, mergeState, hasTouchedRatings, validateBundle, normalizedTrial};
   if (!data || !hosted || typeof document === "undefined" || !document.getElementById("instructions")) return;
   try { validateBundle(data, hosted); } catch (error) { document.body.textContent = `Workbench unavailable: ${error.message}`; return; }
 
@@ -80,9 +102,16 @@
   let pendingOutcome = null;
 
   const byId = (id) => document.getElementById(id);
-  const save = () => localStorage.setItem(key, JSON.stringify(state));
-  const show = (id) => { for (const section of ["instructions", "workbench", "outcomePanel", "finished"]) byId(section).hidden = section !== id; };
-  const progressText = () => `${Object.keys(state.completed).length} completed of up to ${data.record_count}`;
+  const save = (discardedDraftIds = []) => {
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem(key)); } catch (_) { /* replace invalid state */ }
+    state = mergeState(state, stored, records.keys(), discardedDraftIds);
+    localStorage.setItem(key, JSON.stringify(state));
+  };
+  const show = (id) => { for (const section of ["instructions", "workbench", "finished"]) byId(section).hidden = section !== id; };
+  const skippedPendingIds = () => [...records.keys()].filter((id) => !state.completed[id] && state.skips[id]);
+  const unseenPendingIds = () => [...records.keys()].filter((id) => !state.completed[id] && !state.skips[id]);
+  const progressText = () => `${Object.keys(state.completed).length} completed · ${skippedPendingIds().length} skipped · ${unseenPendingIds().length} unseen`;
   byId("identity").textContent = `Signed in as ${hosted.reviewer_id}`;
 
   function draftFor(stimulus) {
@@ -95,35 +124,63 @@
     return state.drafts[stimulus.trial_id];
   }
 
+  function appendTicks(row) {
+    const ticks = document.createElement("div"); ticks.className = "ticks";
+    for (const [tick, position] of [["−100", 0], ["−50", 25], ["0", 50], ["+50", 75], ["+100", 100]]) {
+      const span = document.createElement("span"); span.textContent = tick; span.style.left = `${position}%`; ticks.append(span);
+    }
+    row.append(ticks);
+  }
+
   function slider(candidateId, dimension, draft) {
     const row = document.createElement("div"); row.className = "slider-row";
     const label = document.createElement("label");
     const title = document.createElement("span"); title.textContent = labels[dimension];
     const value = document.createElement("span"); value.className = draft.ratings[candidateId][dimension].touched ? "answered" : "unanswered";
-    value.textContent = draft.ratings[candidateId][dimension].touched ? String(draft.ratings[candidateId][dimension].value) : "Unanswered";
+    value.textContent = draft.ratings[candidateId][dimension].touched ? String(draft.ratings[candidateId][dimension].value) : "0 · unanswered";
     label.append(title, value);
     const input = document.createElement("input"); input.type = "range"; input.min = "-100"; input.max = "100"; input.step = "1"; input.value = String(draft.ratings[candidateId][dimension].value);
     input.setAttribute("aria-label", `${labels[dimension]} for formulation ${candidateId}`);
     input.addEventListener("input", () => { draft.ratings[candidateId][dimension] = {value: Number(input.value), touched: true}; value.textContent = input.value; value.className = "answered"; save(); });
-    const ticks = document.createElement("div"); ticks.className = "ticks";
-    for (const tick of ["−100", "−50", "0", "+25", "+50", "+75", "+100"]) { const span = document.createElement("span"); span.textContent = tick; ticks.append(span); }
-    row.append(label, input, ticks); return row;
+    row.append(label, input); appendTicks(row); return row;
+  }
+
+  function anchorSlider(dimension) {
+    const row = document.createElement("div"); row.className = "slider-row";
+    const label = document.createElement("label");
+    const title = document.createElement("span"); title.textContent = labels[dimension];
+    const value = document.createElement("span"); value.className = "fixed-value"; value.textContent = "0 · fixed";
+    label.append(title, value);
+    const input = document.createElement("input"); input.type = "range"; input.min = "-100"; input.max = "100"; input.value = "0"; input.disabled = true;
+    input.setAttribute("aria-label", `${labels[dimension]} for literal reference, fixed at zero`);
+    row.append(label, input); appendTicks(row); return row;
   }
 
   function render() {
-    if (!state.queue.length) { finish(); return; }
+    const nextIndex = state.queue.findIndex((id) => state.includeSkipped || !state.skips[id]);
+    if (nextIndex < 0) { finish(); return; }
+    if (nextIndex > 0) state.queue = [...state.queue.slice(nextIndex), ...state.queue.slice(0, nextIndex)];
     currentId = state.queue[0]; const stimulus = records.get(currentId); const draft = draftFor(stimulus);
-    byId("progress").textContent = progressText(); byId("queryLabel").textContent = stimulus.query_label;
-    byId("sparql").textContent = stimulus.sparql; byId("literal").textContent = stimulus.literal.text;
-    const grid = byId("candidateGrid"); grid.replaceChildren();
+    byId("progress").textContent = progressText();
+    byId("queryTitle").textContent = `${stimulus.kg_id} · ${stimulus.query_id}`;
+    byId("queryLabel").textContent = stimulus.query_label;
+    byId("includeSkipped").checked = state.includeSkipped === true;
+    byId("skippedCount").textContent = `(${skippedPendingIds().length})`;
+    byId("sparql").textContent = stimulus.sparql;
+    const grid = byId("formulationGrid"); grid.replaceChildren();
+    const literalCard = document.createElement("section"); literalCard.className = "formulation literal-card";
+    const literalHeading = document.createElement("h2"); literalHeading.textContent = "Literal reference";
+    const literalWording = document.createElement("p"); literalWording.className = "wording literal"; literalWording.textContent = stimulus.literal.text;
+    literalCard.append(literalHeading, literalWording); for (const dimension of dimensions) literalCard.append(anchorSlider(dimension)); grid.append(literalCard);
     draft.display_order.forEach((id, index) => {
       const candidate = stimulus.candidates.find((item) => item.formulation_id === id);
-      const card = document.createElement("section"); card.className = "candidate";
+      const card = document.createElement("section"); card.className = "formulation candidate";
       const heading = document.createElement("h2"); heading.textContent = `Formulation ${index === 0 ? "A" : "B"}`;
       const wording = document.createElement("p"); wording.className = "wording"; wording.textContent = candidate.text;
       card.append(heading, wording); for (const dimension of dimensions) card.append(slider(id, dimension, draft)); grid.append(card);
     });
-    byId("ratingError").hidden = true; show("workbench");
+    byId("ratingError").hidden = true; byId("skipWarning").hidden = true; byId("ratingActions").hidden = false;
+    byId("outcomePanel").hidden = true; byId("ratingForm").hidden = false; show("workbench");
   }
 
   function complete(outcome, extra = {}) {
@@ -131,17 +188,27 @@
     state.completed[currentId] = normalizedTrial(stimulus, hosted, data, draft, outcome, extra);
     delete state.drafts[currentId]; state.queue = state.queue.filter((id) => id !== currentId); save(); render();
   }
-  function finish() { state.finished = true; save(); byId("finishedProgress").textContent = progressText(); show("finished"); }
+  function finish() {
+    state.finished = true; save(); byId("finishedProgress").textContent = progressText();
+    byId("resumeBtn").hidden = unseenPendingIds().length === 0;
+    byId("reviewSkippedBtn").hidden = skippedPendingIds().length === 0;
+    show("finished");
+  }
 
   byId("beginBtn").addEventListener("click", () => { state.finished = false; save(); render(); });
-  byId("resumeBtn").addEventListener("click", () => { state.finished = false; save(); render(); });
+  byId("resumeBtn").addEventListener("click", () => { state.finished = false; state.includeSkipped = false; save(); render(); });
+  byId("reviewSkippedBtn").addEventListener("click", () => { state.finished = false; state.includeSkipped = true; save(); render(); });
+  byId("includeSkipped").addEventListener("change", () => { state.includeSkipped = byId("includeSkipped").checked; save(); render(); });
   byId("finishBtn").addEventListener("click", finish);
   byId("ratingForm").addEventListener("submit", (event) => { event.preventDefault(); try { complete("rated"); } catch (_) { byId("ratingError").hidden = false; } });
-  byId("skipBtn").addEventListener("click", () => { delete state.drafts[currentId]; state.skips[currentId] = (state.skips[currentId] || 0) + 1; state.queue.push(state.queue.shift()); save(); render(); });
-  function openOutcome(outcome) { pendingOutcome = outcome; byId("outcomeTitle").textContent = outcome === "cannot_assess" ? "Cannot assess this presentation" : "Report an inaccurate literal"; byId("reasonRow").hidden = outcome !== "cannot_assess"; byId("proposalRow").hidden = outcome !== "literal_inaccurate"; byId("reason").value = ""; byId("proposal").value = ""; byId("comment").value = ""; show("outcomePanel"); }
+  function skipCurrent() { const skippedId = currentId; delete state.drafts[skippedId]; state.skips[skippedId] = (state.skips[skippedId] || 0) + 1; state.queue.push(state.queue.shift()); state.includeSkipped = false; save([skippedId]); render(); }
+  byId("skipBtn").addEventListener("click", () => { if (hasTouchedRatings(draftFor(records.get(currentId)))) { byId("skipWarning").hidden = false; byId("ratingActions").hidden = true; } else skipCurrent(); });
+  byId("discardSkipBtn").addEventListener("click", skipCurrent);
+  byId("cancelSkipBtn").addEventListener("click", () => { byId("skipWarning").hidden = true; byId("ratingActions").hidden = false; });
+  function openOutcome(outcome) { pendingOutcome = outcome; byId("outcomeTitle").textContent = outcome === "cannot_assess" ? "Cannot assess this presentation" : "Report an inaccurate literal"; byId("reasonRow").hidden = outcome !== "cannot_assess"; byId("proposalRow").hidden = outcome !== "literal_inaccurate"; byId("reason").value = ""; byId("proposal").value = ""; byId("comment").value = ""; byId("ratingForm").hidden = true; byId("outcomePanel").hidden = false; }
   byId("cannotBtn").addEventListener("click", () => openOutcome("cannot_assess"));
   byId("literalErrorBtn").addEventListener("click", () => openOutcome("literal_inaccurate"));
-  byId("cancelOutcomeBtn").addEventListener("click", () => { pendingOutcome = null; show("workbench"); });
+  byId("cancelOutcomeBtn").addEventListener("click", () => { pendingOutcome = null; byId("outcomePanel").hidden = true; byId("ratingForm").hidden = false; });
   byId("confirmOutcomeBtn").addEventListener("click", () => { const extra = {reason: byId("reason").value, proposed_literal: byId("proposal").value.trim(), comment: byId("comment").value.trim()}; complete(pendingOutcome, extra); pendingOutcome = null; });
   byId("exportBtn").addEventListener("click", () => {
     const payload = {schema: "musparql.linguistic-annotation-export.v1", assignment_id: hosted.assignment_id, dataset_id: data.dataset_id, reviewer_id: hosted.reviewer_id, task_design_version: "phase-6b-v1", exported_at: new Date().toISOString(), annotations: Object.values(state.completed)};

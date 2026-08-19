@@ -93,11 +93,41 @@ def validate_bundle(payload: dict[str, Any]) -> None:
         "no_holdout", "identity_visible_selectors", "identity_private_filtered_upstream"
     }:
         raise ValueError("Bundle lacks an approved holdout-exclusion policy")
+    randomization = payload.get("randomization")
+    if (
+        not isinstance(randomization, dict)
+        or set(randomization) != {"algorithm", "seed"}
+        or randomization.get("algorithm") != "python-mt19937-v1"
+        or not isinstance(randomization.get("seed"), str)
+        or not randomization["seed"]
+    ):
+        raise ValueError("Linguistic bundle randomization metadata is invalid")
     records = payload.get("records")
     if not isinstance(records, list) or payload.get("record_count") != len(records):
         raise ValueError("Linguistic bundle record count is invalid")
     if not records:
         raise ValueError("Linguistic bundle must contain at least one trial")
+    sampling = payload.get("sampling")
+    if not isinstance(sampling, dict) or set(sampling) != {
+        "target_trials", "available_trials", "strata"
+    }:
+        raise ValueError("Linguistic bundle sampling metadata is invalid")
+    target_trials = sampling.get("target_trials")
+    available_trials = sampling.get("available_trials")
+    strata = sampling.get("strata")
+    if (
+        not isinstance(target_trials, int)
+        or isinstance(target_trials, bool)
+        or target_trials != len(records)
+        or not isinstance(available_trials, int)
+        or isinstance(available_trials, bool)
+        or available_trials < target_trials
+        or not isinstance(strata, list)
+        or not strata
+        or any(not isinstance(item, str) or not item for item in strata)
+        or len(set(strata)) != len(strata)
+    ):
+        raise ValueError("Linguistic bundle sampling metadata is invalid")
     trial_ids: set[str] = set()
     for record in records:
         if not isinstance(record, dict):
@@ -106,6 +136,8 @@ def validate_bundle(payload: dict[str, Any]) -> None:
         if record["trial_id"] in trial_ids:
             raise ValueError("Duplicate linguistic trial_id")
         trial_ids.add(record["trial_id"])
+        if record["sampling_stratum"] not in strata:
+            raise ValueError("Linguistic trial uses an undeclared sampling stratum")
     if payload.get("task_design_version") != TASK_DESIGN_VERSION:
         raise ValueError("Unsupported linguistic task design version")
 
@@ -118,8 +150,12 @@ def build_bundle(
     if not dataset_id or not seed:
         raise ValueError("dataset_id and a recorded randomization seed are required")
     pool = [dict(record) for record in records]
+    trial_ids: set[str] = set()
     for record in pool:
         validate_stimulus(record)
+        if record["trial_id"] in trial_ids:
+            raise ValueError("Duplicate linguistic trial_id")
+        trial_ids.add(record["trial_id"])
     ordered = sorted(pool, key=lambda item: (item["sampling_stratum"], item["trial_id"]))
     rng = random.Random(seed)
     by_stratum: dict[str, list[dict[str, Any]]] = {}
@@ -142,7 +178,7 @@ def build_bundle(
         if not progressed:
             break
     rng.shuffle(selected)
-    return {
+    payload = {
         "schema": BUNDLE_SCHEMA,
         "mode": "linguistic",
         "task_design_version": TASK_DESIGN_VERSION,
@@ -157,6 +193,8 @@ def build_bundle(
         "record_count": len(selected),
         "records": selected,
     }
+    validate_bundle(payload)
+    return payload
 
 
 def normalized_trial(

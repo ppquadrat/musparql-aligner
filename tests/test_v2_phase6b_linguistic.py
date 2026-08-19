@@ -56,6 +56,22 @@ def test_deterministic_balanced_bundle_and_contract() -> None:
     Draft202012Validator(schema, format_checker=FormatChecker()).validate(first)
 
 
+def test_bundle_validation_requires_reproducibility_metadata_and_unique_trials() -> None:
+    item = stimulus("one")
+    bundle = build_bundle([item], dataset_id="synthetic-linguistic", seed="recorded-seed")
+    for field in ("randomization", "sampling"):
+        invalid = dict(bundle)
+        invalid.pop(field)
+        with pytest.raises(ValueError):
+            validate_bundle(invalid)
+    invalid = json.loads(json.dumps(bundle))
+    invalid["sampling"]["target_trials"] = 2
+    with pytest.raises(ValueError):
+        validate_bundle(invalid)
+    with pytest.raises(ValueError, match="Duplicate linguistic trial_id"):
+        build_bundle([item, item], dataset_id="synthetic-linguistic", seed="recorded-seed")
+
+
 def test_stimulus_rejects_anchor_mutation_holdout_and_two_way() -> None:
     for mutation in ("digest", "holdout", "nested-holdout", "two-way"):
         record = stimulus("unsafe")
@@ -93,6 +109,25 @@ vm.runInNewContext(fs.readFileSync("review/linguistic/app.js", "utf8"), sandbox)
 const api = sandbox.window.MUSPARQL_LINGUISTIC;
 assert.notEqual(api.stateKey({dataset_id:"d"},{reviewer_id:"reviewer-0042",assignment_id:"a"}), api.stateKey({dataset_id:"d"},{reviewer_id:"reviewer-0042",assignment_id:"b"}));
 assert.deepEqual(JSON.parse(JSON.stringify(api.shuffled(["a","b"], () => 0))), ["b","a"]);
+const merged = api.mergeState(
+ {queue:["t3"],completed:{t1:{outcome:"rated"}},drafts:{t3:{}},skips:{t3:1},finished:false},
+ {queue:["t3"],completed:{t2:{outcome:"cannot_assess"}},drafts:{t2:{},t3:{}},skips:{t3:2},finished:true},
+ ["t1","t2","t3"]
+);
+assert.deepEqual(Object.keys(merged.completed).sort(), ["t1","t2"]);
+assert.deepEqual(JSON.parse(JSON.stringify(merged.queue)), ["t3"]);
+assert.equal(Object.hasOwn(merged.drafts,"t2"), false);
+assert.equal(merged.skips.t3, 2);
+assert.equal(merged.finished, false);
+assert.equal(merged.includeSkipped, false);
+const discarded = api.mergeState(
+ {queue:["t3"],completed:{},drafts:{},skips:{t3:1},finished:false},
+ {queue:["t3"],completed:{},drafts:{t3:{ratings:{}}},skips:{},finished:false},
+ ["t3"], ["t3"]
+);
+assert.equal(Object.hasOwn(discarded.drafts,"t3"), false);
+assert.equal(api.hasTouchedRatings({ratings:{c1:{naturalness:{value:25,touched:true}}}}), true);
+assert.equal(api.hasTouchedRatings({ratings:{c1:{naturalness:{value:0,touched:false}}}}), false);
 const stimulus = {
  trial_id:"t", query_id:"q", sparql_version:"v1", sparql_digest:"sha256:"+"a".repeat(64), presentation_arity:3,
  literal:{formulation_id:"l",version:"v1",digest:"sha256:"+"b".repeat(64)},
@@ -120,3 +155,8 @@ def test_ui_has_no_provenance_or_manual_selection_controls() -> None:
     assert "manual" not in html.casefold()
     assert "candidate.provenance" not in app
     assert "validation_provenance" not in app
+    assert "Compare all three formulations" not in html
+    assert "sparql-details" in html
+    assert "Discard and skip" in html
+    assert "Include skipped" in html
+    assert "Review skipped items" in html

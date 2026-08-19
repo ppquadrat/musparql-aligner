@@ -1,6 +1,6 @@
 # Linguistic-dimensions workbench specification
 
-Status: implemented on 19 August 2026 for the Phase 6b boundary; durable hosted
+Status: implemented and reviewer-tested on 20 August 2026 for the Phase 6b boundary; durable hosted
 submission and controlled processing remain Phase 7. Operational details are in
 [`PHASE_6B_LINGUISTIC_RUNBOOK.md`](PHASE_6B_LINGUISTIC_RUNBOOK.md).
 
@@ -69,10 +69,17 @@ reviewer interface.
 
 The rating screen shows, in this order:
 
-1. the SPARQL;
-2. the validated literal reference;
-3. formulation A and formulation B; and
-4. two anchor-relative rating controls for each linguistic dimension.
+1. the KG ID, query ID, and human-readable query label;
+2. the SPARQL in an expandable disclosure matching the initial/comparison UI;
+3. the validated literal reference and formulation A and formulation B; and
+4. the anchor-relative controls for each linguistic dimension.
+
+On a wide screen the literal, A, and B appear as three aligned columns. The
+literal is the left-hand anchor and shows disabled controls fixed at `0`, so the
+same dimensions and scale remain visible across all three formulations. At
+medium widths the literal spans the row above A and B; at narrow widths all
+three cards stack. This responsive fallback is preferable to squeezing sliders
+into unusably narrow columns.
 
 A and B are randomised independently for each presentation and the displayed
 order is recorded. The literal reference is not randomised because it has a
@@ -94,10 +101,10 @@ Each control is a continuous-looking visual analogue slider with a normalized
 range from `-100` to `+100`. The stored value is an integer so the interface is
 fine-grained without implying meaningful sub-integer precision.
 
-The scale shows `0` clearly and provides visible reference ticks at least at
-`-100`, `-50`, `0`, `+25`, `+50`, `+75`, and `+100`. It therefore provides at
-least five salient positions from the expected literal baseline through the
-positive half while retaining the complete negative range.
+The scale shows exactly aligned reference ticks at `-100`, `-50`, `0`, `+50`,
+and `+100`. Tick placement uses the same track endpoints and defined thumb
+geometry as the control, rather than evenly spaced label boxes. The number at
+the top right of each dimension is the control's current integer value.
 
 Every slider starts **unanswered**, even if the visual thumb or track is drawn
 at the centre. An untouched slider must never be stored as a deliberate zero.
@@ -153,9 +160,13 @@ the completed trial and moves to the next random eligible item.
 ### Skip for now
 
 Stores no linguistic judgment. The trial leaves the immediate queue and may be
-offered again after the reviewer has seen the remaining available items. Skips
-may be recorded as operational events so repeated avoidance can be audited, but
-they are not annotations and do not count as completion.
+offered again only when the reviewer enables **Include skipped** or chooses
+**Review skipped items** from the progress summary. Skips are excluded by
+default so skipping the only remaining unseen item cannot appear to do nothing.
+If any slider has been touched, the interface warns that the current selections
+will be discarded before completing the skip. Skips may be recorded as
+operational events so repeated avoidance can be audited, but they are not
+annotations and do not count as completion.
 
 ### Cannot assess
 
@@ -184,6 +195,16 @@ draft or discards it after an explicit choice, and returns a clear partial
 progress state. The reviewer may resume later while the assignment remains
 active.
 
+### Completed observations
+
+A completed `rated`, `cannot_assess`, or `literal_inaccurate` observation is not
+offered again in the ordinary reviewer queue. Locking it avoids hindsight,
+recalibration, and consistency effects after the reviewer has seen later
+stimuli. If operational experience establishes a need for amendment, that must
+be a separately designed correction workflow retaining the original record,
+revision, timestamp, and reason; it must not silently overwrite the original
+observation.
+
 ## 6. Assignment, randomisation and progress
 
 The owner or assignment builder determines:
@@ -203,17 +224,19 @@ the assignment is opened by an authenticated reviewer.
 
 The ordinary reviewer cannot manually select stimuli or filter by formulation
 origin. The workbench supplies the next item randomly from the assignment's
-remaining eligible, balanced queue. Already completed or `cannot_assess` trials
-are excluded automatically, so **Unrated** is queue behaviour rather than a
-reviewer filter. KG scope is normally fixed during assignment construction,
-using the reviewer's expertise and KG-familiarity assessments where applicable.
+remaining eligible, balanced queue. Completed trials are excluded
+automatically. Skipped trials are excluded by default but may be included with
+the explicit skipped-items switch; this is queue-state control, not stimulus
+selection. KG scope is normally fixed during assignment construction, using
+the reviewer's expertise and KG-familiarity assessments where applicable.
 
 Manual selection by query and formulation IDs may exist only in a clearly
 separated owner/development test route. Test selection must not be available in
 the workshop rating flow or mixed into study data.
 
-A reviewer is never required to exhaust the queue. Progress is presented as,
-for example, `12 completed of up to 30`, not as an obligation. The assignment
+A reviewer is never required to exhaust the queue. Progress separates the
+states explicitly, for example `12 completed · 3 skipped · 15 unseen`, rather
+than presenting an obligation. The assignment
 may be partially complete, explicitly finished by the reviewer, closed at a
 deadline, or resumed later. A minimum number of usable ratings required for a
 particular analysis belongs in the prospective analysis protocol; the UI must
@@ -348,7 +371,8 @@ Implementation work includes:
 - assignment-mode allowlisting and authenticated attribution;
 - random queue, skip, cannot-assess, literal-error, partial-finish, and resume
   behaviour;
-- atomic per-trial draft/submission handling;
+- atomic per-trial draft/submission handling and merge-safe concurrent-tab
+  persistence;
 - controlled owner handling of literal-correction proposals;
 - export/submission validation and analysis-ready normalized output; and
 - synthetic browser, isolation, accessibility, randomisation, and concurrency

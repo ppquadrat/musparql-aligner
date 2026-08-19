@@ -14,7 +14,7 @@
   <main>
     <section id="instructions" class="panel">
       <h1>Rate wording relative to the literal reference</h1>
-      <p>This task compares two formulations with a validated literal wording fixed at zero. It is not a correctness or benchmark-approval task.</p>
+      <p>This task compares two formulations with a validated literal wording fixed at zero. The number beside each dimension is its current score; move every candidate slider deliberately, even when your answer is zero. This is not a correctness or benchmark-approval task.</p>
       <div class="dimension-help">
         <article><h2>Naturalness</h2><p>−100 is much less natural, 0 is about as natural, and +100 is much more natural than the literal. For calibration, query-fragment wording may sit near −80, similarly fluent wording near 0, and an ordinary conversational question near +80.</p></article>
         <article><h2>Communicative salience</h2><p>−100 is much less focused, 0 about as focused, and +100 much more focused on a plausible human information need. Exhaustive structural detail may sit near −80, equivalent focus near 0, and a concise statement of the likely need near +80.</p></article>
@@ -25,38 +25,51 @@
     </section>
 
     <section id="workbench" hidden>
-      <div class="progress-row"><span id="progress"></span><button id="finishBtn" class="secondary" type="button">Finish for now</button></div>
+      <div class="progress-row">
+        <span id="progress"></span>
+        <div class="progress-actions">
+          <label class="skip-toggle"><input id="includeSkipped" type="checkbox"> Include skipped <span id="skippedCount"></span></label>
+          <button id="finishBtn" class="secondary" type="button">Finish for now</button>
+        </div>
+      </div>
       <article class="panel stimulus">
-        <h1 id="queryLabel"></h1>
-        <h2>SPARQL</h2><pre id="sparql"></pre>
-        <h2>Validated literal reference <span class="zero">fixed at 0</span></h2>
-        <p id="literal" class="wording literal"></p>
+        <h1 id="queryTitle"></h1>
+        <p id="queryLabel" class="query-label"></p>
+        <details class="sparql-details">
+          <summary><span>SPARQL query</span><span class="muted-meta">show query</span></summary>
+          <pre id="sparql"></pre>
+        </details>
       </article>
-      <form id="ratingForm" class="panel">
-        <div id="candidateGrid"></div>
+      <section class="panel">
+        <div id="formulationGrid" class="formulation-grid"></div>
+      </section>
+      <form id="ratingForm" class="panel rating-controls">
         <p id="ratingError" class="error" role="alert" hidden>Move all six sliders deliberately before submitting.</p>
-        <div class="actions">
+        <div id="skipWarning" class="inline-warning" role="alert" hidden>
+          <p>Your selections for this triple will be discarded. Skip it for now?</p>
+          <div class="actions"><button id="discardSkipBtn" class="caution" type="button">Discard and skip</button><button id="cancelSkipBtn" class="secondary" type="button">Keep rating</button></div>
+        </div>
+        <div id="ratingActions" class="actions">
           <button type="submit">Submit rating and continue</button>
           <button id="skipBtn" class="secondary" type="button">Skip for now</button>
-          <button id="cannotBtn" class="secondary" type="button">Cannot assess</button>
-          <button id="literalErrorBtn" class="warning" type="button">Literal formulation appears inaccurate</button>
+          <button id="cannotBtn" class="caution" type="button">Cannot assess</button>
+          <button id="literalErrorBtn" class="danger" type="button">Literal formulation appears inaccurate</button>
         </div>
       </form>
-    </section>
-
-    <section id="outcomePanel" class="panel" hidden>
-      <h1 id="outcomeTitle"></h1>
-      <label id="reasonRow">Reason (optional)<select id="reason"><option value="">No reason selected</option><option value="insufficient_context">Insufficient context</option><option value="language_unclear">Language unclear</option><option value="other">Other</option></select></label>
-      <label id="proposalRow">Proposed corrected literal (optional)<textarea id="proposal"></textarea></label>
-      <label>Comment (optional)<textarea id="comment"></textarea></label>
-      <div class="actions"><button id="confirmOutcomeBtn" type="button">Record and continue</button><button id="cancelOutcomeBtn" class="secondary" type="button">Cancel</button></div>
+      <section id="outcomePanel" class="panel outcome-panel" hidden>
+        <h1 id="outcomeTitle"></h1>
+        <label id="reasonRow">Reason (optional)<select id="reason"><option value="">No reason selected</option><option value="insufficient_context">Insufficient context</option><option value="language_unclear">Language unclear</option><option value="other">Other</option></select></label>
+        <label id="proposalRow">Proposed corrected literal (optional)<textarea id="proposal"></textarea></label>
+        <label>Comment (optional)<textarea id="comment"></textarea></label>
+        <div class="actions"><button id="confirmOutcomeBtn" type="button">Record and continue</button><button id="cancelOutcomeBtn" class="secondary" type="button">Cancel</button></div>
+      </section>
     </section>
 
     <section id="finished" class="panel" hidden>
       <h1>Progress saved</h1>
       <p id="finishedProgress"></p>
       <p>Your completed outcomes remain in this browser for this assignment. You can resume while the assignment is active.</p>
-      <div class="actions"><button id="resumeBtn" type="button">Resume</button><button id="exportBtn" class="secondary" type="button">Export normalized annotations</button></div>
+      <div class="actions"><button id="resumeBtn" type="button">Resume unseen items</button><button id="reviewSkippedBtn" class="caution" type="button">Review skipped items</button><button id="exportBtn" class="secondary" type="button">Export normalized annotations</button></div>
     </section>
   </main>
   <script src="host_context.js"></script>

@@ -14,9 +14,11 @@ in force. Durable hosted submission and processing are still Phase 7.
   pool with `scripts/build_linguistic_bundle.py --input INPUT --output OUTPUT
   --dataset-id ID --seed RECORDED-SEED [--target-trials N]`.
 - The builder rejects a missing validated literal, digest mismatch, two-way
-  presentation, holdout-marked stimulus, or anything other than exactly two
-  eligible non-literal candidates. It balances across `sampling_stratum` in a
-  reproducible round-robin sample before shuffling the chosen queue.
+  presentation, duplicate trial ID, holdout-marked stimulus, invalid
+  randomisation/sampling metadata, or anything other than exactly two eligible
+  non-literal candidates. It balances across `sampling_stratum` in a
+  reproducible round-robin sample before shuffling the chosen queue, then
+  validates the completed output before writing it.
 
 The source pool must already exclude private holdout identities. Never use the
 builder on a protected holdout path. The recorded seed is experiment metadata,
@@ -36,12 +38,21 @@ server bundle but are removed before data reaches the browser.
 
 The browser randomizes and records candidate A/B order on first presentation.
 It stores one atomic assignment-scoped state object under dataset, reviewer,
-and assignment IDs. A slider drawn at zero remains unanswered until moved.
-Normal submission requires all six touched integer controls. Skip rotates an
-item behind the remaining queue; cannot-assess completes a non-rating outcome;
-literal-inaccurate discards all slider data and records only the optional
-correction proposal/comment. Finish preserves the current draft and completed
-trials for a later resume.
+and assignment IDs, and merges completed observations when concurrent tabs save
+so one tab cannot erase another tab's different completed trial. A slider drawn
+at zero remains unanswered until moved. The literal is shown beside A and B
+with disabled zero controls; candidate value labels report the actual integer,
+and the five visible ticks align exactly with the defined slider track.
+
+Normal submission requires all six touched integer controls. Completed
+observations are locked in the ordinary study flow. Skip discards no judgment,
+excludes the item by default, and requires confirmation before discarding a
+touched draft. **Include skipped** and **Review skipped items** deliberately
+return skipped work to the queue. Cannot-assess completes a non-rating outcome;
+literal-inaccurate opens in place so the query context remains visible,
+discards all slider data, and records only the optional correction
+proposal/comment. Finish preserves the current draft and completed trials for a
+later resume and reports completed, skipped, and unseen counts separately.
 
 Use **Export normalized annotations** from the saved-progress screen to make a
 Phase 6b JSON export. Until Phase 7 lands, this download is a transition
@@ -56,7 +67,8 @@ Run:
 .venv/bin/python -m pytest -q
 ```
 
-The synthetic tests cover deterministic sampling, schema validation, frozen
-digests, untouched-zero rejection, A/B order, non-rating score removal,
-assignment-scoped drafts, authenticated routing, provenance blinding, and
-cross-reviewer denial. No protected review data is needed.
+The synthetic tests cover deterministic sampling, runtime metadata validation,
+duplicate rejection, frozen digests, untouched-zero rejection, A/B order,
+non-rating score removal, concurrent-state merging, explicit skipped-draft
+discard, assignment-scoped drafts, authenticated routing, provenance blinding,
+and cross-reviewer denial. No protected review data is needed.

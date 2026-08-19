@@ -78,6 +78,22 @@ Python-ingest boundaries, and add parity tests so required fields, RFC 3339
 timestamps, reviewer/event identity rules, and unknown-property handling cannot
 drift between implementations.
 
+### Linguistic workbench introduction and correction policy
+
+The Phase 6b rating screen and navigation have received an initial reviewer UI
+pass, but the starting instruction/calibration page still needs a dedicated
+content and usability review before a pilot or real collection. Revisit its
+information hierarchy, amount of calibration text, examples, and transition
+into the first trial; validate the result with representative reviewers rather
+than treating the current development copy as final.
+
+Completed linguistic observations are currently locked, which protects the
+primary cognition-study design from hindsight and recalibration after later
+stimuli. If reviewer operations require amendments, design an explicit
+append-only correction mechanism that preserves the original observation,
+revised value, reason, actor, and timestamp. Do not add an ordinary overwrite
+or silently requeue completed observations.
+
 ## SPARQL correction backlog
 
 The detailed, prioritized correction-workbench backlog remains in

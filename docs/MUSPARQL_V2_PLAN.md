@@ -1453,7 +1453,7 @@ Exit criteria:
 
 ### Phase 6b — linguistic-dimensions workbench
 
-Status: completed on 19 August 2026 for the Phase 6b boundary. Versioned
+Status: completed and reviewer-tested on 20 August 2026 for the Phase 6b boundary. Versioned
 stimulus/export contracts, deterministic balanced construction, authenticated
 linguistic assignments, a provenance-blinded three-way workbench, safe
 assignment-scoped drafts, all specified outcomes, normalized export, and
@@ -1473,9 +1473,11 @@ Work:
 - versioned linguistic stimulus and annotation contracts;
 - deterministic non-holdout bundle construction and assignment sampling;
 - a provenance-blinded three-way rating interface with fine-grained bipolar
-  sliders;
+  sliders, an aligned fixed-zero literal anchor, responsive three-formulation
+  layout, and expandable SPARQL context;
 - random queue, skip, cannot-assess, literal-error, pause, partial-finish and
-  resume behaviour;
+  resume behaviour, including explicit skipped-item inclusion and separate
+  completed/skipped/unseen progress;
 - authenticated attribution, digest validation and browser-draft isolation;
 - explicit separation and calibration of any later two-way presentation mode;
   and
