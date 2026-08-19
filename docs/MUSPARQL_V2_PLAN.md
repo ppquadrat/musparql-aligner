@@ -1,8 +1,8 @@
 # Musparql v2: remote expert-review platform plan
 
-Status: proposed implementation plan
+Status: active phased implementation; isolated deployment bootstrap in progress
 
-Date: 2026-08-17
+Last updated: 2026-08-19
 
 Scope: reviewer administration, remote review, longitudinal expertise data,
 controlled processing, and deployment
@@ -79,10 +79,13 @@ The first Musparql v2 release will not:
 - reuse, modify, restart, or otherwise operate the Multichannel/VocalLanes
   application or its server resources.
 
-Read-only inspection of VocalLanes is permitted only when a future task
-genuinely requires comparison. Musparql deployment work must remain scoped to
-an explicitly separate environment and must not change VocalLanes files,
-processes, ports, credentials, services, or configuration. When changing server settings, restarting or otherwise working with the server, remember that VocalLanes has priority and must not be compromised - ask before doing anything that can affect it.
+VocalLanes inspection is not permitted. Musparql deployment work must follow
+[`HOME_SERVER_BOUNDARY.md`](HOME_SERVER_BOUNDARY.md) and remain scoped to the
+dedicated `musparql` Windows account and Musparql WSL environment. It must not
+read or change VocalLanes files, processes, credentials, services,
+configuration, scheduled tasks, backups, or accounts. If an action could cross
+that boundary, stop and ask the owner rather than inspecting the production
+application.
 
 ## 4. Invariants carried forward from the current system
 
@@ -1049,8 +1052,8 @@ phases.
 
 ### 20.2 Dedicated WSL environment
 
-The proposed server environment is a new WSL2 distribution provisionally named
-`MusparqlReview`, containing:
+The server environment is a new WSL2 distribution named `MusparqlReview`,
+installed and operated under the Windows account `musparql`, containing:
 
 - its own unprivileged Linux user;
 - its own Musparql clone;
@@ -1068,6 +1071,39 @@ security boundary. Both applications still share the Windows host, physical
 CPU, memory, disk, networking, update cycle, and power supply. If this residual
 risk proves unacceptable, deploy the same single-instance Flask and SQLite
 application to a separate small VM or VPS.
+
+#### 20.2.1 Provisioning state on 2026-08-19
+
+The isolation bootstrap is complete:
+
+- Windows account `DANIEL-PC\musparql` is the sole Windows owner of Musparql;
+- WSL2 distro `MusparqlReview` was imported under that account from a
+  SHA-256-verified Canonical Ubuntu 24.04 WSL image;
+- unprivileged Linux user `musparql` is the distro default;
+- systemd was verified as PID 1;
+- the minimal Python 3.12, virtual-environment, Git, TLS, and SSH runtime is
+  installed only in `MusparqlReview`;
+- a dedicated Ed25519 key exists only inside the distro, and the owner added its
+  public key to `ppquadrat/musparql-aligner` as a read-only deploy key;
+- `\Musparql WSL Keepalive` runs at Windows boot and
+  `\Musparql WSL Keepalive Watchdog` runs every five minutes;
+- both tasks run as stored-password Windows principal
+  `DANIEL-PC\musparql`, at limited privilege, and invoke only
+  `MusparqlReview` as unprivileged Linux user `musparql`;
+- both tasks use unlimited execution time and `IgnoreNew`; and
+- the boot keepalive was manually verified `Running` with Task Scheduler result
+  `267009`; the watchdog was also manually verified `Running`, with a redundant
+  start correctly refused by `IgnoreNew` as `0x800710E0`.
+
+The exact operational boundary, repeat-provisioning procedure, and evidence log
+are in [`HOME_SERVER_BOUNDARY.md`](HOME_SERVER_BOUNDARY.md) and
+[`HOME_SERVER_PROVISIONING_LOG.md`](HOME_SERVER_PROVISIONING_LOG.md). Those
+documents are mandatory before any server work. There is no read-only exception
+for VocalLanes inspection.
+
+Still outstanding are in-distro Git verification and clone, the application
+and worker units, the distro-local tunnel, the independent encrypted backup and
+restore test, monitoring, and an owner-approved reboot test.
 
 ### 20.3 Public address
 
@@ -1105,6 +1141,11 @@ The deployment is ready only when:
 - restoration from backup has been tested; and
 - temporary unavailability has an owner-visible alert and reviewer-friendly
   message.
+
+The keepalive bootstrap satisfies only the task-creation and manual-start part
+of this gate. It does not establish reboot recovery until a deliberate Windows
+reboot has been observed, and it does not establish application availability
+until the real `musparql-*` systemd units and tunnel exist.
 
 ## 21. Migration and compatibility
 
@@ -1378,6 +1419,11 @@ Exit criteria:
 
 ### Phase 10 — isolated deployment
 
+Status: isolation bootstrap partly complete as of 2026-08-19. The dedicated
+account, distro, Linux user, runtime, SSH identity, keepalive, and watchdog are
+provisioned. Application installation, tunnel, backup, monitoring, and reboot
+verification remain open.
+
 Work:
 
 - provision the dedicated WSL distribution;
@@ -1521,20 +1567,26 @@ Before Phase 7:
 
 Before Phase 10:
 
-- approve the exact dedicated WSL name, storage paths, ports, resource limits,
-  backup destination, and monitoring method;
+- [decided] use Windows account `musparql`, WSL2 distro `MusparqlReview`, and
+  Linux user `musparql` with the keepalive/watchdog design in the mandatory
+  home-server runbook;
+- approve the exact storage paths, ports, resource limits, independent backup
+  destination, and monitoring method;
 - confirm the residual shared-Windows-host risk is acceptable; and
 - approve Tailscale Funnel for the real-review pilot.
 
 ## 27. Recommended next step
 
-Phases 0, 1, and 2 are complete. Proceed to Phase 2b to design and implement
-durable backup and recovery for both the confidential database and irreplaceable
-Git-ignored review/provenance files. Phase 3 application and authentication work
-may be developed independently, but no real reviewer data should be collected
-until Phase 2b and the remaining privacy and authentication decisions are
-complete. Do not begin remote deployment until the later operational decisions
-are approved.
+Phases 0, 1, and 2 are complete. The account/distro/task isolation bootstrap of
+Phase 10 is partly complete and is recorded in section 20.2.1; this does not
+authorize or imply deployment of the application, tunnel, reviewer data, or
+backup. Proceed to Phase 2b to design and implement durable backup and recovery
+for both the confidential database and irreplaceable Git-ignored
+review/provenance files. Phase 3 application and authentication work may be
+developed independently, but no real reviewer data should be collected until
+Phase 2b and the remaining privacy and authentication decisions are complete.
+Do not expose the remote application until the remaining operational decisions
+and Phase 10 gates are approved.
 
 ## 28. Definition of the first Musparql v2 release
 

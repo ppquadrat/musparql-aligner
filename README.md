@@ -64,6 +64,8 @@ the human verifies and places that file at the local path.
 
 ## Documentation
 
+- [`docs/HOME_SERVER_BOUNDARY.md`](docs/HOME_SERVER_BOUNDARY.md) — mandatory
+  read-first ownership and safety boundary for all home-server work.
 - [`docs/WORKFLOW.md`](docs/WORKFLOW.md) — readable end-to-end workflow,
   including the boundaries between deterministic processing, external
   observations, LLM assistance, and human decisions.
