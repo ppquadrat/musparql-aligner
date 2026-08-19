@@ -293,9 +293,15 @@ reversible and is not a substitute for password-manager custody.
 - Reviewer identity and profile data are deleted on a valid deletion or
   withdrawal request, or two years after the project ends if no earlier request
   applies.
-- Authentication codes, expired sessions, temporary jobs, and scrubbed logs
-  receive separate short operational retention periods in their implementing
-  phases; they are not scholarly provenance.
+- Authentication codes are purged within 24 hours after use or expiry. Expired
+  or revoked sessions, scrubbed application logs, email-delivery identifiers,
+  and failed or temporary processing jobs are retained for 30 days.
+- Never-accepted invitations are retained for 90 days after invitation expiry.
+  Owner invitation, disable, restoration, and deletion audit events are retained
+  for one year. These operational records are not scholarly provenance.
+- A minimal deletion tombstone/ledger entry is retained for as long as retained
+  data or a recoverable copy could otherwise reintroduce the deleted identity
+  link.
 
 ### 11.2 Backup generations
 

@@ -17,13 +17,21 @@ owner-only profile administration form yet. The documented legacy registry was
 never populated, so Phase 2 creates the v2 database directly and deliberately
 does not add legacy-value tables or infer v2 assertions from legacy scales.
 
-Before implementing the form, decide and document:
+The proposed decisions, working ICF-controller assessment, rights/incident
+procedures, and ICF/ODOMA questions are now recorded in
+[`REVIEWER_DATA_GOVERNANCE_DRAFT.md`](REVIEWER_DATA_GOVERNANCE_DRAFT.md).
+Before collecting real reviewer data, ICF must confirm:
 
-- the data controller and contact route;
-- the lawful basis for processing;
-- retention and deletion periods;
-- access, correction, and deletion procedures; and
-- the data-retention consequences of profile withdrawal and deletion.
+- the controller and contact route;
+- the lawful basis and any required legitimate-interests, ethics, grant, or
+  security review;
+- the UK home-server, encrypted Google Drive, email, tunnelling, and monitoring
+  arrangements; and
+- the final privacy notice and allocation of rights/incident responsibilities.
+
+Retention periods, access/correction/deletion procedures, and the proposed
+consequences of withdrawal are decided for implementation but remain subject to
+that controller approval.
 
 The form must never place names, email addresses, affiliation, experience, or
 KG-familiarity fields in review bundles, exports, benchmarks, logs, or tests.

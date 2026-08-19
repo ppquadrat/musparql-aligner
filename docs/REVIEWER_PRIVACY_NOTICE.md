@@ -3,6 +3,12 @@
 This document records minimum product requirements for the reviewer form; it
 does not determine the project's legal basis.
 
+The current factual assessment, proposed rights and incident procedures, and
+questions awaiting ICF approval are in
+[`REVIEWER_DATA_GOVERNANCE_DRAFT.md`](REVIEWER_DATA_GOVERNANCE_DRAFT.md). That
+draft is not itself an approved reviewer-facing notice. No real reviewer data
+may be collected until the controller and final notice are confirmed.
+
 Before collecting a profile, the form must identify the controller and explain:
 
 - why identity, contact, expertise, language, and KG-familiarity data are used;

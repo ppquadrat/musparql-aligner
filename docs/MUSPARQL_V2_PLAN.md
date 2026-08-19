@@ -974,7 +974,7 @@ It must not be implemented by merely revealing the hidden checkbox.
 - Invite-only email addresses.
 - Numeric copyable code.
 - Single use.
-- Short expiration, provisionally ten minutes.
+- Expires after 15 minutes.
 - Request throttling per address and request context.
 - Attempt limit per code.
 - Requesting a replacement invalidates the older code.
@@ -982,29 +982,55 @@ It must not be implemented by merely revealing the hidden checkbox.
 - Hashed storage only.
 - No codes, email bodies, or secrets in logs.
 
-The email delivery mechanism remains an implementation prerequisite. Preferred
-options, in order of operational simplicity, are:
+The email delivery mechanism remains an implementation prerequisite. The
+preferred no-new-domain route is an ICF-managed project address or alias using
+an ICF-approved sending service. If ICF cannot provide one, the fallback is a
+dedicated free Musparql `@gmail.com` account sent through the Gmail API with
+OAuth restricted to the narrow send-only scope. The exact available address is
+chosen when the account is provisioned. It should be human-readable, such as
+`musparql.review@gmail.com`, and monitored for reviewer replies, bounces, and
+account-security notices; `noreply` wording does not technically prevent
+replies and is not preferred for the small invited cohort.
+
+This is deliberately separate from reviewer authentication: reviewers still
+sign into Musparql using the emailed code, not Google OAuth. The sender is
+implemented behind an adapter so a verified-domain transactional provider can
+replace Gmail later without changing authentication or stored reviewer data.
+
+If neither the ICF route nor the Gmail fallback proves operationally suitable,
+preferred replacement options, in order of operational simplicity, are:
 
 1. an existing institutional transactional SMTP service that permits this use;
 2. a dedicated transactional-email provider; or
 3. a small managed authentication provider if email delivery cannot be operated
    responsibly in Flask.
 
-The project should not embed a personal mailbox password. Use a dedicated
-account, scoped credential, or app password and document rotation.
+The project must not embed a personal mailbox password. It uses a dedicated
+account and scoped OAuth credential, stored outside Git, with documented
+revocation and rotation. The application does not request inbox-reading scope;
+bounces and replies are monitored manually in the dedicated mailbox. Sent
+authentication messages are removed within 30 days, and resolved replies or
+bounces within 90 days unless the controller approves a different schedule.
 
 ### 18.2 Browser sessions
 
 - Server-side, random, revocable sessions.
 - Cookie contains only an opaque value.
 - `Secure`, `HttpOnly`, and explicit `SameSite` configuration.
-- Non-remembered session ends with the browser session or a short inactivity
-  timeout.
-- Remembered session has a bounded lifetime, provisionally 30 days.
+- Non-remembered reviewer sessions expire after two hours of inactivity and
+  have an absolute lifetime of 24 hours; the browser-session cookie also ends
+  when the browser session closes.
+- Remembered reviewer sessions expire after seven days of inactivity and have
+  an absolute lifetime of 30 days.
+- Owner sessions expire after two hours of inactivity and have an absolute
+  lifetime of 12 hours.
 - Session rotation after successful login.
 - Logout, logout-all, and owner revocation.
 - Reverification for email changes and sensitive profile operations where
   appropriate.
+- Browser activity means an authenticated server request, not an idle open tab.
+- Invitation, disable, restoration, and deletion actions require recent owner
+  authentication.
 
 ## 19. Privacy and security requirements
 
@@ -1021,6 +1047,16 @@ Before collecting real profiles, the project must document:
 - hosting and backup locations;
 - incident response; and
 - whether acknowledgement is merely notice acknowledgement or legal consent.
+
+The working factual assessment, proposed retention schedule, rights-request and
+incident procedures, and approval questions for ICF are recorded in
+[`REVIEWER_DATA_GOVERNANCE_DRAFT.md`](REVIEWER_DATA_GOVERNANCE_DRAFT.md). ICF is
+the provisional controller because the work is paid research under ICF and an
+EU grant, but this is not final: ICF must confirm the controller, lawful basis,
+home-server and provider approvals, and final notice before real-data
+collection. ODOMA currently receives and processes no Musparql personal data;
+any future data, authentication, code, or contributor integration triggers a
+new controller/processor and notice review before it begins.
 
 The notice must disclose relevant processors used for hosting, tunnelling, email
 delivery, monitoring, and backups.
@@ -1554,10 +1590,20 @@ Before Phase 1 (completed):
 
 Before Phase 3:
 
-- choose the email delivery service and sending address;
-- choose code and session lifetimes;
-- complete the privacy and retention decisions; and
-- decide who may invite or disable reviewers.
+- [provisional pending ICF response and account provisioning] use an ICF-managed
+  project address and approved sending route if available; otherwise use a
+  dedicated, monitored Musparql Gmail account through send-only Gmail API OAuth;
+- [decided] use 15-minute codes, two-hour-idle/24-hour-absolute ordinary
+  sessions, seven-day-idle/30-day-absolute remembered sessions, and
+  two-hour-idle/12-hour-absolute owner sessions;
+- [partly decided] use the retention schedule and rights/incident procedures in
+  `REVIEWER_DATA_GOVERNANCE_DRAFT.md`; ICF confirmation of the controller,
+  lawful basis, infrastructure/providers, and final notice remains a real-data
+  gate; and
+- [decided] the sole owner may invite, disable, restore, or delete reviewers in
+  the first release. Reviewers have no administrative role; owner actions are
+  audited, require recent authentication, immediately revoke affected sessions,
+  and the normal UI cannot remove the last active owner.
 
 Before Phase 7:
 
