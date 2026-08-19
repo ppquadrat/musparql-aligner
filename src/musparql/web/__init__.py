@@ -51,6 +51,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         ASSIGNMENT_BUNDLE_ROOT=os.environ.get(
             "MUSPARQL_ASSIGNMENT_BUNDLE_ROOT", "var/review/bundles"
         ),
+        REVIEW_WORKBENCH_ROOT=os.environ.get(
+            "MUSPARQL_REVIEW_WORKBENCH_ROOT", "review"
+        ),
         PRIVACY_NOTICE_VERSION=os.environ.get("MUSPARQL_PRIVACY_NOTICE_VERSION"),
         PRIVACY_NOTICE_BODY=os.environ.get("MUSPARQL_PRIVACY_NOTICE_BODY"),
         ALLOW_SYNTHETIC_PRIVACY_NOTICE=(
@@ -155,6 +158,16 @@ def _validate_config(app: Flask) -> None:
     suggestions_path = Path(app.config["EXPERTISE_SUGGESTIONS_PATH"]).expanduser().resolve()
     if not suggestions_path.is_file():
         raise RuntimeError("The configured expertise suggestion snapshot does not exist")
+    workbench_root = Path(app.config["REVIEW_WORKBENCH_ROOT"]).expanduser().resolve()
+    missing_workbench_files = [
+        name for name in ("index.html", "styles.css", "app.js", "host_context.js")
+        if not (workbench_root / name).is_file()
+    ]
+    if missing_workbench_files:
+        raise RuntimeError(
+            "The configured review workbench is incomplete: "
+            + ", ".join(missing_workbench_files)
+        )
     owner_id = app.config["OWNER_REVIEWER_ID"]
     if not isinstance(owner_id, str) or not owner_id.startswith("reviewer-"):
         raise RuntimeError("OWNER_REVIEWER_ID must be a pseudonymous reviewer ID")

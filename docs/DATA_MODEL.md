@@ -216,6 +216,14 @@ The browser bundle is generated and ignored. It contains candidate records,
 their run provenance, source evidence, SPARQL provenance, and holdout eligibility
 information.
 
+For a hosted assignment, Flask verifies the frozen bundle digest before serving
+the same initial/comparative workbench assets used by the local workflow. It
+injects only the authenticated pseudonymous reviewer ID, assignment ID, bundle
+digest, and non-confidential navigation/capability context. Browser drafts are
+namespaced by mode, dataset, reviewer, and assignment; hosted pages do not fall
+back to local or legacy draft keys. These drafts remain browser-local transition
+state until Phase 7 adds durable authenticated submission.
+
 A new sanitized review export has schema `musparql.review-export.v2`, kind
 `non_holdout_review_export`, and contains no
 holdout entry. Review records can contain a benchmark decision, preferred

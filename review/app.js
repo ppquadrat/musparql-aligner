@@ -1,5 +1,7 @@
 (function () {
   const data = window.REVIEW_DATA || null;
+  const hosted = window.MUSPARQL_HOSTED_CONTEXT || null;
+  const hostedNoHoldout = Boolean(hosted && !hosted.holdout_capability);
   const HOLDOUT_SPLIT = "private_holdout";
 
   const els = {
@@ -77,6 +79,8 @@
     selectorUpdateForReview,
   };
 
+  initHostedSession();
+
   if (!data || !Array.isArray(data.records) || !data.records.length) {
     return;
   }
@@ -84,15 +88,19 @@
     throw new Error("Review bundle requires a pseudonymous reviewer-NNNN identifier.");
   }
 
-  const selectorExportAllowed = data.holdout_input_policy !== "identity_private_filtered_upstream";
+  const selectorExportAllowed = !hostedNoHoldout
+    && data.holdout_input_policy !== "identity_private_filtered_upstream";
   els.exportHoldoutSelectorsBtn.classList.toggle("hidden", !selectorExportAllowed);
+  if (hostedNoHoldout) hideHostedHoldoutControls();
 
   if (data.mode === "compare") {
     initCompareMode();
     return;
   }
 
-  const reviewStorageKey = `musparql-review:schema4:${data.dataset_id}:${data.reviewer_id}`;
+  const reviewStorageKey = hosted
+    ? `musparql-review:schema5:${data.dataset_id}:${data.reviewer_id}:${hosted.assignment_id}`
+    : `musparql-review:schema4:${data.dataset_id}:${data.reviewer_id}`;
   let reviews = loadReviews();
   let privateExportReady = false;
   const state = {
@@ -117,7 +125,7 @@
 
   function loadReviews() {
     try {
-      const legacyRaw = data.reviewer_id === "reviewer-0001"
+      const legacyRaw = !hosted && data.reviewer_id === "reviewer-0001"
         ? window.localStorage.getItem(`musparql-review:schema3:${data.dataset_id}`)
           || window.localStorage.getItem(`musparql-review:schema2:${data.dataset_id}`)
           || window.localStorage.getItem(`musparql-review:${data.dataset_id}`)
@@ -1262,7 +1270,9 @@
   }
 
   function initCompareMode() {
-    const compareStorageKey = `musparql-review-compare:schema4:${data.dataset_id}:${data.reviewer_id}`;
+    const compareStorageKey = hosted
+      ? `musparql-review-compare:schema5:${data.dataset_id}:${data.reviewer_id}:${hosted.assignment_id}`
+      : `musparql-review-compare:schema4:${data.dataset_id}:${data.reviewer_id}`;
     let compareReviews = loadCompareReviews();
     let privateCompareExportReady = false;
     const compareState = {
@@ -1341,7 +1351,7 @@
 
     function loadCompareReviews() {
       try {
-        const legacyRaw = data.reviewer_id === "reviewer-0001"
+        const legacyRaw = !hosted && data.reviewer_id === "reviewer-0001"
           ? window.localStorage.getItem(`musparql-review-compare:schema3:${data.dataset_id}`)
             || window.localStorage.getItem(`musparql-review-compare:schema2:${data.dataset_id}`)
             || window.localStorage.getItem(`musparql-review-compare:${data.dataset_id}`)
@@ -1685,8 +1695,8 @@
           </div>
           <div class="compare-review-fields">
             ${
-              eligibility.eligible || isHoldoutReview(review)
-                ? `<label class="checkbox-field compare-holdout-field">
+              (eligibility.eligible || isHoldoutReview(review))
+                && !hostedNoHoldout ? `<label class="checkbox-field compare-holdout-field">
                     <input id="compareHoldoutInput" type="checkbox" ${review.holdout_selector_selected ? "checked" : ""} ${!eligibility.eligible && !review.holdout_selector_selected ? "disabled" : ""} />
                     <span>Private holdout / selector member</span>
                     <small>${escapeHtml(savedIneligibleHoldout
@@ -1915,5 +1925,51 @@
   function relabelSelect(select, label) {
     const labelNode = select.closest("label")?.querySelector("span");
     if (labelNode) labelNode.textContent = label;
+  }
+
+  function hideHostedHoldoutControls() {
+    els.exportPrivateReviewsBtn.classList.add("hidden");
+    els.exportHoldoutSelectorsBtn.classList.add("hidden");
+    els.clearPrivateStateBtn.classList.add("hidden");
+    els.holdoutFilter.closest("label")?.classList.add("hidden");
+    els.holdoutCount.closest(".chip")?.classList.add("hidden");
+    els.holdoutSplitInput.closest("label")?.classList.add("hidden");
+  }
+
+  function initHostedSession() {
+    if (!hosted) return;
+    document.getElementById("localCorrectionLink")?.classList.add("hidden");
+    const bar = document.createElement("nav");
+    bar.className = "hosted-session";
+    bar.setAttribute("aria-label", "Authenticated session");
+
+    const identity = document.createElement("span");
+    identity.textContent = `Signed in as ${hosted.reviewer_id}`;
+    bar.appendChild(identity);
+
+    const assignment = document.createElement("a");
+    assignment.href = hosted.assignment_url;
+    assignment.textContent = "Assignment";
+    bar.appendChild(assignment);
+
+    const profile = document.createElement("a");
+    profile.href = hosted.profile_url;
+    profile.textContent = "My profile";
+    bar.appendChild(profile);
+
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = hosted.logout_url;
+    const csrf = document.createElement("input");
+    csrf.type = "hidden";
+    csrf.name = "csrf_token";
+    csrf.value = hosted.csrf_token;
+    const button = document.createElement("button");
+    button.type = "submit";
+    button.className = "btn small";
+    button.textContent = "Sign out";
+    form.append(csrf, button);
+    bar.appendChild(form);
+    document.body.prepend(bar);
   }
 })();

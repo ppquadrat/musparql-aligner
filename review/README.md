@@ -2,6 +2,12 @@
 
 This folder contains a lightweight local reviewer for LLM question-generation outputs.
 
+The same `index.html`, `styles.css`, and `app.js` are also served by the
+authenticated v2 portal for active assignments. Hosted integration,
+assignment-scoped draft behaviour, and synthetic verification are documented in
+[`PHASE_6_WORKBENCH_RUNBOOK.md`](../docs/PHASE_6_WORKBENCH_RUNBOOK.md). The local
+workflow below remains available and does not load hosted assignment state.
+
 ## Usage
 
 Before selecting any holdout pairs, read the

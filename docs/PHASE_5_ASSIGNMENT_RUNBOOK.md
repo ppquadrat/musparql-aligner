@@ -31,8 +31,9 @@ hosting gates in `MUSPARQL_V2_PLAN.md` still apply.
   `bundle_digest` only after authentication and assignment authorization. A
   browser-provided identity is never accepted.
 
-Phase 5 deliberately stops at attributed bundle JSON. Serving and integrating
-the existing initial and comparative workbench assets is Phase 6.
+Phase 5 deliberately stops at attributed bundle JSON. Phase 6 now integrates
+that boundary with the existing initial and comparative workbench assets; see
+[`PHASE_6_WORKBENCH_RUNBOOK.md`](PHASE_6_WORKBENCH_RUNBOOK.md).
 
 ## Build a reviewer-neutral bundle
 
@@ -82,7 +83,7 @@ deployment and backup runbooks.
 6. Open it, answer every frozen subject and familiarity prompt, confirm the
    current answers, and submit the assessment.
 7. Confirm that the assignment is now `active` and its attributed bundle JSON is
-   available. Do not treat that JSON endpoint as the Phase 6 workbench.
+   available. Continue with the Phase 6 runbook to verify the hosted workbench.
 
 ## Verification
 
@@ -103,5 +104,5 @@ confirmation, and append-only history across a second synthetic round.
 Do not create an assignment for a real reviewer until the controller/ICF,
 Phase 2b recovery, production email, and Phase 10 deployment gates listed in
 `MUSPARQL_V2_PLAN.md` have all been cleared. Bundle preparation must also use an
-approved holdout-exclusion route, and Phase 6 must complete before the existing
-review workbench is offered remotely.
+approved holdout-exclusion route, and the Phase 6 and later production gates
+must be followed before the review workbench is offered to real reviewers.

@@ -91,20 +91,38 @@ def _complete_profile(session, reviewer_id: str) -> None:
     )
 
 
-def _bundle(path: Path, *, reviewer_id: str | None = None) -> None:
+def _bundle(
+    path: Path, *, reviewer_id: str | None = None, mode: str = "initial"
+) -> None:
+    records = [
+        {
+            "review_id": "synthetic-kg::synthetic-query::one",
+            "kg_id": "synthetic-kg",
+        }
+    ]
+    if mode == "compare":
+        records = [
+            {
+                "pair_id": "synthetic-kg::synthetic-query::pair",
+                "kg_id": "synthetic-kg",
+                "query_label": "Synthetic comparison",
+                "pair_status": "changed",
+                "change_flags": ["question"],
+                "previous": {"review_id": "synthetic-previous-review"},
+                "current": {
+                    "review_id": "synthetic-current-review",
+                    "record": {"kg_id": "synthetic-kg"},
+                },
+            }
+        ]
     payload = {
         "schema": "musparql.review-bundle.v2",
-        "mode": "initial",
+        "mode": mode,
         "dataset_id": "synthetic-phase5-dataset",
         "built_at": "2026-08-19T12:00:00Z",
         "holdout_input_policy": "no_holdout",
         "record_count": 1,
-        "records": [
-            {
-                "review_id": "synthetic-kg::synthetic-query::one",
-                "kg_id": "synthetic-kg",
-            }
-        ],
+        "records": records,
     }
     if reviewer_id is not None:
         payload["reviewer_id"] = reviewer_id
@@ -137,15 +155,21 @@ def login(client, app, sender, email: str) -> None:
     assert response.status_code == 302
 
 
-def _create_assignment(owner, *, bundle_name: str = "neutral.js") -> str:
+def _create_assignment(
+    owner, *, bundle_name: str = "neutral.js", mode: str = "initial"
+) -> str:
+    recipe = (
+        "validate_comparative_review" if mode == "compare"
+        else "validate_initial_review"
+    )
     response = owner.post(
         "/owner/assignments",
         data={
             "csrf_token": csrf(owner),
             "reviewer_id": REVIEWER_ID,
-            "mode": "initial",
+            "mode": mode,
             "bundle_name": bundle_name,
-            "processing_recipe": "validate_initial_review",
+            "processing_recipe": recipe,
             "seed_key": "synthetic-kg|synthetic-seed-v1",
         },
     )
@@ -235,11 +259,13 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
         assert b"Synthetic music domain" in page.data
         assert b"Fictional expertise prompt" in page.data
         assert reviewer.get(f"/assignments/{assignment_id}/bundle").status_code == 403
+        assert reviewer.get(f"/assignments/{assignment_id}/workbench/").status_code == 403
 
         other = app.test_client()
         login(other, app, sender, "other@example.invalid")
         assert other.get(f"/assignments/{assignment_id}").status_code == 404
         assert other.get(f"/assignments/{assignment_id}/bundle").status_code == 404
+        assert other.get(f"/assignments/{assignment_id}/workbench/").status_code == 404
 
         response = reviewer.post(
             f"/assignments/{assignment_id}", data=_assessment_form(reviewer)
@@ -249,15 +275,47 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
         assert payload["reviewer_id"] == REVIEWER_ID
         assert payload["assignment_id"] == assignment_id
         assert payload["bundle_digest"].startswith("sha256:")
+        assignment_page = reviewer.get(f"/assignments/{assignment_id}")
+        assert f"/assignments/{assignment_id}/workbench/".encode() in assignment_page.data
+        workbench = reviewer.get(f"/assignments/{assignment_id}/workbench/")
+        assert workbench.status_code == 200
+        assert b'id="exportReviewsBtn"' in workbench.data
+        app_asset = reviewer.get(f"/assignments/{assignment_id}/workbench/app.js")
+        assert app_asset.status_code == 200
+        assert app_asset.data == (ROOT / "review/app.js").read_bytes()
+        context_asset = reviewer.get(
+            f"/assignments/{assignment_id}/workbench/host_context.js"
+        )
+        assert context_asset.status_code == 200
+        assert assignment_id.encode() in context_asset.data
+        assert REVIEWER_ID.encode() in context_asset.data
+        assert b'"holdout_capability":false' in context_asset.data
+        data_asset = reviewer.get(
+            f"/assignments/{assignment_id}/workbench/review_data.js"
+        )
+        assert data_asset.status_code == 200
+        assert b'"mode":"initial"' in data_asset.data
+        assert REVIEWER_ID.encode() in data_asset.data
+        assert reviewer.get(
+            f"/assignments/{assignment_id}/workbench/unknown.js"
+        ).status_code == 404
 
         # A later assignment asks again, preselects prior values, and appends history.
-        second_id = _create_assignment(owner)
+        _bundle(bundle_root / "compare.js", mode="compare")
+        second_id = _create_assignment(
+            owner, bundle_name="compare.js", mode="compare"
+        )
         second_page = reviewer.get(f"/assignments/{second_id}")
         assert b'value="advanced" selected' in second_page.data
         assert b'value="worked" selected' in second_page.data
         assert reviewer.post(
             f"/assignments/{second_id}", data=_assessment_form(reviewer)
         ).status_code == 302
+        compare_data = reviewer.get(
+            f"/assignments/{second_id}/workbench/review_data.js"
+        )
+        assert compare_data.status_code == 200
+        assert b'"mode":"compare"' in compare_data.data
 
         check_engine = create_database_engine(database_path)
         check_sessions = session_factory(check_engine)
@@ -291,6 +349,7 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
         with (bundle_root / "neutral.js").open("a", encoding="utf-8") as handle:
             handle.write(" \n")
         assert reviewer.get(f"/assignments/{assignment_id}/bundle").status_code == 409
+        assert reviewer.get(f"/assignments/{assignment_id}/workbench/").status_code == 409
     finally:
         app.extensions["musparql_email_dispatcher"].shutdown()
         app.extensions["musparql_engine"].dispose()

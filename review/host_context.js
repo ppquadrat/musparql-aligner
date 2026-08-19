@@ -1,0 +1,1 @@
+window.MUSPARQL_HOSTED_CONTEXT = null;

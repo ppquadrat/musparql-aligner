@@ -1426,6 +1426,16 @@ Exit criteria:
 
 ### Phase 6 — integrate initial and comparative workbenches
 
+Status: completed on 19 August 2026 for the Phase 6 boundary. Flask now serves
+the existing local initial/comparative workbench assets, supplies authenticated
+assignment context and digest-verified attributed data, isolates initial and
+comparative browser drafts by assignment as well as reviewer and dataset, and
+hides private-holdout controls for ordinary hosted assignments. Explicit JSON
+import/export remains available for transition compatibility, while the local
+file-served workflow retains its existing keys and behaviour. Durable hosted
+submission and controlled processing remain Phase 7. See
+[`PHASE_6_WORKBENCH_RUNBOOK.md`](PHASE_6_WORKBENCH_RUNBOOK.md).
+
 Work:
 
 - serve existing static assets through Flask;

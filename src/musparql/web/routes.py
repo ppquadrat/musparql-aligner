@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from functools import wraps
+import json
+from pathlib import Path
 from typing import Any, Callable, TypeVar, cast
 
 from flask import (
@@ -14,6 +16,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_from_directory,
     url_for,
 )
 
@@ -365,3 +368,66 @@ def assignment_bundle(assignment_id: str):
         current_app.logger.error("Assignment bundle failed integrity validation")
         abort(409)
     return jsonify(payload)
+
+
+def _hosted_assignment_bundle(assignment_id: str) -> dict[str, Any]:
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    if not current_app.extensions["musparql_profiles"].is_complete(
+        g.current_reviewer.id
+    ):
+        abort(403)
+    try:
+        return current_app.extensions["musparql_assignments"].attributed_bundle(
+            assignment_id, g.current_reviewer.id
+        )
+    except LookupError:
+        abort(404)
+    except PermissionError:
+        abort(403)
+    except ValueError:
+        current_app.logger.error("Assignment workbench failed integrity validation")
+        abort(409)
+
+
+@portal.get("/assignments/<assignment_id>/workbench/")
+@login_required
+def assignment_workbench(assignment_id: str):
+    _hosted_assignment_bundle(assignment_id)
+    return send_from_directory(
+        Path(current_app.config["REVIEW_WORKBENCH_ROOT"]).expanduser().resolve(),
+        "index.html",
+    )
+
+
+@portal.get("/assignments/<assignment_id>/workbench/<asset_name>")
+@login_required
+def assignment_workbench_asset(assignment_id: str, asset_name: str):
+    payload = _hosted_assignment_bundle(assignment_id)
+    if asset_name == "review_data.js":
+        body = "window.REVIEW_DATA = " + json.dumps(
+            payload, ensure_ascii=True, separators=(",", ":")
+        ) + ";\n"
+        return Response(body, mimetype="application/javascript")
+    if asset_name == "host_context.js":
+        context = {
+            "assignment_id": assignment_id,
+            "reviewer_id": g.current_reviewer.id,
+            "holdout_capability": False,
+            "assignment_url": url_for(
+                "portal.assignment", assignment_id=assignment_id
+            ),
+            "profile_url": url_for("portal.profile"),
+            "logout_url": url_for("portal.logout"),
+            "csrf_token": g.csrf_token,
+        }
+        body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(
+            context, ensure_ascii=True, separators=(",", ":")
+        ) + ";\n"
+        return Response(body, mimetype="application/javascript")
+    if asset_name not in {"app.js", "styles.css"}:
+        abort(404)
+    return send_from_directory(
+        Path(current_app.config["REVIEW_WORKBENCH_ROOT"]).expanduser().resolve(),
+        asset_name,
+    )

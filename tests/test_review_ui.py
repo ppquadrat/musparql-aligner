@@ -12,6 +12,21 @@ def test_browser_review_state_is_scoped_to_reviewer() -> None:
     assert 'data.reviewer_id === "reviewer-0001"' in app
 
 
+def test_hosted_review_state_is_scoped_to_assignment_and_keeps_local_keys() -> None:
+    app = (ROOT / "review" / "app.js").read_text(encoding="utf-8")
+    html = (ROOT / "review" / "index.html").read_text(encoding="utf-8")
+
+    assert "musparql-review:schema5:${data.dataset_id}:${data.reviewer_id}:${hosted.assignment_id}" in app
+    assert "musparql-review-compare:schema5:${data.dataset_id}:${data.reviewer_id}:${hosted.assignment_id}" in app
+    assert "!hosted && data.reviewer_id" in app
+    assert "hideHostedHoldoutControls()" in app
+    assert "Signed in as ${hosted.reviewer_id}" in app
+    assert '<script src="host_context.js?' in html
+    assert (ROOT / "review" / "host_context.js").read_text(encoding="utf-8").strip() == (
+        "window.MUSPARQL_HOSTED_CONTEXT = null;"
+    )
+
+
 def test_imports_reject_cross_reviewer_and_non_owner_legacy_state() -> None:
     script = r'''
 const fs = require("node:fs");
