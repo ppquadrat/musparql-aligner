@@ -12,7 +12,7 @@ import unicodedata
 import uuid
 
 from flask.config import Config
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from musparql.database.models import AuthSession, LoginCode, OwnerAuditEvent, Reviewer
@@ -184,6 +184,7 @@ class AuthService:
         code: str,
         now: datetime,
     ) -> None:
+        recipient: str | None = None
         with self.sessions.begin() as session:
             reviewer = session.scalar(
                 select(Reviewer).where(Reviewer.email_normalized == normalized)
@@ -237,7 +238,22 @@ class AuthService:
                     request_context_digest=context_digest,
                 )
             )
-            self.sender.send_login_code(reviewer.email_display, code)
+            recipient = reviewer.email_display
+        assert recipient is not None
+        try:
+            self.sender.send_login_code(recipient, code)
+        except Exception:
+            # The challenge was committed before external I/O so provider latency
+            # never holds SQLite's write lock. Remove only an unused challenge;
+            # a code that was already consumed must retain its audit evidence.
+            with self.sessions.begin() as session:
+                session.execute(
+                    delete(LoginCode).where(
+                        LoginCode.id == challenge_id,
+                        LoginCode.consumed_at.is_(None),
+                    )
+                )
+            raise
 
     def verify_login_code(
         self, challenge_id: str, code: str, *, remembered: bool, current_token: str | None
@@ -361,6 +377,7 @@ class AuthService:
         display = unicodedata.normalize("NFC", email).strip()
         normalized = normalize_email(display)
         now = self.clock()
+        audit_id = str(uuid.uuid4())
         with self.sessions.begin() as session:
             if session.scalar(select(Reviewer.id).where(Reviewer.email_normalized == normalized)):
                 raise ValueError("That email address already has an account")
@@ -378,8 +395,28 @@ class AuthService:
                 privacy_notice_acknowledged_at=None,
             )
             session.add(reviewer)
-            self._audit(session, actor_id, reviewer_id, "invite", now)
+            self._audit(
+                session,
+                actor_id,
+                reviewer_id,
+                "invite",
+                now,
+                event_id=audit_id,
+            )
+        try:
             self.sender.send_invitation(display, "/auth/login")
+        except Exception:
+            # Compensate only while the newly-created account is still pending.
+            # If it was activated or changed concurrently, preserve both the
+            # account and its append-only owner audit event.
+            with self.sessions.begin() as session:
+                pending = session.get(Reviewer, reviewer_id)
+                if pending is not None and pending.status == "invited":
+                    session.execute(
+                        delete(OwnerAuditEvent).where(OwnerAuditEvent.id == audit_id)
+                    )
+                    session.delete(pending)
+            raise
         return reviewer
 
     def change_reviewer_status(self, actor_id: str, target_id: str, action: str) -> None:
@@ -461,10 +498,18 @@ class AuthService:
         )
 
     @staticmethod
-    def _audit(session: Session, actor_id: str, target_id: str, action: str, now: datetime) -> None:
+    def _audit(
+        session: Session,
+        actor_id: str,
+        target_id: str,
+        action: str,
+        now: datetime,
+        *,
+        event_id: str | None = None,
+    ) -> None:
         session.add(
             OwnerAuditEvent(
-                id=str(uuid.uuid4()),
+                id=event_id or str(uuid.uuid4()),
                 actor_reviewer_id=actor_id,
                 target_reviewer_id=target_id,
                 action=action,

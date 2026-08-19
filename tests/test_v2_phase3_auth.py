@@ -202,8 +202,10 @@ def test_login_response_does_not_disclose_membership_and_codes_are_hashed(
         engine.dispose()
 
 
-def test_login_response_does_not_wait_for_email_delivery(portal_app) -> None:
-    app, sender, _database_path = portal_app
+def test_login_response_does_not_wait_for_email_delivery_or_hold_database_lock(
+    portal_app,
+) -> None:
+    app, sender, database_path = portal_app
     started = threading.Event()
     release = threading.Event()
 
@@ -224,6 +226,17 @@ def test_login_response_does_not_wait_for_email_delivery(portal_app) -> None:
     )
     assert response.status_code == 302
     assert started.wait(1)
+
+    engine = create_database_engine(database_path, timeout_seconds=0.05)
+    sessions = session_factory(engine)
+    try:
+        with sessions.begin() as session:
+            active = session.get(Reviewer, "reviewer-0043")
+            assert active is not None
+            active.affiliation = "Updated while delivery is blocked"
+    finally:
+        engine.dispose()
+
     release.set()
     app.extensions["musparql_email_dispatcher"].wait_for_idle()
 
@@ -583,6 +596,54 @@ def test_failed_invitation_rolls_back_and_can_be_retried(portal_app) -> None:
     )
     assert response.status_code == 302
     assert "result=invited" in response.location
+
+
+def test_invitation_delivery_does_not_hold_database_lock(portal_app) -> None:
+    app, sender, database_path = portal_app
+    started = threading.Event()
+    release = threading.Event()
+    failures: list[BaseException] = []
+
+    class BlockingInvitationSender:
+        def send_login_code(self, recipient: str, code: str) -> None:
+            sender.send_login_code(recipient, code)
+
+        def send_invitation(self, recipient: str, login_path: str) -> None:
+            started.set()
+            assert release.wait(2)
+            sender.send_invitation(recipient, login_path)
+
+    auth = app.extensions["musparql_auth"]
+    auth.sender = BlockingInvitationSender()
+
+    def invite() -> None:
+        try:
+            auth.invite(
+                OWNER_ID,
+                "Concurrent Invitee",
+                "concurrent@example.invalid",
+            )
+        except BaseException as exc:
+            failures.append(exc)
+
+    worker = threading.Thread(target=invite)
+    worker.start()
+    assert started.wait(1)
+
+    engine = create_database_engine(database_path, timeout_seconds=0.05)
+    sessions = session_factory(engine)
+    try:
+        with sessions.begin() as session:
+            active = session.get(Reviewer, "reviewer-0043")
+            assert active is not None
+            active.affiliation = "Updated during invitation delivery"
+    finally:
+        engine.dispose()
+
+    release.set()
+    worker.join(2)
+    assert not worker.is_alive()
+    assert failures == []
 
 
 def test_restore_preserves_pending_invitation_state(portal_app) -> None:

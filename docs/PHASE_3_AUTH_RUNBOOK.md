@@ -14,8 +14,10 @@ Phase 10 gates in `MUSPARQL_V2_PLAN.md`.
   bounded in-process keyed-digest limiter also covers unknown addresses without
   storing their email addresses. Login lookup and delivery use a bounded
   in-process background queue so provider latency cannot disclose account
-  membership or create an unbounded request backlog. Provider failures roll
-  back the unusable challenge and release its in-process rate-limit reservation.
+  membership or create an unbounded request backlog. Database state is committed
+  before provider calls, so email latency never holds SQLite's write lock.
+  Provider failures remove the unused challenge in a fresh short transaction
+  and release its in-process rate-limit reservation.
 - Successful login creates a random, server-side, revocable session. The browser
   receives only an opaque `HttpOnly` cookie; authentication data is never put in
   local storage.
@@ -24,8 +26,9 @@ Phase 10 gates in `MUSPARQL_V2_PLAN.md`.
 - The configured sole owner can invite, disable, restore, or erase a reviewer's
   identity data after recent authentication. Disable and erasure immediately
   revoke the affected sessions. Restore returns a never-accepted invitation to
-  `invited`, rather than activating it without verification. Failed invitation
-  delivery rolls back the reviewer and audit rows so the owner can retry. The
+  `invited`, rather than activating it without verification. Invitation state is
+  committed before provider I/O; failed delivery compensates by removing the
+  still-pending reviewer and audit rows so the owner can retry. The
   configured owner cannot be changed through the web UI.
 - Owner actions are recorded in an append-only table using pseudonymous IDs,
   without names or email addresses.
