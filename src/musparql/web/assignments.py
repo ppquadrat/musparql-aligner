@@ -23,6 +23,7 @@ from musparql.database.models import (
     ReviewerResourceFamiliarityAssessment,
 )
 from musparql.database.services import ProvenanceService
+from musparql.linguistic_dimensions import BUNDLE_SCHEMA, validate_bundle
 from .auth import timestamp, utc_now
 
 
@@ -38,6 +39,7 @@ _RECIPES = {
         "validate_comparative_review",
         "stage_comparative_benchmark_update",
     },
+    "linguistic": {"validate_linguistic_annotation"},
 }
 
 
@@ -120,6 +122,8 @@ class AssignmentService:
         bundle_mode = str(payload.get("mode") or "initial")
         if bundle_mode != mode:
             raise ValueError("Bundle mode does not match the assignment")
+        if (mode == "linguistic") != (payload.get("schema") == BUNDLE_SCHEMA):
+            raise ValueError("Assignment mode requires its matching bundle contract")
         selected = self._parse_seed_keys(seed_keys)
         if not selected:
             raise ValueError("At least one frozen KG seed is required")
@@ -254,6 +258,14 @@ class AssignmentService:
         if digest != view.assignment.bundle_digest:
             raise ValueError("Assignment bundle digest has changed")
         attributed = dict(payload)
+        if attributed.get("mode") == "linguistic":
+            # Provenance remains authoritative in the digest-verified server bundle,
+            # but is not delivered to the blinded reviewer interface.
+            attributed = json.loads(json.dumps(attributed))
+            for record in attributed["records"]:
+                record["literal"].pop("validation_provenance", None)
+                for candidate in record["candidates"]:
+                    candidate.pop("provenance", None)
         attributed["reviewer_id"] = reviewer_id
         attributed["assignment_id"] = assignment_id
         attributed["bundle_digest"] = digest
@@ -282,8 +294,12 @@ class AssignmentService:
             payload = json.loads(text)
         except json.JSONDecodeError as exc:
             raise ValueError("Bundle is not valid JSON data") from exc
-        if not isinstance(payload, dict) or payload.get("schema") != "musparql.review-bundle.v2":
-            raise ValueError("Bundle must use musparql.review-bundle.v2")
+        if not isinstance(payload, dict):
+            raise ValueError("Bundle must be a JSON object")
+        if payload.get("schema") == BUNDLE_SCHEMA:
+            validate_bundle(payload)
+        elif payload.get("schema") != "musparql.review-bundle.v2":
+            raise ValueError("Bundle uses an unsupported assignment contract")
         if self._contains_key(payload, "reviewer_id"):
             raise ValueError("Hosted assignments require a reviewer-neutral bundle")
         if payload.get("holdout_input_policy") not in _SAFE_HOLDOUT_POLICIES:

@@ -54,6 +54,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         REVIEW_WORKBENCH_ROOT=os.environ.get(
             "MUSPARQL_REVIEW_WORKBENCH_ROOT", "review"
         ),
+        LINGUISTIC_WORKBENCH_ROOT=os.environ.get(
+            "MUSPARQL_LINGUISTIC_WORKBENCH_ROOT", "review/linguistic"
+        ),
         PRIVACY_NOTICE_VERSION=os.environ.get("MUSPARQL_PRIVACY_NOTICE_VERSION"),
         PRIVACY_NOTICE_BODY=os.environ.get("MUSPARQL_PRIVACY_NOTICE_BODY"),
         ALLOW_SYNTHETIC_PRIVACY_NOTICE=(
@@ -167,6 +170,16 @@ def _validate_config(app: Flask) -> None:
         raise RuntimeError(
             "The configured review workbench is incomplete: "
             + ", ".join(missing_workbench_files)
+        )
+    linguistic_root = Path(app.config["LINGUISTIC_WORKBENCH_ROOT"]).expanduser().resolve()
+    missing_linguistic_files = [
+        name for name in ("index.html", "styles.css", "app.js")
+        if not (linguistic_root / name).is_file()
+    ]
+    if missing_linguistic_files:
+        raise RuntimeError(
+            "The configured linguistic workbench is incomplete: "
+            + ", ".join(missing_linguistic_files)
         )
     owner_id = app.config["OWNER_REVIEWER_ID"]
     if not isinstance(owner_id, str) or not owner_id.startswith("reviewer-"):

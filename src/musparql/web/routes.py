@@ -393,9 +393,14 @@ def _hosted_assignment_bundle(assignment_id: str) -> dict[str, Any]:
 @portal.get("/assignments/<assignment_id>/workbench/")
 @login_required
 def assignment_workbench(assignment_id: str):
-    _hosted_assignment_bundle(assignment_id)
+    payload = _hosted_assignment_bundle(assignment_id)
+    root_key = (
+        "LINGUISTIC_WORKBENCH_ROOT"
+        if payload.get("mode") == "linguistic"
+        else "REVIEW_WORKBENCH_ROOT"
+    )
     return send_from_directory(
-        Path(current_app.config["REVIEW_WORKBENCH_ROOT"]).expanduser().resolve(),
+        Path(current_app.config[root_key]).expanduser().resolve(),
         "index.html",
     )
 
@@ -404,6 +409,7 @@ def assignment_workbench(assignment_id: str):
 @login_required
 def assignment_workbench_asset(assignment_id: str, asset_name: str):
     payload = _hosted_assignment_bundle(assignment_id)
+    linguistic = payload.get("mode") == "linguistic"
     if asset_name == "review_data.js":
         body = "window.REVIEW_DATA = " + json.dumps(
             payload, ensure_ascii=True, separators=(",", ":")
@@ -427,7 +433,8 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
         return Response(body, mimetype="application/javascript")
     if asset_name not in {"app.js", "styles.css"}:
         abort(404)
+    root_key = "LINGUISTIC_WORKBENCH_ROOT" if linguistic else "REVIEW_WORKBENCH_ROOT"
     return send_from_directory(
-        Path(current_app.config["REVIEW_WORKBENCH_ROOT"]).expanduser().resolve(),
+        Path(current_app.config[root_key]).expanduser().resolve(),
         asset_name,
     )

@@ -1,0 +1,27 @@
+:root { color-scheme: light; font-family: Inter, system-ui, sans-serif; color: #17202a; background: #f4f7f8; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+header { display: flex; justify-content: space-between; gap: 1rem; padding: 1rem 2rem; color: white; background: #123c4a; }
+main { width: min(1120px, calc(100% - 2rem)); margin: 1.5rem auto 4rem; }
+.panel { padding: 1.5rem; margin-bottom: 1rem; border: 1px solid #ccd8dc; border-radius: .7rem; background: white; box-shadow: 0 2px 8px #17333d12; }
+.metadata { color: #d8edf3; }
+.dimension-help, #candidateGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.dimension-help article:first-child { grid-column: 1 / -1; }
+h1 { margin-top: 0; } h2 { font-size: 1rem; margin-top: 1.4rem; }
+pre { overflow: auto; padding: 1rem; border-radius: .4rem; background: #eef3f5; white-space: pre-wrap; }
+.wording { font-size: 1.12rem; line-height: 1.55; padding: 1rem; border-left: 4px solid #4d8798; background: #f6fafb; }
+.literal { border-color: #75838a; }.zero { font-size: .8rem; font-weight: normal; color: #53636a; }
+.candidate { min-width: 0; padding: 1rem; border: 1px solid #d4dfe2; border-radius: .5rem; }
+.slider-row { margin: 1.4rem 0; }
+.slider-row label { display: flex; justify-content: space-between; gap: .5rem; font-weight: 650; }
+.slider-row input { width: 100%; accent-color: #176d82; }
+.ticks { display: flex; justify-content: space-between; font-size: .7rem; color: #52656d; }
+.unanswered { color: #8a4b00; }.answered { color: #176d45; }
+.actions, .progress-row { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.progress-row { justify-content: space-between; margin-bottom: 1rem; }
+button { border: 0; border-radius: .4rem; padding: .72rem 1rem; font: inherit; font-weight: 700; cursor: pointer; color: white; background: #176d82; }
+button.secondary { color: #17333d; background: #dce8eb; } button.warning { background: #8a4b00; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
+textarea, select { display: block; width: 100%; margin: .4rem 0 1rem; padding: .6rem; }
+.error { color: #a22519; font-weight: 700; }
+@media (max-width: 760px) { .dimension-help, #candidateGrid { grid-template-columns: 1fr; } header { padding: 1rem; } }

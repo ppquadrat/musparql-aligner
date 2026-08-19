@@ -6,7 +6,7 @@
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
   {% if value.assessed %}
     <p>Your pre-review assessment has been recorded. The workbench is attributed from your authenticated assignment; browser-supplied identity is not used.</p>
-    <p><a class="button" href="{{ url_for('portal.assignment_workbench', assignment_id=value.assignment.id) }}">Open review workbench</a></p>
+    <p><a class="button" href="{{ url_for('portal.assignment_workbench', assignment_id=value.assignment.id) }}">Open {% if value.assignment.mode == 'linguistic' %}linguistic rating{% else %}review{% endif %} workbench</a></p>
   {% else %}
     <p>Before review items become available, confirm or update your current expertise and familiarity for every frozen prompt below. Your previous value is selected where one exists.</p>
     <form method="post" action="{{ url_for('portal.assignment', assignment_id=value.assignment.id) }}">

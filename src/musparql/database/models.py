@@ -26,7 +26,11 @@ INITIAL_PROCESSING_RECIPES = "'validate_initial_review','stage_initial_benchmark
 COMPARATIVE_PROCESSING_RECIPES = (
     "'validate_comparative_review','stage_comparative_benchmark_update'"
 )
-PROCESSING_RECIPES = f"{INITIAL_PROCESSING_RECIPES},{COMPARATIVE_PROCESSING_RECIPES}"
+LINGUISTIC_PROCESSING_RECIPES = "'validate_linguistic_annotation'"
+PROCESSING_RECIPES = (
+    f"{INITIAL_PROCESSING_RECIPES},{COMPARATIVE_PROCESSING_RECIPES},"
+    f"{LINGUISTIC_PROCESSING_RECIPES}"
+)
 
 
 class Base(DeclarativeBase):
@@ -241,7 +245,7 @@ class ReviewAssignment(Base):
     __table_args__ = (
         UniqueConstraint("id", "reviewer_id", name="uq_assignment_reviewer"),
         UniqueConstraint("id", "processing_recipe", name="uq_assignment_recipe"),
-        CheckConstraint("mode IN ('initial','compare')", name="ck_assignment_mode"),
+        CheckConstraint("mode IN ('initial','compare','linguistic')", name="ck_assignment_mode"),
         CheckConstraint(
             "status IN ('draft','ready','active','submitted','processing','ready_for_owner_review','approved','failed')",
             name="ck_assignment_status",
@@ -253,7 +257,8 @@ class ReviewAssignment(Base):
         ),
         CheckConstraint(
             f"(mode = 'initial' AND processing_recipe IN ({INITIAL_PROCESSING_RECIPES})) OR "
-            f"(mode = 'compare' AND processing_recipe IN ({COMPARATIVE_PROCESSING_RECIPES}))",
+            f"(mode = 'compare' AND processing_recipe IN ({COMPARATIVE_PROCESSING_RECIPES})) OR "
+            f"(mode = 'linguistic' AND processing_recipe IN ({LINGUISTIC_PROCESSING_RECIPES}))",
             name="ck_assignment_mode_recipe",
         ),
     )

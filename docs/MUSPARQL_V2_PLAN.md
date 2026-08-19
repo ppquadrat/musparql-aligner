@@ -1453,8 +1453,14 @@ Exit criteria:
 
 ### Phase 6b — linguistic-dimensions workbench
 
-Status: specified; implementation not started. See
-[`LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md`](LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md).
+Status: completed on 19 August 2026 for the Phase 6b boundary. Versioned
+stimulus/export contracts, deterministic balanced construction, authenticated
+linguistic assignments, a provenance-blinded three-way workbench, safe
+assignment-scoped drafts, all specified outcomes, normalized export, and
+synthetic isolation/randomisation tests are implemented. Durable hosted
+submission and controlled processing remain Phase 7. See
+[`LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md`](LINGUISTIC_DIMENSIONS_WORKBENCH_SPEC.md)
+and [`PHASE_6B_LINGUISTIC_RUNBOOK.md`](PHASE_6B_LINGUISTIC_RUNBOOK.md).
 
 This is a separate annotation task rather than an extension of initial or
 comparative review. A reviewer sees the SPARQL, a pre-validated literal

@@ -105,7 +105,9 @@ the human verifies and places that file at the local path.
   pre-review assessment gate using synthetic data.
 - [`docs/MUSPARQL_V2_PLAN.md`](docs/MUSPARQL_V2_PLAN.md) — phased plan for the
   remote reviewer portal, longitudinal expertise data, controlled processing,
-  and isolated deployment.
+  and isolated deployment, including the completed Phase 6b boundary.
+- [`docs/PHASE_6B_LINGUISTIC_RUNBOOK.md`](docs/PHASE_6B_LINGUISTIC_RUNBOOK.md) —
+  deterministic linguistic bundle construction and hosted rating workflow.
 
 ## Licensing
 

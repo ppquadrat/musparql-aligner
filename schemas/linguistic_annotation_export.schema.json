@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/linguistic_annotation_export.schema.json",
+  "title": "Musparql Phase 6b normalized annotation export",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "assignment_id", "dataset_id", "reviewer_id", "task_design_version", "exported_at", "annotations"],
+  "properties": {
+    "schema": {"const": "musparql.linguistic-annotation-export.v1"},
+    "assignment_id": {"type": "string", "minLength": 1}, "dataset_id": {"type": "string", "minLength": 1},
+    "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
+    "task_design_version": {"const": "phase-6b-v1"}, "exported_at": {"type": "string", "format": "date-time"},
+    "annotations": {"type": "array", "items": {"$ref": "#/$defs/annotation"}}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "identity": {
+      "type": "object", "additionalProperties": false, "required": ["formulation_id", "version", "digest"],
+      "properties": {"formulation_id": {"type": "string", "minLength": 1}, "version": {"type": "string", "minLength": 1}, "digest": {"$ref": "#/$defs/digest"}}
+    },
+    "dimensions": {
+      "type": "object", "additionalProperties": false, "required": ["naturalness", "pragmatism", "interpretation_room"],
+      "properties": {"naturalness": {"type": "integer", "minimum": -100, "maximum": 100}, "pragmatism": {"type": "integer", "minimum": -100, "maximum": 100}, "interpretation_room": {"type": "integer", "minimum": -100, "maximum": 100}}
+    },
+    "annotation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "assignment_id", "dataset_id", "trial_id", "reviewer_id", "query_id", "sparql_version", "sparql_digest", "literal", "display_order", "displayed_formulations", "presentation_arity", "outcome", "started_at", "completed_at", "submitted_at", "task_design_version"],
+      "properties": {
+        "schema": {"const": "musparql.linguistic-trial-annotation.v1"}, "assignment_id": {"type": "string"}, "dataset_id": {"type": "string"},
+        "trial_id": {"type": "string"}, "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"}, "query_id": {"type": "string"},
+        "sparql_version": {"type": "string"}, "sparql_digest": {"$ref": "#/$defs/digest"}, "literal": {"$ref": "#/$defs/identity"},
+        "display_order": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"type": "string"}},
+        "displayed_formulations": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/identity"}},
+        "presentation_arity": {"const": 3}, "outcome": {"enum": ["rated", "cannot_assess", "literal_inaccurate"]},
+        "ratings": {"type": "object", "minProperties": 2, "maxProperties": 2, "additionalProperties": {"$ref": "#/$defs/dimensions"}},
+        "reason": {"type": "string"}, "comment": {"type": "string"}, "proposed_literal": {"type": "string"},
+        "started_at": {"type": "string", "format": "date-time"}, "completed_at": {"type": "string", "format": "date-time"}, "submitted_at": {"type": "string", "format": "date-time"}, "task_design_version": {"const": "phase-6b-v1"}
+      },
+      "allOf": [
+        {"if": {"properties": {"outcome": {"const": "rated"}}}, "then": {"required": ["ratings"]}, "else": {"not": {"required": ["ratings"]}}}
+      ]
+    }
+  }
+}

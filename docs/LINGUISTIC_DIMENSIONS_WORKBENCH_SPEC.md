@@ -1,6 +1,8 @@
 # Linguistic-dimensions workbench specification
 
-Status: design agreed; implementation not started.
+Status: implemented on 19 August 2026 for the Phase 6b boundary; durable hosted
+submission and controlled processing remain Phase 7. Operational details are in
+[`PHASE_6B_LINGUISTIC_RUNBOOK.md`](PHASE_6B_LINGUISTIC_RUNBOOK.md).
 
 This document specifies a separate Musparql annotation task for comparing
 natural-language formulations of the same SPARQL query. It is not an extension

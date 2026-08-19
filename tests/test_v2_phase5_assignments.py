@@ -22,6 +22,7 @@ from musparql.database.models import (
 from musparql.web import create_app
 from musparql.web.auth import timestamp, utc_now
 from musparql.web.email import SyntheticEmailSender
+from musparql.linguistic_dimensions import build_bundle, text_digest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -132,6 +133,31 @@ def _bundle(
     )
 
 
+def _linguistic_bundle(path: Path) -> None:
+    sparql = "SELECT ?work WHERE { ?work a <urn:synthetic:Work> }"
+    literal = "Which works are instances of synthetic Work?"
+    first = "What synthetic works are there?"
+    second = "Show me the works in this collection."
+    record = {
+        "trial_id": "synthetic-linguistic-trial",
+        "kg_id": "synthetic-kg",
+        "query_id": "synthetic-query",
+        "query_label": "Synthetic works",
+        "sparql": sparql,
+        "sparql_version": "v1",
+        "sparql_digest": text_digest(sparql),
+        "literal": {"formulation_id": "literal-1", "version": "v1", "text": literal, "digest": text_digest(literal), "validated": True, "validation_provenance": {"review_id": "synthetic"}},
+        "candidates": [
+            {"formulation_id": "candidate-1", "version": "v1", "text": first, "digest": text_digest(first), "provenance": {"origin": "synthetic-source"}},
+            {"formulation_id": "candidate-2", "version": "v1", "text": second, "digest": text_digest(second), "provenance": {"origin": "synthetic-llm"}},
+        ],
+        "eligible": True, "non_holdout": True, "presentation_arity": 3,
+        "sampling_stratum": "synthetic", "contrast_id": "synthetic-contrast",
+    }
+    payload = build_bundle([record], dataset_id="synthetic-linguistic-dataset", seed="synthetic-seed")
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
 def csrf(client) -> str:
     cookie = client.get_cookie("musparql_csrf", path="/")
     if cookie is None:
@@ -158,10 +184,11 @@ def login(client, app, sender, email: str) -> None:
 def _create_assignment(
     owner, *, bundle_name: str = "neutral.js", mode: str = "initial"
 ) -> str:
-    recipe = (
-        "validate_comparative_review" if mode == "compare"
-        else "validate_initial_review"
-    )
+    recipe = {
+        "initial": "validate_initial_review",
+        "compare": "validate_comparative_review",
+        "linguistic": "validate_linguistic_annotation",
+    }[mode]
     response = owner.post(
         "/owner/assignments",
         data={
@@ -317,6 +344,35 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
         assert compare_data.status_code == 200
         assert b'"mode":"compare"' in compare_data.data
 
+        # Linguistic mode is separately contracted and routed to its own UI.
+        _linguistic_bundle(bundle_root / "linguistic.json")
+        linguistic_id = _create_assignment(
+            owner, bundle_name="linguistic.json", mode="linguistic"
+        )
+        assert reviewer.post(
+            f"/assignments/{linguistic_id}", data=_assessment_form(reviewer)
+        ).status_code == 302
+        linguistic_page = reviewer.get(
+            f"/assignments/{linguistic_id}/workbench/"
+        )
+        assert linguistic_page.status_code == 200
+        assert b"Rate wording relative to the literal reference" in linguistic_page.data
+        assert b"holdout" not in linguistic_page.data.lower()
+        linguistic_app = reviewer.get(
+            f"/assignments/{linguistic_id}/workbench/app.js"
+        )
+        assert linguistic_app.data == (ROOT / "review/linguistic/app.js").read_bytes()
+        linguistic_data = reviewer.get(
+            f"/assignments/{linguistic_id}/workbench/review_data.js"
+        )
+        assert b'"mode":"linguistic"' in linguistic_data.data
+        assert REVIEWER_ID.encode() in linguistic_data.data
+        assert b'"provenance"' not in linguistic_data.data
+        assert b'"validation_provenance"' not in linguistic_data.data
+        assert other.get(
+            f"/assignments/{linguistic_id}/workbench/"
+        ).status_code == 404
+
         check_engine = create_database_engine(database_path)
         check_sessions = session_factory(check_engine)
         try:
@@ -338,7 +394,7 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
                         .order_by(ReviewerResourceFamiliarityAssessment.assessed_at)
                     )
                 )
-                assert len(domains) == len(familiarities) == 2
+                assert len(domains) == len(familiarities) == 3
                 assert domains[1].previous_assessment_id == domains[0].id
                 assert familiarities[1].previous_assessment_id == familiarities[0].id
         finally:
