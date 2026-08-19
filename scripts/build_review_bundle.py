@@ -241,6 +241,19 @@ def slugify(text: str) -> str:
     return cleaned.strip("-") or "run"
 
 
+def without_reviewer_ids(value: Any) -> Any:
+    """Return a reviewer-neutral copy without mutating the source payload."""
+    if isinstance(value, list):
+        return [without_reviewer_ids(item) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: without_reviewer_ids(item)
+            for key, item in value.items()
+            if key != "reviewer_id"
+        }
+    return value
+
+
 def default_run_id(output_path: Path) -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H%M%S")
     return f"{stamp}-{slugify(output_path.stem)}"
@@ -568,7 +581,9 @@ def main() -> None:
         },
         "records": review_records,
     }
-    if reviewer_id is not None:
+    if reviewer_id is None:
+        dataset_payload = without_reviewer_ids(dataset_payload)
+    else:
         dataset_payload["reviewer_id"] = reviewer_id
 
     out_path.write_text(

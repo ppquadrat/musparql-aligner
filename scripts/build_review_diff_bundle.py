@@ -16,6 +16,7 @@ from scripts.build_review_bundle import (
     sha256_text,
     signature_token,
     stable_json_dumps,
+    without_reviewer_ids,
 )
 from scripts.benchmark.build_benchmark import literal_wording, review_comments
 from musparql.holdout_selectors import add_holdout_filter_arguments, holdout_input_policy
@@ -540,7 +541,9 @@ def main() -> None:
         },
         "records": records,
     }
-    if reviewer_id is not None:
+    if reviewer_id is None:
+        payload = without_reviewer_ids(payload)
+    else:
         payload["reviewer_id"] = reviewer_id
 
     out_path = Path(args.out)

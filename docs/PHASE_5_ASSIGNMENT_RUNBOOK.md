@@ -12,9 +12,10 @@ hosting gates in `MUSPARQL_V2_PLAN.md` still apply.
   and one or more archived KG seed snapshots.
 - Bundle paths are relative to `MUSPARQL_ASSIGNMENT_BUNDLE_ROOT`. Absolute paths,
   traversal outside that root, malformed files, non-v2 bundles, bundles carrying
-  `reviewer_id`, unsupported holdout policies, mode mismatches, and bundle/seed
-  KG mismatches, embedded reviewer identities, and explicit holdout markers are
-  rejected.
+  `reviewer_id`, unsupported holdout policies, mode mismatches, bundle/seed KG
+  mismatches, and explicit holdout markers are rejected. Holdout-marker checks
+  include the canonical `split: "private_holdout"` value as well as legacy
+  `holdout` spellings.
 - The stored SHA-256 digest is checked again whenever bundle data is requested.
   A changed file produces an integrity failure rather than changed review data.
 - A reviewer sees only ready or active assignments addressed to their own
@@ -47,6 +48,13 @@ preparation uses `--reviewer-neutral`, for example with synthetic inputs:
   --no-holdout \
   --out var/review/bundles/synthetic/initial.js
 ```
+
+Reviewer-neutral mode recursively omits `reviewer_id`, including IDs carried in
+comparative prior-review context. It does not edit the authoritative previous
+review export or benchmark: review IDs, prior-review links, decisions, and other
+non-identifying provenance remain in the generated bundle. The authenticated
+assignment adds only the current reviewer's pseudonymous ID when the bundle is
+served.
 
 Choose exactly one of the existing holdout controls required by the builder:
 `--no-holdout`, `--holdout-filtered-upstream`, or the explicitly approved
@@ -84,8 +92,9 @@ deployment and backup runbooks.
 .venv/bin/pip check
 ```
 
-The Phase 5 tests cover neutral-bundle validation, owner creation, frozen prompt
-display, the assessment-before-bundle gate, authenticated attribution,
+The Phase 5 tests cover neutral-bundle validation, recursive reviewer-ID
+omission, canonical private-holdout marker rejection, owner creation, frozen
+prompt display, the assessment-before-bundle gate, authenticated attribution,
 cross-reviewer isolation, path rejection, digest tamper detection, prior-value
 confirmation, and append-only history across a second synthetic round.
 

@@ -1398,6 +1398,9 @@ attributed bundle data until one complete atomic pre-review batch has been
 recorded. Later rounds preselect the current values and append new assessment
 heads without overwriting history. Bundle builders retain the legacy explicit
 reviewer mode and add an explicit `--reviewer-neutral` mode for hosted work.
+That mode recursively removes reviewer IDs from the generated transport bundle
+without changing authoritative historical reviews, and portal validation rejects
+the canonical `private_holdout` split marker before assignment creation.
 See [`PHASE_5_ASSIGNMENT_RUNBOOK.md`](PHASE_5_ASSIGNMENT_RUNBOOK.md).
 
 This phase exposes authenticated attributed bundle JSON, not the complete

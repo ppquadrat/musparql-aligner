@@ -721,7 +721,10 @@ class DismissedExclusionTests(unittest.TestCase):
                 "gold_question": "Old included?",
                 "gold_question_source": "approved_model_output",
                 "pipeline_assessment": "accepted",
-                "review": {"note": "included note"},
+                "review": {
+                    "note": "included note",
+                    "reviewer_id": "reviewer-0007",
+                },
             }
             improvement_recommended = {
                 "benchmark_id": "kg::label-2::old",
@@ -745,8 +748,7 @@ class DismissedExclusionTests(unittest.TestCase):
                 "argv",
                 [
                     "build_review_diff_bundle.py",
-                    "--reviewer-id",
-                    "reviewer-0001",
+                    "--reviewer-neutral",
                     "--previous-outputs",
                     str(previous_outputs),
                     "--current-outputs",
@@ -778,6 +780,7 @@ class DismissedExclusionTests(unittest.TestCase):
             self.assertEqual(data["summary"]["non_benchmark_excluded"], 1)
             self.assertEqual(assessments, {"q1": "accepted", "q2": "prompt_improvement_recommended"})
             self.assertEqual(data["records"][1]["previous"]["review"]["preferred_question"], "Corrected prompt fix?")
+            self.assertNotIn("reviewer_id", json.dumps(data))
 
     def test_rationale_only_change_is_not_review_worthy(self) -> None:
         self.assertFalse(

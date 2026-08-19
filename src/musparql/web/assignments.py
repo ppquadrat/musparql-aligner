@@ -313,7 +313,7 @@ class AssignmentService:
                 return True
             if (
                 normalized_key in {"split", "benchmark_split"}
-                and str(item).casefold() == "holdout"
+                and str(item).casefold() in {"holdout", "private_holdout"}
             ):
                 return True
             if cls._contains_holdout_marker(item):

@@ -305,7 +305,7 @@ def test_assignment_creation_rejects_identity_paths_and_unfiltered_bundles(tmp_p
         "dataset_id": "synthetic-holdout-dataset",
         "holdout_input_policy": "no_holdout",
         "record_count": 1,
-        "records": [{"kg_id": "synthetic-kg", "split": "holdout"}],
+        "records": [{"kg_id": "synthetic-kg", "split": "private_holdout"}],
     }
     (bundle_root / "marked.json").write_text(
         json.dumps(holdout_payload), encoding="utf-8"
