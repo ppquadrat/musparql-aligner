@@ -127,6 +127,8 @@ def test_incomplete_reviewer_is_redirected_and_completes_onboarding(phase4_app) 
     assert b"Synthetic Phase 4 notice" in page.data
     assert b"Computational musicology" in page.data
     assert b"Add as written" not in page.data
+    assert b"special-category personal data" in page.data
+    assert b"2 \xe2\x80\x94 Working knowledge" in page.data
 
     response = client.post("/profile", data=profile_form(client))
     assert response.status_code == 302
@@ -256,6 +258,44 @@ def test_invalid_or_stale_profile_is_atomic(phase4_app) -> None:
             assert stored is not None and stored.name != "Must Not Persist"
             assert session.scalar(select(ReviewerExperience)) is None
             assert session.scalar(select(ReviewerDomainExpertise)) is None
+    finally:
+        engine.dispose()
+
+
+def test_identity_erasure_removes_profile_and_reviewer_only_domain(phase4_app) -> None:
+    app, sender, database_path = phase4_app
+    client = app.test_client()
+    login(client, app, sender, "reviewer@example.invalid")
+    assert client.post("/profile", data=profile_form(client)).status_code == 302
+
+    current = app.extensions["musparql_profiles"].load(REVIEWER_ID).domains[0]
+    corrected = profile_form(client)
+    corrected.setlist("notice_acknowledged", [])
+    corrected.setlist("new_domain_label", [])
+    corrected.setlist("new_domain_level", [])
+    corrected.add("existing_domain_id", current.domain_id)
+    corrected.add("existing_assertion_id", current.assertion_id)
+    corrected.add("existing_domain_level", "expert")
+    assert client.post("/profile", data=corrected).status_code == 302
+
+    app.extensions["musparql_auth"].delete_reviewer_identity(OWNER_ID, REVIEWER_ID)
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            stored = session.get(Reviewer, REVIEWER_ID)
+            assert stored is not None and stored.status == "withdrawn"
+            assert session.get(ReviewerExperience, REVIEWER_ID) is None
+            assert session.scalar(
+                select(ReviewerLanguage).where(ReviewerLanguage.reviewer_id == REVIEWER_ID)
+            ) is None
+            assert session.scalar(
+                select(ReviewerDomainExpertise).where(
+                    ReviewerDomainExpertise.reviewer_id == REVIEWER_ID
+                )
+            ) is None
+            assert session.scalar(select(ExpertiseDomain)) is None
     finally:
         engine.dispose()
 

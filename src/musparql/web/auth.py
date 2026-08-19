@@ -15,7 +15,16 @@ from flask.config import Config
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
-from musparql.database.models import AuthSession, LoginCode, OwnerAuditEvent, Reviewer
+from musparql.database.models import (
+    AuthSession,
+    ExpertiseDomain,
+    LoginCode,
+    OwnerAuditEvent,
+    Reviewer,
+    ReviewerDomainExpertise,
+    ReviewerExperience,
+    ReviewerLanguage,
+)
 from musparql.database.services import normalize_email
 from .email import AsyncEmailDispatcher, EmailSender
 
@@ -185,6 +194,7 @@ class AuthService:
         now: datetime,
     ) -> None:
         recipient: str | None = None
+        previous_code_ids: list[str] = []
         with self.sessions.begin() as session:
             reviewer = session.scalar(
                 select(Reviewer).where(Reviewer.email_normalized == normalized)
@@ -216,13 +226,13 @@ class AuthService:
                 or context_count >= self.config["LOGIN_REQUESTS_PER_CONTEXT"]
             ):
                 return
-            session.execute(
-                update(LoginCode)
-                .where(
-                    LoginCode.email_normalized == normalized,
-                    LoginCode.consumed_at.is_(None),
+            previous_code_ids = list(
+                session.scalars(
+                    select(LoginCode.id).where(
+                        LoginCode.email_normalized == normalized,
+                        LoginCode.consumed_at.is_(None),
+                    )
                 )
-                .values(consumed_at=timestamp(now))
             )
             session.add(
                 LoginCode(
@@ -254,6 +264,19 @@ class AuthService:
                     )
                 )
             raise
+        # Invalidate only the challenges that existed when this replacement was
+        # created. A failed delivery therefore leaves the last delivered code
+        # usable, while overlapping requests cannot invalidate a newer code.
+        if previous_code_ids:
+            with self.sessions.begin() as session:
+                session.execute(
+                    update(LoginCode)
+                    .where(
+                        LoginCode.id.in_(previous_code_ids),
+                        LoginCode.consumed_at.is_(None),
+                    )
+                    .values(consumed_at=timestamp(self.clock()))
+                )
 
     def verify_login_code(
         self, challenge_id: str, code: str, *, remembered: bool, current_token: str | None
@@ -461,6 +484,37 @@ class AuthService:
             reviewer.updated_at = timestamp(now)
             reviewer.privacy_notice_version = None
             reviewer.privacy_notice_acknowledged_at = None
+            # Domain history is append-only during ordinary profile correction.
+            # The database permits deletion only after this reviewer has been
+            # marked withdrawn, keeping the erasure exception narrow.
+            session.flush()
+            domain_ids = list(
+                session.scalars(
+                    select(ReviewerDomainExpertise.domain_id).where(
+                        ReviewerDomainExpertise.reviewer_id == target_id
+                    )
+                )
+            )
+            session.execute(
+                delete(ReviewerDomainExpertise).where(
+                    ReviewerDomainExpertise.reviewer_id == target_id
+                )
+            )
+            session.execute(
+                delete(ReviewerExperience).where(ReviewerExperience.reviewer_id == target_id)
+            )
+            session.execute(
+                delete(ReviewerLanguage).where(ReviewerLanguage.reviewer_id == target_id)
+            )
+            if domain_ids:
+                session.execute(
+                    delete(ExpertiseDomain).where(
+                        ExpertiseDomain.id.in_(domain_ids),
+                        ~select(ReviewerDomainExpertise.id)
+                        .where(ReviewerDomainExpertise.domain_id == ExpertiseDomain.id)
+                        .exists(),
+                    )
+                )
             self._revoke_reviewer_sessions(session, target_id, now)
             session.query(LoginCode).filter(LoginCode.email_normalized == old_email).delete()
             self._audit(session, actor_id, target_id, "delete", now)

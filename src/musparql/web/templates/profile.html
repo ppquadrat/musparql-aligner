@@ -73,6 +73,14 @@
     <section>
       <h2>Research-domain expertise</h2>
       <p>Add the fields in which you can assess review material. Suggestions are optional; use your own wording when it is more accurate.</p>
+      <p class="notice"><strong>Do not enter special-category personal data or information about criminal offences.</strong></p>
+      {% set subject_labels = {
+        'none': 'None',
+        'basic': 'Basic',
+        'working': 'Working knowledge',
+        'advanced': 'Advanced',
+        'expert': 'Expert'
+      } %}
       {% for domain in profile.domains %}
         <div class="repeat-row existing-domain">
           <input type="hidden" name="existing_domain_id" value="{{ domain.domain_id }}">
@@ -81,7 +89,7 @@
           <label>Expertise level
             <select name="existing_domain_level" required>
               {% for level in subject_levels %}
-                <option value="{{ level }}"{% if domain.expertise_level == level %} selected{% endif %}>{{ loop.index0 }} — {{ level|replace('_', ' ')|title }}</option>
+                <option value="{{ level }}"{% if domain.expertise_level == level %} selected{% endif %}>{{ loop.index0 }} — {{ subject_labels[level] }}</option>
               {% endfor %}
             </select>
           </label>
@@ -102,7 +110,7 @@
             <select name="new_domain_level">
               <option value="">Choose one</option>
               {% for level in subject_levels %}
-                <option value="{{ level }}">{{ loop.index0 }} — {{ level|replace('_', ' ')|title }}</option>
+                <option value="{{ level }}">{{ loop.index0 }} — {{ subject_labels[level] }}</option>
               {% endfor %}
             </select>
           </label>

@@ -176,7 +176,11 @@ unless the controller documents effective anonymisation.
 7. For correction, update the current projection and append a correction or
    supersession event. Preserve scholarly integrity without continuing to
    present an acknowledged error as current fact. Published artifacts receive a
-   correction record rather than silent historical rewriting.
+   correction record rather than silent historical rewriting. Append-only
+   profile history is an ordinary-operation integrity rule, not an exception to
+   an approved erasure: after an account is marked withdrawn, technical
+   experience, languages, domain-expertise assertions, and unreferenced
+   reviewer-entered domain labels are deleted.
 8. For restriction or an objection, immediately pause new assignments and
    non-essential processing while the controller assesses the request. The
    database must be able to mark the account restricted rather than relying on

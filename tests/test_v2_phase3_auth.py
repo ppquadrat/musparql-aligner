@@ -128,7 +128,7 @@ def test_digest_limiter_has_hard_key_bounds() -> None:
 
 def test_phase3_migration_is_current_and_audit_is_append_only(portal_app) -> None:
     _app, _sender, database_path = portal_app
-    assert current_revision(database_path) == "20260819_03"
+    assert current_revision(database_path) == "20260819_04"
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
     try:
@@ -156,7 +156,7 @@ def test_auth_hardening_migrates_an_existing_phase3_database(tmp_path: Path) -> 
     upgrade_database(database_path, "20260819_02")
     assert current_revision(database_path) == "20260819_02"
     upgrade_database(database_path)
-    assert current_revision(database_path) == "20260819_03"
+    assert current_revision(database_path) == "20260819_04"
 
     engine = create_database_engine(database_path)
     try:
@@ -284,6 +284,36 @@ def test_failed_login_delivery_rolls_back_and_does_not_consume_limit(
     ]
     assert len(delivered) == app.config["LOGIN_REQUESTS_PER_ADDRESS"]
     assert "synthetic provider failure" not in caplog.text
+
+
+def test_failed_replacement_delivery_preserves_last_delivered_code(portal_app) -> None:
+    app, sender, _database_path = portal_app
+    auth = app.extensions["musparql_auth"]
+    first_challenge = auth.request_login_code(
+        "reviewer@example.invalid", "192.0.2.10\0synthetic-agent"
+    )
+    first_message = sender.wait_for("login_code", "reviewer@example.invalid")
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
+
+    class FailingSender:
+        def send_login_code(self, recipient: str, code: str) -> None:
+            raise RuntimeError("synthetic provider failure")
+
+        def send_invitation(self, recipient: str, login_path: str) -> None:
+            sender.send_invitation(recipient, login_path)
+
+    auth.sender = FailingSender()
+    auth.request_login_code(
+        "reviewer@example.invalid", "192.0.2.11\0synthetic-agent"
+    )
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
+
+    assert auth.verify_login_code(
+        first_challenge,
+        first_message.value,
+        remembered=False,
+        current_token=None,
+    ) is not None
 
 
 def test_code_is_single_use_and_attempt_limited(portal_app) -> None:

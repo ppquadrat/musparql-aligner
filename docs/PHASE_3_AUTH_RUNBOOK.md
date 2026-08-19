@@ -16,8 +16,10 @@ Phase 10 gates in `MUSPARQL_V2_PLAN.md`.
   in-process background queue so provider latency cannot disclose account
   membership or create an unbounded request backlog. Database state is committed
   before provider calls, so email latency never holds SQLite's write lock.
-  Provider failures remove the unused challenge in a fresh short transaction
-  and release its in-process rate-limit reservation.
+  Provider failures remove the unused challenge in a fresh short transaction,
+  leave the last successfully delivered code usable, and release the failed
+  request's in-process rate-limit reservation. A delivered replacement consumes
+  only codes that predate its creation.
 - Successful login creates a random, server-side, revocable session. The browser
   receives only an opaque `HttpOnly` cookie; authentication data is never put in
   local storage.
@@ -37,10 +39,14 @@ Phase 10 gates in `MUSPARQL_V2_PLAN.md`.
 
 Identity erasure retains the pseudonymous reviewer row and changes its status to
 `withdrawn`, because later scholarly records may refer to that ID. It removes
-the name, affiliation, original email, privacy acknowledgement, outstanding
-login codes, and active sessions. This matches the governance draft's proposed
-separation between identity data and pseudonymous scholarly decisions; the
-controller must still approve the final policy before real data is collected.
+the name, affiliation, original email, privacy acknowledgement, technical and
+language profile, domain-expertise history, reviewer-only orphan domain labels,
+outstanding login codes, and active sessions. Domain-expertise assertions remain
+append-only during ordinary correction; the database allows their deletion only
+after the account is marked `withdrawn`. Pseudonymous assignment, submission,
+assessment, and owner-audit records are retained where scholarly integrity or
+security accountability requires them. The controller must still approve the
+final retention policy before real data is collected.
 
 ## Local synthetic setup
 
