@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Assignments — Musparql review{% endblock %}
+{% block content %}
+  <h1>Assignments</h1>
+  {% if result %}<p class="success" role="status">Created {{ result }}.</p>{% endif %}
+  {% if error %}<p class="error" role="alert">The assignment could not be created. Check the neutral bundle and frozen seed selections.</p>{% endif %}
+
+  <section>
+    <h2>Create an assignment</h2>
+    <p>The bundle path is relative to the configured assignment bundle root. The server verifies its digest, reviewer-neutral contract, mode, and holdout-exclusion policy.</p>
+    <form method="post" action="{{ url_for('portal.create_assignment') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Reviewer
+        <select name="reviewer_id" required>
+          <option value="">Choose one</option>
+          {% for reviewer in reviewers %}<option value="{{ reviewer.id }}">{{ reviewer.id }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Mode
+        <select name="mode" required>
+          <option value="initial">Initial</option>
+          <option value="compare">Comparative</option>
+        </select>
+      </label>
+      <label>Reviewer-neutral bundle
+        <input name="bundle_name" placeholder="synthetic/assignment.js" required>
+      </label>
+      <label>Processing recipe
+        <select name="processing_recipe" required>
+          <option value="validate_initial_review">Validate initial review</option>
+          <option value="stage_initial_benchmark_update">Stage initial benchmark update</option>
+          <option value="validate_comparative_review">Validate comparative review</option>
+          <option value="stage_comparative_benchmark_update">Stage comparative benchmark update</option>
+        </select>
+      </label>
+      <fieldset>
+        <legend>Frozen KG prompts</legend>
+        {% for seed in seeds %}
+          <label class="check"><input type="checkbox" name="seed_key" value="{{ seed.kg_id }}|{{ seed.seed_version }}"> <span>{{ seed.kg_id }} — {{ seed.seed_version }} ({{ seed.seed_digest[:20] }}…)</span></label>
+        {% endfor %}
+      </fieldset>
+      <label><span>Previous benchmark path <span class="optional">(comparative assignments only)</span></span>
+        <input name="previous_benchmark_path">
+      </label>
+      <button type="submit">Create ready assignment</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Existing assignments</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Reviewer</th><th>Mode</th><th>Status</th><th>Bundle</th><th>Created</th></tr></thead>
+      <tbody>{% for assignment in assignments %}<tr><td>{{ assignment.id }}</td><td>{{ assignment.reviewer_id }}</td><td>{{ assignment.mode }}</td><td>{{ assignment.status }}</td><td>{{ assignment.bundle_path }}<br><span class="metadata">{{ assignment.bundle_digest }}</span></td><td>{{ assignment.created_at }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </section>
+{% endblock %}

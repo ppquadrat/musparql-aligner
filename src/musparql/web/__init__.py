@@ -48,6 +48,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             "MUSPARQL_EXPERTISE_SUGGESTIONS_PATH",
             "catalog/expertise_domain_suggestions.yaml",
         ),
+        ASSIGNMENT_BUNDLE_ROOT=os.environ.get(
+            "MUSPARQL_ASSIGNMENT_BUNDLE_ROOT", "var/review/bundles"
+        ),
         PRIVACY_NOTICE_VERSION=os.environ.get("MUSPARQL_PRIVACY_NOTICE_VERSION"),
         PRIVACY_NOTICE_BODY=os.environ.get("MUSPARQL_PRIVACY_NOTICE_BODY"),
         ALLOW_SYNTHETIC_PRIVACY_NOTICE=(
@@ -109,11 +112,16 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         config=app.config,
     )
     from .profile import ProfileService
+    from .assignments import AssignmentService
 
     app.extensions["musparql_profiles"] = ProfileService(
         sessions=sessions,
         notice_version=app.config["PRIVACY_NOTICE_VERSION"],
         suggestions_path=Path(app.config["EXPERTISE_SUGGESTIONS_PATH"]).expanduser().resolve(),
+    )
+    app.extensions["musparql_assignments"] = AssignmentService(
+        sessions=sessions,
+        bundle_root=Path(app.config["ASSIGNMENT_BUNDLE_ROOT"]).expanduser().resolve(),
     )
 
     install_security(app)

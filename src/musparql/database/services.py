@@ -188,6 +188,8 @@ class ProvenanceService:
         self,
         domain_records: Sequence[Mapping[str, Any]],
         familiarity_records: Sequence[Mapping[str, Any]],
+        *,
+        activate_assignment: bool = False,
     ) -> None:
         """Atomically record the complete frozen prompt set for one assignment."""
         records = [*domain_records, *familiarity_records]
@@ -240,6 +242,11 @@ class ProvenanceService:
                 self._append_assessment(session, record, domain=True)
             for record in familiarity_records:
                 self._append_assessment(session, record, domain=False)
+            if activate_assignment:
+                if assignment.status != "ready":
+                    raise ValueError("Only a ready assignment can be activated")
+                assignment.status = "active"
+                assignment.opened_at = str(records[0]["assessed_at"])
 
     def _append_assessment(
         self, session: Session, record: Mapping[str, Any], *, domain: bool

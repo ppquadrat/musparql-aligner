@@ -10,6 +10,7 @@ from flask import (
     abort,
     current_app,
     g,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -89,7 +90,15 @@ def index():
         )
     ):
         return redirect(url_for("portal.profile"))
-    return render_template("index.html")
+    assignments = []
+    if (
+        g.current_reviewer is not None
+        and g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"]
+    ):
+        assignments = current_app.extensions["musparql_assignments"].list_for_reviewer(
+            g.current_reviewer.id
+        )
+    return render_template("index.html", assignments=assignments)
 
 
 @portal.route("/profile", methods=["GET", "POST"])
@@ -258,3 +267,101 @@ def owner_account_action(reviewer_id: str, action: str):
     except ValueError:
         return redirect(url_for("portal.owner_reviewers", error="invalid-account-action"))
     return redirect(url_for("portal.owner_reviewers", result=action))
+
+
+@portal.get("/owner/assignments")
+@login_required
+def owner_assignments():
+    if g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"]:
+        abort(403)
+    service = current_app.extensions["musparql_assignments"]
+    reviewers, seeds = service.owner_choices()
+    return render_template(
+        "owner_assignments.html",
+        assignments=service.list_all(),
+        reviewers=[item for item in reviewers if item.id != g.current_reviewer.id],
+        seeds=seeds,
+        result=request.args.get("result", ""),
+        error=request.args.get("error", ""),
+    )
+
+
+@portal.post("/owner/assignments")
+@owner_required
+def create_assignment():
+    service = current_app.extensions["musparql_assignments"]
+    try:
+        assignment_id = service.create(
+            reviewer_id=request.form.get("reviewer_id", ""),
+            mode=request.form.get("mode", ""),
+            bundle_name=request.form.get("bundle_name", ""),
+            processing_recipe=request.form.get("processing_recipe", ""),
+            seed_keys=request.form.getlist("seed_key"),
+            previous_benchmark_path=request.form.get("previous_benchmark_path") or None,
+        )
+    except ValueError:
+        return redirect(url_for("portal.owner_assignments", error="invalid-assignment"))
+    return redirect(
+        url_for("portal.owner_assignments", result=assignment_id)
+    )
+
+
+@portal.route("/assignments/<assignment_id>", methods=["GET", "POST"])
+@login_required
+def assignment(assignment_id: str):
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    profiles = current_app.extensions["musparql_profiles"]
+    if not profiles.is_complete(g.current_reviewer.id):
+        return redirect(url_for("portal.profile"))
+    service = current_app.extensions["musparql_assignments"]
+    error = ""
+    try:
+        if request.method == "POST":
+            service.assess(
+                assignment_id,
+                g.current_reviewer.id,
+                request.form.getlist("domain_level"),
+                request.form.getlist("familiarity_level"),
+                confirmed=request.form.get("confirmed") == "yes",
+            )
+            return redirect(url_for("portal.assignment", assignment_id=assignment_id))
+        value = service.view(assignment_id, g.current_reviewer.id)
+    except LookupError:
+        abort(404)
+    except ValueError:
+        error = "Please answer every prompt and confirm your answers."
+        try:
+            value = service.view(assignment_id, g.current_reviewer.id)
+        except LookupError:
+            abort(404)
+    return render_template(
+        "assignment.html",
+        value=value,
+        error=error,
+        subject_levels=("none", "basic", "working", "advanced", "expert"),
+        familiarity_levels=("none", "inspected", "worked", "regular_user", "creator"),
+    )
+
+
+@portal.get("/assignments/<assignment_id>/bundle")
+@login_required
+def assignment_bundle(assignment_id: str):
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    if not current_app.extensions["musparql_profiles"].is_complete(
+        g.current_reviewer.id
+    ):
+        abort(403)
+    try:
+        payload = current_app.extensions[
+            "musparql_assignments"
+        ].attributed_bundle(assignment_id, g.current_reviewer.id)
+    except LookupError:
+        abort(404)
+    except PermissionError:
+        abort(403)
+    except ValueError:
+        current_app.logger.error("Assignment bundle failed integrity validation")
+        abort(409)
+    return jsonify(payload)

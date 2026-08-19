@@ -98,6 +98,11 @@ the human verifies and places that file at the local path.
   inspect the confidential v2 SQLite schema without exposing profile fields.
 - [`docs/PHASE_3_AUTH_RUNBOOK.md`](docs/PHASE_3_AUTH_RUNBOOK.md) — configure and
   exercise the invitation-only Flask authentication layer with synthetic data.
+- [`docs/PHASE_4_PROFILE_RUNBOOK.md`](docs/PHASE_4_PROFILE_RUNBOOK.md) — test
+  privacy-notice acknowledgement, onboarding, and append-only profile changes.
+- [`docs/PHASE_5_ASSIGNMENT_RUNBOOK.md`](docs/PHASE_5_ASSIGNMENT_RUNBOOK.md) —
+  prepare reviewer-neutral bundles, create frozen assignments, and verify the
+  pre-review assessment gate using synthetic data.
 - [`docs/MUSPARQL_V2_PLAN.md`](docs/MUSPARQL_V2_PLAN.md) — phased plan for the
   remote reviewer portal, longitudinal expertise data, controlled processing,
   and isolated deployment.

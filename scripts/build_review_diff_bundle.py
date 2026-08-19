@@ -342,7 +342,13 @@ def has_review_worthy_change(status: str, flags: List[str]) -> bool:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build a browser review bundle comparing two LLM review runs.")
-    parser.add_argument("--reviewer-id", required=True, help="Anonymous reviewer ID, for example reviewer-0001.")
+    identity = parser.add_mutually_exclusive_group(required=True)
+    identity.add_argument("--reviewer-id", help="Anonymous reviewer ID for the legacy local workflow.")
+    identity.add_argument(
+        "--reviewer-neutral",
+        action="store_true",
+        help="Omit reviewer identity so the hosted portal can attribute an assignment after authentication.",
+    )
     parser.add_argument("--previous-outputs", required=True)
     parser.add_argument("--current-outputs", required=True)
     parser.add_argument("--previous-inputs", default="", help="Defaults to llm_inputs.jsonl beside previous outputs, then ./llm_inputs.jsonl.")
@@ -380,7 +386,7 @@ def main() -> None:
         help="Human assertion that supplied benchmark/review sources cover every prior reviewer decision; required to enable holdout selection.",
     )
     args = parser.parse_args()
-    reviewer_id = validate_reviewer_id(args.reviewer_id)
+    reviewer_id = validate_reviewer_id(args.reviewer_id) if args.reviewer_id else None
 
     previous_outputs_path = Path(args.previous_outputs)
     current_outputs_path = Path(args.current_outputs)
@@ -492,7 +498,6 @@ def main() -> None:
 
     payload = {
         "schema": "musparql.review-bundle.v2",
-        "reviewer_id": reviewer_id,
         "mode": "compare",
         "dataset_id": sha256_text(
             stable_json_dumps(
@@ -535,6 +540,8 @@ def main() -> None:
         },
         "records": records,
     }
+    if reviewer_id is not None:
+        payload["reviewer_id"] = reviewer_id
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -1390,6 +1390,21 @@ Exit criteria:
 
 ### Phase 5 — assignments and pre-review assessments
 
+Status: completed on 19 August 2026 for the Phase 5 boundary. The portal now
+validates owner-selected reviewer-neutral bundles inside a configured root,
+freezes exact KG seed versions and digests, scopes assignment discovery and
+access to the assigned reviewer, displays the frozen KG prompts, and withholds
+attributed bundle data until one complete atomic pre-review batch has been
+recorded. Later rounds preselect the current values and append new assessment
+heads without overwriting history. Bundle builders retain the legacy explicit
+reviewer mode and add an explicit `--reviewer-neutral` mode for hosted work.
+See [`PHASE_5_ASSIGNMENT_RUNBOOK.md`](PHASE_5_ASSIGNMENT_RUNBOOK.md).
+
+This phase exposes authenticated attributed bundle JSON, not the complete
+initial/comparative workbench. Static-asset integration, assignment-namespaced
+browser drafts, and workbench parity remain Phase 6. Real assignments remain
+blocked by the governance, recovery, email, and deployment gates below.
+
 Work:
 
 - owner assignment creation;

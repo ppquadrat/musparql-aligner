@@ -295,7 +295,13 @@ def ensure_single_run_manifest(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build a browser review bundle from LLM inputs and outputs.")
-    parser.add_argument("--reviewer-id", required=True, help="Anonymous reviewer ID, for example reviewer-0001.")
+    identity = parser.add_mutually_exclusive_group(required=True)
+    identity.add_argument("--reviewer-id", help="Anonymous reviewer ID for the legacy local workflow.")
+    identity.add_argument(
+        "--reviewer-neutral",
+        action="store_true",
+        help="Omit reviewer identity so the hosted portal can attribute an assignment after authentication.",
+    )
     parser.add_argument("--inputs", default=None)
     parser.add_argument("--outputs", nargs="+", default=None)
     parser.add_argument(
@@ -347,7 +353,7 @@ def main() -> None:
         help="Human assertion that supplied benchmark/review sources cover every prior reviewer decision; required to enable holdout selection.",
     )
     args = parser.parse_args()
-    reviewer_id = validate_reviewer_id(args.reviewer_id)
+    reviewer_id = validate_reviewer_id(args.reviewer_id) if args.reviewer_id else None
 
     if args.latest_run:
         if args.inputs is not None or args.outputs is not None or args.run_manifest:
@@ -517,7 +523,6 @@ def main() -> None:
 
     dataset_payload = {
         "schema": "musparql.review-bundle.v2",
-        "reviewer_id": reviewer_id,
         "dataset_id": sha256_text(
             stable_json_dumps(
                 {
@@ -563,6 +568,8 @@ def main() -> None:
         },
         "records": review_records,
     }
+    if reviewer_id is not None:
+        dataset_payload["reviewer_id"] = reviewer_id
 
     out_path.write_text(
         "window.REVIEW_DATA = " + json.dumps(dataset_payload, ensure_ascii=False, indent=2) + ";\n",
