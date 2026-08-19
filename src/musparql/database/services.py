@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from typing import Any
+import unicodedata
 
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -28,10 +29,19 @@ from .repositories import AssignmentRepository, ProvenanceRepository, SeedReposi
 
 def normalize_email(value: str) -> str:
     """Apply conservative login normalization without provider-specific rewriting."""
-    normalized = value.strip().casefold()
-    if not normalized or "@" not in normalized:
+    normalized = unicodedata.normalize("NFC", value).strip()
+    if len(normalized) > 254 or normalized.count("@") != 1:
         raise ValueError("Email address is invalid")
-    return normalized
+    local, domain = normalized.rsplit("@", 1)
+    if not local or len(local) > 64 or not domain or any(char.isspace() for char in normalized):
+        raise ValueError("Email address is invalid")
+    try:
+        ascii_domain = domain.encode("idna").decode("ascii").lower()
+    except UnicodeError as exc:
+        raise ValueError("Email address is invalid") from exc
+    if "." not in ascii_domain or ascii_domain.startswith(".") or ascii_domain.endswith("."):
+        raise ValueError("Email address is invalid")
+    return f"{local.casefold()}@{ascii_domain}"
 
 
 class SeedSnapshotService:

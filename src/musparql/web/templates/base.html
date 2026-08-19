@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Musparql review{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+  </head>
+  <body>
+    <header>
+      <a href="{{ url_for('portal.index') }}">Musparql review</a>
+      {% if current_reviewer %}
+        <span>{{ current_reviewer.id }}</span>
+      {% endif %}
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+  </body>
+</html>

@@ -206,6 +206,23 @@ class AuthSession(Base):
     remembered: Mapped[bool] = mapped_column(Boolean)
 
 
+class OwnerAuditEvent(Base):
+    """Append-only record of security-sensitive owner account actions."""
+
+    __tablename__ = "owner_audit_events"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    actor_reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"), index=True)
+    target_reviewer_id: Mapped[str] = mapped_column(String, index=True)
+    action: Mapped[str] = mapped_column(String)
+    created_at: Mapped[str] = mapped_column(String)
+    __table_args__ = (
+        CheckConstraint(
+            "action IN ('invite','disable','restore','delete')",
+            name="ck_owner_audit_events_action",
+        ),
+    )
+
+
 class ReviewAssignment(Base):
     __tablename__ = "review_assignments"
     id: Mapped[str] = mapped_column(String, primary_key=True)

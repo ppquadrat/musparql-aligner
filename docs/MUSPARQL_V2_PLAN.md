@@ -1327,6 +1327,15 @@ Exit criteria:
 
 ### Phase 3 — Flask application and authentication
 
+Implementation status (19 August 2026): the application factory, synthetic
+email adapter, passwordless login, revocable sessions, owner controls, security
+headers, CSRF protection, rate limits, audit migration, and synthetic tests are
+implemented on the Phase 3 development branch. The application fails closed
+unless an email sender is explicitly supplied or synthetic email is explicitly
+enabled. Selecting and integrating the real sender remains pending ICF's
+response and is still a real-invitation gate. See
+[`PHASE_3_AUTH_RUNBOOK.md`](PHASE_3_AUTH_RUNBOOK.md).
+
 Work:
 
 - application factory and configuration;

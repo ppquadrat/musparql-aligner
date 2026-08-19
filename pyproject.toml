@@ -10,11 +10,13 @@ requires-python = ">=3.11"
 license = {file = "LICENSE"}
 dependencies = [
     "alembic>=1.16,<2",
+    "Flask>=3.1,<4",
     "SQLAlchemy>=2.0,<3",
 ]
 
 [project.scripts]
 musparql-db = "musparql.database.cli:main"
+musparql-web = "musparql.web.cli:main"
 
 [project.optional-dependencies]
 test = [
@@ -27,3 +29,4 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "musparql.database.alembic" = ["README.md", "script.py.mako"]
+"musparql.web" = ["templates/*.html", "static/*.css"]

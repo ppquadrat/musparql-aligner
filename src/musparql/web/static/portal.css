@@ -1,0 +1,21 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+body { margin: 0; line-height: 1.5; }
+header, main { max-width: 70rem; margin: auto; padding: 1rem; }
+header { display: flex; justify-content: space-between; border-bottom: 1px solid #8885; }
+form { display: grid; gap: .75rem; max-width: 32rem; }
+input, button, .button { box-sizing: border-box; font: inherit; padding: .6rem; }
+button, .button { cursor: pointer; width: fit-content; }
+.actions { display: flex; flex-wrap: wrap; gap: 1rem; }
+.check { display: flex; gap: .5rem; align-items: start; }
+.check input { margin-top: .35rem; }
+.error { color: #b00020; }
+.success { color: #176b2c; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #8888; padding: .5rem; text-align: left; vertical-align: top; }
+.inline { display: inline; }
+.delete { border-top: 1px solid #8888; margin-top: .75rem; padding-top: .75rem; }
+@media (max-width: 45rem) {
+  table, thead, tbody, tr, th, td { display: block; }
+  thead { position: absolute; left: -10000px; }
+  tr { margin-bottom: 1rem; }
+}

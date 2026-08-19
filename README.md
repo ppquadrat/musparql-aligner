@@ -96,6 +96,8 @@ the human verifies and places that file at the local path.
   governance backlog.
 - [`docs/DATABASE_RUNBOOK.md`](docs/DATABASE_RUNBOOK.md) — create, upgrade, and
   inspect the confidential v2 SQLite schema without exposing profile fields.
+- [`docs/PHASE_3_AUTH_RUNBOOK.md`](docs/PHASE_3_AUTH_RUNBOOK.md) — configure and
+  exercise the invitation-only Flask authentication layer with synthetic data.
 - [`docs/MUSPARQL_V2_PLAN.md`](docs/MUSPARQL_V2_PLAN.md) — phased plan for the
   remote reviewer portal, longitudinal expertise data, controlled processing,
   and isolated deployment.

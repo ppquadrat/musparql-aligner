@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+  {% if current_reviewer %}
+    <h1>Signed in</h1>
+    <p>Your authenticated Musparql session is active.</p>
+    {% if current_reviewer.id == config.OWNER_REVIEWER_ID %}
+      <p><a href="{{ url_for('portal.owner_reviewers') }}">Manage reviewers</a></p>
+    {% endif %}
+    <div class="actions">
+      <form method="post" action="{{ url_for('portal.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Sign out</button>
+      </form>
+      <form method="post" action="{{ url_for('portal.logout_all') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit">Sign out all browsers</button>
+      </form>
+    </div>
+  {% else %}
+    <h1>Invitation-only review</h1>
+    <p>Use the email address to which your Musparql invitation was sent.</p>
+    <p><a class="button" href="{{ url_for('portal.login') }}">Sign in</a></p>
+  {% endif %}
+{% endblock %}

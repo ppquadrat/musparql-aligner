@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Reviewer accounts — Musparql review{% endblock %}
+{% block content %}
+  <h1>Reviewer accounts</h1>
+  {% if result %}<p class="success" role="status">The owner action completed.</p>{% endif %}
+  {% if error %}<p class="error" role="alert">The owner action could not be completed.</p>{% endif %}
+
+  <section>
+    <h2>Invite a reviewer</h2>
+    <form method="post" action="{{ url_for('portal.invite') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="name">Name</label>
+      <input id="name" name="name" maxlength="200" required>
+      <label for="email">Email address</label>
+      <input id="email" name="email" type="email" autocomplete="off" maxlength="254" required>
+      <button type="submit">Send invitation</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Existing accounts</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th><th>Controls</th></tr></thead>
+      <tbody>
+      {% for reviewer in reviewers %}
+        <tr>
+          <td>{{ reviewer.id }}</td>
+          <td>{{ reviewer.name }}</td>
+          <td>{{ reviewer.email_display }}</td>
+          <td>{{ reviewer.status }}</td>
+          <td>
+            {% if reviewer.id == owner_id %}
+              Configured owner
+            {% elif reviewer.status in ['invited', 'active'] %}
+              <form class="inline" method="post" action="{{ url_for('portal.owner_account_action', reviewer_id=reviewer.id, action='disable') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit">Disable</button>
+              </form>
+            {% elif reviewer.status == 'disabled' %}
+              <form class="inline" method="post" action="{{ url_for('portal.owner_account_action', reviewer_id=reviewer.id, action='restore') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit">Restore</button>
+              </form>
+            {% endif %}
+            {% if reviewer.id != owner_id and reviewer.status != 'withdrawn' %}
+              <form class="delete" method="post" action="{{ url_for('portal.owner_account_action', reviewer_id=reviewer.id, action='delete') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label>Type {{ reviewer.id }} to erase identity data
+                  <input name="confirm" autocomplete="off" required>
+                </label>
+                <button type="submit">Delete identity</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endblock %}
