@@ -44,9 +44,27 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         MAX_CONTENT_LENGTH=64 * 1024,
         AUTO_UPGRADE_DATABASE=False,
         ALLOW_SYNTHETIC_EMAIL=os.environ.get("MUSPARQL_ALLOW_SYNTHETIC_EMAIL") == "1",
+        EXPERTISE_SUGGESTIONS_PATH=os.environ.get(
+            "MUSPARQL_EXPERTISE_SUGGESTIONS_PATH",
+            "catalog/expertise_domain_suggestions.yaml",
+        ),
+        PRIVACY_NOTICE_VERSION=os.environ.get("MUSPARQL_PRIVACY_NOTICE_VERSION"),
+        PRIVACY_NOTICE_BODY=os.environ.get("MUSPARQL_PRIVACY_NOTICE_BODY"),
+        ALLOW_SYNTHETIC_PRIVACY_NOTICE=(
+            os.environ.get("MUSPARQL_ALLOW_SYNTHETIC_PRIVACY_NOTICE") == "1"
+        ),
     )
     if test_config:
         app.config.update(test_config)
+
+    if app.config["TESTING"] or app.config["ALLOW_SYNTHETIC_PRIVACY_NOTICE"]:
+        app.config["PRIVACY_NOTICE_VERSION"] = app.config.get(
+            "PRIVACY_NOTICE_VERSION"
+        ) or "synthetic-development-v1"
+        app.config["PRIVACY_NOTICE_BODY"] = app.config.get("PRIVACY_NOTICE_BODY") or (
+            "Synthetic development notice. Do not enter real personal data. "
+            "This notice is only for testing the Musparql onboarding workflow."
+        )
 
     _validate_config(app)
     database_path = Path(app.config["DATABASE_PATH"]).expanduser().resolve()
@@ -90,6 +108,13 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         limiter=limiter,
         config=app.config,
     )
+    from .profile import ProfileService
+
+    app.extensions["musparql_profiles"] = ProfileService(
+        sessions=sessions,
+        notice_version=app.config["PRIVACY_NOTICE_VERSION"],
+        suggestions_path=Path(app.config["EXPERTISE_SUGGESTIONS_PATH"]).expanduser().resolve(),
+    )
 
     install_security(app)
     from .routes import portal
@@ -108,6 +133,20 @@ def _validate_config(app: Flask) -> None:
         raise RuntimeError("Missing required application configuration: " + ", ".join(missing))
     if len(app.config["APP_SECRET"].encode("utf-8")) < 32:
         raise RuntimeError("APP_SECRET must contain at least 32 UTF-8 bytes")
+    if not app.config.get("PRIVACY_NOTICE_VERSION") or not app.config.get(
+        "PRIVACY_NOTICE_BODY"
+    ):
+        raise RuntimeError(
+            "A controller-approved privacy notice version and body must be configured"
+        )
+    if (
+        str(app.config["PRIVACY_NOTICE_VERSION"]).startswith("synthetic-")
+        and not (app.config["TESTING"] or app.config["ALLOW_SYNTHETIC_PRIVACY_NOTICE"])
+    ):
+        raise RuntimeError("A synthetic privacy notice is not allowed in this environment")
+    suggestions_path = Path(app.config["EXPERTISE_SUGGESTIONS_PATH"]).expanduser().resolve()
+    if not suggestions_path.is_file():
+        raise RuntimeError("The configured expertise suggestion snapshot does not exist")
     owner_id = app.config["OWNER_REVIEWER_ID"]
     if not isinstance(owner_id, str) or not owner_id.startswith("reviewer-"):
         raise RuntimeError("OWNER_REVIEWER_ID must be a pseudonymous reviewer ID")

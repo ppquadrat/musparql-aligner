@@ -81,7 +81,56 @@ def _clear_auth_cookies(response: Response) -> None:
 
 @portal.get("/")
 def index():
+    if (
+        g.current_reviewer is not None
+        and g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"]
+        and not current_app.extensions["musparql_profiles"].is_complete(
+            g.current_reviewer.id
+        )
+    ):
+        return redirect(url_for("portal.profile"))
     return render_template("index.html")
+
+
+@portal.route("/profile", methods=["GET", "POST"])
+@login_required
+def profile():
+    service = current_app.extensions["musparql_profiles"]
+    error = ""
+    if request.method == "POST":
+        try:
+            service.update(
+                g.current_reviewer.id,
+                request.form,
+                existing_domain_ids=request.form.getlist("existing_domain_id"),
+                existing_assertion_ids=request.form.getlist("existing_assertion_id"),
+                existing_domain_levels=request.form.getlist("existing_domain_level"),
+                new_domain_labels=request.form.getlist("new_domain_label"),
+                new_domain_levels=request.form.getlist("new_domain_level"),
+                language_tags=request.form.getlist("language_tag"),
+                language_levels=request.form.getlist("language_level"),
+            )
+        except ValueError:
+            error = "Please correct the profile fields and try again."
+        else:
+            return redirect(url_for("portal.profile", saved="yes"))
+    value = service.load(g.current_reviewer.id)
+    language_rows = list(value.languages) + [("", "")] * max(2, 3 - len(value.languages))
+    return render_template(
+        "profile.html",
+        profile=value,
+        profile_complete=service.is_complete(g.current_reviewer.id),
+        language_rows=language_rows,
+        suggestions=service.suggestions,
+        suggestion_snapshot_id=service.suggestion_snapshot_id,
+        technical_levels=("none", "occasional", "regular", "expert"),
+        subject_levels=("none", "basic", "working", "advanced", "expert"),
+        language_levels=("basic", "advanced", "fluent", "native"),
+        notice_version=current_app.config["PRIVACY_NOTICE_VERSION"],
+        notice_body=current_app.config["PRIVACY_NOTICE_BODY"],
+        error=error,
+        saved=request.args.get("saved") == "yes",
+    )
 
 
 @portal.route("/auth/login", methods=["GET", "POST"])
@@ -167,10 +216,12 @@ def owner_reviewers():
     if g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"]:
         abort(403)
     reviewers = current_app.extensions["musparql_auth"].list_reviewers()
+    completion = current_app.extensions["musparql_profiles"].completion_by_reviewer()
     return render_template(
         "owner_reviewers.html",
         reviewers=reviewers,
         owner_id=current_app.config["OWNER_REVIEWER_ID"],
+        profile_completion=completion,
         result=request.args.get("result", ""),
         error=request.args.get("error", ""),
     )

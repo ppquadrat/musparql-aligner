@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}My profile — Musparql review{% endblock %}
+{% block content %}
+  <h1>{% if profile_complete %}My profile{% else %}Complete your profile{% endif %}</h1>
+  <p>Your email address is verified as <strong>{{ profile.email }}</strong>. Contact the project owner if it needs to change.</p>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  {% if saved %}<p class="success" role="status">Your profile was saved.</p>{% endif %}
+
+  <form method="post" action="{{ url_for('portal.profile') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% if not profile.notice_current %}
+      <section class="notice" aria-labelledby="privacy-heading">
+        <h2 id="privacy-heading">Privacy notice</h2>
+        <p class="metadata">Version {{ notice_version }}</p>
+        <p>{{ notice_body }}</p>
+        <label class="check">
+          <input type="checkbox" name="notice_acknowledged" value="yes" required>
+          <span>I acknowledge that I have read this privacy notice.</span>
+        </label>
+      </section>
+    {% endif %}
+
+    <section>
+      <h2>About you</h2>
+      <label class="field" for="name">Name
+        <input id="name" name="name" maxlength="200" autocomplete="name" value="{{ profile.name }}" required>
+      </label>
+      <label class="field" for="affiliation"><span>Affiliation <span class="optional">(optional)</span></span>
+        <input id="affiliation" name="affiliation" maxlength="300" autocomplete="organization" value="{{ profile.affiliation }}">
+      </label>
+    </section>
+
+    <section>
+      <h2>Technical experience</h2>
+      <p>Choose the answer that best describes your current practical experience.</p>
+      {% for field, label, selected in [
+        ('kg_ontology_experience', 'Knowledge graphs and ontologies', profile.kg_ontology_experience),
+        ('sparql_experience', 'SPARQL', profile.sparql_experience),
+        ('nlp_llm_experience', 'Natural-language processing and language models', profile.nlp_llm_experience)
+      ] %}
+        <label class="field" for="{{ field }}">{{ label }}
+          <select id="{{ field }}" name="{{ field }}" required>
+            <option value="">Choose one</option>
+            {% for level in technical_levels %}
+              <option value="{{ level }}"{% if selected == level %} selected{% endif %}>{{ level|replace('_', ' ')|title }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      {% endfor %}
+    </section>
+
+    <section>
+      <h2>Languages</h2>
+      <p>Add at least one ISO language tag, such as <code>en</code>, <code>fr</code>, or <code>en-GB</code>.</p>
+      {% for tag, selected in language_rows %}
+        <div class="repeat-row">
+          <label>Language tag
+            <input name="language_tag" value="{{ tag }}" maxlength="6" pattern="[a-z]{2,3}(-[A-Z]{2})?" placeholder="en">
+          </label>
+          <label>Level
+            <select name="language_level">
+              <option value="">Choose one</option>
+              {% for level in language_levels %}
+                <option value="{{ level }}"{% if selected == level %} selected{% endif %}>{{ level|title }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+      {% endfor %}
+    </section>
+
+    <section>
+      <h2>Research-domain expertise</h2>
+      <p>Add the fields in which you can assess review material. Suggestions are optional; use your own wording when it is more accurate.</p>
+      {% for domain in profile.domains %}
+        <div class="repeat-row existing-domain">
+          <input type="hidden" name="existing_domain_id" value="{{ domain.domain_id }}">
+          <input type="hidden" name="existing_assertion_id" value="{{ domain.assertion_id }}">
+          <span><strong>{{ domain.entered_label }}</strong></span>
+          <label>Expertise level
+            <select name="existing_domain_level" required>
+              {% for level in subject_levels %}
+                <option value="{{ level }}"{% if domain.expertise_level == level %} selected{% endif %}>{{ loop.index0 }} — {{ level|replace('_', ' ')|title }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+      {% endfor %}
+      <datalist id="domain-suggestions">
+        {% for suggestion in suggestions %}
+          <option value="{{ suggestion.preferred_label }}"></option>
+          {% for alternative in suggestion.alternative_labels %}<option value="{{ alternative }}"></option>{% endfor %}
+        {% endfor %}
+      </datalist>
+      {% for _ in range(3) %}
+        <div class="repeat-row">
+          <label>New domain
+            <input name="new_domain_label" list="domain-suggestions" maxlength="200" placeholder="Search or add as written">
+          </label>
+          <label>Expertise level
+            <select name="new_domain_level">
+              <option value="">Choose one</option>
+              {% for level in subject_levels %}
+                <option value="{{ level }}">{{ loop.index0 }} — {{ level|replace('_', ' ')|title }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+      {% endfor %}
+      <p class="metadata">Suggestion snapshot: {{ suggestion_snapshot_id }}. Free-text entries are preserved exactly.</p>
+    </section>
+
+    <button type="submit">Save profile</button>
+  </form>
+{% endblock %}

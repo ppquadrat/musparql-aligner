@@ -11,6 +11,9 @@
       <a href="{{ url_for('portal.index') }}">Musparql review</a>
       {% if current_reviewer %}
         <span>{{ current_reviewer.id }}</span>
+        {% if current_reviewer.id != config.OWNER_REVIEWER_ID %}
+          <a href="{{ url_for('portal.profile') }}">My profile</a>
+        {% endif %}
       {% endif %}
     </header>
     <main>{% block content %}{% endblock %}</main>

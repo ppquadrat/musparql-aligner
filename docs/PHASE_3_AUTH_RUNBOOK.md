@@ -68,8 +68,13 @@ export MUSPARQL_DATABASE_PATH="$PWD/var/phase3-synthetic.sqlite3"
 export MUSPARQL_OWNER_REVIEWER_ID="reviewer-0001"
 export MUSPARQL_APP_SECRET="replace-with-a-new-random-development-secret-of-32-bytes-or-more"
 export MUSPARQL_ALLOW_SYNTHETIC_EMAIL="1"
+export MUSPARQL_ALLOW_SYNTHETIC_PRIVACY_NOTICE="1"
 .venv/bin/flask --app musparql.web:create_app run
 ```
+
+The synthetic privacy switch installs the Phase 4 development notice and is as
+strictly local-only as the synthetic email switch. Neither authorises real
+reviewer data.
 
 This development server does not display the synthetic outbox, so normal manual
 email-code login is intentionally unavailable from a separate browser process.

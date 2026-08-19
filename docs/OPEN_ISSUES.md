@@ -7,15 +7,17 @@ notes.
 
 ## Reviewer administration and privacy
 
-### Reviewer profile administration UI
+### Reviewer privacy approval and real-data gate
 
 Reviewer profiles, repeatable general-domain expertise, KG-specific subject
 expertise, and resource/data-model/KG familiarity have versioned Phase 1 schemas,
 append-only history contracts, chain and seed-snapshot validation, synthetic
-examples, a privacy notice, and a confidential storage boundary, but there is no
-owner-only profile administration form yet. The documented legacy registry was
-never populated, so Phase 2 creates the v2 database directly and deliberately
-does not add legacy-value tables or infer v2 assertions from legacy scales.
+examples, a privacy notice, and a confidential storage boundary. Phase 4 now
+provides reviewer onboarding and correction, versioned notice acknowledgement,
+the versioned local suggestion set with free-text fallback, and owner-visible
+pseudonymous completion state. The documented legacy registry was never
+populated, so Phase 2 creates the v2 database directly and deliberately does not
+add legacy-value tables or infer v2 assertions from legacy scales.
 
 The proposed decisions, working ICF-controller assessment, rights/incident
 procedures, and ICF/ODOMA questions are now recorded in

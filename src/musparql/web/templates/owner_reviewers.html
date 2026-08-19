@@ -20,7 +20,7 @@
   <section>
     <h2>Existing accounts</h2>
     <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th><th>Controls</th></tr></thead>
+      <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th><th>Profile</th><th>Controls</th></tr></thead>
       <tbody>
       {% for reviewer in reviewers %}
         <tr>
@@ -28,6 +28,15 @@
           <td>{{ reviewer.name }}</td>
           <td>{{ reviewer.email_display }}</td>
           <td>{{ reviewer.status }}</td>
+          <td>
+            {% if reviewer.id == owner_id %}
+              Not applicable
+            {% elif profile_completion[reviewer.id] %}
+              Complete
+            {% else %}
+              Awaiting onboarding
+            {% endif %}
+          </td>
           <td>
             {% if reviewer.id == owner_id %}
               Configured owner

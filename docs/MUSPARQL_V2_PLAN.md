@@ -1357,6 +1357,21 @@ Exit criteria:
 
 ### Phase 4 — onboarding and profile administration
 
+Implementation status (19 August 2026): the authenticated onboarding redirect,
+versioned notice acknowledgement, reviewer profile page, technical experience,
+language rows, multi-domain local suggestions with exact free-text fallback,
+append-only domain-level corrections, and owner-visible completion state are
+implemented and covered by synthetic HTTP/database tests. The application fails
+closed without an explicitly configured notice outside the synthetic development
+gate. The shipped local suggestion snapshot contains owner-reviewed project
+terms and treats EuroSciVoc as reference-only until individual concepts and a
+release are human-verified. See
+[`PHASE_4_PROFILE_RUNBOOK.md`](PHASE_4_PROFILE_RUNBOOK.md).
+
+This implementation does not approve the draft notice or authorise real reviewer
+data. The ICF/controller response, Phase 2b recovery gate, selected email route,
+and deployment approvals remain prerequisites for real invitations.
+
 Work:
 
 - privacy notice and acknowledgement;
@@ -1635,14 +1650,17 @@ Before Phase 10:
 
 ## 27. Recommended next step
 
-Phases 0, 1, and 2 are complete. The account/distro/task isolation bootstrap of
+Phases 0, 1, 2, 3, and 4 are implemented, with Phases 3 and 4 limited to
+synthetic development pending their documented real-data gates. The
+account/distro/task isolation bootstrap of
 Phase 10 is partly complete and is recorded in section 20.2.1; this does not
 authorize or imply deployment of the application, tunnel, reviewer data, or
 backup. Proceed to Phase 2b to design and implement durable backup and recovery
 for both the confidential database and irreplaceable Git-ignored
-review/provenance files. Phase 3 application and authentication work may be
-developed independently, but no real reviewer data should be collected until
-Phase 2b and the remaining privacy and authentication decisions are complete.
+review/provenance files when its external dependency is cleared. Phase 5 may be
+developed with synthetic assignments in parallel, but no real reviewer data
+should be collected until Phase 2b and the remaining privacy, infrastructure,
+and authentication decisions are complete.
 Do not expose the remote application until the remaining operational decisions
 and Phase 10 gates are approved.
 
