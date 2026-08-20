@@ -9,7 +9,7 @@
     "assignment_id": {"type": "string", "minLength": 1}, "dataset_id": {"type": "string", "minLength": 1},
     "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
     "task_design_version": {"const": "phase-6b-v1"}, "exported_at": {"type": "string", "format": "date-time"},
-    "annotations": {"type": "array", "items": {"$ref": "#/$defs/annotation"}}
+    "annotations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/annotation"}}
   },
   "$defs": {
     "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},

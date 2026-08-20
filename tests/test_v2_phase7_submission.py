@@ -18,6 +18,7 @@ from musparql.database.models import (
     Reviewer,
     ReviewSubmission,
 )
+from musparql.linguistic_dimensions import text_digest
 from musparql.web.assignments import AssignmentService
 from musparql.web.auth import timestamp, utc_now
 from musparql.web.submissions import ProcessingService, SubmissionService
@@ -205,6 +206,95 @@ def test_retry_is_idempotent_changed_payload_is_revision_and_schema_is_strict(ph
     wrong_event["reviews"][record_id]["review_id"] = "synthetic-event"
     with pytest.raises(ValueError, match="must end with"):
         submissions.submit(assignment_id, f"reviewer-{index:04d}", wrong_event)
+
+
+def test_linguistic_submission_is_nonempty_and_bound_to_frozen_stimulus(phase7) -> None:
+    sessions, submissions, _processing, contexts, _submission_root, _candidate_root = phase7
+    index = contexts[0][0]
+    reviewer_id = f"reviewer-{index:04d}"
+    assignment_id = "assignment-" + "f" * 24
+    trial_id = "synthetic-linguistic-trial"
+    sparql = "SELECT ?item WHERE { ?item a <urn:synthetic> }"
+    literal_text = "Which synthetic items are there?"
+    candidate_texts = ["What synthetic items exist?", "Show all synthetic items."]
+    literal = {
+        "formulation_id": "literal-synthetic", "version": "v1",
+        "text": literal_text, "digest": text_digest(literal_text),
+        "validated": True, "validation_provenance": {"review_id": "synthetic"},
+    }
+    candidates = [
+        {
+            "formulation_id": f"candidate-synthetic-{number}", "version": "v1",
+            "text": text, "digest": text_digest(text), "provenance": {"origin": "synthetic"},
+        }
+        for number, text in enumerate(candidate_texts, start=1)
+    ]
+    bundle = {
+        "schema": "musparql.linguistic-stimulus-bundle.v1", "mode": "linguistic",
+        "task_design_version": "phase-6b-v1", "dataset_id": "synthetic-linguistic",
+        "holdout_input_policy": "no_holdout",
+        "randomization": {"algorithm": "python-mt19937-v1", "seed": "synthetic"},
+        "sampling": {"target_trials": 1, "available_trials": 1, "strata": ["synthetic"]},
+        "record_count": 1,
+        "records": [{
+            "trial_id": trial_id, "kg_id": "synthetic-kg", "query_id": "synthetic-query",
+            "query_label": "Synthetic query", "sparql": sparql, "sparql_version": "v1",
+            "sparql_digest": text_digest(sparql), "literal": literal, "candidates": candidates,
+            "eligible": True, "non_holdout": True, "presentation_arity": 3,
+            "sampling_stratum": "synthetic", "contrast_id": "synthetic-contrast",
+        }],
+    }
+    bundle_name = "synthetic-linguistic.json"
+    raw_bundle = (json.dumps(bundle, sort_keys=True) + "\n").encode()
+    (submissions.assignments.bundle_root / bundle_name).write_bytes(raw_bundle)
+    with sessions.begin() as session:
+        session.add(ReviewAssignment(
+            id=assignment_id, reviewer_id=reviewer_id, mode="linguistic", status="active",
+            bundle_path=bundle_name,
+            bundle_digest="sha256:" + hashlib.sha256(raw_bundle).hexdigest(),
+            previous_benchmark_path=None, processing_recipe="validate_linguistic_annotation",
+            holdout_capability=False, created_at="2026-08-20T10:00:00Z",
+            opened_at="2026-08-20T10:01:00Z", submitted_at=None,
+        ))
+    identities = [
+        {key: candidate[key] for key in ("formulation_id", "version", "digest")}
+        for candidate in candidates
+    ]
+    annotation = {
+        "schema": "musparql.linguistic-trial-annotation.v1", "assignment_id": assignment_id,
+        "dataset_id": "synthetic-linguistic", "trial_id": trial_id, "reviewer_id": reviewer_id,
+        "query_id": "synthetic-query", "sparql_version": "v1", "sparql_digest": text_digest(sparql),
+        "literal": {key: literal[key] for key in ("formulation_id", "version", "digest")},
+        "display_order": [candidate["formulation_id"] for candidate in candidates],
+        "displayed_formulations": identities, "presentation_arity": 3, "outcome": "rated",
+        "ratings": {
+            candidate["formulation_id"]: {
+                "naturalness": 0, "pragmatism": 0, "interpretation_room": 0,
+            } for candidate in candidates
+        },
+        "started_at": "2026-08-20T10:02:00Z", "completed_at": "2026-08-20T10:03:00Z",
+        "submitted_at": "2026-08-20T10:03:00Z", "task_design_version": "phase-6b-v1",
+    }
+    payload = {
+        "schema": "musparql.linguistic-annotation-export.v1", "assignment_id": assignment_id,
+        "dataset_id": "synthetic-linguistic", "reviewer_id": reviewer_id,
+        "task_design_version": "phase-6b-v1", "exported_at": "2026-08-20T10:03:00Z",
+        "annotations": [annotation],
+    }
+    with pytest.raises(ValueError, match="non-empty"):
+        submissions.submit(assignment_id, reviewer_id, {**payload, "annotations": []})
+    forged = deepcopy(payload)
+    forged["annotations"][0]["sparql_digest"] = "sha256:" + "0" * 64
+    with pytest.raises(ValueError, match="sparql_digest does not match"):
+        submissions.submit(assignment_id, reviewer_id, forged)
+    forged = deepcopy(payload)
+    forged["annotations"][0]["ratings"] = {
+        "fabricated-candidate-a": {"naturalness": 0, "pragmatism": 0, "interpretation_room": 0},
+        "fabricated-candidate-b": {"naturalness": 0, "pragmatism": 0, "interpretation_room": 0},
+    }
+    with pytest.raises(ValueError, match="ratings do not match"):
+        submissions.submit(assignment_id, reviewer_id, forged)
+    assert submissions.submit(assignment_id, reviewer_id, payload).revision == 1
 
 
 def test_worker_isolates_candidates_recovers_jobs_and_owner_gates_promotion(phase7) -> None:

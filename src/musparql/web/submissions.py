@@ -218,14 +218,17 @@ class SubmissionService:
             raise ValueError("Initial assignment must not declare compare mode")
         records = bundle.get("records", [])
         if assignment.mode == "linguistic":
-            allowed = {str(item["trial_id"]) for item in records}
             annotations = payload.get("annotations", [])
             identities = [str(item.get("trial_id")) for item in annotations]
-            if len(identities) != len(set(identities)) or not set(identities).issubset(allowed):
+            records_by_trial = {str(item["trial_id"]): item for item in records}
+            if len(identities) != len(set(identities)) or not set(identities).issubset(records_by_trial):
                 raise ValueError("Annotations must uniquely identify assigned trials")
             for item in annotations:
                 if item.get("assignment_id") != assignment.id or item.get("reviewer_id") != assignment.reviewer_id or item.get("dataset_id") != bundle.get("dataset_id"):
                     raise ValueError("Annotation attribution does not match the assignment")
+                self._validate_linguistic_stimulus(
+                    item, records_by_trial[str(item["trial_id"])]
+                )
         else:
             allowed = {
                 str((item.get("current") or {}).get("review_id") or item.get("pair_id"))
@@ -241,6 +244,32 @@ class SubmissionService:
                 raise ValueError("Review attribution does not match the assignment")
             for item in reviews.values():
                 validate_review_provenance(item)
+
+    @staticmethod
+    def _validate_linguistic_stimulus(
+        annotation: Mapping[str, Any], stimulus: Mapping[str, Any]
+    ) -> None:
+        """Bind an annotation to the exact frozen presentation it describes."""
+        for field in ("query_id", "sparql_version", "sparql_digest"):
+            if annotation.get(field) != stimulus.get(field):
+                raise ValueError(f"Annotation {field} does not match the assigned trial")
+
+        def identity(value: Mapping[str, Any]) -> tuple[Any, Any, Any]:
+            return (
+                value.get("formulation_id"), value.get("version"), value.get("digest"),
+            )
+
+        if identity(annotation["literal"]) != identity(stimulus["literal"]):
+            raise ValueError("Annotation literal does not match the assigned trial")
+
+        candidates = [identity(item) for item in stimulus["candidates"]]
+        candidate_ids = {item[0] for item in candidates}
+        if {identity(item) for item in annotation["displayed_formulations"]} != set(candidates):
+            raise ValueError("Annotation formulations do not match the assigned trial")
+        if set(annotation["display_order"]) != candidate_ids:
+            raise ValueError("Annotation display order does not match the assigned trial")
+        if annotation.get("outcome") == "rated" and set(annotation["ratings"]) != candidate_ids:
+            raise ValueError("Annotation ratings do not match the assigned trial")
 
 
 class ProcessingService:

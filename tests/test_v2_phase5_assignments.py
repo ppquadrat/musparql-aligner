@@ -409,7 +409,7 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
         assert reviewer.get(f"/assignments/{assignment_id}/bundle").status_code == 409
         assert reviewer.get(f"/assignments/{assignment_id}/workbench/").status_code == 409
 
-        # Hosted submission creates a durable receipt without a file-moving step.
+        # An empty linguistic export is not a durable submission.
         submission = reviewer.post(
             f"/assignments/{linguistic_id}/submissions",
             json={
@@ -423,9 +423,8 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
             },
             headers={"X-CSRF-Token": csrf(reviewer)},
         )
-        assert submission.status_code == 202
-        receipt_id = submission.get_json()["receipt_id"]
-        assert (tmp_path / "submissions" / linguistic_id / f"{receipt_id}.json").is_file()
+        assert submission.status_code == 422
+        assert not (tmp_path / "submissions").exists()
     finally:
         app.extensions["musparql_email_dispatcher"].shutdown()
         app.extensions["musparql_engine"].dispose()
