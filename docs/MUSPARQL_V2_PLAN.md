@@ -804,6 +804,16 @@ reviewers submitting valid assignments concurrently. It must verify:
 - reviewer-facing submission requests remain responsive while processing is
   underway.
 
+Concurrent submissions must never incrementally mutate one shared candidate
+benchmark. Each accepted submission is stored, registered, validated, and
+processed in its own staging namespace. Per-submission candidate previews may
+be built there, but they are provisional. For a workshop or other review batch,
+the system deterministically builds one combined candidate from an immutable
+declared baseline and the exact set of submission revisions selected by the
+owner. Heavy processing remains serialized through the persistent queue, so a
+burst of receipts cannot create competing writes or a lost-update race in the
+next benchmark.
+
 ## 13. Assignment and bundle design
 
 ### 13.1 Reviewer-neutral bundles
@@ -869,6 +879,14 @@ This keeps a burst of workshop submissions short and independent: reviewers do
 not wait for earlier processing jobs, and a later processing failure cannot
 erase an accepted submission.
 
+The canonical export schemas are strict at both the envelope and individual
+review/annotation levels. Fields not declared by the applicable versioned schema
+and unknown enum values are rejected rather than ignored. Free text is permitted
+only in fields that explicitly allow it. Adding a legitimate field requires an
+artifact schema version change and browser/Python parity tests. This prevents
+misspelled fields, browser-only controls, debugging metadata, or personal data
+from silently entering durable submissions.
+
 ## 15. Automated post-review processing
 
 ### 15.1 Processing recipes
@@ -911,7 +929,46 @@ The owner dashboard should show:
 - candidate snapshot path;
 - benchmark diff summary;
 - safe failures and remediation guidance; and
-- an explicit approve/reject/reopen action.
+- explicit submission-inclusion and candidate-promotion actions.
+
+Owner control has two distinct gates.
+
+At the submission-inclusion gate, the default decision applies to the whole
+assignment revision. The owner may:
+
+- include every eligible review event or annotation in the candidate;
+- include the assignment with item-level overrides;
+- request a revision of the whole assignment; or
+- reject the whole submission from the candidate.
+
+Item-level overrides attach to the specific review event or linguistic trial,
+not merely to its KG/query pair, because several reviewers may assess the same
+pair. An item may be **included in the candidate**, **omitted from the
+candidate** without further reviewer action, or **sent for revision**. The UI
+must not call the owner-level omission action "exclude", because exclusion is
+also a reviewer-authored benchmark disposition with different meaning. Every
+omission or revision request requires a concise reason and an audit record.
+
+Sending work for revision is not an owner editing or overwriting the review.
+The original submission remains immutable; already included items do not need
+to be repeated; and the reviewer receives a revision assignment containing only
+the flagged items and the owner's reason. A response creates a new numbered
+submission revision and new review-event identifiers linked to the originals.
+The owner then explicitly selects which revisions enter the combined candidate.
+
+Linguistic annotations have a stricter cognition-study boundary. An unusable
+observation may be omitted, and an objective correction may be appended with
+the original and revised value, reason, actor, and timestamp. A genuine re-rating
+after later stimuli is a new observation or separately designated round, never
+a replacement for the original observation.
+
+At the candidate-promotion gate, the dashboard presents the combined candidate,
+its exact selected submission revisions, audits, tests, summary, and diff. The
+owner may approve it for atomic local promotion or reject it for rebuilding.
+Approval therefore means that the selected reviewer data may enter that next
+benchmark candidate; schema and provenance validation establish technical
+soundness but do not make the scientific inclusion judgment on the owner's
+behalf.
 
 The first release may leave final Git operations manual. A later phase may add
 an owner-only “create branch and commit” action after the workflow has proved
@@ -1705,9 +1762,19 @@ Before Phase 3:
 
 Before Phase 7:
 
-- decide whether automatic processing stops after validation or after building
-  and auditing a candidate snapshot; and
-- decide what remains manual after owner approval.
+- [decided] after the receipt is durable, automatically validate every
+  submission and build staged, audited candidate outputs. Build one combined
+  candidate for a workshop batch from an immutable baseline and the exact set
+  of owner-selected submission revisions; never incrementally mutate a shared
+  candidate as submissions arrive;
+- [decided] make owner inclusion assignment-wide by default with audited
+  item-level include, omit, and append-only revision overrides, followed by a
+  separate approval gate for atomic local promotion of the combined candidate;
+- [decided] keep final Git branch/commit operations, push, and publication
+  manual in the first release; and
+- [decided] reject schema-unknown properties and enum values at canonical
+  export-envelope and review/annotation boundaries, with explicit versioning
+  for new fields.
 
 Before Phase 10:
 

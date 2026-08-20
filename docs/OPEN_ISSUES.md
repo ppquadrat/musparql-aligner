@@ -78,6 +78,12 @@ Python-ingest boundaries, and add parity tests so required fields, RFC 3339
 timestamps, reviewer/event identity rules, and unknown-property handling cannot
 drift between implementations.
 
+The Phase 7 policy decision is to reject undeclared properties and unknown enum
+values at both the export-envelope and individual review/annotation levels.
+Free text remains allowed only in explicitly declared fields, and legitimate new
+fields require an artifact schema version change. The implementation and parity
+tests remain open.
+
 ### Linguistic workbench introduction and correction policy
 
 The Phase 6b rating screen and navigation have received an initial reviewer UI
@@ -93,6 +99,11 @@ stimuli. If reviewer operations require amendments, design an explicit
 append-only correction mechanism that preserves the original observation,
 revised value, reason, actor, and timestamp. Do not add an ordinary overwrite
 or silently requeue completed observations.
+
+Phase 7 may omit an unusable linguistic observation or request an objective,
+append-only correction. A genuine re-rating after later stimuli must be a new
+observation or separately designated round rather than a replacement. The
+implementation and reviewer-facing wording remain open.
 
 ## SPARQL correction backlog
 
