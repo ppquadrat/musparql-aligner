@@ -42,6 +42,26 @@ validate({}, {reviewer_id:"reviewer-0001"});
     subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
 
 
+def test_hosted_v2_import_contract_rejects_unknown_envelope_and_review_fields() -> None:
+    script = r'''
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, querySelectorAll:()=>[]}};
+vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
+const schema = sandbox.window.MUSPARQL_REVIEW_SCHEMA;
+const review = {review_id:"event::reviewer-0042", reviewer_id:"reviewer-0042", reviewed_at:"2026-08-20T10:00:00Z", prior_review_ids:[], authored_formulation_ids:[], approved_formulation_ids:["event::reviewer-0042::formulation::candidate"], benchmark_disposition:"included", pipeline_assessment:"accepted", preferred_question:"", literal_wording:"", public_comment:"", internal_comment:"", split:"", interpretive:{naturalness:null, pragmatism:null, room_for_interpretation:null, requires_graph_context_knowledge:false}};
+const payload = {schema:"musparql.review-export.v2", kind:"non_holdout_review_export", assignment_id:"assignment-000000000000000000000001", bundle_digest:`sha256:${"a".repeat(64)}`, reviewer_id:"reviewer-0042", dataset_id:"synthetic", run_id:"run", run_ids:["run"], runs:[], exported_at:"2026-08-20T10:01:00Z", reviews:{record:review}};
+assert.equal(schema.validateV2Envelope(payload), true);
+schema.validateImportedReviews(payload.reviews, true);
+assert.throws(() => schema.validateV2Envelope({...payload, debug:true}), /undeclared/);
+assert.throws(() => schema.validateImportedReviews({record:{...review, debug:true}}, true), /undeclared/);
+assert.throws(() => schema.validateImportedReviews({record:{...review, pipeline_assessment:"unknown"}}, true), /Unknown pipeline/);
+assert.equal(schema.validateV2Envelope({schema:"musparql.review-export.v2"}), false, "legacy local v2 remains importable through the transition path");
+'''
+    subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
+
+
 def test_compare_semantic_actions_reset_stale_attribution() -> None:
     script = r'''
 const assert = require("node:assert/strict");

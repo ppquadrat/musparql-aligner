@@ -384,6 +384,10 @@ class ReviewSubmission(Base):
     submitted_at: Mapped[str] = mapped_column(String)
     revision: Mapped[int] = mapped_column(Integer)
     validation_status: Mapped[str] = mapped_column(String)
+    inclusion_status: Mapped[str] = mapped_column(String, default="pending")
+    inclusion_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decided_by_reviewer_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    decided_at: Mapped[str | None] = mapped_column(String, nullable=True)
     __table_args__ = (
         ForeignKeyConstraint(["assignment_id", "reviewer_id"], ["review_assignments.id", "review_assignments.reviewer_id"]),
         UniqueConstraint("id", "assignment_id", name="uq_submission_assignment"),
@@ -391,6 +395,14 @@ class ReviewSubmission(Base):
         UniqueConstraint("assignment_id", "export_digest", name="uq_submission_retry"),
         CheckConstraint("revision >= 1", name="ck_submission_revision"),
         CheckConstraint("export_digest LIKE 'sha256:%'", name="ck_submission_digest"),
+        CheckConstraint(
+            "inclusion_status IN ('pending','included','revision_requested','rejected')",
+            name="ck_submission_inclusion_status",
+        ),
+        ForeignKeyConstraint(
+            ["decided_by_reviewer_id"], ["reviewers.id"],
+            name="fk_submission_deciding_owner",
+        ),
     )
 
 
@@ -406,6 +418,12 @@ class ProcessingJob(Base):
     finished_at: Mapped[str | None] = mapped_column(String, nullable=True)
     safe_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     candidate_output_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    job_kind: Mapped[str] = mapped_column(String, default="submission")
+    selected_submission_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    approval_status: Mapped[str] = mapped_column(String, default="pending")
+    approval_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    approved_by_reviewer_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    approved_at: Mapped[str | None] = mapped_column(String, nullable=True)
     __table_args__ = (
         ForeignKeyConstraint(
             ["assignment_id", "recipe"],
@@ -418,6 +436,47 @@ class ProcessingJob(Base):
             name="fk_processing_job_submission_assignment",
         ),
         CheckConstraint("status IN ('queued','running','succeeded','failed')", name="ck_processing_job_status"),
+        CheckConstraint("job_kind IN ('submission','combined_candidate')", name="ck_processing_job_kind"),
+        CheckConstraint(
+            "job_kind = 'submission' OR selected_submission_ids IS NOT NULL",
+            name="ck_processing_job_selection",
+        ),
+        CheckConstraint(
+            "approval_status IN ('pending','approved','rejected')",
+            name="ck_processing_job_approval_status",
+        ),
+        ForeignKeyConstraint(
+            ["approved_by_reviewer_id"], ["reviewers.id"],
+            name="fk_processing_job_approving_owner",
+        ),
+    )
+
+
+class OwnerProcessingDecision(Base):
+    """Append-only audit of owner scientific-inclusion and promotion decisions."""
+
+    __tablename__ = "owner_processing_decisions"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    owner_reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"))
+    target_type: Mapped[str] = mapped_column(String)
+    submission_id: Mapped[str | None] = mapped_column(ForeignKey("review_submissions.id"), nullable=True)
+    job_id: Mapped[str | None] = mapped_column(ForeignKey("processing_jobs.id"), nullable=True)
+    item_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    decision: Mapped[str] = mapped_column(String)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[str] = mapped_column(String)
+    __table_args__ = (
+        CheckConstraint("target_type IN ('submission','item','candidate')", name="ck_owner_processing_target"),
+        CheckConstraint(
+            "decision IN ('included','omitted','revision_requested','rejected','approved')",
+            name="ck_owner_processing_decision",
+        ),
+        CheckConstraint(
+            "(target_type = 'submission' AND submission_id IS NOT NULL AND job_id IS NULL AND item_id IS NULL) OR "
+            "(target_type = 'item' AND submission_id IS NOT NULL AND job_id IS NULL AND item_id IS NOT NULL) OR "
+            "(target_type = 'candidate' AND submission_id IS NULL AND job_id IS NOT NULL AND item_id IS NULL)",
+            name="ck_owner_processing_target_identity",
+        ),
     )
 
 
@@ -429,4 +488,5 @@ APPEND_ONLY_TABLES = (
     "reviewer_domain_expertise",
     "reviewer_kg_domain_assessments",
     "reviewer_resource_familiarity_assessments",
+    "owner_processing_decisions",
 )

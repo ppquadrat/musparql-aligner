@@ -3,6 +3,7 @@
   "$id": "https://w3id.org/musparql/schemas/review-decision.schema.json",
   "title": "MuSPARQL review decision",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "review_id": {"type": "string", "minLength": 1},
     "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
@@ -28,7 +29,19 @@
     "literal_wording": {"type": "string"},
     "public_comment": {"type": "string"},
     "internal_comment": {"type": "string"},
-    "split": {"type": "string"}
+    "split": {"type": "string", "enum": [""]},
+    "copied_from_review_id": {"type": "string", "minLength": 1},
+    "interpretive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["naturalness", "pragmatism", "room_for_interpretation", "requires_graph_context_knowledge"],
+      "properties": {
+        "naturalness": {"type": ["integer", "null"], "minimum": -100, "maximum": 100},
+        "pragmatism": {"type": ["integer", "null"], "minimum": -100, "maximum": 100},
+        "room_for_interpretation": {"type": ["integer", "null"], "minimum": -100, "maximum": 100},
+        "requires_graph_context_knowledge": {"type": "boolean"}
+      }
+    }
   },
   "required": [
     "review_id", "reviewer_id", "reviewed_at", "prior_review_ids",
@@ -50,7 +63,8 @@
             ]
           }
         }
-      }
+      },
+      "else": {"properties": {"benchmark_disposition": {"enum": ["excluded", "withheld"]}}}
     },
     {
       "if": {"properties": {"benchmark_disposition": {"const": "excluded"}}},

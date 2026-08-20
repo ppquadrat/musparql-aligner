@@ -221,8 +221,21 @@ the same initial/comparative workbench assets used by the local workflow. It
 injects only the authenticated pseudonymous reviewer ID, assignment ID, bundle
 digest, and non-confidential navigation/capability context. Browser drafts are
 namespaced by mode, dataset, reviewer, and assignment; hosted pages do not fall
-back to local or legacy draft keys. These drafts remain browser-local transition
-state until Phase 7 adds durable authenticated submission.
+back to local or legacy draft keys. Phase 6 treated these drafts as transition
+state; Phase 7 adds durable authenticated submission while retaining drafts for
+pause/resume and retry recovery.
+
+Phase 7 adds durable hosted submission. Each accepted canonical export is
+written atomically beneath the configured server-owned submission root and
+registered in `review_submissions` by a unique receipt, assignment revision,
+and SHA-256 digest. The `(assignment_id, export_digest)` uniqueness boundary
+makes retries idempotent; changed canonical payloads receive the next revision.
+`processing_jobs` is the persistent FIFO queue for isolated submission checks
+and owner-selected combined candidates; it records safe summaries, exact
+receipt selections, and isolated candidate paths. `owner_processing_decisions` is an append-only audit
+of assignment-wide inclusion, item-level include/omit/revision, and candidate
+approval or rejection. Projection fields on submissions and jobs support the
+dashboard without replacing that audit history.
 
 A new sanitized review export has schema `musparql.review-export.v2`, kind
 `non_holdout_review_export`, and contains no

@@ -13,6 +13,9 @@
         <span>{{ current_reviewer.id }}</span>
         {% if current_reviewer.id != config.OWNER_REVIEWER_ID %}
           <a href="{{ url_for('portal.profile') }}">My profile</a>
+        {% else %}
+          <a href="{{ url_for('portal.owner_assignments') }}">Assignments</a>
+          <a href="{{ url_for('portal.owner_processing') }}">Processing</a>
         {% endif %}
       {% endif %}
     </header>

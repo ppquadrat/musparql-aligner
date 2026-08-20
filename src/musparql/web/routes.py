@@ -289,6 +289,70 @@ def owner_assignments():
     )
 
 
+@portal.get("/owner/processing")
+@login_required
+def owner_processing():
+    if g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"]:
+        abort(403)
+    return render_template(
+        "owner_processing.html",
+        rows=current_app.extensions["musparql_processing"].dashboard(),
+        combined_jobs=current_app.extensions["musparql_processing"].combined_jobs(),
+        item_ids=current_app.extensions["musparql_processing"].dashboard_items(),
+        result=request.args.get("result", ""),
+        error=request.args.get("error", ""),
+    )
+
+
+@portal.post("/owner/candidates")
+@owner_required
+def create_combined_candidate():
+    try:
+        job_id = current_app.extensions["musparql_processing"].create_combined_candidate(
+            request.form.getlist("receipt_id")
+        )
+    except (LookupError, ValueError):
+        return redirect(url_for("portal.owner_processing", error="invalid-candidate-selection"))
+    return redirect(url_for("portal.owner_processing", result=job_id))
+
+
+@portal.post("/owner/submissions/<receipt_id>/<decision>")
+@owner_required
+def owner_submission_decision(receipt_id: str, decision: str):
+    try:
+        current_app.extensions["musparql_processing"].decide_inclusion(
+            receipt_id, g.current_reviewer.id, decision, request.form.get("reason", "")
+        )
+    except (LookupError, ValueError):
+        return redirect(url_for("portal.owner_processing", error="invalid-inclusion-decision"))
+    return redirect(url_for("portal.owner_processing", result=decision))
+
+
+@portal.post("/owner/submissions/<receipt_id>/items/<path:item_id>/<decision>")
+@owner_required
+def owner_item_decision(receipt_id: str, item_id: str, decision: str):
+    try:
+        current_app.extensions["musparql_processing"].decide_item(
+            receipt_id, item_id, g.current_reviewer.id, decision,
+            request.form.get("reason", ""),
+        )
+    except (LookupError, ValueError):
+        return redirect(url_for("portal.owner_processing", error="invalid-item-decision"))
+    return redirect(url_for("portal.owner_processing", result=decision))
+
+
+@portal.post("/owner/candidates/<job_id>/<decision>")
+@owner_required
+def owner_candidate_decision(job_id: str, decision: str):
+    try:
+        current_app.extensions["musparql_processing"].decide_candidate(
+            job_id, g.current_reviewer.id, decision, request.form.get("reason", "")
+        )
+    except (LookupError, ValueError):
+        return redirect(url_for("portal.owner_processing", error="invalid-candidate-decision"))
+    return redirect(url_for("portal.owner_processing", result=decision))
+
+
 @portal.post("/owner/assignments")
 @owner_required
 def create_assignment():
@@ -370,6 +434,27 @@ def assignment_bundle(assignment_id: str):
     return jsonify(payload)
 
 
+@portal.post("/assignments/<assignment_id>/submissions")
+@login_required
+def submit_assignment(assignment_id: str):
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "A JSON object is required."}), 400
+    try:
+        receipt = current_app.extensions["musparql_submissions"].submit(
+            assignment_id, g.current_reviewer.id, payload
+        )
+    except LookupError:
+        abort(404)
+    except PermissionError:
+        abort(403)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 422
+    return jsonify(receipt.as_dict()), 200 if receipt.duplicate else 202
+
+
 def _hosted_assignment_bundle(assignment_id: str) -> dict[str, Any]:
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
@@ -426,6 +511,9 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
             "profile_url": url_for("portal.profile"),
             "logout_url": url_for("portal.logout"),
             "csrf_token": g.csrf_token,
+            "submission_url": url_for(
+                "portal.submit_assignment", assignment_id=assignment_id
+            ),
         }
         body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(
             context, ensure_ascii=True, separators=(",", ":")

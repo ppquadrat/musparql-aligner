@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/musparql/schemas/review_export.schema.json",
+  "title": "Musparql canonical non-holdout review export",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "kind", "assignment_id", "bundle_digest", "reviewer_id",
+    "dataset_id", "exported_at", "reviews"
+  ],
+  "properties": {
+    "schema": {"const": "musparql.review-export.v2"},
+    "kind": {"const": "non_holdout_review_export"},
+    "assignment_id": {"type": "string", "pattern": "^assignment-[0-9a-f]{24}$"},
+    "bundle_digest": {"$ref": "#/$defs/digest"},
+    "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
+    "dataset_id": {"type": "string", "minLength": 1},
+    "mode": {"const": "compare"},
+    "run_id": {"type": ["string", "null"]},
+    "run_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "runs": {"type": "array", "items": {"type": "object"}},
+    "previous_run": {"type": "object"},
+    "current_run": {"type": "object"},
+    "exported_at": {"type": "string", "format": "date-time"},
+    "reviews": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/review"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"required": ["mode"]},
+      "then": {"required": ["previous_run", "current_run"]},
+      "else": {"required": ["run_id", "run_ids", "runs"]}
+    }
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "interpretive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["naturalness", "pragmatism", "room_for_interpretation", "requires_graph_context_knowledge"],
+      "properties": {
+        "naturalness": {"type": ["integer", "null"], "minimum": -100, "maximum": 100},
+        "pragmatism": {"type": ["integer", "null"], "minimum": -100, "maximum": 100},
+        "room_for_interpretation": {"type": ["integer", "null"], "minimum": -100, "maximum": 100},
+        "requires_graph_context_knowledge": {"type": "boolean"}
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_id", "reviewer_id", "reviewed_at", "prior_review_ids",
+        "authored_formulation_ids", "approved_formulation_ids",
+        "benchmark_disposition", "pipeline_assessment", "preferred_question",
+        "literal_wording", "public_comment", "internal_comment", "split", "interpretive"
+      ],
+      "properties": {
+        "review_id": {"type": "string", "minLength": 1},
+        "reviewer_id": {"type": "string", "pattern": "^reviewer-[0-9]{4,}$"},
+        "reviewed_at": {"type": "string", "format": "date-time"},
+        "prior_review_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "authored_formulation_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "approved_formulation_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "benchmark_disposition": {"enum": ["included", "excluded"]},
+        "pipeline_assessment": {"enum": ["accepted", "prompt_improvement_recommended", "input_data_improvement_recommended", "not_applicable", null]},
+        "preferred_question": {"type": "string"},
+        "literal_wording": {"type": "string"},
+        "public_comment": {"type": "string"},
+        "internal_comment": {"type": "string"},
+        "split": {"const": ""},
+        "interpretive": {"$ref": "#/$defs/interpretive"},
+        "copied_from_review_id": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {"if": {"properties": {"benchmark_disposition": {"const": "included"}}}, "then": {"properties": {"pipeline_assessment": {"type": "string"}}}},
+        {"if": {"properties": {"benchmark_disposition": {"const": "excluded"}}}, "then": {"properties": {"pipeline_assessment": {"const": null}}}}
+      ]
+    }
+  }
+}

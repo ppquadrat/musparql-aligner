@@ -271,6 +271,24 @@ class AssignmentService:
         attributed["bundle_digest"] = digest
         return attributed
 
+    def submission_bundle(
+        self, assignment_id: str, reviewer_id: str
+    ) -> tuple[ReviewAssignment, dict[str, Any]]:
+        """Return the frozen authoritative bundle for an attributable submission."""
+        with self.sessions() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            if assignment is None or assignment.reviewer_id != reviewer_id:
+                raise LookupError("Assignment is not available")
+            if assignment.status not in {
+                "active", "submitted", "processing", "ready_for_owner_review", "approved", "failed"
+            }:
+                raise PermissionError("Assignment is not open for submission")
+            session.expunge(assignment)
+        payload, _path, digest = self._load_neutral_bundle(assignment.bundle_path)
+        if digest != assignment.bundle_digest:
+            raise ValueError("Assignment bundle digest has changed")
+        return assignment, payload
+
     def _load_neutral_bundle(self, bundle_name: str) -> tuple[dict[str, Any], str, str]:
         if not bundle_name or Path(bundle_name).is_absolute():
             raise ValueError("Bundle path must be relative to the configured root")

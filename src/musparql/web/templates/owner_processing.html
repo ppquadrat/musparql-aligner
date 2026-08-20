@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Processing — Musparql review{% endblock %}
+{% block content %}
+  <h1>Submission processing</h1>
+  {% if result %}<p class="success" role="status">Decision recorded: {{ result }}.</p>{% endif %}
+  {% if error %}<p class="error" role="alert">The requested decision was not valid for the current state.</p>{% endif %}
+  <p>Receipts are immutable. Inclusion controls whether a revision may enter a candidate; candidate approval is a separate promotion gate.</p>
+  <form method="post" action="{{ url_for('portal.create_combined_candidate') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <fieldset><legend>Build one combined candidate from exact included revisions</legend>
+      {% for submission, job, assignment in rows %}
+        {% if submission.inclusion_status == 'included' and job.status == 'succeeded' %}
+          <label class="check"><input type="checkbox" name="receipt_id" value="{{ submission.id }}"> <span>{{ submission.id }} revision {{ submission.revision }} — {{ assignment.mode }} / {{ assignment.previous_benchmark_path or 'empty baseline' }}</span></label>
+        {% endif %}
+      {% endfor %}
+    </fieldset>
+    <button type="submit">Queue combined candidate</button>
+  </form>
+  <table>
+    <thead><tr><th>Receipt</th><th>Assignment</th><th>Revision</th><th>Queue</th><th>Inclusion</th><th>Candidate</th><th>Summary</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for submission, job, assignment in rows %}
+      <tr>
+        <td>{{ submission.id }}<br><span class="metadata">{{ submission.export_digest }}</span></td>
+        <td>{{ assignment.id }}<br>{{ assignment.mode }}</td>
+        <td>{{ submission.revision }}</td><td>{{ job.status }}</td>
+        <td>{{ submission.inclusion_status }}{% if submission.inclusion_reason %}<br>{{ submission.inclusion_reason }}{% endif %}</td>
+        <td>{{ job.approval_status }}{% if job.candidate_output_path %}<br><span class="metadata">{{ job.candidate_output_path }}</span>{% endif %}</td>
+        <td>{{ job.safe_summary or "Waiting for worker." }}</td>
+        <td>
+          <form method="post" action="{{ url_for('portal.owner_submission_decision', receipt_id=submission.id, decision='included') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Include</button></form>
+          <form method="post" action="{{ url_for('portal.owner_submission_decision', receipt_id=submission.id, decision='revision_requested') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input name="reason" maxlength="500" placeholder="Revision reason" required><button type="submit">Request revision</button></form>
+          <form method="post" action="{{ url_for('portal.owner_submission_decision', receipt_id=submission.id, decision='rejected') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input name="reason" maxlength="500" placeholder="Rejection reason" required><button type="submit">Reject submission</button></form>
+          {% for item_id in item_ids.get(submission.id, ()) %}
+          <details><summary>Item {{ item_id }}</summary>
+            <form method="post" action="{{ url_for('portal.owner_item_decision', receipt_id=submission.id, item_id=item_id, decision='included') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Include item</button></form>
+            <form method="post" action="{{ url_for('portal.owner_item_decision', receipt_id=submission.id, item_id=item_id, decision='omitted') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input name="reason" maxlength="500" placeholder="Omission reason" required><button type="submit">Omit item</button></form>
+            <form method="post" action="{{ url_for('portal.owner_item_decision', receipt_id=submission.id, item_id=item_id, decision='revision_requested') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input name="reason" maxlength="500" placeholder="Revision reason" required><button type="submit">Revise item</button></form>
+          </details>
+          {% endfor %}
+        </td>
+      </tr>
+      {% else %}<tr><td colspan="8">No submissions yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Combined candidates</h2>
+  <table>
+    <thead><tr><th>Job</th><th>Exact receipts</th><th>Status</th><th>Approval</th><th>Summary</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for job in combined_jobs %}<tr>
+        <td>{{ job.id }}</td><td>{{ (job.selected_submission_ids or [])|join(', ') }}</td><td>{{ job.status }}</td><td>{{ job.approval_status }}</td><td>{{ job.safe_summary or 'Waiting for worker.' }}</td>
+        <td>{% if job.status == 'succeeded' %}
+          <form method="post" action="{{ url_for('portal.owner_candidate_decision', job_id=job.id, decision='approved') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Approve combined candidate</button></form>
+          <form method="post" action="{{ url_for('portal.owner_candidate_decision', job_id=job.id, decision='rejected') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input name="reason" maxlength="500" placeholder="Rejection reason" required><button type="submit">Reject</button></form>
+        {% endif %}</td>
+      </tr>{% else %}<tr><td colspan="6">No combined candidates yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

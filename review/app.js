@@ -62,6 +62,7 @@
     validateCompareImportPayload,
     validateReviewerImport,
     validateImportedReviews,
+    validateV2Envelope,
     matchPrivateRecords,
     rejectPrivateImport,
     hasReviewerDecision,
@@ -92,6 +93,7 @@
     && data.holdout_input_policy !== "identity_private_filtered_upstream";
   els.exportHoldoutSelectorsBtn.classList.toggle("hidden", !selectorExportAllowed);
   if (hostedNoHoldout) hideHostedHoldoutControls();
+  if (hosted) els.exportReviewsBtn.textContent = "Submit review";
 
   if (data.mode === "compare") {
     initCompareMode();
@@ -655,7 +657,32 @@
     }
   }
 
-  function validateImportedReviews(reviewMap) {
+  function validateV2Envelope(payload) {
+    // Pre-Phase-7 local exports reused the v2 name without assignment fields.
+    // Preserve import compatibility; hosted canonical v2 is always strict.
+    if (payload?.schema !== "musparql.review-export.v2" || !payload.assignment_id) return false;
+    const initialFields = new Set(["schema", "kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "run_id", "run_ids", "runs", "exported_at", "reviews"]);
+    const compareFields = new Set(["schema", "kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "mode", "previous_run", "current_run", "exported_at", "reviews"]);
+    const fields = payload.mode === "compare" ? compareFields : initialFields;
+    const unknown = Object.keys(payload).filter((field) => !fields.has(field));
+    if (unknown.length) throw new Error(`Review export contains undeclared fields: ${unknown.join(", ")}.`);
+    for (const field of ["kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "exported_at", "reviews"]) {
+      if (!Object.hasOwn(payload, field)) throw new Error(`Review export is missing ${field}.`);
+    }
+    if (payload.kind !== "non_holdout_review_export") throw new Error("Unsupported review export kind.");
+    if (!/^assignment-[0-9a-f]{24}$/.test(payload.assignment_id || "")) throw new Error("Invalid assignment identity.");
+    if (!/^sha256:[0-9a-f]{64}$/.test(payload.bundle_digest || "")) throw new Error("Invalid bundle digest.");
+    if (!/^reviewer-[0-9]{4,}$/.test(payload.reviewer_id || "")) throw new Error("Invalid reviewer identity.");
+    if (!isRfc3339(payload.exported_at)) throw new Error("Invalid export timestamp.");
+    if (payload.mode === "compare") {
+      if (!payload.previous_run || !payload.current_run) throw new Error("Comparison export is missing run context.");
+    } else if (!Object.hasOwn(payload, "run_id") || !Array.isArray(payload.run_ids) || !Array.isArray(payload.runs)) {
+      throw new Error("Initial export is missing run context.");
+    }
+    return true;
+  }
+
+  function validateImportedReviews(reviewMap, strictV2 = false) {
     if (!reviewMap || typeof reviewMap !== "object" || Array.isArray(reviewMap)) {
       throw new Error("Bad review file format.");
     }
@@ -673,8 +700,26 @@
       "not_applicable",
     ]);
     const dispositions = new Set(["included", "excluded", "withheld"]);
+    const v2Fields = new Set(["review_id", "reviewer_id", "reviewed_at", "prior_review_ids", "authored_formulation_ids", "approved_formulation_ids", "benchmark_disposition", "pipeline_assessment", "preferred_question", "literal_wording", "public_comment", "internal_comment", "split", "interpretive", "copied_from_review_id"]);
     for (const [reviewId, review] of Object.entries(reviewMap || {})) {
       if (!review || typeof review !== "object") throw new Error(`Bad review record: ${reviewId}`);
+      if (strictV2) {
+        const unknown = Object.keys(review).filter((field) => !v2Fields.has(field));
+        if (unknown.length) throw new Error(`Review ${reviewId} contains undeclared fields: ${unknown.join(", ")}.`);
+        for (const field of ["review_id", "reviewer_id", "reviewed_at", "prior_review_ids", "authored_formulation_ids", "approved_formulation_ids", "benchmark_disposition", "pipeline_assessment", "preferred_question", "literal_wording", "public_comment", "internal_comment", "split", "interpretive"]) {
+          if (!Object.hasOwn(review, field)) throw new Error(`Review ${reviewId} is missing ${field}.`);
+        }
+        if (!String(review.review_id).endsWith(`::${review.reviewer_id}`)) throw new Error(`Review ${reviewId} has mismatched event attribution.`);
+        if (!isRfc3339(review.reviewed_at)) throw new Error(`Review ${reviewId} has an invalid timestamp.`);
+        if (!new Set(["included", "excluded"]).has(review.benchmark_disposition) || review.split !== "") throw new Error(`Review ${reviewId} is not a non-holdout decision.`);
+        const interpretiveFields = new Set(["naturalness", "pragmatism", "room_for_interpretation", "requires_graph_context_knowledge"]);
+        if (!review.interpretive || Object.keys(review.interpretive).some((field) => !interpretiveFields.has(field)) || Object.keys(review.interpretive).length !== 4) throw new Error(`Review ${reviewId} has an invalid interpretive projection.`);
+        for (const field of ["naturalness", "pragmatism", "room_for_interpretation"]) {
+          const value = review.interpretive[field];
+          if (value !== null && (!Number.isInteger(value) || value < -100 || value > 100)) throw new Error(`Review ${reviewId} has an invalid ${field} score.`);
+        }
+        if (typeof review.interpretive.requires_graph_context_knowledge !== "boolean") throw new Error(`Review ${reviewId} has an invalid graph-context flag.`);
+      }
       if (review.reviewer_id && !/^reviewer-[0-9]{4,}$/.test(review.reviewer_id)) {
         throw new Error(`Review ${reviewId} has an invalid pseudonymous reviewer ID.`);
       }
@@ -705,6 +750,11 @@
         throw new Error(`Excluded review ${reviewId} cannot carry a pipeline assessment.`);
       }
     }
+  }
+
+  function isRfc3339(value) {
+    return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value || "")
+      && !Number.isNaN(Date.parse(value));
   }
 
   function extractLiteralWordingFromNote(note) {
@@ -921,11 +971,12 @@
     return `${origin.mode || "unknown"} · evidence ${evidenceIds}`;
   }
 
-  function exportReviews() {
+  async function exportReviews() {
     const { publicReviews } = partitionReviewMap(reviews);
     const payload = {
       schema: "musparql.review-export.v2",
       kind: "non_holdout_review_export",
+      ...(hosted ? {assignment_id: hosted.assignment_id, bundle_digest: data.bundle_digest} : {}),
       reviewer_id: data.reviewer_id,
       dataset_id: data.dataset_id,
       run_id: data.single_run_id,
@@ -934,8 +985,12 @@
       exported_at: new Date().toISOString(),
       reviews: publicReviews,
     };
-    const timestamp = timestampForFilename(new Date());
-    downloadJson(payload, `musparql-review-non-holdout-${data.dataset_id}-${timestamp}.json`);
+    if (hosted) {
+      await submitHostedPayload(payload);
+    } else {
+      const timestamp = timestampForFilename(new Date());
+      downloadJson(payload, `musparql-review-non-holdout-${data.dataset_id}-${timestamp}.json`);
+    }
   }
 
   function selectorUpdatesForInitialReview() {
@@ -1006,6 +1061,7 @@
     reader.onload = () => {
       try {
         const payload = JSON.parse(String(reader.result || "{}"));
+        const strictV2 = validateV2Envelope(payload);
         if (payload.kind === "private_holdout_export") {
           throw new Error("Private holdout exports cannot be imported into the agent-visible workbench.");
         }
@@ -1025,7 +1081,7 @@
         if (!imported || typeof imported !== "object") {
           throw new Error("Bad review file format.");
         }
-        validateImportedReviews(imported);
+        validateImportedReviews(imported, strictV2);
         validateReviewerImport(payload);
         rejectPrivateImport(payload, imported);
         reviews = internalReviews(imported);
@@ -1073,6 +1129,26 @@
     link.click();
     link.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function submitHostedPayload(payload) {
+    if (!hosted?.submission_url) throw new Error("Hosted submission is unavailable.");
+    els.exportReviewsBtn.disabled = true;
+    try {
+      const response = await fetch(hosted.submission_url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {"Content-Type": "application/json", "X-CSRF-Token": hosted.csrf_token},
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Submission was not accepted.");
+      window.alert(`${result.duplicate ? "Existing" : "Durable"} receipt ${result.receipt_id}, revision ${result.revision}.`);
+    } catch (error) {
+      window.alert(error.message || "Submission was not accepted.");
+    } finally {
+      els.exportReviewsBtn.disabled = false;
+    }
   }
 
   function parseHoldoutSelectors(text) {
@@ -1819,11 +1895,12 @@
       renderCompare();
     }
 
-    function exportCompareReviews() {
+    async function exportCompareReviews() {
       const { publicReviews } = partitionReviewMap(compareReviews);
       const payload = {
         schema: "musparql.review-export.v2",
         kind: "non_holdout_review_export",
+        ...(hosted ? {assignment_id: hosted.assignment_id, bundle_digest: data.bundle_digest} : {}),
         reviewer_id: data.reviewer_id,
         dataset_id: data.dataset_id,
         mode: "compare",
@@ -1832,8 +1909,12 @@
         exported_at: new Date().toISOString(),
         reviews: publicReviews,
       };
-      const timestamp = timestampForFilename(new Date());
-      downloadJson(payload, `musparql-review-non-holdout-compare-${data.dataset_id}-${timestamp}.json`);
+      if (hosted) {
+        await submitHostedPayload(payload);
+      } else {
+        const timestamp = timestampForFilename(new Date());
+        downloadJson(payload, `musparql-review-non-holdout-compare-${data.dataset_id}-${timestamp}.json`);
+      }
     }
 
     function exportPrivateCompareReviews() {
@@ -1906,7 +1987,8 @@
           validateCompareImportPayload(payload);
           validateReviewerImport(payload);
           const imported = payload.reviews;
-          validateImportedReviews(imported);
+          const strictV2 = validateV2Envelope(payload);
+          validateImportedReviews(imported, strictV2);
           rejectPrivateImport(payload, imported);
           compareReviews = internalReviews(imported);
           privateCompareExportReady = false;

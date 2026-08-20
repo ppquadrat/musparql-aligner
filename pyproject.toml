@@ -11,16 +11,17 @@ license = {file = "LICENSE"}
 dependencies = [
     "alembic>=1.16,<2",
     "Flask>=3.1,<4",
+    "jsonschema[format]>=4.23,<5",
     "SQLAlchemy>=2.0,<3",
 ]
 
 [project.scripts]
 musparql-db = "musparql.database.cli:main"
 musparql-web = "musparql.web.cli:main"
+musparql-worker = "musparql.web.worker:main"
 
 [project.optional-dependencies]
 test = [
-    "jsonschema[format]>=4.23,<5",
     "pytest>=8,<10",
 ]
 

@@ -210,9 +210,17 @@
   byId("literalErrorBtn").addEventListener("click", () => openOutcome("literal_inaccurate"));
   byId("cancelOutcomeBtn").addEventListener("click", () => { pendingOutcome = null; byId("outcomePanel").hidden = true; byId("ratingForm").hidden = false; });
   byId("confirmOutcomeBtn").addEventListener("click", () => { const extra = {reason: byId("reason").value, proposed_literal: byId("proposal").value.trim(), comment: byId("comment").value.trim()}; complete(pendingOutcome, extra); pendingOutcome = null; });
-  byId("exportBtn").addEventListener("click", () => {
+  byId("exportBtn").textContent = "Submit completed annotations";
+  byId("exportBtn").addEventListener("click", async () => {
     const payload = {schema: "musparql.linguistic-annotation-export.v1", assignment_id: hosted.assignment_id, dataset_id: data.dataset_id, reviewer_id: hosted.reviewer_id, task_design_version: "phase-6b-v1", exported_at: new Date().toISOString(), annotations: Object.values(state.completed)};
-    const blob = new Blob([JSON.stringify(payload, null, 2) + "\n"], {type: "application/json"}); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${hosted.assignment_id}-linguistic-annotations.json`; link.click(); URL.revokeObjectURL(link.href);
+    const button = byId("exportBtn"); button.disabled = true;
+    try {
+      const response = await fetch(hosted.submission_url, {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/json", "X-CSRF-Token": hosted.csrf_token}, body: JSON.stringify(payload)});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Submission was not accepted");
+      window.alert(`${result.duplicate ? "Existing" : "Durable"} receipt ${result.receipt_id}, revision ${result.revision}.`);
+    } catch (error) { window.alert(error.message); }
+    finally { button.disabled = false; }
   });
   if (state.finished) finish();
 })();

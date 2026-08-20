@@ -1553,6 +1553,14 @@ Exit criteria:
 
 ### Phase 7 — submission and controlled processing
 
+Status: completed on 2026-08-20. The tracked implementation adds the strict
+canonical review-export contract, authenticated hosted submission for all three
+review modes, atomic immutable receipt storage, idempotent/versioned database
+registration, a restart-safe persistent worker, isolated candidate audits and
+promotion manifests, and an owner dashboard with append-only assignment, item,
+and promotion decisions. Operational details are in
+[`PHASE_7_SUBMISSION_RUNBOOK.md`](PHASE_7_SUBMISSION_RUNBOOK.md).
+
 Work:
 
 - canonical review-export JSON Schema;

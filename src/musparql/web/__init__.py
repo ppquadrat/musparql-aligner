@@ -57,6 +57,18 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         LINGUISTIC_WORKBENCH_ROOT=os.environ.get(
             "MUSPARQL_LINGUISTIC_WORKBENCH_ROOT", "review/linguistic"
         ),
+        SUBMISSION_ROOT=os.environ.get(
+            "MUSPARQL_SUBMISSION_ROOT", "var/review/submissions"
+        ),
+        CANDIDATE_ROOT=os.environ.get(
+            "MUSPARQL_CANDIDATE_ROOT", "var/review/candidates"
+        ),
+        REVIEW_EXPORT_SCHEMA_PATH=os.environ.get(
+            "MUSPARQL_REVIEW_EXPORT_SCHEMA_PATH", "schemas/review_export.schema.json"
+        ),
+        LINGUISTIC_EXPORT_SCHEMA_PATH=os.environ.get(
+            "MUSPARQL_LINGUISTIC_EXPORT_SCHEMA_PATH", "schemas/linguistic_annotation_export.schema.json"
+        ),
         PRIVACY_NOTICE_VERSION=os.environ.get("MUSPARQL_PRIVACY_NOTICE_VERSION"),
         PRIVACY_NOTICE_BODY=os.environ.get("MUSPARQL_PRIVACY_NOTICE_BODY"),
         ALLOW_SYNTHETIC_PRIVACY_NOTICE=(
@@ -119,6 +131,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     )
     from .profile import ProfileService
     from .assignments import AssignmentService
+    from .submissions import ProcessingService, SubmissionService
 
     app.extensions["musparql_profiles"] = ProfileService(
         sessions=sessions,
@@ -128,6 +141,18 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     app.extensions["musparql_assignments"] = AssignmentService(
         sessions=sessions,
         bundle_root=Path(app.config["ASSIGNMENT_BUNDLE_ROOT"]).expanduser().resolve(),
+    )
+    app.extensions["musparql_submissions"] = SubmissionService(
+        sessions=sessions,
+        assignments=app.extensions["musparql_assignments"],
+        submission_root=Path(app.config["SUBMISSION_ROOT"]).expanduser().resolve(),
+        review_schema_path=Path(app.config["REVIEW_EXPORT_SCHEMA_PATH"]).expanduser().resolve(),
+        linguistic_schema_path=Path(app.config["LINGUISTIC_EXPORT_SCHEMA_PATH"]).expanduser().resolve(),
+    )
+    app.extensions["musparql_processing"] = ProcessingService(
+        sessions=sessions,
+        submission_root=Path(app.config["SUBMISSION_ROOT"]).expanduser().resolve(),
+        candidate_root=Path(app.config["CANDIDATE_ROOT"]).expanduser().resolve(),
     )
 
     install_security(app)
@@ -184,6 +209,9 @@ def _validate_config(app: Flask) -> None:
     owner_id = app.config["OWNER_REVIEWER_ID"]
     if not isinstance(owner_id, str) or not owner_id.startswith("reviewer-"):
         raise RuntimeError("OWNER_REVIEWER_ID must be a pseudonymous reviewer ID")
+    for name in ("REVIEW_EXPORT_SCHEMA_PATH", "LINGUISTIC_EXPORT_SCHEMA_PATH"):
+        if not Path(app.config[name]).expanduser().resolve().is_file():
+            raise RuntimeError(f"The configured schema does not exist: {name}")
 
 
 __all__ = ["create_app"]

@@ -108,6 +108,8 @@ the human verifies and places that file at the local path.
   and isolated deployment, including the completed Phase 6b boundary.
 - [`docs/PHASE_6B_LINGUISTIC_RUNBOOK.md`](docs/PHASE_6B_LINGUISTIC_RUNBOOK.md) —
   deterministic linguistic bundle construction and hosted rating workflow.
+- [`docs/PHASE_7_SUBMISSION_RUNBOOK.md`](docs/PHASE_7_SUBMISSION_RUNBOOK.md) —
+  durable hosted receipts, controlled processing, and owner approval.
 
 ## Licensing
 

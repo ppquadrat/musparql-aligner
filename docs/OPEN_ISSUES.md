@@ -71,6 +71,14 @@ because browser local storage is not a recovery mechanism.
 
 ### One canonical v2 review-export contract
 
+Resolved in Phase 7 on 2026-08-20. `schemas/review_export.schema.json` is the
+strict hosted initial/comparative envelope contract, the linguistic export
+remains strictly contracted by `schemas/linguistic_annotation_export.schema.json`,
+and authenticated submission applies the applicable schema before durable
+registration. Focused parity tests reject undeclared fields, unknown enum
+values, invalid timestamps, mismatched attribution, and identities outside the
+assigned bundle.
+
 The v2 review envelope is currently enforced across Python, browser code, and
 the benchmark decision schema, but it does not yet have a single envelope JSON
 Schema. Add `schemas/review_export.schema.json`, use it at browser-import and
@@ -82,7 +90,7 @@ The Phase 7 policy decision is to reject undeclared properties and unknown enum
 values at both the export-envelope and individual review/annotation levels.
 Free text remains allowed only in explicitly declared fields, and legitimate new
 fields require an artifact schema version change. The implementation and parity
-tests remain open.
+tests are complete.
 
 ### Linguistic workbench introduction and correction policy
 

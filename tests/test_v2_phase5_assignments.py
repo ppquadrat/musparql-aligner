@@ -269,6 +269,8 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
             "EXPERTISE_SUGGESTIONS_PATH": ROOT
             / "catalog/expertise_domain_suggestions.yaml",
             "ASSIGNMENT_BUNDLE_ROOT": bundle_root,
+            "SUBMISSION_ROOT": tmp_path / "submissions",
+            "CANDIDATE_ROOT": tmp_path / "candidates",
             "PRIVACY_NOTICE_VERSION": "synthetic-phase5-v1",
             "PRIVACY_NOTICE_BODY": "Synthetic notice. Do not enter real data.",
         }
@@ -406,6 +408,24 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
             handle.write(" \n")
         assert reviewer.get(f"/assignments/{assignment_id}/bundle").status_code == 409
         assert reviewer.get(f"/assignments/{assignment_id}/workbench/").status_code == 409
+
+        # Hosted submission creates a durable receipt without a file-moving step.
+        submission = reviewer.post(
+            f"/assignments/{linguistic_id}/submissions",
+            json={
+                "schema": "musparql.linguistic-annotation-export.v1",
+                "assignment_id": linguistic_id,
+                "dataset_id": "synthetic-linguistic-dataset",
+                "reviewer_id": REVIEWER_ID,
+                "task_design_version": "phase-6b-v1",
+                "exported_at": "2026-08-20T10:05:00Z",
+                "annotations": [],
+            },
+            headers={"X-CSRF-Token": csrf(reviewer)},
+        )
+        assert submission.status_code == 202
+        receipt_id = submission.get_json()["receipt_id"]
+        assert (tmp_path / "submissions" / linguistic_id / f"{receipt_id}.json").is_file()
     finally:
         app.extensions["musparql_email_dispatcher"].shutdown()
         app.extensions["musparql_engine"].dispose()
