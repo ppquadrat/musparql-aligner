@@ -21,11 +21,15 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_linguistic_workbench_confirms_submission_inline() -> None:
     html = (ROOT / "review" / "linguistic" / "index.html").read_text(encoding="utf-8")
     app = (ROOT / "review" / "linguistic" / "app.js").read_text(encoding="utf-8")
+    css = (ROOT / "review" / "linguistic" / "styles.css").read_text(encoding="utf-8")
 
     assert 'id="submissionStatus"' in html
     assert "Thank you — your annotations were submitted." in html
     assert 'id="backToAssignmentsLink"' in html
     assert "You completed ${percentage}% of this assignment" in app
+    assert ".formulation-grid { display: grid; grid-template-columns: repeat(3" in css
+    assert "max-width: 1050px" not in css
+    assert "@media (max-width: 760px)" in css
 
 
 def stimulus(trial_id: str, stratum: str = "source-vs-llm") -> dict:
