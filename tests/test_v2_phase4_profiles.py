@@ -14,6 +14,7 @@ from musparql.database.models import (
     ReviewerDomainExpertise,
     ReviewerExperience,
     ReviewerLanguage,
+    ReviewAssignment,
 )
 from musparql.web import create_app
 from musparql.web.auth import timestamp, utc_now
@@ -141,8 +142,11 @@ def test_incomplete_reviewer_is_redirected_and_completes_onboarding(phase4_app) 
 
     response = client.post("/profile", data=profile_form(client))
     assert response.status_code == 302
-    assert response.location.endswith("/profile?saved=yes")
-    assert b"Your authenticated Musparql session is active" in client.get("/").data
+    assert response.location.endswith("/?profile_saved=yes")
+    next_page = client.get(response.location)
+    assert b"Your profile is saved." in next_page.data
+    assert b"There are no assignments for you at this point." in next_page.data
+    assert b"return when the project owner tells you an assignment is ready" in next_page.data
 
     owner = app.test_client()
     login(owner, app, sender, "owner@example.invalid")
@@ -180,6 +184,45 @@ def test_incomplete_reviewer_is_redirected_and_completes_onboarding(phase4_app) 
             assert domain.vocabulary_name is None
     finally:
         engine.dispose()
+
+
+def test_completed_onboarding_redirects_to_latest_available_assignment(
+    phase4_app,
+) -> None:
+    app, sender, database_path = phase4_app
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        session.add(
+            ReviewAssignment(
+                id="synthetic-onboarding-assignment",
+                reviewer_id=REVIEWER_ID,
+                mode="initial",
+                status="ready",
+                bundle_path="synthetic/onboarding.js",
+                bundle_digest="sha256:" + "a" * 64,
+                previous_benchmark_path=None,
+                processing_recipe="validate_initial_review",
+                holdout_capability=False,
+                created_at="2026-08-21T23:45:00Z",
+                opened_at=None,
+                submitted_at=None,
+            )
+        )
+    engine.dispose()
+
+    client = app.test_client()
+    login(client, app, sender, "reviewer@example.invalid")
+    response = client.post("/profile", data=profile_form(client))
+
+    assert response.status_code == 302
+    assert response.location.endswith(
+        "/assignments/synthetic-onboarding-assignment?profile_saved=yes"
+    )
+    assignment_page = client.get(response.location)
+    assert assignment_page.status_code == 200
+    assert b"Your profile is saved. Your assignment is ready below." in assignment_page.data
+    assert b"synthetic-onboarding-assignment" in assignment_page.data
 
 
 def test_profile_correction_appends_domain_history_and_preserves_first_language_date(

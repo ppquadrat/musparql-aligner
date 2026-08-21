@@ -2,6 +2,7 @@
 {% block title %}{{ value.assignment.id }} — Musparql review{% endblock %}
 {% block content %}
   <h1>Review assignment</h1>
+  {% if profile_saved %}<p class="success" role="status">Your profile is saved. Your assignment is ready below.</p>{% endif %}
   <p class="metadata">{{ value.assignment.id }} · {{ value.assignment.mode }} · {{ value.assignment.status }}</p>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
   {% if value.assessed %}

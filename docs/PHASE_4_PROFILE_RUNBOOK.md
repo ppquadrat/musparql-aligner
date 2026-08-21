@@ -36,6 +36,10 @@ authorise real reviewer profiles, or permit deployment. The gates in
 - The owner account page reports `Complete` or `Awaiting onboarding` by
   pseudonymous reviewer ID. Owner access to identity/contact columns remains
   part of the existing sole-owner administration boundary.
+- After a successful first profile save, a pre-assigned reviewer is sent to
+  their newest available assignment. A reviewer without an assignment is sent
+  to the dashboard with an explicit saved confirmation and guidance to return
+  when the project owner says an assignment is ready.
 
 All profile writes are one database transaction. A rejected form is redisplayed
 with its submitted values intact and a specific validation message. A stale or foreign domain ID,

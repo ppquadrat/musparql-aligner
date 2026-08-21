@@ -102,7 +102,11 @@ def index():
         assignments = current_app.extensions["musparql_assignments"].list_for_reviewer(
             g.current_reviewer.id
         )
-    return render_template("index.html", assignments=assignments)
+    return render_template(
+        "index.html",
+        assignments=assignments,
+        profile_saved=request.args.get("profile_saved") == "yes",
+    )
 
 
 @portal.route("/profile", methods=["GET", "POST"])
@@ -127,7 +131,18 @@ def profile():
         except ValueError as exc:
             error = f"Profile not saved: {exc}"
         else:
-            return redirect(url_for("portal.profile", saved="yes"))
+            assignments = current_app.extensions[
+                "musparql_assignments"
+            ].list_for_reviewer(g.current_reviewer.id)
+            if assignments:
+                return redirect(
+                    url_for(
+                        "portal.assignment",
+                        assignment_id=assignments[0].id,
+                        profile_saved="yes",
+                    )
+                )
+            return redirect(url_for("portal.index", profile_saved="yes"))
     value = service.load(g.current_reviewer.id)
     new_domain_rows: list[tuple[str, str]]
     notice_acknowledged = False
@@ -191,7 +206,6 @@ def profile():
         notice_body=current_app.config["PRIVACY_NOTICE_BODY"],
         notice_acknowledged=notice_acknowledged,
         error=error,
-        saved=request.args.get("saved") == "yes",
     )
 
 
@@ -456,6 +470,7 @@ def assignment(assignment_id: str):
         "assignment.html",
         value=value,
         error=error,
+        profile_saved=request.args.get("profile_saved") == "yes",
         subject_levels=("none", "basic", "working", "advanced", "expert"),
         familiarity_levels=("none", "inspected", "worked", "regular_user", "creator"),
     )

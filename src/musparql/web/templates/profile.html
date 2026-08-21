@@ -4,8 +4,6 @@
   <h1>{% if profile_complete %}My profile{% else %}Complete your profile{% endif %}</h1>
   <p>Your email address is verified as <strong>{{ profile.email }}</strong>. Contact the project owner if it needs to change.</p>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
-  {% if saved %}<p class="success" role="status">Your profile was saved.</p>{% endif %}
-
   <form method="post" action="{{ url_for('portal.profile') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
