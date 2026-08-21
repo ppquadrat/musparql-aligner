@@ -1582,6 +1582,15 @@ Exit criteria:
 
 ### Phase 8 — workshop concurrency verification
 
+Status: completed locally on 2026-08-21. The tracked implementation adds a
+synthetic-only authenticated HTTP load and recovery harness, a versioned JSON
+report contract, and an operator runbook. The harness measures ten concurrent
+submission acknowledgements while a worker holds a claimed job, verifies
+durable files, database registrations, unique receipts, retries and revisions,
+recreates the application and worker around an interrupted job, and proves
+that an injected processing failure does not block later queued work. See
+[`PHASE_8_WORKSHOP_VERIFICATION_RUNBOOK.md`](PHASE_8_WORKSHOP_VERIFICATION_RUNBOOK.md).
+
 Work:
 
 - simulate at least ten distinct reviewers submitting concurrently;

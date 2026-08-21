@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://musparql.invalid/schemas/workshop_verification.schema.json",
+  "title": "Musparql v2 synthetic workshop verification report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "result",
+    "synthetic_only",
+    "measured_at",
+    "target",
+    "submission_latency_ms",
+    "accepted_revisions",
+    "idempotent_retries",
+    "explicit_revisions",
+    "recovered_running_jobs",
+    "isolated_failed_jobs",
+    "processed_after_failure",
+    "queue_order_verified",
+    "durable_files_verified",
+    "environment"
+  ],
+  "properties": {
+    "schema": {"const": "musparql.workshop-verification.v1"},
+    "result": {"const": "passed"},
+    "synthetic_only": {"const": true},
+    "measured_at": {"type": "string", "format": "date-time"},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["concurrent_reviewers"],
+      "properties": {
+        "concurrent_reviewers": {"type": "integer", "minimum": 10, "maximum": 50}
+      }
+    },
+    "submission_latency_ms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["samples", "minimum", "median", "p95", "maximum", "worker_busy"],
+      "properties": {
+        "samples": {"type": "integer", "minimum": 10, "maximum": 50},
+        "minimum": {"type": "number", "minimum": 0},
+        "median": {"type": "number", "minimum": 0},
+        "p95": {"type": "number", "minimum": 0},
+        "maximum": {"type": "number", "minimum": 0},
+        "worker_busy": {"const": true}
+      }
+    },
+    "accepted_revisions": {"type": "integer", "minimum": 12},
+    "idempotent_retries": {"type": "integer", "minimum": 1},
+    "explicit_revisions": {"type": "integer", "minimum": 1},
+    "recovered_running_jobs": {"type": "integer", "minimum": 1},
+    "isolated_failed_jobs": {"type": "integer", "minimum": 1},
+    "processed_after_failure": {"type": "integer", "minimum": 1},
+    "queue_order_verified": {"const": true},
+    "durable_files_verified": {"type": "integer", "minimum": 12},
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python", "platform", "sqlite"],
+      "properties": {
+        "python": {"type": "string", "minLength": 1},
+        "platform": {"type": "string", "minLength": 1},
+        "sqlite": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
