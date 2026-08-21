@@ -11,10 +11,11 @@ import platform
 import sqlite3
 import tempfile
 import time
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from sqlalchemy import func, select
 from werkzeug.datastructures import MultiDict
+from werkzeug.serving import BaseWSGIServer, make_server
 
 from musparql.database import create_database_engine, session_factory
 from musparql.database.migrations import upgrade_database
@@ -62,6 +63,21 @@ class _LogCapture(logging.Handler):
         self.messages.append(self.format(record))
 
 
+class InteractiveSyntheticEmailSender(SyntheticEmailSender):
+    """Expose synthetic-only deliveries to the local pilot operator."""
+
+    def __init__(self, emit: Callable[[str], None] = print) -> None:
+        super().__init__()
+        self._emit = emit
+
+    def send_login_code(self, recipient: str, code: str) -> None:
+        super().send_login_code(recipient, code)
+        self._emit(
+            f"\nSynthetic login code for {recipient}: {code}\n"
+            "This fictional code was not emailed or written to the application log."
+        )
+
+
 def _require(condition: bool, message: str) -> None:
     if not condition:
         raise HardeningError(message)
@@ -88,15 +104,62 @@ def _reviewer(reviewer_id: str, email: str, name: str) -> Reviewer:
 
 
 def _bundle_bytes() -> bytes:
+    run_id = "synthetic-phase9-run"
     payload = {
         "schema": "musparql.review-bundle.v2",
         "mode": "initial",
         "dataset_id": DATASET_ID,
         "built_at": "2026-08-21T12:00:00Z",
         "holdout_input_policy": "no_holdout",
+        "run_ids": [run_id],
+        "single_run_id": run_id,
+        "runs": [{"run_id": run_id, "label": "Synthetic pilot"}],
         "record_count": 1,
         "records": [
-            {"review_id": "synthetic-phase9-record", "kg_id": KG_ID}
+            {
+                "review_id": "synthetic-phase9-record",
+                "kg_id": KG_ID,
+                "query_id": "synthetic-phase9-query",
+                "query_label": "Synthetic works by creator",
+                "run_label": "Synthetic pilot",
+                "input": {
+                    "sparql_clean": (
+                        "SELECT ?work WHERE { "
+                        "?work <urn:synthetic:creator> <urn:synthetic:person> . }"
+                    ),
+                    "evidence": [
+                        {
+                            "evidence_id": "synthetic-evidence-1",
+                            "type": "synthetic_documentation",
+                            "snippet": (
+                                "The fictional creator property connects a work to "
+                                "its fictional creator."
+                            ),
+                        }
+                    ],
+                },
+                "output": {
+                    "nl_question": "Which fictional works were created by this person?",
+                    "nl_question_origin": {
+                        "mode": "synthetic",
+                        "evidence_ids": ["synthetic-evidence-1"],
+                    },
+                    "confidence": 0.9,
+                    "confidence_rationale": (
+                        "Synthetic wording mirrors the single fictional graph pattern."
+                    ),
+                    "ranked_evidence_phrases": [
+                        {
+                            "rank": 1,
+                            "source_type": "synthetic_documentation",
+                            "evidence_id": "synthetic-evidence-1",
+                            "verbatim": False,
+                            "text": "creator connects a work to its creator",
+                        }
+                    ],
+                },
+                "output_meta": {"model": "synthetic-pilot", "elapsed_ms": 1},
+            }
         ],
     }
     return (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
@@ -215,6 +278,43 @@ def _app_config(root: Path, database_path: Path, sender: SyntheticEmailSender) -
 def _close_app(app: Any) -> None:
     app.extensions["musparql_email_dispatcher"].shutdown()
     app.extensions["musparql_engine"].dispose()
+
+
+def run_interactive_pilot(
+    root: Path,
+    *,
+    port: int = 8765,
+    emit: Callable[[str], None] = print,
+    server_factory: Callable[..., BaseWSGIServer] = make_server,
+) -> int:
+    """Serve a fictional reviewer pilot on loopback until the operator stops it."""
+    if not 0 <= port <= 65535:
+        raise ValueError("Interactive pilot port must be between 0 and 65535")
+    root = root.resolve()
+    if root.exists() and (not root.is_dir() or any(root.iterdir())):
+        raise ValueError("The interactive pilot workspace must be an empty directory")
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    database_path, _assignment_ids = _seed_workspace(root)
+    sender = InteractiveSyntheticEmailSender(emit)
+    app = create_app(_app_config(root, database_path, sender))
+    server = server_factory("127.0.0.1", port, app, threaded=True)
+    actual_port = int(server.server_port)
+    emit(
+        "Musparql Phase 9 interactive synthetic pilot\n"
+        f"Open: http://127.0.0.1:{actual_port}/\n"
+        f"Fictional invited email: {REVIEWER_EMAIL}\n"
+        "The login code will appear in this terminal after you request it.\n"
+        "Use browser responsive-design mode for the narrow/mobile login check.\n"
+        "Press Ctrl-C here when the pilot is complete."
+    )
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        emit("\nInteractive synthetic pilot stopped. The fictional workspace is disposable.")
+    finally:
+        server.server_close()
+        _close_app(app)
+    return 0
 
 
 def _csrf(client: Any) -> str:
@@ -694,8 +794,18 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--usability-observation",
         type=Path,
-        required=True,
         help="JSON observation recorded during a human synthetic pilot",
+    )
+    result.add_argument(
+        "--interactive",
+        action="store_true",
+        help="Serve a loopback-only fictional pilot and print synthetic codes locally",
+    )
+    result.add_argument(
+        "--port",
+        type=int,
+        default=8765,
+        help="Loopback port for --interactive (default: 8765)",
     )
     result.add_argument(
         "--workspace",
@@ -707,7 +817,21 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = parser().parse_args(argv)
+    argument_parser = parser()
+    args = argument_parser.parse_args(argv)
+    if args.interactive:
+        if args.usability_observation is not None or args.output is not None:
+            argument_parser.error(
+                "--interactive cannot be combined with --usability-observation or --output"
+            )
+        if args.workspace is None:
+            with tempfile.TemporaryDirectory(prefix="musparql-phase9-interactive-") as temporary:
+                return run_interactive_pilot(Path(temporary), port=args.port)
+        return run_interactive_pilot(args.workspace, port=args.port)
+    if args.usability_observation is None:
+        argument_parser.error(
+            "--usability-observation is required unless --interactive is used"
+        )
     observation = json.loads(args.usability_observation.read_text(encoding="utf-8"))
     if not isinstance(observation, dict):
         raise ValueError("The usability observation must be a JSON object")

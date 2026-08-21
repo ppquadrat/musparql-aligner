@@ -44,6 +44,45 @@ the flow with an obviously synthetic identity on a desktop or private browser,
 repeat the assessment, and complete the code flow in a mobile browser. Record
 elapsed wall time and one concise feedback observation in an ignored JSON file:
 
+### Start the interactive synthetic pilot
+
+No real reviewer address or outbound email account is needed. Start the
+loopback-only pilot from the Phase 9 branch:
+
+```bash
+.venv/bin/python -m musparql.web.local_hardening --interactive
+```
+
+The command prints a local URL and the fictional invited address
+`phase9-reviewer@example.invalid`. Open the URL, submit that address, and copy
+the six-digit synthetic code printed in the terminal. The code is neither
+emailed nor written to the application log. The server binds only to
+`127.0.0.1`; it is not reachable from another computer or phone.
+
+Time these two paths:
+
+1. first code request through successful profile save; and
+2. opening the second assignment through confirmed repeat assessment.
+
+Use the first assignment to inspect the real hosted workbench, record a
+synthetic decision, and submit it. For the mobile-login check, use the browser's
+responsive-design/device mode at a narrow phone-sized viewport and repeat only
+the login-code flow. Conducting the review itself on a phone is not a Phase 9
+requirement. Press `Ctrl-C` in the terminal when finished. Unless `--workspace`
+is supplied, the fictional database and submissions are deleted when the
+command stops.
+
+To retain the fictional state for local diagnosis, provide a new or empty
+workspace:
+
+```bash
+.venv/bin/python -m musparql.web.local_hardening \
+  --interactive \
+  --workspace var/verification/phase9-interactive-workspace
+```
+
+Then record the measured observations:
+
 ```json
 {
   "observer": "synthetic-operator",

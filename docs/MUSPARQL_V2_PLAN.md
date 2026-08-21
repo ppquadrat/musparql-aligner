@@ -1612,9 +1612,11 @@ Exit criteria:
 Status: implementation completed locally on 2026-08-21. The tracked synthetic
 gate exercises first and repeat reviewer journeys, private/shared/mobile
 browser contracts, assignment isolation, processing restart, safe diagnostics,
-privacy-log inspection, and an isolated SQLite restore. A passing operational
-run additionally requires a human synthetic usability observation within the
-five-minute onboarding and one-minute repeat-assessment targets. See
+privacy-log inspection, and an isolated SQLite restore. Its loopback-only
+interactive mode exposes fictional login delivery and realistic workbench data
+without requiring an email account. A passing operational run additionally
+requires a human synthetic usability observation within the five-minute
+onboarding and one-minute repeat-assessment targets. See
 [`PHASE_9_LOCAL_HARDENING_RUNBOOK.md`](PHASE_9_LOCAL_HARDENING_RUNBOOK.md).
 
 Work:

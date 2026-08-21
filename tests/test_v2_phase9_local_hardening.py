@@ -6,7 +6,15 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker
 import pytest
 
-from musparql.web.local_hardening import HardeningError, main, run_verification
+from musparql.web.local_hardening import (
+    HardeningError,
+    InteractiveSyntheticEmailSender,
+    REVIEWER_EMAIL,
+    _bundle_bytes,
+    main,
+    run_interactive_pilot,
+    run_verification,
+)
 
 
 OBSERVATION = {
@@ -80,3 +88,62 @@ def test_phase9_cli_writes_report(tmp_path: Path, capsys) -> None:
     saved_report = json.loads(report_path.read_text(encoding="utf-8"))
     assert stdout_report == saved_report
     assert saved_report["schema"] == "musparql.local-hardening.v1"
+
+
+def test_interactive_pilot_is_loopback_only_and_exposes_synthetic_code(
+    tmp_path: Path,
+) -> None:
+    emitted: list[str] = []
+    captured: dict[str, object] = {}
+
+    class FakeServer:
+        server_port = 43123
+
+        def serve_forever(self) -> None:
+            raise KeyboardInterrupt
+
+        def server_close(self) -> None:
+            captured["closed"] = True
+
+    def server_factory(host, port, app, *, threaded):
+        captured.update(host=host, port=port, threaded=threaded)
+        client = app.test_client()
+        client.get("/")
+        csrf = client.get_cookie("musparql_csrf", path="/")
+        assert csrf is not None
+        response = client.post(
+            "/auth/login",
+            data={"csrf_token": csrf.value, "email": REVIEWER_EMAIL},
+        )
+        assert response.status_code == 302
+        app.extensions["musparql_email_dispatcher"].wait_for_idle()
+        return FakeServer()
+
+    assert run_interactive_pilot(
+        tmp_path / "interactive",
+        port=0,
+        emit=emitted.append,
+        server_factory=server_factory,
+    ) == 0
+
+    assert captured == {
+        "host": "127.0.0.1",
+        "port": 0,
+        "threaded": True,
+        "closed": True,
+    }
+    output = "\n".join(emitted)
+    assert "http://127.0.0.1:43123/" in output
+    assert REVIEWER_EMAIL in output
+    assert "Synthetic login code" in output
+    assert "not emailed or written to the application log" in output
+
+
+def test_interactive_sender_retains_test_outbox_and_emits_code() -> None:
+    emitted: list[str] = []
+    sender = InteractiveSyntheticEmailSender(emitted.append)
+
+    sender.send_login_code(REVIEWER_EMAIL, "123456")
+
+    assert sender.outbox[0].value == "123456"
+    assert "123456" in emitted[0]
