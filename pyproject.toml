@@ -12,11 +12,13 @@ dependencies = [
     "alembic>=1.16,<2",
     "Flask>=3.1,<4",
     "jsonschema[format]>=4.23,<5",
+    "requests>=2.32,<3",
     "SQLAlchemy>=2.0,<3",
 ]
 
 [project.scripts]
 musparql-db = "musparql.database.cli:main"
+musparql-discover-sources = "musparql.kg_source_discovery:main"
 musparql-web = "musparql.web.cli:main"
 musparql-worker = "musparql.web.worker:main"
 
