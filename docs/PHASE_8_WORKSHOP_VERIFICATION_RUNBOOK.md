@@ -32,12 +32,13 @@ regression blocks the workshop until investigated.
 ## Reference local result
 
 On 2026-08-21, the completed implementation passed on macOS 26.5.2 arm64 with
-Python 3.14.4 and SQLite 3.53.0. The 10-request burst completed with 8.837 ms
-minimum, 21.679 ms median, and 55.588 ms p95/maximum acknowledgment latency
+Python 3.14.4 and SQLite 3.53.0. The 10-request burst completed with 8.643 ms
+minimum, 21.067 ms median, and 51.513 ms p95/maximum acknowledgment latency
 while the synthetic worker was busy. The run verified 12 durable accepted
-revisions, recovered one interrupted job, isolated one deliberately failed job,
-and completed all 10 jobs that followed that failure. This result establishes
-the local Phase 8 baseline; it does not replace a fresh pre-workshop run on the
+revisions, the exact submission-to-job mapping and receipt attribution,
+recovered one interrupted job, isolated one deliberately failed job, and
+completed all 10 jobs that followed that failure. This result establishes the
+local Phase 8 baseline; it does not replace a fresh pre-workshop run on the
 target deployment commit and machine.
 
 ## Run the gate
@@ -94,6 +95,7 @@ storage behavior that must remain responsive while processing is busy.
 ```
 
 The focused test validates the report schema and reruns the complete load,
-retry, revision, restart, queue-order, failure-isolation, and file-integrity
-scenario. It also verifies the lower reviewer bound and the refusal to reuse a
-non-empty workspace.
+receipt-attribution, submission-to-job bijection, retry, revision, restart,
+queue-order, failure-isolation, and file-integrity scenario. It also verifies
+the median calculation, lower reviewer bound, and refusal to reuse a non-empty
+workspace.

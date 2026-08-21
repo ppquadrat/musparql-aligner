@@ -6,7 +6,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker
 import pytest
 
-from musparql.web.workshop_verify import main, run_verification
+from musparql.web.workshop_verify import _median, main, run_verification
 
 
 def test_phase8_workshop_scenario_verifies_load_restart_and_failure_isolation(
@@ -58,3 +58,7 @@ def test_phase8_cli_writes_a_machine_readable_report(tmp_path: Path, capsys) -> 
     saved_report = json.loads(report_path.read_text(encoding="utf-8"))
     assert stdout_report == saved_report
     assert saved_report["result"] == "passed"
+
+
+def test_phase8_median_averages_the_middle_pair() -> None:
+    assert _median([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) == 5.5

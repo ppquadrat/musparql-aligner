@@ -14,6 +14,7 @@ from pathlib import Path
 import platform
 import secrets
 import sqlite3
+from statistics import median
 import tempfile
 import threading
 import time
@@ -196,6 +197,10 @@ def _percentile(values: list[float], percentile: float) -> float:
     return ordered[max(0, math.ceil(percentile * len(ordered)) - 1)]
 
 
+def _median(values: list[float]) -> float:
+    return float(median(values))
+
+
 def _require(condition: bool, message: str) -> None:
     if not condition:
         raise VerificationError(message)
@@ -311,6 +316,26 @@ def run_verification(root: Path, reviewer_count: int = MINIMUM_REVIEWERS) -> dic
         len({item["receipt_id"] for item in receipts}) == reviewer_count,
         "Concurrent receipts were not unique",
     )
+    for context, _elapsed, _status, body in burst:
+        expected_payload = _payload(**context)
+        expected_digest = _digest(
+            (
+                json.dumps(
+                    expected_payload,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            ).encode("utf-8")
+        )
+        _require(
+            body.get("assignment_id") == context["assignment_id"]
+            and body.get("revision") == 1
+            and body.get("digest") == expected_digest
+            and body.get("duplicate") is False,
+            "A concurrent receipt was not bound to its submitting assignment",
+        )
 
     first = contexts[0]
     first_payload = _payload(**first)
@@ -342,9 +367,20 @@ def run_verification(root: Path, reviewer_count: int = MINIMUM_REVIEWERS) -> dic
         "Database submission count does not match accepted revisions",
     )
     _require(
-        len(jobs_before_failure) == expected_accepted,
+        sorted(job.submission_id for job in jobs_before_failure)
+        == sorted(submission.id for submission in accepted_before_failure),
         "Each accepted revision must have exactly one job",
     )
+    submissions_by_id = {submission.id: submission for submission in accepted_before_failure}
+    for context, _elapsed, _status, body in burst:
+        submission = submissions_by_id.get(body["receipt_id"])
+        _require(
+            submission is not None
+            and submission.assignment_id == context["assignment_id"]
+            and submission.reviewer_id == context["reviewer_id"]
+            and submission.export_digest == body["digest"],
+            "A concurrent receipt was persisted for the wrong reviewer or assignment",
+        )
     durable_paths = {
         path.resolve() for path in (root / "submissions").glob("*/*.json")
     }
@@ -423,7 +459,11 @@ def run_verification(root: Path, reviewer_count: int = MINIMUM_REVIEWERS) -> dic
         len(submissions) == expected_accepted,
         "Database submission count does not match accepted revisions",
     )
-    _require(len(jobs) == expected_accepted, "Each accepted revision must have exactly one job")
+    _require(
+        sorted(job.submission_id for job in jobs)
+        == sorted(submission.id for submission in submissions),
+        "Each accepted revision must have exactly one job",
+    )
     _require(
         sum(job.status == "failed" for job in jobs) == 1,
         "Failure isolation scenario did not produce exactly one failed job",
@@ -497,7 +537,7 @@ def run_verification(root: Path, reviewer_count: int = MINIMUM_REVIEWERS) -> dic
         "submission_latency_ms": {
             "samples": reviewer_count,
             "minimum": round(min(latencies), 3),
-            "median": round(_percentile(latencies, 0.5), 3),
+            "median": round(_median(latencies), 3),
             "p95": round(_percentile(latencies, 0.95), 3),
             "maximum": round(max(latencies), 3),
             "worker_busy": True,
