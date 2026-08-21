@@ -83,11 +83,27 @@ def test_cli_saves_only_new_json_reports(monkeypatch, tmp_path, capsys):
 
     assert main(["--name", "Synthetic KG", "--output", str(output)]) == 0
     assert json.loads(output.read_text())["authority"].startswith("unverified")
-    assert "UNVERIFIED" in capsys.readouterr().out
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "Saved unverified discovery report" in captured.err
     with pytest.raises(SystemExit, match="refusing to overwrite"):
         main(["--name", "Synthetic KG", "--output", str(output)])
     with pytest.raises(SystemExit, match="must be a .json"):
         main(["--name", "Synthetic KG", "--output", str(tmp_path / "seeds.yaml")])
+
+
+def test_cli_can_explicitly_print_a_saved_report(monkeypatch, tmp_path, capsys):
+    report = DiscoveryReport(
+        kg_name="Synthetic KG",
+        project=None,
+        created_at="2026-08-21T00:00:00+00:00",
+    )
+    monkeypatch.setattr("musparql.kg_source_discovery.discover_sources", lambda *args, **kwargs: report)
+
+    assert main([
+        "--name", "Synthetic KG", "--output", str(tmp_path / "report.json"), "--also-print"
+    ]) == 0
+    assert "UNVERIFIED" in capsys.readouterr().out
 
 
 def test_name_normalisation_preserves_distinctive_part():

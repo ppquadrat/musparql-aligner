@@ -50,7 +50,9 @@ musparql-discover-sources \
 ```
 
 The command refuses non-JSON output names and refuses to overwrite an existing
-report. `var/` is ignored by Git. By default a report shows a ranked shortlist
+report. When `--output` is supplied, the command prints only a short saved-file
+confirmation; add `--also-print` to display the report as well. `var/` is
+ignored by Git. By default a report shows a ranked shortlist
 of at most five repositories, five publications, and five web documents. It
 records each candidate's original API rank and query, explains its lexical
 ranking signals, and reports how many unique results were omitted.

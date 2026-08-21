@@ -701,6 +701,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--json", action="store_true", help="Print JSON instead of the human-readable report")
     parser.add_argument("--output", type=Path, help="Save a new JSON report; must use a .json filename")
+    parser.add_argument(
+        "--also-print", action="store_true",
+        help="Print the report as well as saving it with --output",
+    )
     return parser
 
 
@@ -726,7 +730,8 @@ def main(argv: list[str] | None = None) -> int:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(payload, encoding="utf-8")
         print(f"Saved unverified discovery report to {args.output}", file=sys.stderr)
-    print(payload if args.json else format_text(report), end="")
+    if not args.output or args.also_print:
+        print(payload if args.json else format_text(report), end="")
     return 0
 
 
