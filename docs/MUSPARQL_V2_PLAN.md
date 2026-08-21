@@ -1,8 +1,8 @@
 # Musparql v2: remote expert-review platform plan
 
-Status: active phased implementation; isolated deployment bootstrap in progress
+Status: application implementation complete; operational deployment gates open
 
-Last updated: 2026-08-19
+Last updated: 2026-08-22
 
 Scope: reviewer administration, remote review, longitudinal expertise data,
 controlled processing, and deployment
@@ -1166,7 +1166,7 @@ CPU, memory, disk, networking, update cycle, and power supply. If this residual
 risk proves unacceptable, deploy the same single-instance Flask and SQLite
 application to a separate small VM or VPS.
 
-#### 20.2.1 Provisioning state on 2026-08-19
+#### 20.2.1 Provisioning state through 2026-08-22
 
 The isolation bootstrap is complete:
 
@@ -1195,9 +1195,11 @@ are in [`HOME_SERVER_BOUNDARY.md`](HOME_SERVER_BOUNDARY.md) and
 documents are mandatory before any server work. There is no read-only exception
 for VocalLanes inspection.
 
-Still outstanding are in-distro Git verification and clone, the application
-and worker units, the distro-local tunnel, the independent encrypted backup and
-restore test, monitoring, and an owner-approved reboot test.
+The Flask application, worker, and synthetic hardening gate are implemented in
+the repository. Still outstanding are in-distro Git verification and clone,
+the application and worker units, the distro-local tunnel/public URL, the
+independent encrypted backup and restore test, monitoring, and an
+owner-approved reboot test.
 
 ### 20.3 Public address
 
@@ -1420,9 +1422,10 @@ language rows, multi-domain local suggestions with exact free-text fallback,
 append-only domain-level corrections, and owner-visible completion state are
 implemented and covered by synthetic HTTP/database tests. The application fails
 closed without an explicitly configured notice outside the synthetic development
-gate. The shipped local suggestion snapshot contains owner-reviewed project
-terms and treats EuroSciVoc as reference-only until individual concepts and a
-release are human-verified. See
+gate. Language selection uses the versioned Unicode CLDR name snapshot. The
+shipped local expertise snapshot contains six owner-reviewed specialist terms
+and 1,064 English EuroSciVoc 1.6.0 concepts with stable URIs; browser-independent
+search remains local and preserves exact free-text fallback. See
 [`PHASE_4_PROFILE_RUNBOOK.md`](PHASE_4_PROFILE_RUNBOOK.md).
 
 This implementation does not approve the draft notice or authorise real reviewer
@@ -1609,7 +1612,8 @@ Exit criteria:
 
 ### Phase 9 — local hardening and synthetic pilot
 
-Status: implementation completed locally on 2026-08-21. The tracked synthetic
+Status: implementation and desktop usability pilot completed locally on
+2026-08-22. The tracked synthetic
 gate exercises first and repeat reviewer journeys, private/shared/mobile
 browser contracts, assignment isolation, processing restart, safe diagnostics,
 privacy-log inspection, and an isolated SQLite restore. Its loopback-only
@@ -1618,6 +1622,14 @@ without requiring an email account. A passing operational run additionally
 requires a human synthetic usability observation within the five-minute
 onboarding and one-minute repeat-assessment targets. See
 [`PHASE_9_LOCAL_HARDENING_RUNBOOK.md`](PHASE_9_LOCAL_HARDENING_RUNBOOK.md).
+
+The observed desktop onboarding took approximately 3 minutes 30 seconds and the
+repeat pre-assignment confirmation approximately 15 seconds, within both
+targets. Firefox and Safari desktop flows were exercised after the autocomplete
+and layout fixes. Human phone/mobile login was deliberately deferred; automated
+narrow-viewport coverage passes, but the current operational report contract
+still requires that human observation before Phase 9 can be recorded as fully
+passed without re-scoping the gate.
 
 Work:
 
@@ -1637,10 +1649,12 @@ Exit criteria:
 
 ### Phase 10 — isolated deployment
 
-Status: isolation bootstrap partly complete as of 2026-08-19. The dedicated
+Status: isolation bootstrap partly complete as of 2026-08-22. The dedicated
 account, distro, Linux user, runtime, SSH identity, keepalive, and watchdog are
-provisioned. Application installation, tunnel, backup, monitoring, and reboot
-verification remain open.
+provisioned, and the application code is ready for installation. Deploy-key
+verification, application installation, tunnel/public URL, production email,
+backup, monitoring, and reboot verification remain open. Real invitations also
+remain blocked by controller approval and the final privacy notice.
 
 Work:
 
@@ -1815,19 +1829,22 @@ Before Phase 10:
 
 ## 27. Recommended next step
 
-Phases 0, 1, 2, 3, and 4 are implemented, with Phases 3 and 4 limited to
-synthetic development pending their documented real-data gates. The
-account/distro/task isolation bootstrap of
-Phase 10 is partly complete and is recorded in section 20.2.1; this does not
-authorize or imply deployment of the application, tunnel, reviewer data, or
-backup. Proceed to Phase 2b to design and implement durable backup and recovery
-for both the confidential database and irreplaceable Git-ignored
-review/provenance files when its external dependency is cleared. Phase 5 may be
-developed with synthetic assignments in parallel, but no real reviewer data
-should be collected until Phase 2b and the remaining privacy, infrastructure,
-and authentication decisions are complete.
-Do not expose the remote application until the remaining operational decisions
-and Phase 10 gates are approved.
+The application boundaries in Phases 1–9 are implemented, with the separately
+numbered Phase 2b backup/recovery gate still open and Phase 9's human mobile
+observation explicitly deferred. The account/distro/task isolation bootstrap of
+Phase 10 is partly complete and is recorded in section 20.2.1. The next step is
+an owner-approved Phase 10 deployment session confined to `MusparqlReview`:
+verify the read-only deploy key, clone and install the application, configure
+Musparql-only services, and activate the independent encrypted backup,
+monitoring, and isolated restore gate. Then configure the approved public
+URL/tunnel and production email route and perform the deliberate reboot and
+external synthetic-browser checks.
+
+This readiness applies to deployment work with synthetic data. Do not invite a
+real reviewer until the controller/lawful-basis decision, final privacy notice
+and acknowledgement, email route, backup/restore gate, monitoring, and Phase 10
+recovery checks are approved and complete. The linguistic instruction-page
+redesign should be completed before the linguistic real-review pilot.
 
 ## 28. Definition of the first Musparql v2 release
 

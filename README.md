@@ -110,6 +110,11 @@ the human verifies and places that file at the local path.
   deterministic linguistic bundle construction and hosted rating workflow.
 - [`docs/PHASE_7_SUBMISSION_RUNBOOK.md`](docs/PHASE_7_SUBMISSION_RUNBOOK.md) —
   durable hosted receipts, controlled processing, and owner approval.
+- [`docs/PHASE_8_WORKSHOP_VERIFICATION_RUNBOOK.md`](docs/PHASE_8_WORKSHOP_VERIFICATION_RUNBOOK.md) —
+  synthetic concurrent-submission, retry, failure-isolation, and restart checks.
+- [`docs/PHASE_9_LOCAL_HARDENING_RUNBOOK.md`](docs/PHASE_9_LOCAL_HARDENING_RUNBOOK.md) —
+  the local synthetic pilot, recovery exercises, privacy inspection, and
+  reviewer-friction gate.
 
 ## Licensing
 

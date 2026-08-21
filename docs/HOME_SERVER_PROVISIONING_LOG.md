@@ -75,8 +75,10 @@ Outstanding gates:
 - Perform an owner-approved Windows reboot and verify both Musparql tasks and
   Musparql systemd recovery. The reboot remains a deliberate maintenance event
   because VocalLanes has priority.
-- The repository does not yet contain the Flask/Gunicorn v2 application, so no
-  web, worker, or tunnel unit was installed or enabled.
+- The repository now contains the Flask application, worker, and completed
+  local synthetic hardening implementation. It has not yet been cloned or
+  installed inside `MusparqlReview`, and no web, worker, or tunnel unit has been
+  installed or enabled there.
 - A backup cannot be called complete until the owner authorizes a new
   Musparql-only remote destination, stores a new Musparql-only encryption
   passphrase, and an encrypted backup plus isolated restore are verified. No

@@ -65,32 +65,10 @@ The owner chose Google Drive as the sole encrypted, versioned destination for
 Phase 2b on 2026-08-18 and explicitly deferred a physically separate on-site
 copy as future hardening. The phase must still define key custody and rotation,
 retention, monitoring, restore isolation, and recovery objectives. A second
-directory on the same disk must not be represented as a backup. Until hosted
-durable submission exists, completed browser reviews must be exported promptly
-because browser local storage is not a recovery mechanism.
-
-### One canonical v2 review-export contract
-
-Resolved in Phase 7 on 2026-08-20. `schemas/review_export.schema.json` is the
-strict hosted initial/comparative envelope contract, the linguistic export
-remains strictly contracted by `schemas/linguistic_annotation_export.schema.json`,
-and authenticated submission applies the applicable schema before durable
-registration. Focused parity tests reject undeclared fields, unknown enum
-values, invalid timestamps, mismatched attribution, and identities outside the
-assigned bundle.
-
-The v2 review envelope is currently enforced across Python, browser code, and
-the benchmark decision schema, but it does not yet have a single envelope JSON
-Schema. Add `schemas/review_export.schema.json`, use it at browser-import and
-Python-ingest boundaries, and add parity tests so required fields, RFC 3339
-timestamps, reviewer/event identity rules, and unknown-property handling cannot
-drift between implementations.
-
-The Phase 7 policy decision is to reject undeclared properties and unknown enum
-values at both the export-envelope and individual review/annotation levels.
-Free text remains allowed only in explicitly declared fields, and legitimate new
-fields require an artifact schema version change. The implementation and parity
-tests are complete.
+directory on the same disk must not be represented as a backup. Hosted durable
+submission now protects accepted reviews from browser-local loss, but those
+receipts and submission files remain unique state that must enter the encrypted
+backup and restore set.
 
 ### Linguistic workbench introduction and correction policy
 
@@ -130,3 +108,28 @@ requires the human to enter fresh edit metadata.
 The test suite currently emits deprecation warnings from `rdflib` using legacy
 `pyparsing` APIs. They do not affect correctness today, but dependency upgrades
 should remove or re-evaluate the warnings before they become runtime failures.
+
+## Deployment readiness
+
+The application implementation and local synthetic desktop pilot are complete,
+but real-reviewer deployment remains gated by the operational and governance
+work in [`MUSPARQL_V2_PLAN.md`](MUSPARQL_V2_PLAN.md),
+[`HOME_SERVER_BOUNDARY.md`](HOME_SERVER_BOUNDARY.md), and
+[`PHASE_2B_BACKUP_RECOVERY_PLAN.md`](PHASE_2B_BACKUP_RECOVERY_PLAN.md).
+Outstanding work includes:
+
+- verify the dedicated read-only GitHub deploy key inside `MusparqlReview`, then
+  clone and install the project there;
+- select the real public URL/tunnel configuration and production email sender;
+- obtain controller approval for the lawful basis, contact route, final privacy
+  notice, and reviewer acknowledgement wording;
+- activate and verify the independent encrypted backup, monitoring, and
+  isolated database-plus-files restore;
+- install and verify the Musparql-only web, worker, and tunnel services; and
+- perform the owner-approved reboot/recovery test before real invitations.
+
+The linguistic-dimensions instruction-page redesign is a pre-pilot usability
+item rather than an infrastructure dependency. Human mobile-browser validation
+was deliberately deferred; the automated narrow-viewport contract passes, but
+the Phase 9 operational gate is not fully recorded as passed unless its current
+human-observation requirement is either completed or explicitly re-scoped.

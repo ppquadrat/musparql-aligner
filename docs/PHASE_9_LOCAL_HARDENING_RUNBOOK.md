@@ -31,6 +31,22 @@ gate. It does not claim encrypted off-host backup, retention, monitoring, key
 custody, or a complete file-set recovery. Those remain governed by
 [`PHASE_2B_BACKUP_RECOVERY_PLAN.md`](PHASE_2B_BACKUP_RECOVERY_PLAN.md).
 
+## Current pilot evidence
+
+The desktop usability exercise on 2026-08-21/22 completed onboarding in
+approximately 3 minutes 30 seconds and repeat pre-assignment confirmation in
+approximately 15 seconds. Firefox and Safari desktop flows were exercised after
+the autocomplete, form-preservation, routing, submission-feedback, and layout
+fixes. The regular and linguistic synthetic workbenches opened successfully,
+and the regular workbench produced an inline 100% completion confirmation.
+
+Human phone/mobile login was deliberately deferred. Automated responsive and
+one-time-code coverage passes, but a final operational report under the current
+schema still requires `mobile_login_success: true`. Either perform that narrow
+human check before recording Phase 9 as fully passed or explicitly re-scope the
+gate and its report contract before deployment approval; do not silently record
+an unperformed check as successful.
+
 ## Friction targets
 
 The Phase 9 pilot makes the previously qualitative friction goal operational:
@@ -47,7 +63,7 @@ elapsed wall time and one concise feedback observation in an ignored JSON file:
 ### Start the interactive synthetic pilot
 
 No real reviewer address or outbound email account is needed. Start the
-loopback-only pilot from the Phase 9 branch:
+loopback-only pilot from a clean checkout:
 
 ```bash
 .venv/bin/python -m musparql.web.local_hardening --interactive
