@@ -48,6 +48,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             "MUSPARQL_EXPERTISE_SUGGESTIONS_PATH",
             "catalog/expertise_domain_suggestions.yaml",
         ),
+        LANGUAGE_OPTIONS_PATH=os.environ.get(
+            "MUSPARQL_LANGUAGE_OPTIONS_PATH", "catalog/language_options.json"
+        ),
         ASSIGNMENT_BUNDLE_ROOT=os.environ.get(
             "MUSPARQL_ASSIGNMENT_BUNDLE_ROOT", "var/review/bundles"
         ),
@@ -137,6 +140,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         sessions=sessions,
         notice_version=app.config["PRIVACY_NOTICE_VERSION"],
         suggestions_path=Path(app.config["EXPERTISE_SUGGESTIONS_PATH"]).expanduser().resolve(),
+        language_options_path=Path(app.config["LANGUAGE_OPTIONS_PATH"]).expanduser().resolve(),
     )
     app.extensions["musparql_assignments"] = AssignmentService(
         sessions=sessions,
@@ -186,6 +190,9 @@ def _validate_config(app: Flask) -> None:
     suggestions_path = Path(app.config["EXPERTISE_SUGGESTIONS_PATH"]).expanduser().resolve()
     if not suggestions_path.is_file():
         raise RuntimeError("The configured expertise suggestion snapshot does not exist")
+    language_options_path = Path(app.config["LANGUAGE_OPTIONS_PATH"]).expanduser().resolve()
+    if not language_options_path.is_file():
+        raise RuntimeError("The configured language option snapshot does not exist")
     workbench_root = Path(app.config["REVIEW_WORKBENCH_ROOT"]).expanduser().resolve()
     missing_workbench_files = [
         name for name in ("index.html", "styles.css", "app.js", "host_context.js")

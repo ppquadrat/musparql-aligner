@@ -61,12 +61,14 @@ the runtime validators.
 
 ### `catalog/expertise_domain_suggestions.yaml`
 
-A small, versioned local suggestion set for general reviewer expertise. It
+A versioned local suggestion set for general reviewer expertise. It
 records a snapshot ID, creation date, source/version metadata, preferred and
 alternative labels, language, broader local concepts, and vocabulary URI/version
-when a concept has actually been imported and verified. The Phase 1 snapshot
-contains owner-reviewed specialist music terms and records EuroSciVoc as a
-reference-only source; it does not claim unverified EuroSciVoc mappings.
+when a concept has actually been imported and verified. The current snapshot
+contains owner-reviewed specialist music terms and the English concepts from
+EuroSciVoc 1.6.0, including stable concept URIs. The application searches this
+snapshot locally and does not transmit reviewer search text to the vocabulary
+service.
 
 Free-text entry remains valid even when the file has no matching suggestion.
 The contract is `schemas/expertise_domain_suggestions.schema.json`. Its runtime

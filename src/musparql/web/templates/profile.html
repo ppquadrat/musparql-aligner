@@ -15,7 +15,7 @@
         <p class="metadata">Version {{ notice_version }}</p>
         <p>{{ notice_body }}</p>
         <label class="check">
-          <input type="checkbox" name="notice_acknowledged" value="yes" required>
+          <input type="checkbox" name="notice_acknowledged" value="yes"{% if notice_acknowledged %} checked{% endif %} required>
           <span>I acknowledge that I have read this privacy notice.</span>
         </label>
       </section>
@@ -52,11 +52,18 @@
 
     <section>
       <h2>Languages</h2>
-      <p>Add at least one ISO language tag, such as <code>en</code>, <code>fr</code>, or <code>en-GB</code>.</p>
-      {% for tag, selected in language_rows %}
-        <div class="repeat-row">
-          <label>Language tag
-            <input name="language_tag" value="{{ tag }}" maxlength="6" pattern="[a-z]{2,3}(-[A-Z]{2})?" placeholder="en">
+      <p>Choose at least one language. Add more rows if you need them; up to twenty are supported.</p>
+      <div id="language-rows" class="repeat-rows">
+        {% for tag, selected in language_rows %}
+        <div class="repeat-row repeat-row-removable">
+          <label>Language
+            <select name="language_tag">
+              <option value="">Choose a language</option>
+              {% if tag and tag not in language_options|map(attribute='tag') %}<option value="{{ tag }}" selected>{{ tag }}</option>{% endif %}
+              {% for language in language_options %}
+                <option value="{{ language.tag }}"{% if tag == language.tag %} selected{% endif %}>{{ language.name }} ({{ language.tag }})</option>
+              {% endfor %}
+            </select>
           </label>
           <label>Level
             <select name="language_level">
@@ -66,14 +73,34 @@
               {% endfor %}
             </select>
           </label>
+          <button class="secondary remove-row" type="button">Remove</button>
         </div>
-      {% endfor %}
+        {% endfor %}
+      </div>
+      <button class="secondary" id="add-language" type="button">+ Add another language</button>
+      <p class="metadata">Language names: {{ language_snapshot_id }}.</p>
+      <template id="language-row-template">
+        <div class="repeat-row repeat-row-removable">
+          <label>Language
+            <select name="language_tag">
+              <option value="">Choose a language</option>
+              {% for language in language_options %}<option value="{{ language.tag }}">{{ language.name }} ({{ language.tag }})</option>{% endfor %}
+            </select>
+          </label>
+          <label>Level
+            <select name="language_level">
+              <option value="">Choose one</option>
+              {% for level in language_levels %}<option value="{{ level }}">{{ level|title }}</option>{% endfor %}
+            </select>
+          </label>
+          <button class="secondary remove-row" type="button">Remove</button>
+        </div>
+      </template>
     </section>
 
     <section>
       <h2>Research-domain expertise</h2>
-      <p>Add the fields in which you can assess review material. Suggestions are optional; use your own wording when it is more accurate.</p>
-      <p class="notice"><strong>Do not enter special-category personal data or information about criminal offences.</strong></p>
+      <p>Search EuroSciVoc for fields in which you can assess review material. You can use your own wording when it is more accurate.</p>
       {% set subject_labels = {
         'none': 'None',
         'basic': 'Basic',
@@ -97,28 +124,47 @@
       {% endfor %}
       <datalist id="domain-suggestions">
         {% for suggestion in suggestions %}
-          <option value="{{ suggestion.preferred_label }}"></option>
-          {% for alternative in suggestion.alternative_labels %}<option value="{{ alternative }}"></option>{% endfor %}
+          <option value="{{ suggestion.preferred_label }}">{{ 'EuroSciVoc' if suggestion.source_id == 'euroscivoc-reference' else 'Project term' }}</option>
+          {% for alternative in suggestion.alternative_labels %}<option value="{{ alternative }}">Alternative label</option>{% endfor %}
         {% endfor %}
       </datalist>
-      {% for _ in range(3) %}
-        <div class="repeat-row">
-          <label>New domain
-            <input name="new_domain_label" list="domain-suggestions" maxlength="200" placeholder="Search or add as written">
+      <div id="domain-rows" class="repeat-rows">
+      {% for label, selected in new_domain_rows %}
+        <div class="repeat-row repeat-row-removable">
+          <label>Research domain
+            <input name="new_domain_label" list="domain-suggestions" maxlength="200" value="{{ label }}" placeholder="Start typing to search">
           </label>
           <label>Expertise level
             <select name="new_domain_level">
               <option value="">Choose one</option>
               {% for level in subject_levels %}
-                <option value="{{ level }}">{{ loop.index0 }} — {{ subject_labels[level] }}</option>
+                <option value="{{ level }}"{% if selected == level %} selected{% endif %}>{{ loop.index0 }} — {{ subject_labels[level] }}</option>
               {% endfor %}
             </select>
           </label>
+          <button class="secondary remove-row" type="button">Remove</button>
         </div>
       {% endfor %}
-      <p class="metadata">Suggestion snapshot: {{ suggestion_snapshot_id }}. Free-text entries are preserved exactly.</p>
+      </div>
+      <button class="secondary" id="add-domain" type="button">+ Add another domain</button>
+      <p class="metadata">Searches {{ euroscivoc_suggestion_count }} EuroSciVoc concepts locally; no search text is sent outside Musparql. Snapshot: {{ suggestion_snapshot_id }}. Free-text entries are preserved exactly.</p>
+      <template id="domain-row-template">
+        <div class="repeat-row repeat-row-removable">
+          <label>Research domain
+            <input name="new_domain_label" list="domain-suggestions" maxlength="200" placeholder="Start typing to search">
+          </label>
+          <label>Expertise level
+            <select name="new_domain_level">
+              <option value="">Choose one</option>
+              {% for level in subject_levels %}<option value="{{ level }}">{{ loop.index0 }} — {{ subject_labels[level] }}</option>{% endfor %}
+            </select>
+          </label>
+          <button class="secondary remove-row" type="button">Remove</button>
+        </div>
+      </template>
     </section>
 
     <button type="submit">Save profile</button>
   </form>
+  <script src="{{ url_for('static', filename='profile.js') }}" defer></script>
 {% endblock %}

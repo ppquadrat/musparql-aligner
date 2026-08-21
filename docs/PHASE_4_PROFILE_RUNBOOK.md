@@ -17,13 +17,15 @@ authorise real reviewer profiles, or permit deployment. The gates in
   Phase 4; a later email-change flow must reverify the new address.
 - The form records knowledge-graph/ontology, SPARQL, and NLP/language-model
   experience using the Phase 1 four-value contract.
-- Languages use the constrained language tags and levels in
-  `schemas/reviewer_profile_v2.schema.json`. Current language rows retain their
-  first-asserted and last-updated timestamps.
-- General expertise supports multiple domains. Three blank entry rows are shown
-  at a time and reviewers may save again to add more, up to the server-side
-  limit of twenty. Suggestions come only from the configured, versioned local
-  snapshot; any non-matching label is accepted as free text. The stored entered
+- Languages are selected by name from the versioned Unicode CLDR snapshot, so
+  reviewers do not need to remember ISO tags. Two rows are shown initially and
+  `Add another language` supports up to twenty entries. Current language rows
+  retain their first-asserted and last-updated timestamps.
+- General expertise supports multiple domains. One blank entry row is shown
+  initially and `Add another domain` supports up to the server-side limit of
+  twenty. Search uses the configured, versioned local EuroSciVoc snapshot; it
+  does not send reviewer search text to an external service. Any non-matching
+  label is accepted as free text. The stored entered
   label preserves the reviewer's wording, while a separate normalized label is
   used for duplicate detection.
 - Changing a domain's expertise level appends a new assertion that supersedes
@@ -34,7 +36,8 @@ authorise real reviewer profiles, or permit deployment. The gates in
   pseudonymous reviewer ID. Owner access to identity/contact columns remains
   part of the existing sole-owner administration boundary.
 
-All profile writes are one database transaction. A stale or foreign domain ID,
+All profile writes are one database transaction. A rejected form is redisplayed
+with its submitted values intact and a specific validation message. A stale or foreign domain ID,
 duplicate domain, invalid language, incomplete paired row, missing current
 notice acknowledgement, or unsupported level rejects the entire update.
 
@@ -59,10 +62,19 @@ be selected with:
 export MUSPARQL_EXPERTISE_SUGGESTIONS_PATH="/absolute/path/to/approved-snapshot.yaml"
 ```
 
-The repository snapshot contains six owner-reviewed specialist terms.
-EuroSciVoc is recorded as a reference-only source: no entry may claim a
-EuroSciVoc mapping until its stable concept URI and vocabulary release have
-been checked by the owner and added in a new snapshot.
+The repository snapshot contains six owner-reviewed specialist terms and the
+1,064 English concepts in EuroSciVoc 1.6.0, imported with their stable concept
+URIs and vocabulary version. Runtime search is entirely local. Refresh this
+tracked snapshot deliberately from the official Publications Office endpoint:
+
+```bash
+.venv/bin/python scripts/refresh_euroscivoc_suggestions.py \
+  --output catalog/expertise_domain_suggestions.yaml
+```
+
+Language names default to `catalog/language_options.json`, generated from
+Unicode CLDR 48.2.0. An alternate snapshot can be selected with
+`MUSPARQL_LANGUAGE_OPTIONS_PATH`.
 
 For synthetic local development only, the application can install its explicit
 test notice with:
@@ -84,8 +96,9 @@ the other.
 ```
 
 The Phase 4 tests cover incomplete-profile redirects, notice display and
-acknowledgement, current-notice invalidation, local suggestions and free text,
-technical experience, languages, append-only domain corrections, atomic
+acknowledgement, current-notice invalidation, local EuroSciVoc search and free
+text, language-name selection and repeat rows, submitted-value preservation,
+specific validation messages, append-only domain corrections, atomic
 rejection of stale form data, owner completion state, and fail-closed notice
 configuration.
 

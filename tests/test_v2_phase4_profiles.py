@@ -62,6 +62,7 @@ def phase4_app(tmp_path: Path):
             "COOKIE_SECURE": False,
             "EMAIL_SENDER": sender,
             "EXPERTISE_SUGGESTIONS_PATH": ROOT / "catalog/expertise_domain_suggestions.yaml",
+            "LANGUAGE_OPTIONS_PATH": ROOT / "catalog/language_options.json",
             "PRIVACY_NOTICE_VERSION": "synthetic-phase4-v1",
             "PRIVACY_NOTICE_BODY": "Synthetic Phase 4 notice. Do not enter real data.",
         }
@@ -127,7 +128,11 @@ def test_incomplete_reviewer_is_redirected_and_completes_onboarding(phase4_app) 
     assert b"Synthetic Phase 4 notice" in page.data
     assert b"Computational musicology" in page.data
     assert b"Add as written" not in page.data
-    assert b"special-category personal data" in page.data
+    assert b"special-category personal data" not in page.data
+    assert b"English (en)" in page.data
+    assert b'id="add-language"' in page.data
+    assert b'id="add-domain"' in page.data
+    assert b"1064 EuroSciVoc concepts locally" in page.data
     assert b"2 \xe2\x80\x94 Working knowledge" in page.data
 
     response = client.post("/profile", data=profile_form(client))
@@ -215,7 +220,8 @@ def test_profile_correction_appends_domain_history_and_preserves_first_language_
     stale.add("existing_domain_level", "basic")
     response = client.post("/profile", data=stale)
     assert response.status_code == 200
-    assert b"Please correct" in response.data
+    assert b"Profile not saved: The profile changed in another request" in response.data
+    assert b"Stale Synthetic Reviewer" in response.data
 
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
@@ -248,7 +254,8 @@ def test_invalid_or_stale_profile_is_atomic(phase4_app) -> None:
     invalid.add("existing_domain_level", "expert")
     response = client.post("/profile", data=invalid)
     assert response.status_code == 200
-    assert b"Please correct" in response.data
+    assert b"Profile not saved: The submitted domain set is stale or invalid" in response.data
+    assert b"Must Not Persist" in response.data
 
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
@@ -323,7 +330,39 @@ def test_notice_version_change_requires_new_acknowledgement(phase4_app) -> None:
     form.add("existing_domain_level", current.domains[0].expertise_level)
     response = client.post("/profile", data=form)
     assert response.status_code == 200
-    assert b"Please correct" in response.data
+    assert b"Profile not saved: The current privacy notice must be acknowledged" in response.data
+
+
+def test_invalid_new_domain_preserves_all_submitted_profile_fields(phase4_app) -> None:
+    app, sender, _database_path = phase4_app
+    client = app.test_client()
+    login(client, app, sender, "reviewer@example.invalid")
+    form = profile_form(client, name="Retained Synthetic Reviewer")
+    form.setlist("new_domain_label", ["Retained synthetic domain"])
+    form.setlist("new_domain_level", [""])
+
+    response = client.post("/profile", data=form)
+
+    assert response.status_code == 200
+    assert b"Profile not saved: Choose an expertise level for Retained synthetic domain" in response.data
+    assert b'value="Retained Synthetic Reviewer"' in response.data
+    assert b'value="Retained synthetic domain"' in response.data
+    assert b'<option value="en" selected>English (en)</option>' in response.data
+    assert b'<option value="native" selected>Native</option>' in response.data
+    assert b'name="notice_acknowledged" value="yes" checked' in response.data
+
+
+def test_language_snapshot_and_profile_javascript_are_available(phase4_app) -> None:
+    app, sender, _database_path = phase4_app
+    service = app.extensions["musparql_profiles"]
+    assert len(service.language_options) >= 180
+    assert service.euroscivoc_suggestion_count >= 1000
+
+    client = app.test_client()
+    login(client, app, sender, "reviewer@example.invalid")
+    script = client.get("/static/profile.js")
+    assert script.status_code == 200
+    assert b"configureRepeatRows" in script.data
 
 
 def test_owner_sees_only_pseudonymous_completion_status(phase4_app) -> None:

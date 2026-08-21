@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
+import json
 from pathlib import Path
 import re
 import unicodedata
@@ -65,6 +66,7 @@ class ProfileService:
         sessions: sessionmaker[Session],
         notice_version: str,
         suggestions_path: Path,
+        language_options_path: Path,
     ) -> None:
         self.sessions = sessions
         self.notice_version = notice_version
@@ -80,6 +82,36 @@ class ProfileService:
             )
         }
         self._sources = {item["source_id"]: item for item in payload["sources"]}
+        self.euroscivoc_suggestion_count = sum(
+            suggestion["source_id"] == "euroscivoc-reference"
+            for suggestion in self.suggestions
+        )
+        language_payload = json.loads(language_options_path.read_text(encoding="utf-8"))
+        if language_payload.get("schema") != "musparql.language-options.v1":
+            raise ValueError("Language options use an unsupported contract")
+        options = language_payload.get("options")
+        if not isinstance(options, list) or not options:
+            raise ValueError("Language options are empty")
+        validated_options: list[dict[str, str]] = []
+        seen_tags: set[str] = set()
+        for option in options:
+            if not isinstance(option, dict):
+                raise ValueError("A language option is not an object")
+            tag = option.get("tag")
+            name = option.get("name")
+            if (
+                not isinstance(tag, str)
+                or not LANGUAGE_TAG_RE.fullmatch(tag)
+                or not isinstance(name, str)
+                or not name.strip()
+                or tag in seen_tags
+            ):
+                raise ValueError("A language option is invalid or duplicated")
+            seen_tags.add(tag)
+            validated_options.append({"tag": tag, "name": name.strip()})
+        self.language_options = tuple(validated_options)
+        self.language_tags = frozenset(seen_tags)
+        self.language_snapshot_id = str(language_payload["snapshot_id"])
 
     def is_complete(self, reviewer_id: str) -> bool:
         with self.sessions() as session:
@@ -150,8 +182,12 @@ class ProfileService:
         now_text = timestamp(now or utc_now())
         name = unicodedata.normalize("NFC", form.get("name", "")).strip()
         affiliation = unicodedata.normalize("NFC", form.get("affiliation", "")).strip()
-        if not name or len(name) > 200 or len(affiliation) > 300:
-            raise ValueError("Name or affiliation is invalid")
+        if not name:
+            raise ValueError("Enter your name.")
+        if len(name) > 200:
+            raise ValueError("Name must be 200 characters or fewer.")
+        if len(affiliation) > 300:
+            raise ValueError("Affiliation must be 300 characters or fewer.")
 
         technical = {
             field: form.get(field, "")
@@ -297,8 +333,9 @@ class ProfileService:
             )
         )
 
-    @staticmethod
-    def _parse_languages(tags: Sequence[str], levels: Sequence[str]) -> dict[str, str]:
+    def _parse_languages(
+        self, tags: Sequence[str], levels: Sequence[str]
+    ) -> dict[str, str]:
         if len(tags) != len(levels):
             raise ValueError("Language fields are inconsistent")
         result: dict[str, str] = {}
@@ -306,13 +343,19 @@ class ProfileService:
             tag = unicodedata.normalize("NFC", raw_tag).strip()
             if not tag and not level:
                 continue
-            if not LANGUAGE_TAG_RE.fullmatch(tag) or level not in LANGUAGE_LEVELS:
-                raise ValueError("Every language requires a valid tag and level")
+            if not tag:
+                raise ValueError("Choose a language for every selected language level.")
+            if not LANGUAGE_TAG_RE.fullmatch(tag):
+                raise ValueError("Choose each language from the language list.")
+            if level not in LANGUAGE_LEVELS:
+                raise ValueError(f"Choose a proficiency level for {tag}.")
             if tag in result:
-                raise ValueError("Languages must be unique")
+                raise ValueError(f"Language {tag} was added more than once.")
             result[tag] = level
-        if not result or len(result) > MAX_LANGUAGES:
-            raise ValueError("Between one and twenty languages are required")
+        if not result:
+            raise ValueError("Add at least one language.")
+        if len(result) > MAX_LANGUAGES:
+            raise ValueError("Add no more than twenty languages.")
         return result
 
     @staticmethod
@@ -324,8 +367,12 @@ class ProfileService:
             label = unicodedata.normalize("NFC", raw_label).strip()
             if not label and not level:
                 continue
-            if not label or len(label) > 200 or level not in SUBJECT_LEVELS:
-                raise ValueError("Every new domain requires a label and level")
+            if not label:
+                raise ValueError("Enter a research domain for every selected expertise level.")
+            if len(label) > 200:
+                raise ValueError("Research domains must be 200 characters or fewer.")
+            if level not in SUBJECT_LEVELS:
+                raise ValueError(f"Choose an expertise level for {label}.")
             result.append((label, normalize_domain_label(label), level))
         return result
 

@@ -271,6 +271,7 @@ def _app_config(root: Path, database_path: Path, sender: SyntheticEmailSender) -
             project_root / "schemas/linguistic_annotation_export.schema.json"
         ),
         "EXPERTISE_SUGGESTIONS_PATH": project_root / "catalog/expertise_domain_suggestions.yaml",
+        "LANGUAGE_OPTIONS_PATH": project_root / "catalog/language_options.json",
         "PRIVACY_NOTICE_VERSION": "synthetic-phase9-v1",
         "PRIVACY_NOTICE_BODY": "Synthetic Phase 9 notice. Do not enter real data.",
     }

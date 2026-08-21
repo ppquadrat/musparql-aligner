@@ -1,6 +1,7 @@
 """Phase 3 login, session, and owner-control HTTP routes."""
 from __future__ import annotations
 
+from dataclasses import replace
 from functools import wraps
 import json
 from pathlib import Path
@@ -109,6 +110,7 @@ def index():
 def profile():
     service = current_app.extensions["musparql_profiles"]
     error = ""
+    submitted = request.method == "POST"
     if request.method == "POST":
         try:
             service.update(
@@ -122,24 +124,72 @@ def profile():
                 language_tags=request.form.getlist("language_tag"),
                 language_levels=request.form.getlist("language_level"),
             )
-        except ValueError:
-            error = "Please correct the profile fields and try again."
+        except ValueError as exc:
+            error = f"Profile not saved: {exc}"
         else:
             return redirect(url_for("portal.profile", saved="yes"))
     value = service.load(g.current_reviewer.id)
-    language_rows = list(value.languages) + [("", "")] * max(2, 3 - len(value.languages))
+    new_domain_rows: list[tuple[str, str]]
+    notice_acknowledged = False
+    if submitted and error:
+        submitted_existing_levels = dict(
+            zip(
+                request.form.getlist("existing_domain_id"),
+                request.form.getlist("existing_domain_level"),
+            )
+        )
+        value = replace(
+            value,
+            name=request.form.get("name", ""),
+            affiliation=request.form.get("affiliation", ""),
+            kg_ontology_experience=request.form.get("kg_ontology_experience", ""),
+            sparql_experience=request.form.get("sparql_experience", ""),
+            nlp_llm_experience=request.form.get("nlp_llm_experience", ""),
+            domains=tuple(
+                replace(
+                    domain,
+                    expertise_level=submitted_existing_levels.get(
+                        domain.domain_id, domain.expertise_level
+                    ),
+                )
+                for domain in value.domains
+            ),
+        )
+        language_rows = list(
+            zip(
+                request.form.getlist("language_tag"),
+                request.form.getlist("language_level"),
+            )
+        )
+        new_domain_rows = list(
+            zip(
+                request.form.getlist("new_domain_label"),
+                request.form.getlist("new_domain_level"),
+            )
+        )
+        notice_acknowledged = request.form.get("notice_acknowledged") == "yes"
+    else:
+        language_rows = list(value.languages)
+        new_domain_rows = []
+    language_rows += [("", "")] * max(0, 2 - len(language_rows))
+    new_domain_rows += [("", "")] * max(0, 1 - len(new_domain_rows))
     return render_template(
         "profile.html",
         profile=value,
         profile_complete=service.is_complete(g.current_reviewer.id),
         language_rows=language_rows,
+        new_domain_rows=new_domain_rows,
         suggestions=service.suggestions,
         suggestion_snapshot_id=service.suggestion_snapshot_id,
+        euroscivoc_suggestion_count=service.euroscivoc_suggestion_count,
+        language_options=service.language_options,
+        language_snapshot_id=service.language_snapshot_id,
         technical_levels=("none", "occasional", "regular", "expert"),
         subject_levels=("none", "basic", "working", "advanced", "expert"),
         language_levels=("basic", "advanced", "fluent", "native"),
         notice_version=current_app.config["PRIVACY_NOTICE_VERSION"],
         notice_body=current_app.config["PRIVACY_NOTICE_BODY"],
+        notice_acknowledged=notice_acknowledged,
         error=error,
         saved=request.args.get("saved") == "yes",
     )

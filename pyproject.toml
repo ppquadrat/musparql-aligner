@@ -33,4 +33,4 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "musparql.database.alembic" = ["README.md", "script.py.mako"]
-"musparql.web" = ["templates/*.html", "static/*.css"]
+"musparql.web" = ["templates/*.html", "static/*.css", "static/*.js"]

@@ -437,7 +437,17 @@ def test_versioned_expertise_suggestion_snapshot_validates() -> None:
     path = ROOT / "catalog/expertise_domain_suggestions.yaml"
     payload = load_expertise_domain_suggestions(path)
     assert payload["suggestions"]
-    assert all(item["source_id"] == "musparql-owner-reviewed-terms" for item in payload["suggestions"])
+    source_ids = {item["source_id"] for item in payload["suggestions"]}
+    assert source_ids == {"musparql-owner-reviewed-terms", "euroscivoc-reference"}
+    assert sum(
+        item["source_id"] == "euroscivoc-reference"
+        for item in payload["suggestions"]
+    ) >= 1000
+    euroscivoc = next(
+        item for item in payload["sources"] if item["source_id"] == "euroscivoc-reference"
+    )
+    assert euroscivoc["usage"] == "suggestion_entries"
+    assert euroscivoc["source_version"] == "1.6.0"
 
 
 def test_expertise_suggestion_loader_enforces_required_metadata(tmp_path: Path) -> None:
