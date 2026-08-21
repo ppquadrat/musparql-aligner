@@ -133,6 +133,10 @@ def test_incomplete_reviewer_is_redirected_and_completes_onboarding(phase4_app) 
     assert b'id="add-language"' in page.data
     assert b'id="add-domain"' in page.data
     assert b"1064 EuroSciVoc concepts locally" in page.data
+    assert b'id="domain-suggestion-data"' in page.data
+    assert b'<datalist' not in page.data
+    assert b'class="domain-search"' in page.data
+    assert b'autocomplete="off"' in page.data
     assert b"2 \xe2\x80\x94 Working knowledge" in page.data
 
     response = client.post("/profile", data=profile_form(client))
@@ -363,6 +367,13 @@ def test_language_snapshot_and_profile_javascript_are_available(phase4_app) -> N
     script = client.get("/static/profile.js")
     assert script.status_code == 200
     assert b"configureRepeatRows" in script.data
+    assert b"configureDomainAutocomplete" in script.data
+    assert b"domainMatches" in script.data
+
+    stylesheet = client.get("/static/portal.css")
+    assert stylesheet.status_code == 200
+    assert b"minmax(0, 1fr)" in stylesheet.data
+    assert b".domain-results" in stylesheet.data
 
 
 def test_owner_sees_only_pseudonymous_completion_status(phase4_app) -> None:

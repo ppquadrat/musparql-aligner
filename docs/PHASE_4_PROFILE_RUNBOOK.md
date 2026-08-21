@@ -23,9 +23,10 @@ authorise real reviewer profiles, or permit deployment. The gates in
   retain their first-asserted and last-updated timestamps.
 - General expertise supports multiple domains. One blank entry row is shown
   initially and `Add another domain` supports up to the server-side limit of
-  twenty. Search uses the configured, versioned local EuroSciVoc snapshot; it
-  does not send reviewer search text to an external service. Any non-matching
-  label is accepted as free text. The stored entered
+  twenty. A browser-independent autocomplete searches the configured,
+  versioned local EuroSciVoc snapshot; it does not rely on native datalist or
+  browser-history behaviour and does not send reviewer search text to an
+  external service. Any non-matching label is accepted as free text. The stored entered
   label preserves the reviewer's wording, while a separate normalized label is
   used for duplicate detection.
 - Changing a domain's expertise level appends a new assertion that supersedes

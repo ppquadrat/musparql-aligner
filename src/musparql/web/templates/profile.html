@@ -122,18 +122,21 @@
           </label>
         </div>
       {% endfor %}
-      <datalist id="domain-suggestions">
+      <select id="domain-suggestion-data" hidden aria-hidden="true" tabindex="-1">
         {% for suggestion in suggestions %}
-          <option value="{{ suggestion.preferred_label }}">{{ 'EuroSciVoc' if suggestion.source_id == 'euroscivoc-reference' else 'Project term' }}</option>
-          {% for alternative in suggestion.alternative_labels %}<option value="{{ alternative }}">Alternative label</option>{% endfor %}
+          <option value="{{ suggestion.preferred_label }}" data-detail="{{ 'EuroSciVoc' if suggestion.source_id == 'euroscivoc-reference' else 'Project term' }}"></option>
+          {% for alternative in suggestion.alternative_labels %}<option value="{{ alternative }}" data-detail="EuroSciVoc alternative for {{ suggestion.preferred_label }}"></option>{% endfor %}
         {% endfor %}
-      </datalist>
+      </select>
       <div id="domain-rows" class="repeat-rows">
       {% for label, selected in new_domain_rows %}
         <div class="repeat-row repeat-row-removable">
-          <label>Research domain
-            <input name="new_domain_label" list="domain-suggestions" maxlength="200" value="{{ label }}" placeholder="Start typing to search">
-          </label>
+          <div class="domain-autocomplete">
+            <label>Research domain
+              <input class="domain-search" name="new_domain_label" maxlength="200" value="{{ label }}" placeholder="Start typing to search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false">
+            </label>
+            <div class="domain-results" role="listbox" hidden></div>
+          </div>
           <label>Expertise level
             <select name="new_domain_level">
               <option value="">Choose one</option>
@@ -150,9 +153,12 @@
       <p class="metadata">Searches {{ euroscivoc_suggestion_count }} EuroSciVoc concepts locally; no search text is sent outside Musparql. Snapshot: {{ suggestion_snapshot_id }}. Free-text entries are preserved exactly.</p>
       <template id="domain-row-template">
         <div class="repeat-row repeat-row-removable">
-          <label>Research domain
-            <input name="new_domain_label" list="domain-suggestions" maxlength="200" placeholder="Start typing to search">
-          </label>
+          <div class="domain-autocomplete">
+            <label>Research domain
+              <input class="domain-search" name="new_domain_label" maxlength="200" placeholder="Start typing to search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false">
+            </label>
+            <div class="domain-results" role="listbox" hidden></div>
+          </div>
           <label>Expertise level
             <select name="new_domain_level">
               <option value="">Choose one</option>
