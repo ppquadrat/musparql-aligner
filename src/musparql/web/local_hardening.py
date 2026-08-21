@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import logging
+import math
 import os
 from pathlib import Path
 import platform
@@ -334,6 +335,7 @@ def _login(
     remembered: bool,
     user_agent: str,
     email: str = REVIEWER_EMAIL,
+    verify_mobile_contract: bool = False,
 ) -> tuple[str, str]:
     position = sender.position()
     response = client.post(
@@ -344,6 +346,15 @@ def _login(
     _require(response.status_code == 302, "Login-code request was not accepted")
     message = sender.wait_for("login_code", email, after_index=position)
     app.extensions["musparql_email_dispatcher"].wait_for_idle()
+    if verify_mobile_contract:
+        verify_page = client.get("/auth/verify", headers={"User-Agent": user_agent})
+        _require(
+            verify_page.status_code == 200
+            and b'name="viewport"' in verify_page.data
+            and b'inputmode="numeric"' in verify_page.data
+            and b'autocomplete="one-time-code"' in verify_page.data,
+            "Mobile verification page lacks its one-time-code input contract",
+        )
     form = {"csrf_token": _csrf(client), "code": message.value}
     if remembered:
         form["remembered"] = "yes"
@@ -385,19 +396,30 @@ def _assessment_form(client: Any) -> MultiDict:
     )
 
 
-def _export(assignment_id: str, bundle_digest: str) -> dict[str, Any]:
+def _export(assignment_id: str, attributed_bundle: Mapping[str, Any]) -> dict[str, Any]:
     review_id = "synthetic-phase9-record"
     event_id = f"{review_id}::{REVIEWER_ID}"
+    run_id = attributed_bundle.get("single_run_id")
+    run_ids = attributed_bundle.get("run_ids")
+    runs = attributed_bundle.get("runs")
+    _require(
+        isinstance(run_id, str)
+        and bool(run_id)
+        and isinstance(run_ids, list)
+        and run_id in run_ids
+        and isinstance(runs, list),
+        "Synthetic hosted bundle cannot produce the workbench export contract",
+    )
     return {
         "schema": "musparql.review-export.v2",
         "kind": "non_holdout_review_export",
         "assignment_id": assignment_id,
-        "bundle_digest": bundle_digest,
+        "bundle_digest": attributed_bundle["bundle_digest"],
         "reviewer_id": REVIEWER_ID,
         "dataset_id": DATASET_ID,
-        "run_id": "synthetic-phase9-run",
-        "run_ids": ["synthetic-phase9-run"],
-        "runs": [],
+        "run_id": run_id,
+        "run_ids": run_ids,
+        "runs": runs,
         "exported_at": "2026-08-21T12:10:00Z",
         "reviews": {
             review_id: {
@@ -435,22 +457,28 @@ def _validate_observation(value: Mapping[str, Any]) -> dict[str, Any]:
     }
     if set(value) != required:
         raise ValueError("Usability observation fields do not match the Phase 9 contract")
-    observer = str(value["observer"]).strip()
-    feedback = str(value["feedback"]).strip()
+    if not isinstance(value["observer"], str) or not isinstance(value["feedback"], str):
+        raise ValueError("Usability observation text must be strings")
+    observer = value["observer"].strip()
+    feedback = value["feedback"].strip()
     onboarding = value["onboarding_seconds"]
     repeat = value["repeat_assessment_seconds"]
     if not observer or not feedback or isinstance(onboarding, bool) or isinstance(repeat, bool):
         raise ValueError("Usability observation text and timings are required")
     if not isinstance(onboarding, (int, float)) or not isinstance(repeat, (int, float)):
         raise ValueError("Usability timings must be numeric seconds")
-    if onboarding <= 0 or repeat <= 0:
+    onboarding_seconds = float(onboarding)
+    repeat_seconds = float(repeat)
+    if not math.isfinite(onboarding_seconds) or not math.isfinite(repeat_seconds):
+        raise ValueError("Usability timings must be finite numeric seconds")
+    if onboarding_seconds <= 0 or repeat_seconds <= 0:
         raise ValueError("Usability timings must be positive")
     if value["mobile_login_success"] is not True:
         raise ValueError("The observed mobile login must succeed before Phase 9 can pass")
     return {
         "observer": observer,
-        "onboarding_seconds": float(onboarding),
-        "repeat_assessment_seconds": float(repeat),
+        "onboarding_seconds": onboarding_seconds,
+        "repeat_assessment_seconds": repeat_seconds,
         "mobile_login_success": True,
         "feedback": feedback,
     }
@@ -528,7 +556,7 @@ def run_verification(
     )
     submission_response = private.post(
         f"/assignments/{first_assignment}/submissions",
-        json=_export(first_assignment, attributed["bundle_digest"]),
+        json=_export(first_assignment, attributed),
         headers={"X-CSRF-Token": _csrf(private)},
     )
     _require(submission_response.status_code == 202, "Synthetic review was not accepted")
@@ -604,11 +632,16 @@ def run_verification(
         "Mobile login page lacks its responsive viewport contract",
     )
     mobile_code, mobile_token = _login(
-        mobile, app, sender, remembered=False, user_agent=mobile_agent
+        mobile,
+        app,
+        sender,
+        remembered=False,
+        user_agent=mobile_agent,
+        verify_mobile_contract=True,
     )
     _require(
-        mobile.get("/", headers={"User-Agent": mobile_agent}).status_code == 200,
-        "Mobile-shaped login did not reach the reviewer home page",
+        mobile.get("/profile", headers={"User-Agent": mobile_agent}).status_code == 200,
+        "Mobile-shaped login did not establish an authenticated session",
     )
 
     sessions = app.extensions["musparql_sessions"]
@@ -694,11 +727,10 @@ def run_verification(
                 or 0
             ),
         }
-    _close_app(restarted)
-
     restored_path = root / "restore" / "phase9-restored.sqlite3"
     restored_path.parent.mkdir(mode=0o700)
     _backup_database(database_path, restored_path)
+    _close_app(restarted)
     with sqlite3.connect(restored_path) as connection:
         integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
     _require(integrity == "ok", "Restored SQLite database failed its integrity check")

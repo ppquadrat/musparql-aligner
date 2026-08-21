@@ -70,6 +70,30 @@ def test_phase9_requires_complete_human_observation(tmp_path: Path) -> None:
         run_verification(tmp_path / "failed-mobile", failed_mobile)
 
 
+@pytest.mark.parametrize(
+    "changes, message",
+    [
+        ({"observer": None}, "strings"),
+        ({"feedback": None}, "strings"),
+        ({"onboarding_seconds": float("nan")}, "finite"),
+        ({"repeat_assessment_seconds": float("inf")}, "finite"),
+    ],
+)
+def test_phase9_rejects_non_text_and_non_finite_observations(
+    tmp_path: Path, changes: dict[str, object], message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        run_verification(tmp_path / "invalid-observation", dict(OBSERVATION, **changes))
+
+
+def test_phase9_bundle_can_supply_the_browser_export_run_contract() -> None:
+    bundle = json.loads(_bundle_bytes())
+
+    assert bundle["single_run_id"] == "synthetic-phase9-run"
+    assert bundle["single_run_id"] in bundle["run_ids"]
+    assert isinstance(bundle["runs"], list)
+
+
 def test_phase9_cli_writes_report(tmp_path: Path, capsys) -> None:
     observation_path = tmp_path / "observation.json"
     observation_path.write_text(json.dumps(OBSERVATION), encoding="utf-8")
