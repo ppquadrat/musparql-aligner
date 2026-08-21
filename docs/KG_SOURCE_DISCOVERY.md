@@ -21,6 +21,20 @@ musparql-discover-sources \
   --backend openalex
 ```
 
+Alternative names can be supplied explicitly. Each alias creates recorded
+search queries and contributes to ranking; it is not promoted into a catalogue:
+
+```console
+musparql-discover-sources \
+  --name "Jazz Ontology" \
+  --project "Dig That Lick" \
+  --alias "DTL1000" \
+  --alias "100 years of jazz"
+```
+
+At most five distinct aliases are accepted so one invocation cannot silently
+expand into an unbounded number of API requests.
+
 The optional environment variables are:
 
 - `GITHUB_TOKEN`: authenticates GitHub API requests and raises rate limits;
@@ -40,6 +54,11 @@ report. `var/` is ignored by Git. By default a report shows a ranked shortlist
 of at most five repositories, five publications, and five web documents. It
 records each candidate's original API rank and query, explains its lexical
 ranking signals, and reports how many unique results were omitted.
+
+Publication copies are grouped conservatively when they share a DOI or OpenAlex
+identifier, or when a publication result has the same normalized long title.
+The candidate retains every discovered location and labels title-based grouping
+as probable rather than authoritative. Weakly similar titles remain separate.
 
 Use `--expanded` only when the shortlist is insufficient and every returned
 unique candidate is worth inspecting:

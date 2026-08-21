@@ -8,7 +8,9 @@ from musparql.kg_source_discovery import (
     Candidate,
     DiscoveryReport,
     extract_short_name,
+    group_publication_locations,
     main,
+    normalise_aliases,
     search_github,
     shortlist_candidates,
 )
@@ -114,7 +116,84 @@ def test_shortlist_caps_each_source_kind_and_reports_omissions():
 
     assert len(shown) == 10
     assert counts == {
-        "publication": {"found": 7, "shown": 5, "omitted": 2},
-        "repository": {"found": 7, "shown": 5, "omitted": 2},
+        "publication": {"found": 7, "shown": 5, "omitted": 2, "locations": 7, "grouped_duplicates": 0},
+        "repository": {"found": 7, "shown": 5, "omitted": 2, "locations": 7, "grouped_duplicates": 0},
     }
     assert [item.relevance_score for item in shown[:5]] == [6, 5, 4, 3, 2]
+
+
+def test_aliases_are_normalised_limited_and_added_to_queries(monkeypatch):
+    assert normalise_aliases([" DTL1000 ", "dtl1000", "100 years of jazz"]) == [
+        "DTL1000", "100 years of jazz"
+    ]
+    with pytest.raises(ValueError, match="at most 5"):
+        normalise_aliases([f"alias-{number}" for number in range(6)])
+
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    session = GitHubSession()
+    _candidates, queries, _warnings = search_github(
+        "Jazz Ontology", None, aliases=["DTL1000"], per_query=20, session=session
+    )
+    assert [record.query for record in queries][-1] == '"DTL1000" in:name,description,readme'
+
+
+def test_publication_locations_group_by_doi_or_exact_long_title():
+    title = "The Jazz Ontology: A semantic model and large-scale RDF repositories for jazz"
+    canonical = Candidate(
+        url="https://doi.org/10.1016/j.websem.2022.100735",
+        source_kind="publication",
+        title=title,
+        description="",
+        relevance_score=101,
+        matched_tokens=["jazz"],
+        ranking_reasons=["exact KG name in title"],
+        review_status="unverified_candidate",
+        origins=[{"backend": "openalex", "query": "Jazz Ontology", "rank": 3}],
+        metadata={"doi": "https://doi.org/10.1016/j.websem.2022.100735"},
+    )
+    title_copy = Candidate(
+        url="https://example.test/institutional-copy",
+        source_kind="web_document",
+        title=title + " - Institutional Repository",
+        description="",
+        relevance_score=101,
+        matched_tokens=["jazz"],
+        ranking_reasons=["exact KG name in title"],
+        review_status="unverified_candidate",
+        origins=[{"backend": "brave", "query": '"Jazz Ontology"', "rank": 2}],
+    )
+    doi_copy = Candidate(
+        url="https://example.test/doi/10.1016/j.websem.2022.100735",
+        source_kind="web_document",
+        title="Publisher index entry",
+        description="",
+        relevance_score=1,
+        matched_tokens=["jazz"],
+        ranking_reasons=["matched token: jazz"],
+        review_status="unverified_candidate",
+        origins=[{"backend": "brave", "query": '"Jazz Ontology"', "rank": 4}],
+    )
+    unrelated = Candidate(
+        url="https://example.test/unrelated",
+        source_kind="publication",
+        title="A different long publication title about jazz performance practice",
+        description="",
+        relevance_score=1,
+        matched_tokens=["jazz"],
+        ranking_reasons=["matched token: jazz"],
+        review_status="unverified_candidate",
+        origins=[{"backend": "openalex", "query": "Jazz", "rank": 1}],
+    )
+
+    grouped = group_publication_locations([canonical, title_copy, doi_copy, unrelated])
+
+    assert len(grouped) == 2
+    jazz = next(item for item in grouped if item.url.startswith("https://doi.org/"))
+    assert len(jazz.locations) == 3
+    assert jazz.duplicate_grouping == [
+        "confirmed shared DOI or OpenAlex identifier",
+        "probable duplicate: exact normalized long title",
+    ]
+    assert {location["url"] for location in jazz.locations} == {
+        canonical.url, title_copy.url, doi_copy.url,
+    }

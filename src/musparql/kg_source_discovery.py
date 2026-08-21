@@ -7,6 +7,7 @@ candidate into either catalogue.
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import json
@@ -35,6 +36,8 @@ QUALIFIER_SUFFIXES = (
     "knowledge graph", "knowledge-graph", "kg", "ontology", "ontologies",
     "vocabulary", "thesaurus", "dataset", "data set", "rdf", "linked data",
 )
+MAX_ALIASES = 5
+DOI_RE = re.compile(r"10\.\d{4,9}/[-._;()/:a-zA-Z0-9]+", re.IGNORECASE)
 
 
 @dataclass
@@ -58,6 +61,8 @@ class Candidate:
     review_status: str
     origins: list[dict[str, Any]] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
+    duplicate_grouping: list[str] = field(default_factory=list)
+    locations: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -65,6 +70,7 @@ class DiscoveryReport:
     kg_name: str
     project: str | None
     created_at: str
+    aliases: list[str] = field(default_factory=list)
     shortlist_limit_per_kind: int | None = 5
     candidate_counts: dict[str, dict[str, int]] = field(default_factory=dict)
     queries: list[QueryRecord] = field(default_factory=list)
@@ -75,6 +81,7 @@ class DiscoveryReport:
     limitations: list[str] = field(default_factory=lambda: [
         "Search APIs rank and cap their results; absence from this report is not evidence that a source does not exist.",
         "Relevance scores are lexical hints, not quality or authority assessments.",
+        "Title-based publication grouping is a review hint; verify grouped locations before treating them as one work.",
         "The report does not alter catalog/sources.yaml, KG seeds, or any other authoritative input.",
     ])
 
@@ -110,6 +117,21 @@ def name_tokens(*names: str | None) -> list[str]:
     return tokens
 
 
+def normalise_aliases(aliases: Iterable[str]) -> list[str]:
+    normalised: list[str] = []
+    for raw in aliases:
+        alias = re.sub(r"\s+", " ", raw).strip()
+        if not alias:
+            raise ValueError("aliases must not be empty")
+        if len(alias) > 100:
+            raise ValueError("aliases must be at most 100 characters")
+        if alias.casefold() not in {item.casefold() for item in normalised}:
+            normalised.append(alias)
+    if len(normalised) > MAX_ALIASES:
+        raise ValueError(f"at most {MAX_ALIASES} aliases may be supplied")
+    return normalised
+
+
 def _compact(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.lower())
 
@@ -120,8 +142,10 @@ def relevance(
     *,
     kg_name: str,
     project: str | None,
+    aliases: Iterable[str] = (),
 ) -> tuple[int, list[str], list[str]]:
     """Return a transparent lexical score; exact KG-name matches dominate."""
+    alias_list = list(aliases)
     tokens = name_tokens(kg_name, extract_short_name(kg_name), project)
     haystack = f"{title} {context}"
     matched = [token for token in tokens if token in haystack.lower()]
@@ -139,9 +163,22 @@ def relevance(
         reasons.insert(0, "exact KG name in description or URL")
 
     compact_project = _compact(project or "")
-    if compact_project and compact_project in _compact(haystack):
+    if compact_project and compact_project in compact_title:
         score += 20
-        reasons.append("project name matched")
+        reasons.append("project name in title")
+    elif compact_project and compact_project in compact_context:
+        score += 5
+        reasons.append("project name in description or URL")
+    for alias in alias_list:
+        compact_alias = _compact(alias)
+        if not compact_alias:
+            continue
+        if compact_alias in compact_title:
+            score += 70
+            reasons.append(f"alias in title: {alias}")
+        elif compact_alias in compact_context:
+            score += 10
+            reasons.append(f"alias in description or URL: {alias}")
     return score, matched, reasons
 
 
@@ -172,6 +209,7 @@ def search_github(
     project: str | None,
     *,
     per_query: int,
+    aliases: Iterable[str] = (),
     session: Any = requests,
 ) -> tuple[list[Candidate], list[QueryRecord], list[str]]:
     core = extract_core_name(kg_name)
@@ -179,6 +217,9 @@ def search_github(
     queries = [f"{short} {project} in:name,description,readme" if project else f"{short} in:name,description,readme"]
     if short.lower() != core.lower():
         queries.append(f'"{core}" {project}'.strip() if project else f'"{core}"')
+    for alias in aliases:
+        project_term = f' "{project}"' if project else ""
+        queries.append(f'"{alias}"{project_term} in:name,description,readme')
     queries = list(dict.fromkeys(queries))
     headers = {
         "Accept": "application/vnd.github+json",
@@ -215,7 +256,8 @@ def search_github(
                 title = item.get("full_name") or item.get("name") or url
                 description = item.get("description") or ""
                 score, matched, reasons = relevance(
-                    title, f"{description} {url}", kg_name=kg_name, project=project
+                    title, f"{description} {url}", kg_name=kg_name, project=project,
+                    aliases=aliases,
                 )
                 _append_candidate(candidates, Candidate(
                     url=url,
@@ -261,6 +303,7 @@ def search_openalex(
     project: str | None,
     *,
     per_query: int,
+    aliases: Iterable[str] = (),
     session: Any = requests,
 ) -> tuple[list[Candidate], list[QueryRecord], list[str]]:
     core = extract_core_name(kg_name)
@@ -268,6 +311,8 @@ def search_openalex(
     queries = [f"{short} {project}" if project else short]
     if short.lower() != core.lower():
         queries.append(f"{core} {project}" if project else core)
+    for alias in aliases:
+        queries.append(f"{alias} {project}" if project else alias)
     queries = list(dict.fromkeys(queries))
     candidates: list[Candidate] = []
     records: list[QueryRecord] = []
@@ -300,7 +345,7 @@ def search_openalex(
                 abstract_index = work.get("abstract_inverted_index") or {}
                 abstract = " ".join(abstract_index) if isinstance(abstract_index, dict) else ""
                 score, matched, reasons = relevance(
-                    title, abstract, kg_name=kg_name, project=project
+                    title, abstract, kg_name=kg_name, project=project, aliases=aliases
                 )
                 _append_candidate(candidates, Candidate(
                     url=url,
@@ -326,6 +371,7 @@ def search_brave(
     project: str | None,
     *,
     per_query: int,
+    aliases: Iterable[str] = (),
     session: Any = requests,
 ) -> tuple[list[Candidate], list[QueryRecord], list[str]]:
     key = os.environ.get("BRAVE_API_KEY")
@@ -338,6 +384,8 @@ def search_brave(
     queries = [f'"{short}"{context} SPARQL', f'"{short}"{context} documentation']
     if short.lower() != core.lower():
         queries.append(f'"{core}"')
+    for alias in aliases:
+        queries.append(f'"{alias}"{context}')
     queries = list(dict.fromkeys(queries))
     headers = {
         "Accept": "application/json",
@@ -371,7 +419,8 @@ def search_brave(
                 title = item.get("title") or url
                 description = item.get("description") or ""
                 score, matched, reasons = relevance(
-                    title, f"{description} {url}", kg_name=kg_name, project=project
+                    title, f"{description} {url}", kg_name=kg_name, project=project,
+                    aliases=aliases,
                 )
                 domain = urlparse(url).netloc.lower()
                 kind = "publication" if url.lower().endswith(".pdf") else "web_document"
@@ -398,6 +447,127 @@ def _best_origin_rank(candidate: Candidate) -> int:
     return min((int(origin["rank"]) for origin in candidate.origins), default=10_000)
 
 
+def _normalise_doi(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    match = DOI_RE.search(value)
+    if not match:
+        return None
+    return match.group(0).rstrip(".,;)").lower()
+
+
+def _publication_title_keys(title: str) -> set[str]:
+    value = re.sub(r"^\s*\(pdf\)\s*", "", title, flags=re.IGNORECASE)
+    variants = [value, *re.split(r"\s+-\s+", value)]
+    keys: set[str] = set()
+    for variant in variants:
+        words = re.findall(r"[a-z0-9]+", variant.lower())
+        if len(words) >= 7:
+            keys.add(" ".join(words))
+    return keys
+
+
+def _publication_identity_keys(candidate: Candidate) -> set[str]:
+    searchable = " ".join([
+        candidate.url,
+        candidate.title,
+        candidate.description,
+        *(str(value) for value in candidate.metadata.values() if isinstance(value, str)),
+    ])
+    keys: set[str] = set()
+    for match in DOI_RE.finditer(searchable):
+        doi = _normalise_doi(match.group(0))
+        if doi:
+            keys.add(f"doi:{doi}")
+    openalex_id = candidate.metadata.get("openalex_id")
+    if isinstance(openalex_id, str) and openalex_id:
+        keys.add(f"openalex:{openalex_id.rstrip('/').lower()}")
+    keys.update(f"title:{title_key}" for title_key in _publication_title_keys(candidate.title))
+    return keys
+
+
+def _location(candidate: Candidate) -> dict[str, Any]:
+    return {
+        "url": candidate.url,
+        "title": candidate.title,
+        "description": candidate.description,
+        "origins": deepcopy(candidate.origins),
+        "metadata": deepcopy(candidate.metadata),
+    }
+
+
+def _representative_priority(candidate: Candidate) -> tuple[int, int, int]:
+    has_doi = bool(_normalise_doi(candidate.metadata.get("doi")))
+    from_openalex = any(origin.get("backend") == "openalex" for origin in candidate.origins)
+    return (int(has_doi), int(from_openalex), candidate.relevance_score)
+
+
+def group_publication_locations(candidates: Iterable[Candidate]) -> list[Candidate]:
+    """Group confident duplicate publication locations without discarding URLs."""
+    items = list(candidates)
+    parent = list(range(len(items)))
+
+    def find(index: int) -> int:
+        while parent[index] != index:
+            parent[index] = parent[parent[index]]
+            index = parent[index]
+        return index
+
+    def union(left: int, right: int) -> None:
+        left_root, right_root = find(left), find(right)
+        if left_root != right_root:
+            parent[right_root] = left_root
+
+    key_owner: dict[str, int] = {}
+    item_keys: list[set[str]] = []
+    for index, candidate in enumerate(items):
+        keys = _publication_identity_keys(candidate)
+        item_keys.append(keys)
+        for key in keys:
+            if key in key_owner:
+                union(index, key_owner[key])
+            else:
+                key_owner[key] = index
+
+    components: dict[int, list[int]] = {}
+    for index in range(len(items)):
+        components.setdefault(find(index), []).append(index)
+
+    grouped: list[Candidate] = []
+    for indexes in components.values():
+        members = [items[index] for index in indexes]
+        shared_identity = set().union(*(item_keys[index] for index in indexes))
+        has_confirmed_identifier = any(
+            key.startswith(("doi:", "openalex:"))
+            and sum(key in item_keys[index] for index in indexes) > 1
+            for key in shared_identity
+        )
+        is_publication_group = any(item.source_kind == "publication" for item in members)
+        if len(members) == 1 or not (has_confirmed_identifier or is_publication_group):
+            grouped.extend(deepcopy(members))
+            continue
+
+        representative = deepcopy(max(members, key=_representative_priority))
+        representative.source_kind = "publication"
+        representative.locations = [_location(member) for member in members]
+        reasons: list[str] = []
+        if has_confirmed_identifier:
+            reasons.append("confirmed shared DOI or OpenAlex identifier")
+        if any(
+            key.startswith("title:")
+            and sum(key in item_keys[index] for index in indexes) > 1
+            for key in shared_identity
+        ):
+            reasons.append("probable duplicate: exact normalized long title")
+        representative.duplicate_grouping = reasons
+        representative.relevance_score = max(item.relevance_score for item in members)
+        representative.ranking_reasons = list(dict.fromkeys(
+            reason for item in members for reason in item.ranking_reasons
+        ))
+        grouped.append(representative)
+    return grouped
+
+
 def shortlist_candidates(
     candidates: Iterable[Candidate], limit_per_kind: int | None
 ) -> tuple[list[Candidate], dict[str, dict[str, int]]]:
@@ -419,6 +589,8 @@ def shortlist_candidates(
             "found": len(ranked),
             "shown": len(shown),
             "omitted": len(ranked) - len(shown),
+            "locations": sum(len(item.locations) or 1 for item in ranked),
+            "grouped_duplicates": sum(max(0, len(item.locations) - 1) for item in ranked),
         }
     return selected, counts
 
@@ -430,11 +602,14 @@ def discover_sources(
     per_query: int = 20,
     backends: Iterable[str] = ("github", "openalex", "brave"),
     max_candidates_per_kind: int | None = 5,
+    aliases: Iterable[str] = (),
 ) -> DiscoveryReport:
+    alias_list = normalise_aliases(aliases)
     report = DiscoveryReport(
         kg_name=kg_name,
         project=project,
         created_at=datetime.now(timezone.utc).isoformat(),
+        aliases=alias_list,
         shortlist_limit_per_kind=max_candidates_per_kind,
     )
     functions = {
@@ -444,13 +619,16 @@ def discover_sources(
     }
     candidates: list[Candidate] = []
     for backend in backends:
-        found, queries, warnings = functions[backend](kg_name, project, per_query=per_query)
+        found, queries, warnings = functions[backend](
+            kg_name, project, per_query=per_query, aliases=alias_list
+        )
         for candidate in found:
             _append_candidate(candidates, candidate)
         report.queries.extend(queries)
         report.warnings.extend(warnings)
+    grouped_candidates = group_publication_locations(candidates)
     report.candidates, report.candidate_counts = shortlist_candidates(
-        candidates, max_candidates_per_kind
+        grouped_candidates, max_candidates_per_kind
     )
     return report
 
@@ -460,6 +638,7 @@ def format_text(report: DiscoveryReport) -> str:
         "UNVERIFIED KG SOURCE DISCOVERY REPORT",
         f"Knowledge graph: {report.kg_name}",
         f"Project: {report.project or '(not supplied)'}",
+        f"Aliases: {', '.join(report.aliases) if report.aliases else '(none)'}",
         f"Generated: {report.created_at}",
         "",
         "Queries run:",
@@ -472,7 +651,8 @@ def format_text(report: DiscoveryReport) -> str:
     lines.extend(["", f"Candidates ({len(report.candidates)} shown of {total_found} unique; none are approved):"])
     for kind, counts in report.candidate_counts.items():
         lines.append(
-            f"- {kind}: {counts['shown']} shown, {counts['omitted']} omitted from the shortlist"
+            f"- {kind}: {counts['shown']} shown, {counts['omitted']} omitted; "
+            f"{counts['locations']} locations with {counts['grouped_duplicates']} grouped duplicates"
         )
     for index, candidate in enumerate(report.candidates, start=1):
         lines.extend([
@@ -488,6 +668,12 @@ def format_text(report: DiscoveryReport) -> str:
             lines.append(f"   {candidate.description}")
         if candidate.metadata:
             lines.append(f"   Metadata: {json.dumps(candidate.metadata, ensure_ascii=False, sort_keys=True)}")
+        if candidate.locations:
+            lines.append(
+                f"   Grouped locations ({len(candidate.locations)}): "
+                + "; ".join(location["url"] for location in candidate.locations)
+            )
+            lines.append(f"   Grouping: {'; '.join(candidate.duplicate_grouping)}")
     if report.warnings:
         lines.extend(["", "Warnings:"] + [f"- {warning}" for warning in report.warnings])
     lines.extend(["", "Limitations:"] + [f"- {item}" for item in report.limitations])
@@ -500,6 +686,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--name", required=True, help="Knowledge graph name")
     parser.add_argument("--project", help="Optional project context")
+    parser.add_argument(
+        "--alias", action="append", default=[],
+        help=f"Alternative KG or project name; repeat up to {MAX_ALIASES} times",
+    )
     parser.add_argument("--per-query", type=int, default=20, choices=range(1, 101), metavar="1-100")
     parser.add_argument(
         "--expanded", action="store_true",
@@ -516,13 +706,17 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    report = discover_sources(
-        args.name,
-        args.project,
-        per_query=args.per_query,
-        backends=args.backend or ("github", "openalex", "brave"),
-        max_candidates_per_kind=None if args.expanded else 5,
-    )
+    try:
+        report = discover_sources(
+            args.name,
+            args.project,
+            per_query=args.per_query,
+            backends=args.backend or ("github", "openalex", "brave"),
+            max_candidates_per_kind=None if args.expanded else 5,
+            aliases=args.alias,
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     payload = json.dumps(report.as_dict(), indent=2, ensure_ascii=False) + "\n"
     if args.output:
         if args.output.suffix.lower() != ".json":
