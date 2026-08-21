@@ -54,8 +54,9 @@ class Candidate:
     description: str
     relevance_score: int
     matched_tokens: list[str]
+    ranking_reasons: list[str]
     review_status: str
-    origins: list[dict[str, str]] = field(default_factory=list)
+    origins: list[dict[str, Any]] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -64,6 +65,8 @@ class DiscoveryReport:
     kg_name: str
     project: str | None
     created_at: str
+    shortlist_limit_per_kind: int | None = 5
+    candidate_counts: dict[str, dict[str, int]] = field(default_factory=dict)
     queries: list[QueryRecord] = field(default_factory=list)
     candidates: list[Candidate] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
@@ -107,10 +110,39 @@ def name_tokens(*names: str | None) -> list[str]:
     return tokens
 
 
-def relevance(text: str, tokens: Iterable[str]) -> tuple[int, list[str]]:
-    lowered = text.lower()
-    matched = [token for token in tokens if token in lowered]
-    return len(matched), matched
+def _compact(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def relevance(
+    title: str,
+    context: str,
+    *,
+    kg_name: str,
+    project: str | None,
+) -> tuple[int, list[str], list[str]]:
+    """Return a transparent lexical score; exact KG-name matches dominate."""
+    tokens = name_tokens(kg_name, extract_short_name(kg_name), project)
+    haystack = f"{title} {context}"
+    matched = [token for token in tokens if token in haystack.lower()]
+    score = len(matched)
+    reasons = [f"matched token: {token}" for token in matched]
+
+    core = _compact(extract_core_name(kg_name))
+    compact_title = _compact(title)
+    compact_context = _compact(context)
+    if core and core in compact_title:
+        score += 100
+        reasons.insert(0, "exact KG name in title")
+    elif core and core in compact_context:
+        score += 40
+        reasons.insert(0, "exact KG name in description or URL")
+
+    compact_project = _compact(project or "")
+    if compact_project and compact_project in _compact(haystack):
+        score += 20
+        reasons.append("project name matched")
+    return score, matched, reasons
 
 
 def _append_candidate(candidates: list[Candidate], candidate: Candidate) -> None:
@@ -123,6 +155,7 @@ def _append_candidate(candidates: list[Candidate], candidate: Candidate) -> None
             if candidate.relevance_score > existing.relevance_score:
                 existing.relevance_score = candidate.relevance_score
                 existing.matched_tokens = candidate.matched_tokens
+                existing.ranking_reasons = candidate.ranking_reasons
                 existing.review_status = candidate.review_status
             for key, value in candidate.metadata.items():
                 existing.metadata.setdefault(key, value)
@@ -147,7 +180,6 @@ def search_github(
     if short.lower() != core.lower():
         queries.append(f'"{core}" {project}'.strip() if project else f'"{core}"')
     queries = list(dict.fromkeys(queries))
-    tokens = name_tokens(kg_name, short, project)
     headers = {
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
@@ -176,13 +208,15 @@ def search_github(
                 continue
             items = response.json().get("items", [])
             record.result_count = len(items)
-            for item in items:
+            for rank, item in enumerate(items, start=1):
                 url = item.get("html_url")
                 if not url:
                     continue
                 title = item.get("full_name") or item.get("name") or url
                 description = item.get("description") or ""
-                score, matched = relevance(f"{title} {description}", tokens)
+                score, matched, reasons = relevance(
+                    title, f"{description} {url}", kg_name=kg_name, project=project
+                )
                 _append_candidate(candidates, Candidate(
                     url=url,
                     source_kind="repository",
@@ -190,8 +224,9 @@ def search_github(
                     description=description,
                     relevance_score=score,
                     matched_tokens=matched,
+                    ranking_reasons=reasons,
                     review_status=_review_status(score),
-                    origins=[{"backend": "github", "query": query}],
+                    origins=[{"backend": "github", "query": query, "rank": rank}],
                     metadata={
                         "stars": item.get("stargazers_count") or 0,
                         "archived": bool(item.get("archived")),
@@ -234,7 +269,6 @@ def search_openalex(
     if short.lower() != core.lower():
         queries.append(f"{core} {project}" if project else core)
     queries = list(dict.fromkeys(queries))
-    tokens = name_tokens(kg_name, project)
     candidates: list[Candidate] = []
     records: list[QueryRecord] = []
     warnings: list[str] = []
@@ -258,14 +292,16 @@ def search_openalex(
                 continue
             works = response.json().get("results", [])
             record.result_count = len(works)
-            for work in works:
+            for rank, work in enumerate(works, start=1):
                 url, metadata = _openalex_url(work)
                 if not url:
                     continue
                 title = work.get("title") or url
                 abstract_index = work.get("abstract_inverted_index") or {}
                 abstract = " ".join(abstract_index) if isinstance(abstract_index, dict) else ""
-                score, matched = relevance(f"{title} {abstract}", tokens)
+                score, matched, reasons = relevance(
+                    title, abstract, kg_name=kg_name, project=project
+                )
                 _append_candidate(candidates, Candidate(
                     url=url,
                     source_kind="publication",
@@ -273,8 +309,9 @@ def search_openalex(
                     description="",
                     relevance_score=score,
                     matched_tokens=matched,
+                    ranking_reasons=reasons,
                     review_status=_review_status(score),
-                    origins=[{"backend": "openalex", "query": query}],
+                    origins=[{"backend": "openalex", "query": query, "rank": rank}],
                     metadata={key: value for key, value in metadata.items() if value is not None},
                 ))
         except (requests.RequestException, ValueError) as exc:
@@ -302,7 +339,6 @@ def search_brave(
     if short.lower() != core.lower():
         queries.append(f'"{core}"')
     queries = list(dict.fromkeys(queries))
-    tokens = name_tokens(kg_name, project)
     headers = {
         "Accept": "application/json",
         "X-Subscription-Token": key,
@@ -328,13 +364,15 @@ def search_brave(
                 continue
             items = (response.json().get("web") or {}).get("results") or []
             record.result_count = len(items)
-            for item in items:
+            for rank, item in enumerate(items, start=1):
                 url = item.get("url")
                 if not url:
                     continue
                 title = item.get("title") or url
                 description = item.get("description") or ""
-                score, matched = relevance(f"{title} {description} {url}", tokens)
+                score, matched, reasons = relevance(
+                    title, f"{description} {url}", kg_name=kg_name, project=project
+                )
                 domain = urlparse(url).netloc.lower()
                 kind = "publication" if url.lower().endswith(".pdf") else "web_document"
                 _append_candidate(candidates, Candidate(
@@ -344,8 +382,9 @@ def search_brave(
                     description=description,
                     relevance_score=score,
                     matched_tokens=matched,
+                    ranking_reasons=reasons,
                     review_status=_review_status(score),
-                    origins=[{"backend": "brave", "query": query}],
+                    origins=[{"backend": "brave", "query": query, "rank": rank}],
                     metadata={"domain": domain},
                 ))
         except (requests.RequestException, ValueError) as exc:
@@ -355,17 +394,48 @@ def search_brave(
     return candidates, records, warnings
 
 
+def _best_origin_rank(candidate: Candidate) -> int:
+    return min((int(origin["rank"]) for origin in candidate.origins), default=10_000)
+
+
+def shortlist_candidates(
+    candidates: Iterable[Candidate], limit_per_kind: int | None
+) -> tuple[list[Candidate], dict[str, dict[str, int]]]:
+    """Rank and cap each source kind, retaining counts for omitted candidates."""
+    grouped: dict[str, list[Candidate]] = {}
+    for candidate in candidates:
+        grouped.setdefault(candidate.source_kind, []).append(candidate)
+
+    selected: list[Candidate] = []
+    counts: dict[str, dict[str, int]] = {}
+    for kind in sorted(grouped):
+        ranked = sorted(
+            grouped[kind],
+            key=lambda item: (-item.relevance_score, _best_origin_rank(item), item.title.lower()),
+        )
+        shown = ranked if limit_per_kind is None else ranked[:limit_per_kind]
+        selected.extend(shown)
+        counts[kind] = {
+            "found": len(ranked),
+            "shown": len(shown),
+            "omitted": len(ranked) - len(shown),
+        }
+    return selected, counts
+
+
 def discover_sources(
     kg_name: str,
     project: str | None = None,
     *,
     per_query: int = 20,
     backends: Iterable[str] = ("github", "openalex", "brave"),
+    max_candidates_per_kind: int | None = 5,
 ) -> DiscoveryReport:
     report = DiscoveryReport(
         kg_name=kg_name,
         project=project,
         created_at=datetime.now(timezone.utc).isoformat(),
+        shortlist_limit_per_kind=max_candidates_per_kind,
     )
     functions = {
         "github": search_github,
@@ -379,9 +449,8 @@ def discover_sources(
             _append_candidate(candidates, candidate)
         report.queries.extend(queries)
         report.warnings.extend(warnings)
-    report.candidates = sorted(
-        candidates,
-        key=lambda item: (-item.relevance_score, item.source_kind, item.title.lower()),
+    report.candidates, report.candidate_counts = shortlist_candidates(
+        candidates, max_candidates_per_kind
     )
     return report
 
@@ -399,12 +468,21 @@ def format_text(report: DiscoveryReport) -> str:
         lines.append(f"- [{query.status}] {query.backend}: {query.query} ({query.result_count} results)")
         if query.warning:
             lines.append(f"  Warning: {query.warning}")
-    lines.extend(["", f"Candidates ({len(report.candidates)}; none are approved):"])
+    total_found = sum(item["found"] for item in report.candidate_counts.values())
+    lines.extend(["", f"Candidates ({len(report.candidates)} shown of {total_found} unique; none are approved):"])
+    for kind, counts in report.candidate_counts.items():
+        lines.append(
+            f"- {kind}: {counts['shown']} shown, {counts['omitted']} omitted from the shortlist"
+        )
     for index, candidate in enumerate(report.candidates, start=1):
         lines.extend([
             f"{index}. [{candidate.source_kind}; {candidate.review_status}; score={candidate.relevance_score}] {candidate.title}",
             f"   {candidate.url}",
-            f"   Found by: " + "; ".join(f"{origin['backend']} / {origin['query']}" for origin in candidate.origins),
+            f"   Ranking: " + "; ".join(candidate.ranking_reasons or ["no positive lexical signal"]),
+            f"   Found by: " + "; ".join(
+                f"{origin['backend']} / {origin['query']} / API rank {origin['rank']}"
+                for origin in candidate.origins
+            ),
         ])
         if candidate.description:
             lines.append(f"   {candidate.description}")
@@ -424,6 +502,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--project", help="Optional project context")
     parser.add_argument("--per-query", type=int, default=20, choices=range(1, 101), metavar="1-100")
     parser.add_argument(
+        "--expanded", action="store_true",
+        help="Include every returned unique candidate instead of five per source category",
+    )
+    parser.add_argument(
         "--backend", action="append", choices=("github", "openalex", "brave"),
         help="Backend to run; repeat to select several (default: all)",
     )
@@ -439,6 +521,7 @@ def main(argv: list[str] | None = None) -> int:
         args.project,
         per_query=args.per_query,
         backends=args.backend or ("github", "openalex", "brave"),
+        max_candidates_per_kind=None if args.expanded else 5,
     )
     payload = json.dumps(report.as_dict(), indent=2, ensure_ascii=False) + "\n"
     if args.output:

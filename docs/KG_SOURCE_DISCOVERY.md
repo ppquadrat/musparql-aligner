@@ -36,10 +36,17 @@ musparql-discover-sources \
 ```
 
 The command refuses non-JSON output names and refuses to overwrite an existing
-report. `var/` is ignored by Git. A saved report includes every returned result
-within the configured per-query API limit, including low lexical relevance
-results, the query that produced each candidate, backend warnings, and search
-limitations.
+report. `var/` is ignored by Git. By default a report shows a ranked shortlist
+of at most five repositories, five publications, and five web documents. It
+records each candidate's original API rank and query, explains its lexical
+ranking signals, and reports how many unique results were omitted.
+
+Use `--expanded` only when the shortlist is insufficient and every returned
+unique candidate is worth inspecting:
+
+```console
+musparql-discover-sources --name "Jazz Ontology" --expanded
+```
 
 Human review remains mandatory. Inspect candidate authority and relevance,
 search separately for omissions, and only then make a distinct, reviewed change

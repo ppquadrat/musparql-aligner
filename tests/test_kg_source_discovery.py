@@ -5,10 +5,12 @@ import json
 import pytest
 
 from musparql.kg_source_discovery import (
+    Candidate,
     DiscoveryReport,
     extract_short_name,
     main,
     search_github,
+    shortlist_candidates,
 )
 
 
@@ -60,8 +62,11 @@ def test_github_report_retains_low_relevance_results_and_query_provenance(monkey
     assert len(candidates) == 2
     by_url = {candidate.url: candidate for candidate in candidates}
     assert by_url["https://github.com/example/jazz-ontology"].review_status == "unverified_candidate"
+    assert by_url["https://github.com/example/jazz-ontology"].relevance_score > by_url["https://github.com/example/unrelated"].relevance_score
+    assert "exact KG name in title" in by_url["https://github.com/example/jazz-ontology"].ranking_reasons
     assert by_url["https://github.com/example/unrelated"].review_status == "low_lexical_relevance"
     assert len(by_url["https://github.com/example/jazz-ontology"].origins) == 2
+    assert by_url["https://github.com/example/jazz-ontology"].origins[0]["rank"] == 1
     assert "Authorization" not in session.calls[0]["headers"]
 
 
@@ -86,3 +91,30 @@ def test_cli_saves_only_new_json_reports(monkeypatch, tmp_path, capsys):
 def test_name_normalisation_preserves_distinctive_part():
     assert extract_short_name("Jazz Ontology") == "Jazz"
     assert extract_short_name("MUSOW Knowledge Graph (Polifonia)") == "MUSOW"
+
+
+def test_shortlist_caps_each_source_kind_and_reports_omissions():
+    candidates = [
+        Candidate(
+            url=f"https://example.test/{kind}/{number}",
+            source_kind=kind,
+            title=f"Candidate {number}",
+            description="",
+            relevance_score=number,
+            matched_tokens=[],
+            ranking_reasons=[],
+            review_status="unverified_candidate",
+            origins=[{"backend": "synthetic", "query": "synthetic", "rank": 7 - number}],
+        )
+        for kind in ("publication", "repository")
+        for number in range(7)
+    ]
+
+    shown, counts = shortlist_candidates(candidates, 5)
+
+    assert len(shown) == 10
+    assert counts == {
+        "publication": {"found": 7, "shown": 5, "omitted": 2},
+        "repository": {"found": 7, "shown": 5, "omitted": 2},
+    }
+    assert [item.relevance_score for item in shown[:5]] == [6, 5, 4, 3, 2]
