@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://musparql.invalid/schemas/local_hardening.schema.json",
+  "title": "Musparql v2 synthetic local hardening report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "result", "synthetic_only", "measured_at", "automated_elapsed_ms",
+    "flows", "browser_checks", "processing_restart", "database_restore",
+    "privacy_log_inspection", "usability_observation", "environment"
+  ],
+  "properties": {
+    "schema": {"const": "musparql.local-hardening.v1"},
+    "result": {"const": "passed"},
+    "synthetic_only": {"const": true},
+    "measured_at": {"type": "string", "format": "date-time"},
+    "automated_elapsed_ms": {"type": "number", "minimum": 0},
+    "flows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["first_visit_onboarding", "repeat_assessment_with_prior_values", "hosted_workbench_and_submission", "assignment_isolation"],
+      "properties": {
+        "first_visit_onboarding": {"const": true},
+        "repeat_assessment_with_prior_values": {"const": true},
+        "hosted_workbench_and_submission": {"const": true},
+        "assignment_isolation": {"const": true}
+      }
+    },
+    "browser_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["private_remembered_cookie", "shared_browser_session_cookie", "shared_logout_isolated", "mobile_login", "responsive_viewport"],
+      "properties": {
+        "private_remembered_cookie": {"const": true},
+        "shared_browser_session_cookie": {"const": true},
+        "shared_logout_isolated": {"const": true},
+        "mobile_login": {"const": true},
+        "responsive_viewport": {"const": true}
+      }
+    },
+    "processing_restart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recovered_jobs", "completed_jobs", "safe_summary_verified"],
+      "properties": {
+        "recovered_jobs": {"type": "integer", "minimum": 1},
+        "completed_jobs": {"type": "integer", "minimum": 1},
+        "safe_summary_verified": {"const": true}
+      }
+    },
+    "database_restore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "integrity_check", "row_counts_match", "durable_submission_reconnected"],
+      "properties": {
+        "scope": {"const": "sqlite_database_with_file_reference_verification"},
+        "integrity_check": {"const": "ok"},
+        "row_counts_match": {"const": true},
+        "durable_submission_reconnected": {"const": true}
+      }
+    },
+    "privacy_log_inspection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["records_inspected", "forbidden_values_absent", "approved_summary_only"],
+      "properties": {
+        "records_inspected": {"type": "integer", "minimum": 1},
+        "forbidden_values_absent": {"const": true},
+        "approved_summary_only": {"const": true}
+      }
+    },
+    "usability_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observer", "onboarding_seconds", "repeat_assessment_seconds", "mobile_login_success", "feedback", "onboarding_target_seconds", "repeat_assessment_target_seconds", "targets_met"],
+      "properties": {
+        "observer": {"type": "string", "minLength": 1},
+        "onboarding_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "repeat_assessment_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "mobile_login_success": {"const": true},
+        "feedback": {"type": "string", "minLength": 1},
+        "onboarding_target_seconds": {"const": 300},
+        "repeat_assessment_target_seconds": {"const": 60},
+        "targets_met": {"const": true}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python", "platform", "sqlite"],
+      "properties": {
+        "python": {"type": "string", "minLength": 1},
+        "platform": {"type": "string", "minLength": 1},
+        "sqlite": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

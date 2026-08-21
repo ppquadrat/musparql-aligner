@@ -21,6 +21,7 @@ musparql-db = "musparql.database.cli:main"
 musparql-discover-sources = "musparql.kg_source_discovery:main"
 musparql-web = "musparql.web.cli:main"
 musparql-worker = "musparql.web.worker:main"
+musparql-local-hardening = "musparql.web.local_hardening:main"
 
 [project.optional-dependencies]
 test = [
