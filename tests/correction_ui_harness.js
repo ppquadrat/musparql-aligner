@@ -148,6 +148,6 @@ async function boot(bundleDigest, backing) {
   assert.equal(isolated.document.elements.reviewedCount.textContent, 0, "new bundle digest must isolate stale state");
 
   const css = fs.readFileSync("review/styles.css", "utf8");
-  assert.match(css, /@media\s*\(max-width:\s*1100px\)\s*\{\s*\.correction-layout \.sidebar\s*\{\s*min-width:\s*0;\s*\}\s*\}/, "mobile sidebar reset regression guard");
+  assert.match(css, /@media\s*\(max-width:\s*900px\)\s*\{\s*\.correction-layout \.sidebar\s*\{\s*min-width:\s*0;\s*\}\s*\}/, "narrow-window sidebar reset regression guard");
   console.log("correction UI synthetic workflow: passed");
 })().catch((error) => { console.error(error); process.exitCode = 1; });

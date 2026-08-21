@@ -18,6 +18,16 @@ from musparql.linguistic_dimensions import (
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_linguistic_workbench_confirms_submission_inline() -> None:
+    html = (ROOT / "review" / "linguistic" / "index.html").read_text(encoding="utf-8")
+    app = (ROOT / "review" / "linguistic" / "app.js").read_text(encoding="utf-8")
+
+    assert 'id="submissionStatus"' in html
+    assert "Thank you — your annotations were submitted." in html
+    assert 'id="backToAssignmentsLink"' in html
+    assert "You completed ${percentage}% of this assignment" in app
+
+
 def stimulus(trial_id: str, stratum: str = "source-vs-llm") -> dict:
     sparql = f"SELECT ?item WHERE {{ ?item a <urn:{trial_id}> }}"
     literal_text = f"Which items have type {trial_id}?"

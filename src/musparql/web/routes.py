@@ -574,6 +574,7 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
                 "portal.assignment", assignment_id=assignment_id
             ),
             "profile_url": url_for("portal.profile"),
+            "assignments_url": url_for("portal.index"),
             "logout_url": url_for("portal.logout"),
             "csrf_token": g.csrf_token,
             "submission_url": url_for(

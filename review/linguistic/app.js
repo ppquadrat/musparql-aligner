@@ -113,6 +113,7 @@
   const unseenPendingIds = () => [...records.keys()].filter((id) => !state.completed[id] && !state.skips[id]);
   const progressText = () => `${Object.keys(state.completed).length} completed · ${skippedPendingIds().length} skipped · ${unseenPendingIds().length} unseen`;
   byId("identity").textContent = `Signed in as ${hosted.reviewer_id}`;
+  byId("backToAssignmentsLink").href = hosted.assignments_url || "/";
 
   function draftFor(stimulus) {
     if (!state.drafts[stimulus.trial_id]) {
@@ -218,7 +219,11 @@
       const response = await fetch(hosted.submission_url, {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/json", "X-CSRF-Token": hosted.csrf_token}, body: JSON.stringify(payload)});
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Submission was not accepted");
-      window.alert(`${result.duplicate ? "Existing" : "Durable"} receipt ${result.receipt_id}, revision ${result.revision}.`);
+      const completed = Object.keys(state.completed).length;
+      const percentage = Math.round((completed / data.record_count) * 100);
+      byId("submissionProgress").textContent = `You completed ${percentage}% of this assignment (${completed} of ${data.record_count} items).`;
+      byId("submissionReceipt").textContent = `Receipt recorded · revision ${result.revision}.`;
+      byId("submissionStatus").hidden = false;
     } catch (error) { window.alert(error.message); }
     finally { button.disabled = false; }
   });

@@ -409,6 +409,8 @@ def test_language_snapshot_and_profile_javascript_are_available(phase4_app) -> N
     login(client, app, sender, "reviewer@example.invalid")
     script = client.get("/static/profile.js")
     assert script.status_code == 200
+    assert b'event.key === "Enter"' in script.data
+    assert b"input.blur()" in script.data
     assert b"configureRepeatRows" in script.data
     assert b"configureDomainAutocomplete" in script.data
     assert b"domainMatches" in script.data

@@ -55,6 +55,18 @@
         <div class="chip"><span class="chip-label">Holdout</span><span id="holdoutCount">-</span></div>
       </section>
 
+      <section id="submissionStatus" class="submission-status hidden" role="status" aria-live="polite">
+        <div>
+          <strong id="submissionHeading">Thank you — your review was submitted.</strong>
+          <p id="submissionProgress"></p>
+          <p id="submissionReceipt" class="muted-meta"></p>
+        </div>
+        <div class="submission-actions">
+          <button id="continueReviewBtn" class="btn solid" type="button">Continue review</button>
+          <a id="backToAssignmentsLink" class="btn" href="/">Back to assignments</a>
+        </div>
+      </section>
+
       <section class="layout">
         <aside class="sidebar">
           <div class="panel">

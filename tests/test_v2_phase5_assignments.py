@@ -319,6 +319,7 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
         assert assignment_id.encode() in context_asset.data
         assert REVIEWER_ID.encode() in context_asset.data
         assert b'"holdout_capability":false' in context_asset.data
+        assert b'"assignments_url":"/"' in context_asset.data
         data_asset = reviewer.get(
             f"/assignments/{assignment_id}/workbench/review_data.js"
         )

@@ -68,7 +68,9 @@ Use the first assignment to inspect the real hosted workbench, record a
 synthetic decision, and submit it. For the mobile-login check, use the browser's
 responsive-design/device mode at a narrow phone-sized viewport and repeat only
 the login-code flow. Conducting the review itself on a phone is not a Phase 9
-requirement. Press `Ctrl-C` in the terminal when finished. Unless `--workspace`
+requirement. A third, explicitly synthetic assignment opens the linguistic-
+dimensions workbench; complete its short pre-assignment assessment to inspect
+that interface. Press `Ctrl-C` in the terminal when finished. Unless `--workspace`
 is supplied, the fictional database and submissions are deleted when the
 command stops.
 

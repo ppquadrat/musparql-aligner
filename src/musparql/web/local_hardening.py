@@ -32,6 +32,7 @@ from musparql.database.models import (
     ReviewerResourceFamiliarityAssessment,
     ReviewSubmission,
 )
+from musparql.linguistic_dimensions import build_bundle, text_digest
 from . import create_app
 from .auth import timestamp, utc_now
 from .email import SyntheticEmailSender
@@ -49,6 +50,7 @@ KG_ID = "synthetic-phase9-kg"
 SEED_VERSION = "synthetic-phase9-seed-v1"
 ONBOARDING_TARGET_SECONDS = 300
 REPEAT_ASSESSMENT_TARGET_SECONDS = 60
+LINGUISTIC_ASSIGNMENT_ID = "assignment-000000000000000000000903"
 
 
 class HardeningError(RuntimeError):
@@ -166,6 +168,57 @@ def _bundle_bytes() -> bytes:
     return (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
 
 
+def _linguistic_bundle_bytes() -> bytes:
+    sparql = "SELECT ?work WHERE { ?work a <urn:synthetic:Work> . }"
+    literal = "Which resources are instances of the class synthetic Work?"
+    first = "Which synthetic works are there?"
+    second = "Show me the works in this fictional collection."
+    record = {
+        "trial_id": "synthetic-phase9-linguistic-trial",
+        "kg_id": KG_ID,
+        "query_id": "synthetic-phase9-linguistic-query",
+        "query_label": "Synthetic works",
+        "sparql": sparql,
+        "sparql_version": "v1",
+        "sparql_digest": text_digest(sparql),
+        "literal": {
+            "formulation_id": "synthetic-literal",
+            "version": "v1",
+            "text": literal,
+            "digest": text_digest(literal),
+            "validated": True,
+            "validation_provenance": {"source": "synthetic-phase9"},
+        },
+        "candidates": [
+            {
+                "formulation_id": "synthetic-candidate-a",
+                "version": "v1",
+                "text": first,
+                "digest": text_digest(first),
+                "provenance": {"origin": "synthetic-source"},
+            },
+            {
+                "formulation_id": "synthetic-candidate-b",
+                "version": "v1",
+                "text": second,
+                "digest": text_digest(second),
+                "provenance": {"origin": "synthetic-model"},
+            },
+        ],
+        "eligible": True,
+        "non_holdout": True,
+        "presentation_arity": 3,
+        "sampling_stratum": "synthetic",
+        "contrast_id": "synthetic-phase9-contrast",
+    }
+    payload = build_bundle(
+        [record],
+        dataset_id="synthetic-phase9-linguistic-dataset",
+        seed="synthetic-phase9-linguistic-seed",
+    )
+    return (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
+
+
 def _seed_workspace(root: Path) -> tuple[Path, tuple[str, str]]:
     database_path = root / "phase9.sqlite3"
     bundle_root = root / "bundles"
@@ -173,6 +226,9 @@ def _seed_workspace(root: Path) -> tuple[Path, tuple[str, str]]:
     bundle_raw = _bundle_bytes()
     bundle_name = "synthetic-phase9-bundle.json"
     (bundle_root / bundle_name).write_bytes(bundle_raw)
+    linguistic_raw = _linguistic_bundle_bytes()
+    linguistic_bundle_name = "synthetic-phase9-linguistic-bundle.json"
+    (bundle_root / linguistic_bundle_name).write_bytes(linguistic_raw)
     upgrade_database(database_path)
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
@@ -248,6 +304,31 @@ def _seed_workspace(root: Path) -> tuple[Path, tuple[str, str]]:
                     seed_digest="sha256:" + "9" * 64,
                 )
             )
+        session.add(
+            ReviewAssignment(
+                id=LINGUISTIC_ASSIGNMENT_ID,
+                reviewer_id=REVIEWER_ID,
+                mode="linguistic",
+                status="ready",
+                bundle_path=linguistic_bundle_name,
+                bundle_digest=_digest(linguistic_raw),
+                previous_benchmark_path=None,
+                processing_recipe="validate_linguistic_annotation",
+                holdout_capability=False,
+                created_at=now,
+                opened_at=None,
+                submitted_at=None,
+            )
+        )
+        session.flush()
+        session.add(
+            AssignmentKgSeed(
+                assignment_id=LINGUISTIC_ASSIGNMENT_ID,
+                kg_id=KG_ID,
+                seed_version=SEED_VERSION,
+                seed_digest="sha256:" + "9" * 64,
+            )
+        )
     engine.dispose()
     return database_path, assignment_ids
 

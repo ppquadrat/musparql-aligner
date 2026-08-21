@@ -117,12 +117,17 @@ function configureDomainAutocomplete(row) {
       closeResults();
       return;
     }
-    if (!options.length || !["ArrowDown", "ArrowUp", "Enter"].includes(event.key)) return;
-    event.preventDefault();
-    if (event.key === "Enter" && activeIndex >= 0) {
-      selectResult(options[activeIndex]);
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (activeIndex >= 0 && options[activeIndex]) selectResult(options[activeIndex]);
+      else {
+        closeResults();
+        input.blur();
+      }
       return;
     }
+    if (!options.length || !["ArrowDown", "ArrowUp"].includes(event.key)) return;
+    event.preventDefault();
     if (event.key === "ArrowDown") activeIndex = (activeIndex + 1) % options.length;
     if (event.key === "ArrowUp") activeIndex = (activeIndex - 1 + options.length) % options.length;
     options.forEach((option, index) => option.classList.toggle("active", index === activeIndex));

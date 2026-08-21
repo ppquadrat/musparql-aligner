@@ -11,6 +11,7 @@ from musparql.web.local_hardening import (
     InteractiveSyntheticEmailSender,
     REVIEWER_EMAIL,
     _bundle_bytes,
+    _linguistic_bundle_bytes,
     main,
     run_interactive_pilot,
     run_verification,
@@ -92,6 +93,14 @@ def test_phase9_bundle_can_supply_the_browser_export_run_contract() -> None:
     assert bundle["single_run_id"] == "synthetic-phase9-run"
     assert bundle["single_run_id"] in bundle["run_ids"]
     assert isinstance(bundle["runs"], list)
+
+
+def test_phase9_interactive_pilot_includes_synthetic_linguistic_work() -> None:
+    bundle = json.loads(_linguistic_bundle_bytes())
+
+    assert bundle["mode"] == "linguistic"
+    assert bundle["record_count"] == 1
+    assert bundle["records"][0]["trial_id"] == "synthetic-phase9-linguistic-trial"
 
 
 def test_phase9_cli_writes_report(tmp_path: Path, capsys) -> None:

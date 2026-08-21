@@ -52,7 +52,14 @@
     internalCommentInput: document.getElementById("internalCommentInput"),
     holdoutSplitInput: document.getElementById("holdoutSplitInput"),
     decisionButtons: Array.from(document.querySelectorAll(".decision-btn")),
+    submissionStatus: document.getElementById("submissionStatus"),
+    submissionHeading: document.getElementById("submissionHeading"),
+    submissionProgress: document.getElementById("submissionProgress"),
+    submissionReceipt: document.getElementById("submissionReceipt"),
+    continueReviewBtn: document.getElementById("continueReviewBtn"),
+    backToAssignmentsLink: document.getElementById("backToAssignmentsLink"),
   };
+  let continueAfterSubmission = null;
 
   window.MUSPARQL_REVIEW_SCHEMA = {
     normalizeReview,
@@ -94,6 +101,10 @@
   els.exportHoldoutSelectorsBtn.classList.toggle("hidden", !selectorExportAllowed);
   if (hostedNoHoldout) hideHostedHoldoutControls();
   if (hosted) els.exportReviewsBtn.textContent = "Submit review";
+  els.continueReviewBtn.addEventListener("click", () => {
+    els.submissionStatus.classList.add("hidden");
+    if (continueAfterSubmission) continueAfterSubmission();
+  });
 
   if (data.mode === "compare") {
     initCompareMode();
@@ -124,6 +135,14 @@
   populateFilters();
   bindEvents();
   render();
+  continueAfterSubmission = () => {
+    const next = data.records.find((record) => !hasReviewerDecision(getReview(record)));
+    if (next) state.selectedReviewId = next.review_id;
+    state.status = "all";
+    els.statusFilter.value = "all";
+    render();
+    document.querySelector(".layout")?.scrollIntoView({behavior: "smooth", block: "start"});
+  };
 
   function loadReviews() {
     try {
@@ -1143,12 +1162,28 @@
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Submission was not accepted.");
-      window.alert(`${result.duplicate ? "Existing" : "Durable"} receipt ${result.receipt_id}, revision ${result.revision}.`);
+      showSubmissionSuccess(result, payload);
     } catch (error) {
       window.alert(error.message || "Submission was not accepted.");
     } finally {
       els.exportReviewsBtn.disabled = false;
     }
+  }
+
+  function showSubmissionSuccess(result, payload) {
+    const completed = Object.keys(payload.reviews || {}).length;
+    const total = Number(data.record_count) || data.records.length;
+    const percentage = total ? Math.round((completed / total) * 100) : 0;
+    els.submissionHeading.textContent = result.duplicate
+      ? "Thank you — this review was already safely submitted."
+      : "Thank you — your review was submitted.";
+    els.submissionProgress.textContent = `You completed ${percentage}% of this assignment (${completed} of ${total} items).`;
+    els.submissionReceipt.textContent = `Receipt recorded · revision ${result.revision}.`;
+    const complete = completed >= total;
+    els.continueReviewBtn.classList.toggle("hidden", complete);
+    els.backToAssignmentsLink.classList.toggle("hidden", !complete);
+    els.submissionStatus.classList.remove("hidden");
+    els.submissionStatus.scrollIntoView({behavior: "smooth", block: "start"});
   }
 
   function parseHoldoutSelectors(text) {
@@ -1424,6 +1459,14 @@
     });
 
     renderCompare();
+    continueAfterSubmission = () => {
+      const next = data.records.find((pair) => !hasReviewerDecision(getCurrentReview(pair)));
+      if (next) compareState.selectedPairId = next.pair_id;
+      compareState.status = "all";
+      els.statusFilter.value = "all";
+      renderCompare();
+      document.querySelector(".layout")?.scrollIntoView({behavior: "smooth", block: "start"});
+    };
 
     function loadCompareReviews() {
       try {
@@ -2033,6 +2076,7 @@
     assignment.href = hosted.assignment_url;
     assignment.textContent = "Assignment";
     bar.appendChild(assignment);
+    els.backToAssignmentsLink.href = hosted.assignments_url || "/";
 
     const profile = document.createElement("a");
     profile.href = hosted.profile_url;

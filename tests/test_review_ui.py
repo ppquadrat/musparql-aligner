@@ -21,10 +21,22 @@ def test_hosted_review_state_is_scoped_to_assignment_and_keeps_local_keys() -> N
     assert "!hosted && data.reviewer_id" in app
     assert "hideHostedHoldoutControls()" in app
     assert "Signed in as ${hosted.reviewer_id}" in app
+    assert "Thank you — your review was submitted." in app
+    assert "You completed ${percentage}% of this assignment" in app
+    assert 'id="continueReviewBtn"' in html
+    assert 'id="backToAssignmentsLink"' in html
     assert '<script src="host_context.js?' in html
     assert (ROOT / "review" / "host_context.js").read_text(encoding="utf-8").strip() == (
         "window.MUSPARQL_HOSTED_CONTEXT = null;"
     )
+
+
+def test_workbench_keeps_columns_until_a_genuinely_narrow_window() -> None:
+    css = (ROOT / "review" / "styles.css").read_text(encoding="utf-8")
+
+    assert "@media (max-width: 900px)" in css
+    assert "@media (max-width: 760px)" in css
+    assert "@media (max-width: 1100px)" not in css
 
 
 def test_imports_reject_cross_reviewer_and_non_owner_legacy_state() -> None:

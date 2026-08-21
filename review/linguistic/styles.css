@@ -49,5 +49,8 @@ button.danger { color: #7b1f17; background: #ffd9d5; box-shadow: inset 0 0 0 1px
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
 textarea, select { display: block; width: 100%; margin: .4rem 0 1rem; padding: .6rem; }
 .error { color: #a22519; font-weight: 700; }
+.submission-status { margin: 1rem 0; padding: 1rem; border: 1px solid #86b894; border-radius: .5rem; background: #edf8ef; }
+.submission-status h2 { margin-top: 0; }
+.submission-status a { display: inline-block; margin-top: .4rem; color: #135c35; font-weight: 700; }
 @media (max-width: 1050px) { .formulation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .literal-card { grid-column: 1 / -1; } }
 @media (max-width: 760px) { .dimension-help, .formulation-grid { grid-template-columns: 1fr; } .literal-card { grid-column: auto; } header { padding: 1rem; } }
