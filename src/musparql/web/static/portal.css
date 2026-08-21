@@ -5,6 +5,7 @@ header { display: flex; justify-content: space-between; border-bottom: 1px solid
 form { display: grid; gap: .75rem; width: 100%; max-width: 32rem; }
 input, select, button, .button { box-sizing: border-box; font: inherit; padding: .6rem; }
 input, select { min-width: 0; width: 100%; }
+input[type="checkbox"] { width: auto; }
 button, .button { cursor: pointer; width: fit-content; }
 .actions { display: flex; flex-wrap: wrap; gap: 1rem; }
 .check { display: flex; gap: .5rem; align-items: start; }

@@ -374,6 +374,7 @@ def test_language_snapshot_and_profile_javascript_are_available(phase4_app) -> N
     assert stylesheet.status_code == 200
     assert b"minmax(0, 1fr)" in stylesheet.data
     assert b".domain-results" in stylesheet.data
+    assert b'input[type="checkbox"] { width: auto; }' in stylesheet.data
 
 
 def test_owner_sees_only_pseudonymous_completion_status(phase4_app) -> None:
