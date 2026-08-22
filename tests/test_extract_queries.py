@@ -1,11 +1,47 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from scripts import extract_queries
 
 
 class ExtractQueriesTests(unittest.TestCase):
+    def test_repository_test_fixtures_are_identified_by_path(self) -> None:
+        repo = Path("/tmp/example-repo")
+        self.assertTrue(
+            extract_queries.is_test_fixture_path(repo / "tests/test_validate.py", repo)
+        )
+        self.assertTrue(
+            extract_queries.is_test_fixture_path(repo / "src/query_test.py", repo)
+        )
+        self.assertFalse(
+            extract_queries.is_test_fixture_path(repo / "src/examples.py", repo)
+        )
+
+    def test_test_fixture_exclusion_is_configured_per_repository(self) -> None:
+        seed = extract_queries.parse_kg_seed(
+            {
+                "kg_id": "synthetic",
+                "repos": ["https://example.org/kept", "https://example.org/excluded"],
+                "source_records": [
+                    {
+                        "type": "repository",
+                        "url": "https://example.org/kept",
+                        "source_id": "kept",
+                    },
+                    {
+                        "type": "repository",
+                        "url": "https://example.org/excluded",
+                        "source_id": "excluded",
+                        "exclude_test_fixtures": True,
+                    },
+                ],
+            }
+        )
+        self.assertFalse(seed.repo_exclude_test_fixtures["https://example.org/kept"])
+        self.assertTrue(seed.repo_exclude_test_fixtures["https://example.org/excluded"])
+
     def test_extracts_markdown_fenced_sparql(self) -> None:
         text = """
 Example query:
@@ -175,6 +211,26 @@ WHERE {
         self.assertEqual(record["sparql_edits"], previous["sparql_edits"])
         self.assertEqual(record["execution_history"], previous["execution_history"])
         self.assertIsNot(record["execution_history"], previous["execution_history"])
+
+    def test_stable_query_labels_survive_new_earlier_sources(self) -> None:
+        old_hash = "sha256:old"
+        existing = {
+            f"kg__{old_hash}": {
+                "kg_id": "kg",
+                "query_id": f"kg__{old_hash}",
+                "query_label": "kg-0007",
+            }
+        }
+        counters = extract_queries.initialize_label_counters(existing)
+
+        self.assertEqual(
+            extract_queries.stable_query_label("kg", old_hash, existing, counters),
+            "kg-0007",
+        )
+        self.assertEqual(
+            extract_queries.stable_query_label("kg", "sha256:new", existing, counters),
+            "kg-0008",
+        )
 
 
 if __name__ == "__main__":

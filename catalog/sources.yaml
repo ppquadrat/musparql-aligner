@@ -72,9 +72,10 @@ sources:
   - source_id: jazz-ontology-supplement
     type: local_document
     title: Supplement to The Jazz Ontology
+    url: https://ars.els-cdn.com/content/image/1-s2.0-S1570826822000245-mmc1.pdf
     local_path: catalog/pdfs/Jazz Ontology supplement.pdf
     derived_from: [jazz-ontology-2022-paper]
-    description: Downloaded supplementary material containing competency questions and example SPARQL queries.
+    description: Open supplementary material containing competency questions and example SPARQL queries; the local copy is retained for reproducible extraction.
 
   - source_id: polifonia-d2-1-deliverable
     type: publication
@@ -92,6 +93,12 @@ sources:
     type: publication
     title: "SESEMMI for LinkedMusic: Democratizing Access to Musical Archives via Large Language Models"
     url: https://openreview.net/forum?id=hSDeNeUzcy
+
+  - source_id: sesemmi-linkedmusic-repository
+    type: repository
+    title: SESEMMI LinkedMusic agent repository
+    url: https://github.com/DDMAL/SESEMMI
+    exclude_test_fixtures: true
 
   - source_id: linkedmusic-datalake-repository
     type: repository

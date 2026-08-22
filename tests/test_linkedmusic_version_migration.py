@@ -35,7 +35,7 @@ def test_current_linkedmusic_records_migrate_one_to_one():
 
     linkedmusic = [record for record in migrated if record.get("kg_id") == "linkedmusic"]
     canonical = [record for record in linkedmusic if OFFICIAL_SOURCE_ID in record_source_ids(record)]
-    assert len(linkedmusic) == 70
+    assert len(linkedmusic) == sum(1 for record in records if record.get("kg_id") == "linkedmusic")
     assert len(canonical) == 20
     assert len(mapping) == 20
     assert not any(EDIT_SOURCE_ID in record_source_ids(record) for record in linkedmusic)

@@ -29,6 +29,21 @@ class SourceProvenanceTests(unittest.TestCase):
         )
         self.assertEqual(missing, [])
 
+    def test_test_fixture_exclusion_requires_a_boolean_repository_setting(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "sources.yaml"
+            path.write_text(
+                "sources:\n"
+                "  - source_id: invalid\n"
+                "    type: web_document\n"
+                "    title: Invalid synthetic source\n"
+                "    url: https://example.invalid/source\n"
+                "    exclude_test_fixtures: true\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "only valid for repository"):
+                load_source_catalog(path)
+
     def test_seed_sources_resolve_to_normalized_catalogue(self) -> None:
         seeds = load_hydrated_seeds(
             self.repository / "catalog/seeds.yaml", self.repository / "catalog/sources.yaml"

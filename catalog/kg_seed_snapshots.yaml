@@ -292,3 +292,98 @@ snapshots:
     - scope_id: linkedmusic
       label: LinkedMusic Data Lake
       kind: federation
+- kg_id: linkedmusic
+  seed_version: 2026-08-22.1
+  seed_digest: sha256:5db4d64a7ba5432be53863c23be1d518d91c95295cb87685289836e7a12c6e79
+  previous_seed_digest: sha256:ad77a30edee47a9e498d0e94f4562ba7a467ad8e8608a6c5e4f7c6b1c49877aa
+  seed:
+    kg_id: linkedmusic
+    seed_version: 2026-08-22.1
+    name: LinkedMusic Data Lake
+    project: LinkedMusic
+    description_hint: 'Integrated music knowledge graph that reconciles metadata through
+      Wikidata and exposes named RDF graphs for DIAMM, Dig That Lick, the Weimar Jazz
+      Database, The Global Jukebox, the University of Tennessee Song Index, MusicBrainz,
+      The Session, RISM, Cantus Database, Cantus Index, SIMSSA DB, and the NFDI4Culture
+      APSearch, Detmolder Hoftheater, and musiconn.performance knowledge graphs.
+
+      '
+    sparql:
+      endpoint: https://virtuoso.simssa.ca/sparql/
+      auth: none
+      expected_namespaces:
+      - https://linkedmusic.ca/graphs/
+      - http://www.wikidata.org/prop/direct/
+    source_ids:
+    - linkedmusic-datalake-repository
+    - linkedmusic-queries-repository
+    - linkedmusic-project-website
+    - linkedmusic-sample-queries
+    - linkedmusic-prefix-catalogue
+    - linkedmusic-public-query-database
+    - sesemmi-linkedmusic-2025-paper
+    - sesemmi-linkedmusic-repository
+    - linkedmusic-integrating-databases-2025-article
+    - linkedmusic-sustainable-archiving-2025-paper
+    - linkedmusic-corrected-examples-working-copy
+    priority: high
+    notes: 'Official sources provide twenty public NLQ-SPARQL benchmark pairs across
+      four challenge levels, plus repository and wiki documentation for the constituent
+      named graphs and cross-graph querying.
+
+      '
+    review_domains:
+    - domain_id: medieval-european-music-manuscripts
+      label: Medieval European music manuscripts
+      description: 'Medieval European music manuscripts, their sources, contents,
+        provenance, institutions, people and scholarly catalogue metadata.
+
+        '
+    - domain_id: jazz-discography-performance
+      label: Jazz discography and performance
+      description: 'Jazz musicians, instruments, performances, recording sessions,
+        recordings, solos, tracks, releases and the discographic evidence used to
+        document them.
+
+        '
+    - domain_id: global-song-comparative-analysis
+      label: 'Traditional, Indigenous, folk and popular song worldwide; cross-cultural
+        comparative music analysis
+
+        '
+      description: 'Traditional, Indigenous, folk and popular song traditions worldwide,
+        including their musical, geographic and cultural attributes and their use
+        in cross-cultural comparative music analysis.
+
+        '
+    - domain_id: recorded-music-discography
+      label: Recorded music discography
+      description: 'Recorded music releases, recordings, tracks, artists, labels and
+        the identifiers and relationships used in discographic metadata.
+
+        '
+    - domain_id: irish-traditional-music
+      label: Irish traditional music
+      description: 'Irish traditional tunes, tune types, settings, sessions, recordings,
+        musicians and related community-contributed metadata.
+
+        '
+    familiarity_scopes:
+    - scope_id: diamm
+      label: Digital Image Archive of Medieval Music (DIAMM)
+      kind: resource
+    - scope_id: dig-that-lick
+      label: Dig That Lick
+      kind: resource
+    - scope_id: global-jukebox
+      label: The Global Jukebox
+      kind: resource
+    - scope_id: musicbrainz
+      label: MusicBrainz
+      kind: resource
+    - scope_id: the-session
+      label: The Session
+      kind: resource
+    - scope_id: linkedmusic
+      label: LinkedMusic Data Lake
+      kind: federation

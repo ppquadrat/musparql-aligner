@@ -44,6 +44,16 @@ catalog changes before committing them.
 .venv/bin/python -m scripts.enrich_evidence
 ```
 
+Repository sources marked `exclude_test_fixtures: true` omit test directories
+and `test_*.py`/`*_test.py` files during normal extraction because their SPARQL
+may be synthetic, malformed, or intended only to exercise implementation
+behavior. Use the opt-in only for a diagnostic audit; those records are not
+normal benchmark candidates:
+
+```bash
+.venv/bin/python -m scripts.extract_queries --include-test-fixtures
+```
+
 The working catalogue is `var/queries/kg_queries.jsonl`. Repository clones and
 local dumps are cached under `var/cache/`. Extraction also restores approved
 versions from `catalog/curated/Approved_SPARQL_Edits.jsonl`. The reported

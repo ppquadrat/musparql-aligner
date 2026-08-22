@@ -129,6 +129,13 @@ def load_source_catalog(path: Path) -> Dict[str, Dict[str, Any]]:
         query_role = raw.get("query_role")
         if query_role is not None and query_role not in QUERY_ROLES:
             raise ValueError(f"{source_id}: unsupported query_role {query_role!r}")
+        exclude_test_fixtures = raw.get("exclude_test_fixtures")
+        if exclude_test_fixtures is not None and not isinstance(exclude_test_fixtures, bool):
+            raise ValueError(f"{source_id}: exclude_test_fixtures must be boolean")
+        if exclude_test_fixtures and source_type != "repository":
+            raise ValueError(
+                f"{source_id}: exclude_test_fixtures is only valid for repository sources"
+            )
         if not _nonempty(title):
             raise ValueError(f"{source_id}: title must be non-empty")
         if raw.get("url") is not None:

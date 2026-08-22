@@ -164,7 +164,7 @@ kgs:
         kind: knowledge_graph
 
   - kg_id: linkedmusic
-    seed_version: "2026-08-18.1"
+    seed_version: "2026-08-22.1"
     name: LinkedMusic Data Lake
     project: LinkedMusic
     description_hint: >
@@ -188,6 +188,7 @@ kgs:
       - linkedmusic-prefix-catalogue
       - linkedmusic-public-query-database
       - sesemmi-linkedmusic-2025-paper
+      - sesemmi-linkedmusic-repository
       - linkedmusic-integrating-databases-2025-article
       - linkedmusic-sustainable-archiving-2025-paper
       - linkedmusic-corrected-examples-working-copy

@@ -11,6 +11,7 @@ Extract SPARQL queries from Git repositories listed in `catalog/seeds.yaml`:
 5) Write `var/queries/kg_queries.jsonl` (one JSON object per query, with provenance).
 """
 
+import argparse
 import hashlib
 import html
 import json
@@ -37,6 +38,7 @@ class KGSeed:
     kg_id: str
     repos: List[str]
     repo_source_ids: Dict[str, str]
+    repo_exclude_test_fixtures: Dict[str, bool]
 
 
 def load_seeds(path: Path) -> List[Dict[str, object]]:
@@ -69,6 +71,7 @@ def parse_kg_seed(raw: Dict[str, object]) -> KGSeed:
     if not isinstance(repos, list) or not all(isinstance(x, str) for x in repos):
         raise ValueError(f"KG '{kg_id}': 'repos' must be a list of strings.")
     repo_source_ids: Dict[str, str] = {}
+    repo_exclude_test_fixtures: Dict[str, bool] = {}
     source_records = raw.get("source_records") or []
     if isinstance(source_records, list):
         for source in source_records:
@@ -78,7 +81,13 @@ def parse_kg_seed(raw: Dict[str, object]) -> KGSeed:
             source_id = source.get("source_id")
             if isinstance(url, str) and isinstance(source_id, str):
                 repo_source_ids[url] = source_id
-    return KGSeed(kg_id=kg_id.strip(), repos=repos, repo_source_ids=repo_source_ids)
+                repo_exclude_test_fixtures[url] = bool(source.get("exclude_test_fixtures"))
+    return KGSeed(
+        kg_id=kg_id.strip(),
+        repos=repos,
+        repo_source_ids=repo_source_ids,
+        repo_exclude_test_fixtures=repo_exclude_test_fixtures,
+    )
 
 
 def repo_dir_from_url(repo_url: str) -> Path:
@@ -127,9 +136,19 @@ def get_repo_default_branch(repo_dir: Path) -> Optional[str]:
     return ref.split("/", 1)[1] if "/" in ref else ref
 
 
-def iter_repo_files(repo_dir: Path) -> Iterable[Path]:
+def is_test_fixture_path(path: Path, repo_dir: Path) -> bool:
+    relative = path.relative_to(repo_dir)
+    if any(part.lower() in {"test", "tests"} for part in relative.parts[:-1]):
+        return True
+    filename = relative.name.lower()
+    return filename.startswith("test_") or filename.endswith("_test.py")
+
+
+def iter_repo_files(repo_dir: Path, *, include_test_fixtures: bool = False) -> Iterable[Path]:
     for path in repo_dir.rglob("*"):
-        if path.is_file():
+        if path.is_file() and (
+            include_test_fixtures or not is_test_fixture_path(path, repo_dir)
+        ):
             yield path
 
 
@@ -603,6 +622,37 @@ def build_query_record(
     }
 
 
+def initialize_label_counters(
+    existing_by_query_id: Dict[str, Dict[str, object]],
+) -> Dict[str, int]:
+    """Start new labels after the highest stable label already assigned per KG."""
+    counters: Dict[str, int] = {}
+    for record in existing_by_query_id.values():
+        kg_id = record.get("kg_id")
+        query_label = record.get("query_label")
+        if not isinstance(kg_id, str) or not isinstance(query_label, str):
+            continue
+        match = re.fullmatch(rf"{re.escape(kg_id)}-(\d+)", query_label)
+        if match:
+            counters[kg_id] = max(counters.get(kg_id, 0), int(match.group(1)))
+    return counters
+
+
+def stable_query_label(
+    kg_id: str,
+    clean_hash: str,
+    existing_by_query_id: Dict[str, Dict[str, object]],
+    label_counters: Dict[str, int],
+) -> str:
+    """Reuse a query ID's established label; allocate only for genuinely new IDs."""
+    query_id = f"{kg_id}__{clean_hash}"
+    existing = existing_by_query_id.get(query_id)
+    if existing is not None and isinstance(existing.get("query_label"), str):
+        return str(existing["query_label"])
+    label_counters[kg_id] = label_counters.get(kg_id, 0) + 1
+    return f"{kg_id}-{label_counters[kg_id]:04d}"
+
+
 def load_curated_query_records(path: Path) -> List[Dict[str, Any]]:
     if path.suffix.lower() != ".jsonl":
         return []
@@ -705,6 +755,16 @@ def append_unique_source(kg_sources: Dict[str, List[str]], kg_id: str, source_pa
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Extract source-authored SPARQL queries from configured KG sources."
+    )
+    parser.add_argument(
+        "--include-test-fixtures",
+        action="store_true",
+        help="Also extract SPARQL embedded in repository test directories and test files.",
+    )
+    args = parser.parse_args()
+
     seeds_path = Path("catalog/seeds.yaml")
     out_path = Path("var/queries/kg_queries.jsonl")
     approved_edits_path = Path("catalog/curated/Approved_SPARQL_Edits.jsonl")
@@ -725,7 +785,7 @@ def main() -> None:
 
     records: List[Dict[str, object]] = []
     record_by_key: Dict[tuple[str, str], Dict[str, object]] = {}
-    label_counters: Dict[str, int] = {}
+    label_counters = initialize_label_counters(existing_by_query_id)
     extracted_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     kg_sources: Dict[str, List[str]] = {}
     source_provenance_by_path: Dict[str, Dict[str, object]] = {}
@@ -765,7 +825,13 @@ def main() -> None:
             repo_commit = get_repo_commit(repo_dir)
             repo_default_branch = get_repo_default_branch(repo_dir)
 
-            for path in iter_repo_files(repo_dir):
+            for path in iter_repo_files(
+                repo_dir,
+                include_test_fixtures=(
+                    args.include_test_fixtures
+                    or not kg.repo_exclude_test_fixtures.get(repo_url, False)
+                ),
+            ):
                 extracted = extract_queries_from_file(path)
                 if not extracted:
                     continue
@@ -782,8 +848,9 @@ def main() -> None:
                     raw_hash = sha256_hash(item["query"])
                     key = (kg.kg_id, clean_hash)
                     if key not in record_by_key:
-                        label_counters[kg.kg_id] = label_counters.get(kg.kg_id, 0) + 1
-                        query_label = f"{kg.kg_id}-{label_counters[kg.kg_id]:04d}"
+                        query_label = stable_query_label(
+                            kg.kg_id, clean_hash, existing_by_query_id, label_counters
+                        )
                         record_by_key[key] = build_query_record(
                             kg_id=kg.kg_id,
                             query_label=query_label,
@@ -841,8 +908,9 @@ def main() -> None:
                 raw_hash = sha256_hash(q)
                 key = (kg.kg_id, clean_hash)
                 if key not in record_by_key:
-                    label_counters[kg.kg_id] = label_counters.get(kg.kg_id, 0) + 1
-                    query_label = f"{kg.kg_id}-{label_counters[kg.kg_id]:04d}"
+                    query_label = stable_query_label(
+                        kg.kg_id, clean_hash, existing_by_query_id, label_counters
+                    )
                     record_by_key[key] = build_query_record(
                         kg_id=kg.kg_id,
                         query_label=query_label,
@@ -895,8 +963,9 @@ def main() -> None:
                 raw_hash = sha256_hash(raw_query)
                 key = (kg.kg_id, clean_hash)
                 if key not in record_by_key:
-                    label_counters[kg.kg_id] = label_counters.get(kg.kg_id, 0) + 1
-                    query_label = f"{kg.kg_id}-{label_counters[kg.kg_id]:04d}"
+                    query_label = stable_query_label(
+                        kg.kg_id, clean_hash, existing_by_query_id, label_counters
+                    )
                     record_by_key[key] = build_query_record(
                         kg_id=kg.kg_id,
                         query_label=query_label,
@@ -969,8 +1038,9 @@ def main() -> None:
                     raw_hash = sha256_hash(q)
                     key = (kg.kg_id, clean_hash)
                     if key not in record_by_key:
-                        label_counters[kg.kg_id] = label_counters.get(kg.kg_id, 0) + 1
-                        query_label = f"{kg.kg_id}-{label_counters[kg.kg_id]:04d}"
+                        query_label = stable_query_label(
+                            kg.kg_id, clean_hash, existing_by_query_id, label_counters
+                        )
                         record_by_key[key] = build_query_record(
                             kg_id=kg.kg_id,
                             query_label=query_label,

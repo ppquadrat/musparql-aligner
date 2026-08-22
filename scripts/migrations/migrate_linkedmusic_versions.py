@@ -252,6 +252,7 @@ def migrate_records(
     *,
     extracted_at: str,
 ) -> tuple[List[Dict[str, Any]], Dict[str, str]]:
+    input_linkedmusic_count = sum(1 for record in records if record.get("kg_id") == KG_ID)
     if len(official_records) != 20:
         raise ValueError(f"Expected 20 official LinkedMusic queries, found {len(official_records)}")
     official_by_key = {official_key(item): item for item in official_records}
@@ -325,8 +326,14 @@ def migrate_records(
             backfill_legacy_execution_versions(record)
             validate_execution_versions(record)
     result.extend(replacements)
-    if sum(1 for record in result if record.get("kg_id") == KG_ID) != 70:
-        raise ValueError("LinkedMusic migration must retain exactly 70 total query records")
+    expected_linkedmusic_count = (
+        input_linkedmusic_count - len(old_corrected) - len(existing_canonical) + 20
+    )
+    if sum(1 for record in result if record.get("kg_id") == KG_ID) != expected_linkedmusic_count:
+        raise ValueError(
+            "LinkedMusic migration must preserve all non-migrated query records "
+            "and produce exactly 20 canonical records"
+        )
     if sum(1 for record in result if OFFICIAL_SOURCE_ID in record_source_ids(record)) != 20:
         raise ValueError("LinkedMusic migration must produce exactly 20 canonical official records")
     if any(EDIT_SOURCE_ID in record_source_ids(record) for record in result):
