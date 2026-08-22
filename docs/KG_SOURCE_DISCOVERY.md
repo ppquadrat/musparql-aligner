@@ -72,3 +72,84 @@ musparql-discover-sources --name "Jazz Ontology" --expanded
 Human review remains mandatory. Inspect candidate authority and relevance,
 search separately for omissions, and only then make a distinct, reviewed change
 to the source catalogue and KG seed catalogue.
+
+## Provisional agent-review prompt
+
+The following prompt formalizes lessons from the initial source-discovery
+evaluation. It has not yet been tested on a new graph and should be revised in
+response to future runs. Publication supplements are inspected by the agent;
+the discovery script does not automate that step.
+
+```text
+Review the saved source-discovery report(s) for:
+
+Knowledge graph: [KG NAME]
+Project/context: [PROJECT]
+Aliases: [ALIASES]
+Report: [PATH TO REPORT]
+
+Treat the report as non-authoritative discovery output. Compare it with:
+
+- catalog/seeds.yaml
+- catalog/sources.yaml
+- the current extracted query corpus
+- any existing public documentation for this KG
+
+Do not promote sources, edit the catalog, or rerun extraction until I approve
+the recommendations.
+
+Perform the following review:
+
+1. Curated-source recall
+   - Identify which existing curated sources the report recovered.
+   - Identify which curated public sources it missed or hid below a cutoff.
+   - Distinguish genuinely undiscoverable local derivatives from public sources
+     that the process should reasonably have found.
+
+2. Publication supplements
+   - For every relevant publication, inspect its landing page and all accessible
+     supplementary or supporting material, appendices, additional files, data
+     deposits, and linked repositories.
+   - Give this special attention because competency-question lists and complete
+     SPARQL examples are often placed in supplements rather than the main paper.
+   - Search accessible documents for SPARQL, SELECT, ASK, CONSTRUCT, DESCRIBE,
+     PREFIX, competency question, competency questions, and CQ.
+   - Record the exact public URL and the section, page, or file containing the
+     evidence. Report mentioned but inaccessible supplements explicitly.
+
+3. Repository inspection
+   - Look beyond the displayed shortlist whenever omission counts are non-zero.
+   - Inspect promising repositories for .rq and .sparql files, embedded query
+     strings, examples, notebooks, documentation, and CQ lists.
+   - Distinguish authored examples from synthetic tests, validation fixtures,
+     generated probes, and application-internal queries.
+
+4. Identity, currency, and novelty
+   - Check that each result concerns this KG rather than a similarly named or
+     related ontology.
+   - Note whether a repository or ontology appears obsolete, superseded, or
+     tied to an older graph version.
+   - Compare prospective queries and CQs with the existing corpus so that
+     rediscovered or duplicated material is not presented as new.
+
+Return:
+
+A. A compact table containing the graph, current extracted-query count, curated
+   sources recovered, curated public sources missed, and prioritized findings.
+
+B. A prioritized list divided into likely sources of new SPARQL or CQs;
+   provenance or schema context; duplicates, synthetic material, obsolete
+   sources, or wrong ontologies; and inaccessible or unresolved candidates.
+
+C. For every high-priority candidate, give its exact URL, the evidence inspected,
+   where SPARQL or CQs occur, whether the material is authored, synthetic, or
+   uncertain, likely overlap with the corpus, and a recommendation to add,
+   investigate manually, or reject it.
+
+D. A short assessment of how useful the discovery run was, what it missed and
+   should have found, and which conclusions require human judgment.
+
+Do not equate syntactically valid SPARQL with benchmark suitability. Preserve
+uncertainty and flag semantic, provenance, version, and authorship judgments for
+human confirmation.
+```
