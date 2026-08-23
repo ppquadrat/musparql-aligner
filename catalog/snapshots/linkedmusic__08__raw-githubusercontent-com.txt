@@ -1,4 +1,4 @@
-SOURCE: https://raw.githubusercontent.com/DDMAL/SESEMMI/HEAD/README.md
+SOURCE: https://raw.githubusercontent.com/DDMAL/SESEMMI/06b8d7bd428de7e68d76a8c14b809cd61488fa60/README.md
 
 # Start by Watching the SESEMMI Demo [Here](https://youtu.be/sWtxGnNZyzw)
 

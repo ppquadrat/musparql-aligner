@@ -1,0 +1,281 @@
+SOURCE: https://nfdi4culture.de/resources/knowledge-graph.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<!-- 
+	This website is powered by TYPO3 - inspiring people to share!
+	TYPO3 is a free open source Content Management Framework initially created by Kasper Skaarhoj and licensed under GNU/GPL.
+	TYPO3 is copyright 1998-2026 of Kasper Skaarhoj. Extensions are copyright of their respective owners.
+	Information and contribution at https://typo3.org/
+-->
+
+
+<link rel="icon" href="/_assets/3ef994612563dcf4bcafc9d0a21032c8/favicon.ico" type="image/vnd.microsoft.icon">
+
+<meta name="generator" content="TYPO3 CMS">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="stylesheet" href="/typo3temp/assets/css/7015c8c4ac5ff815b57530b221005fc6.css?1773414568" media="all">
+<link rel="stylesheet" href="https://unpkg.com/@triply/yasgui@4/build/yasgui.min.css" media="all">
+<link rel="stylesheet" href="/typo3temp/assets/build/common.b9062450.css?1773414629" media="all">
+<link rel="stylesheet" href="/typo3temp/assets/build/main.87e640bf.css?1783693727" media="all">
+
+
+<script src="https://unpkg.com/@triply/yasgui@4/build/yasgui.min.js"></script>
+
+
+
+<title>SPARQL Endpoint - NFDI4Culture</title>
+
+<link rel="canonical" href="https://nfdi4culture.de/resources/knowledge-graph.html"/>
+
+<link rel="alternate" hreflang="en-US" href="https://nfdi4culture.de/resources/knowledge-graph.html"/>
+<link rel="alternate" hreflang="de-DE" href="https://nfdi4culture.de/de/ressourcen/knowledge-graph.html"/>
+<link rel="alternate" hreflang="x-default" href="https://nfdi4culture.de/resources/knowledge-graph.html"/>
+</head>
+<body id="pid-230" class="white-bg n4c-body">
+
+
+<header id="header" data-header data-theme="white">
+    <div class="container-fluid">
+        <nav class="navi">
+            <ul class="navi-list">
+                <li class="navi-list-logo n4c-border">
+                    <a href="/index.html">
+                        <svg class="n4c-signet" alt="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 418 421">
+    <line x1="28.85" y1="27.3" x2="396.85" y2="27.3"/>
+    <path d="M187.53,226.91C182.85,235.4,163.79,268,123.42,268c-47,0-65.56-36-65.56-72.5C57.86,130.71,121.11,78,171.24,78c19,0,33.94,10,44.74,10,5.4,0,8.74-3.35,10.8-7.46l3.85.77L212.89,131h-3.34a142.09,142.09,0,0,0,1-17.48c0-21.85-22.63-31.88-39.85-31.88-56.31,0-82.53,103.61-82.53,144.24,0,27.5,9,38.56,36.25,38.56,30,0,49.83-22.28,58.5-37.5Z"/>
+    <path d="M155.15,166.41h.25c3.88-5.1,11.78-7.89,18.46-7.89,14.45,0,23.2,9.59,23.2,23.68v38.26H184.55V181.35c0-8-3.65-12.39-12-12.39-12.27,0-17.37,8.38-17.37,19.8v31.7H142.64V159.61h12.51Z"/>
+    <path d="M221.77,171.76h24.78v11.41H221.77v37.29H209.26V138.11H252.5v11.42H221.77Z"/>
+    <path d="M299.14,214.14a26.31,26.31,0,0,1-17.37,7.41c-18.21,0-27.08-14.69-27.08-31.33,0-16.4,8-31.7,26.23-31.7,6.68,0,14,2.18,18,7.53h.24V132h12.51v88.42H299.14Zm0-24.9c0-10.81-4.61-20.28-16.76-20.28-11.17,0-15.18,10.81-15.18,20.28,0,10.21,4,21.87,16,21.87C295,211.11,299.14,199.45,299.14,189.24Z"/>
+    <path d="M350.72,209h14.81v11.42H323.39V209h14.82V149.53H325.82V138.11H363v11.42H350.72Z"/>
+    <path d="M194,226.61h12.68l-.17.57H203l-5.83,16.2a18,18,0,0,0-1.26,6.23c0,3.69,2.23,5.67,5.84,5.67,6.19,0,9.35-5.1,10.77-9.59l5.75-18.51h-3.89l.16-.57h8l-.16.57h-3.48l-6,19c-2.1,6.68-6.19,9.8-12.31,9.8-5.87,0-9.27-3.44-9.27-8a19.77,19.77,0,0,1,1.34-6.84l5-14h-3.89Z"/>
+    <path d="M230.29,227.18h-3.93l.16-.57h12.72l-.17.57h-3.52l-9.92,27.7h7.86c4.81,0,8.22-5.71,9.15-7.37h.56l-2.83,7.93H216.72l.16-.56h3.49Z"/>
+    <path d="M261.12,227.18H258.2c-4.58,0-8.1,5.79-9.11,7.41h-.57l2.84-8h25.06l-2.83,8H273a17.76,17.76,0,0,0,.37-3.72c0-2.07-1.3-3.69-4.54-3.69h-2.47l-9.92,27.7h3.89l-.17.56H247.51l.16-.56h3.53Z"/>
+    <path d="M280.23,226.61h12.68l-.17.57h-3.52l-5.83,16.2a18,18,0,0,0-1.26,6.23c0,3.69,2.23,5.67,5.83,5.67,6.2,0,9.36-5.1,10.78-9.59l5.75-18.51H300.6l.16-.57h8l-.16.57h-3.49l-5.95,19c-2.1,6.68-6.19,9.8-12.31,9.8-5.87,0-9.27-3.44-9.27-8a19.76,19.76,0,0,1,1.33-6.84l5-14h-3.89Z"/>
+    <path d="M316.49,227.18h-3.93l.24-.57h10.37c4,0,9.35,1.46,9.35,6.28,0,5.35-6.31,6.72-11.5,7l-.08.12c3.32.24,7.58.93,7.58,5,0,2.71-1,4.94-1,7.61,0,1.5.65,2.47,2.15,2.47a3.33,3.33,0,0,0,1-.16l.16.53a8.48,8.48,0,0,1-2.1.2c-5.14,0-6.4-1.18-6.4-4.38a27.42,27.42,0,0,1,.49-3.64,33.84,33.84,0,0,0,.44-3.93c0-2-1-3.6-5.59-3.6h-.48l-5.31,14.74h3.93l-.2.56H303l.2-.56h3.44Zm.85,12.39h1.54a9,9,0,0,0,4.9-1c1.5-1,3.32-2.92,3.32-6.89,0-3-1.86-4.49-4.54-4.49h-.77Z"/>
+    <path d="M346.79,227.18h-4l.16-.57h22.6l-2.47,6.89h-.57a11,11,0,0,0,.49-2.92c0-2-1-3.4-4-3.4h-6.93l-4.49,12.51h2.18c3.89,0,6.08-4.17,6.6-5.14h.57l-4.25,11.78h-.57a9.92,9.92,0,0,0,.53-3c0-2-1.74-3.12-4.13-3.12h-1.14l-5.22,14.62H350c4.81,0,8.26-5.79,9.15-7.37h.56l-2.83,7.93H333.22l.16-.56h3.49Z"/>
+</svg>
+
+                    </a>
+
+                </li>
+                <div class="navi-list-toggle d-lg-none">
+                    <span class="icon-menu"></span>
+                </div>
+                <div class="navi-list-items n4c-border">
+                    <li class="navi-list-items-item" id="p120"><a href="/news.html" class="menu-l" title="News">News</a></li><li class="navi-list-items-item" id="p121"><a href="/events.html" class="menu-l" title="Events">Events</a></li><li class="navi-list-items-item navi-list-items-item-with-drop" id="p69"><a href="/services.html" class="menu-l" id="item-69" role="button" data-bs-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-target="#">Services</a><ul class="navi-list-items-item-drop n4c-border-bottom item-69 p69" aria-labelledby="item-69"><li id="p384"><a href="/services.html#c861" class="menu-m" title="Consulting &amp; Funding">Consulting &amp; Funding</a></li><li id="p390"><a href="/services.html#c859" class="menu-m" title="Information &amp; Documentation">Information &amp; Documentation</a></li><li id="p515"><a href="/services.html#c2007" class="menu-m" title="Standards &amp; Quality Assurance">Standards &amp; Quality Assurance</a></li><li id="p386"><a href="/services.html#c858" class="menu-m" title="Linkage &amp; Enrichment">Linkage &amp; Enrichment</a></li><li id="p388"><a href="/services.html#c1046" class="menu-m" title="Storage &amp; Preservation">Storage &amp; Preservation</a></li><li id="p428"><a href="/services.html#c1422" class="menu-m" title="Publication &amp; Dissemination">Publication &amp; Dissemination</a></li><li id="p416"><a href="/services.html#c1178" class="menu-m" title="Teaching &amp; Training">Teaching &amp; Training</a></li></ul></li><li class="navi-list-items-item navi-list-items-item-with-drop active" id="p40"><a href="/resources.html" class="menu-l active" id="item-40" role="button" data-bs-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-target="#" title="Resources">Resources</a><ul class="navi-list-items-item-drop n4c-border-bottom item-40 p40" aria-labelledby="item-40"><li id="p187"><a href="/resources.html#c1002" class="menu-m" title="Downloads &amp; Publications">Downloads &amp; Publications</a></li><li id="p375"><a href="/resources.html#c865" class="menu-m" title="Guidelines &amp; Specifications">Guidelines &amp; Specifications</a></li><li id="p368"><a href="/resources.html#c866" class="menu-m" title="Ontologies &amp; Terminologies">Ontologies &amp; Terminologies</a></li><li id="p492"><a href="/resources#c1876" class="menu-m" title="Research Data">Research Data</a></li><li id="p366"><a href="/resources.html#c864" class="menu-m active" title="Public Endpoints &amp; APIs">Public Endpoints &amp; APIs</a></li><li id="p367"><a href="/resources.html#c868" class="menu-m" title="Research Tools &amp; Data Services">Research Tools &amp; Data Services</a></li></ul></li><li class="navi-list-items-item navi-list-items-item-with-drop" id="p74"><a href="/communities.html" class="menu-l" id="item-74" role="button" data-bs-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-target="#">Communities</a><ul class="navi-list-items-item-drop n4c-border-bottom item-74 p74" aria-labelledby="item-74"><li id="p80"><a href="/communities/architecture.html" class="menu-m" title="Architecture">Architecture</a></li><li id="p81"><a href="/communities/art-history.html" class="menu-m" title="Art History">Art History</a></li><li id="p501"><a href="/communities/glam.html" class="menu-m" title="GLAM">GLAM</a></li><li id="p84"><a href="/communities/media-studies.html" class="menu-m" title="Media Studies">Media Studies</a></li><li id="p82"><a href="/communities/musicology.html" class="menu-m" title="Musicology">Musicology</a></li><li id="p83"><a href="/communities/performing-arts.html" class="menu-m" title="Performing Arts">Performing Arts</a></li></ul></li><li class="navi-list-items-item navi-list-items-item-with-drop" id="p67"><a href="/about-us.html" class="menu-l" id="item-67" role="button" data-bs-hover="dropdown" aria-haspopup="true" aria-expanded="false" data-target="#">About us</a><ul class="navi-list-items-item-drop n4c-border-bottom item-67 p67" aria-labelledby="item-67"><li id="p413"><a href="https://nfdi4culture.de/about-us.html#c1982" class="menu-m" title="Facts &amp; Figures">Facts &amp; Figures</a></li><li id="p506"><a href="https://nfdi4culture.de/about-us.html#c1984" class="menu-m" title="User &amp; Success Stories">User &amp; Success Stories</a></li><li id="p440"><a href="https://nfdi4culture.de/about-us.html#c1985" class="menu-m" title="Work Programme">Work Programme</a></li><li id="p509"><a href="https://nfdi4culture.de/about-us.html#c1989" class="menu-m" title="Governance &amp; Teams">Governance &amp; Teams</a></li><li id="p510"><a href="https://nfdi4culture.de/about-us.html#c1990" class="menu-m" title="Partners &amp; Contributors">Partners &amp; Contributors</a></li></ul></li><li class="navi-list-items-item" id="p76"><a href="/helpdesk.html" class="menu-l" title="Helpdesk">Helpdesk</a></li><li class="navi-list-items-item" id="p186"><a href="/search.html" class="menu-l" title="Search">Search</a></li>
+                    <div class="navi-list-items-mobilefooter">
+                        <li class="navi-list-items-item navi-language"> <a href="/de/ressourcen/knowledge-graph.html" hreflang="de-DE" class="menu-m">DE</a> </li>
+                        <div class="d-lg-none">
+                            <div class="footer-link"><a href="/imprint.html" class="menu-m">Imprint</a></div><div class="footer-link"><a href="/privacy-policy.html" class="menu-m">Privacy Policy</a></div><div class="footer-link"><a href="https://nfdi.social/@nfdi4culture" class="menu-m" rel="me">Mastodon</a></div><div class="footer-link"><a href="https://de.linkedin.com/company/nfdi4culture" class="menu-m">LinkedIn</a></div>
+                        </div>
+                    </div>
+                </div>
+            </ul>
+        </nav>
+    </div>
+
+
+</header>
+
+<main id="main">
+    
+
+    <section data-section="white" class="" id="content-area-01">
+        <div class="container">
+            <div class="row">
+            
+                    <div class="col-11 offset-md-1">
+                        <div class="row">
+                            
+<div id="c680" class="ce text 
+
+
+
+
+
+
+
+
+
+ default-frame
+ spacer-before-60 spacer-after-40">
+
+
+
+    
+
+
+
+
+
+    
+    
+        
+    
+            <h1 class="default">
+                
+                Public SPARQL Endpoint
+            </h1>
+        
+
+
+    
+
+
+
+
+    <p>On this page you can explore and query the <a href="https://nfdi4culture.de/services/details/culture-knowledge-graph.html" target="_blank" class="external-link">Culture Knowledge Graph</a> through a public SPARQL interface. For a quick start you can try out some of our prepared queries&nbsp;— for example list all <a href="https://nfdi4culture.de/go/sparql-repositories-ta4" target="_blank" rel="noopener noreferrer nofollow" title="https://nfdi4culture.de/go/sparql-repositories-ta4" class="external-link">research data repositories</a>&nbsp;or <a href="https://nfdi4culture.de/go/sparql-data-portals" target="_blank" title="https://nfdi4culture.de/go/sparql-data-portals" class="external-link">research data portals</a> described in the Knowledge Graph or get all <a href="https://nfdi4culture.de/go/sparql-partner-wikidata-mappings" target="_blank" rel="noopener noreferrer nofollow" title="https://nfdi4culture.de/go/sparql-partner-wikidata-mappings" class="external-link">partners of NFDI4Culture</a> with their different roles and mappings to Wikidata. You can also explore the dataset with the following queries:</p>
+<p><a href="https://nfdi4culture.de/go/sparql-triple-count" target="_blank" class="button button-full-green" title="Count all triples">Count triples</a> <a href="https://nfdi4culture.de/go/sparql-show-types" target="_blank" class="button button-full-green" title="Show all types used">Show all types</a> <a href="https://nfdi4culture.de/go/sparql-count-instances-per-type" target="_blank" class="button button-full-green" title="Count the instances for each used type">Count instances per type</a> <a href="https://nfdi4culture.de/go/sparql-properties-per-type" target="_blank" class="button button-full-green" title="Show used properties for each type">Show properties for types</a></p>
+
+
+    
+
+
+
+
+
+    
+
+
+
+
+
+
+</div>
+
+
+<div id="c681" class="ce html 
+
+
+
+
+
+
+
+
+
+ default-frame
+  spacer-after-120">
+
+
+
+    
+
+
+
+
+
+
+
+    <div id="yasgui"></div>
+<script>
+    const url = window.location.href.endsWith('/') ? window.location.href.slice(0, -1) : window.location.href;
+    new Yasgui(document.getElementById("yasgui"), {
+        requestConfig: { endpoint: "https://nfdi4culture.de/sparql" },
+        endpointCatalogueOptions: {
+            getData: function () {
+                return [
+                    { endpoint: "https://nfdi4culture.de/sparql" },
+                ];
+            },
+            keys: [],
+        }
+    });
+</script>
+
+
+
+    
+
+
+
+
+
+    
+
+
+
+
+
+
+</div>
+
+
+                        </div>
+                    </div>
+                
+            </div>
+        </div>
+    </section>
+
+
+</main>
+<footer id="footer" class="">
+    <div class="container">
+        
+
+<div class="row footer-content">
+    <div class="col-lg-2 mb-4 mb-lg-0">
+        <div class="n4c-border footer-cta-flex">
+            <h5>
+                Need help?
+            </h5>
+            <a class="button button-full-green" href="/helpdesk.html">
+                Go to Helpdesk
+            </a>
+        </div>
+    </div>
+    <div class="col-lg-9 offset-lg-1">
+        <div class="n4c-border">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="footer-cta-flex">
+                        <h5 class="text-serif-bold">
+                            Mailing list
+                        </h5>
+                        <a class="button button-outline-green" href="https://lists.nfdi.de/postorius/lists/nfdi4culture-all.lists.nfdi.de/">
+                            Subscribe
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3 offset-lg-1 pt-5 pt-md-0">
+                    <h5 class="logolabel">Funding</h5>
+                    <a title="NFDI4Culture is funded by the Deutsche Forschungsgemeinschaft (DFG) - 441958017" href="https://gepris.dfg.de/gepris/projekt/441958017">
+                        <img class="w-100" src="/typo3temp/assets/build/logos/dfg_logo_schriftzug_weiss_foerderung_en.df0e7287.gif" alt="DFG Logo" />
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <h5 class="logolabel">In Cooperation with</h5>
+                    <a href="https://nfdi.de">
+                        <img class="nfdi-logo" src="/typo3temp/assets/build/logos/nfdi-logo-wortmarke-weiss.f15e0914.png" alt="NFDI Logo" />
+                    </a>
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <div class="text-copy-m footer-links ">
+                        <div class="footer-link"><a href="/imprint.html" class="menu-m">Imprint</a></div><div class="footer-link"><a href="/privacy-policy.html" class="menu-m">Privacy Policy</a></div><div class="footer-link"><a href="https://nfdi.social/@nfdi4culture" class="menu-m" rel="me">Mastodon</a></div><div class="footer-link"><a href="https://de.linkedin.com/company/nfdi4culture" class="menu-m">LinkedIn</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </div>
+</footer>
+<script src="/_assets/06f5b9afb8e209441a437b650aaa0ebe/JavaScript/widget.module.min.js?1777646320" type="module" async="1" defer="defer"></script>
+<script src="/_assets/06f5b9afb8e209441a437b650aaa0ebe/JavaScript/widget.min.js?1777646320" async="1" defer="defer" nomodule="nomodule"></script>
+<script src="/typo3temp/assets/build/runtime.500f3a08.js?1773414629"></script>
+<script src="/typo3temp/assets/build/common.1072f64a.js?1785844624"></script>
+<script src="/typo3temp/assets/build/main.a54fafb8.js?1775810571"></script>
+<script src="/typo3temp/assets/build/copy_permalink.4d40f90a.js?1773414629"></script>
+
+
+</body>
+</html>

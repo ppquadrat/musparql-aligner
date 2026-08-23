@@ -1,0 +1,130 @@
+SOURCE: https://dati.cdec.it/esempi.html
+
+<!DOCTYPE html />
+<html lang="it-IT">	<head>
+		<meta charset="UTF-8" />
+		<title>dati.CDEC</title>
+		<link href="css/stile.css" rel="stylesheet" />
+		<link href='http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:400,700' rel='stylesheet' type='text/css' />
+		<link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css' />
+ 		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+	</head>
+	<body>
+		<div class="wrapper">
+			<div id="testata" style="float:none;"><img src="img/testata.png" /></div>
+			<div id="barraTop" style="float:none;"><a href="indice.html" class="back">home page</a><a href="ontologiaEN.html" target="_self">english</a>&nbsp;&nbsp;&nbsp;<a href="http://www.cdec.it/" target="_blank">www.cdec.it</a></div>
+			<div style="background: #fff; padding: 20px;">
+				<h1>ESEMPI QUERY SPARQL</h1>
+
+				<p><strong><a href="http://lod.xdams.org/sparql?default-graph-uri=&query=select+distinct+%3FName+%3FCountry+%3FBirthPlace+%3FArrestPlace+%3FCampName+from+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2F%3E++where+%7B%3FIRI+a+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2FPerson%3E%3B+rdfs%3Alabel+%3FName%3B+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fbio-ext%2FbirthPlace%3E+%3FBirth.+%3FBirth+rdfs%3Alabel+%3FBirthPlace.%0D%0A%3FBirth+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fcountry%3E+%3FCountry.%0D%0AFILTER%28%3FCountry+%21%3D+%27Italia%27%29.%0D%0AOPTIONAL%7B%0D%0A+%3FIRI+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fpersecution%3E+%3Fpers.%0D%0A+%3Fpers+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FarrestPlace%3E+%3Farr.+%3Farr+rdfs%3Alabel+%3FArrestPlace.%0D%0A+%3Fpers+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FtoNaziCamp%3E+%3Fcamp.+%3Fcamp+rdfs%3Alabel+%3FCampName.%0D%0A%0D%0A%7D%0D%0A%7D+ORDER+BY+%3FCountry&format=text%2Fhtml&timeout=0&debug=on">[esegui query]</a> &#8211; Ebrei stranieri arrestati e deportati dall'Italia</strong></p>
+				<pre>select distinct ?Name ?Country ?BirthPlace ?ArrestPlace ?CampName from &lt;http://dati.cdec.it/lod/shoah/&gt;  where {?IRI a &lt;http://xmlns.com/foaf/0.1/Person&gt;; rdfs:label ?Name; &lt;http://dati.cdec.it/lod/bio-ext/birthPlace&gt; ?Birth. ?Birth rdfs:label ?BirthPlace.
+?Birth &lt;http://xmlns.com/foaf/0.1/country&gt; ?Country.
+FILTER(?Country != 'Italia').
+OPTIONAL{
+ ?IRI &lt;http://dati.cdec.it/lod/shoah/persecution&gt; ?pers.
+ ?pers &lt;http://dati.cdec.it/lod/shoah/arrestPlace&gt; ?arr. ?arr rdfs:label ?ArrestPlace.
+ ?pers &lt;http://dati.cdec.it/lod/shoah/toNaziCamp&gt; ?camp. ?camp rdfs:label ?CampName.
+
+}
+} ORDER BY ?Country</pre>
+
+<p><strong><a href="http://lod.xdams.org/sparql?default-graph-uri=&query=select+distinct+%3FName+%3FBirthPlace+%3FArrestPlace+%3Fraccolta+from+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2F%3E+where+%7B%3FIRI+a+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2FPerson%3E%3B+rdfs%3Alabel+%3FName%3B+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fbio-ext%2FbirthPlace%3E+%3FBirth.+%3FBirth+rdfs%3Alabel+%3FBirthPlace.%3FIRI+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fpersecution%3E+%3Fpers.%0D%0A%0D%0A%0D%0A%0D%0A+OPTIONAL%7B%3Fpers+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FarrestPlace%3E+%3Farr.+%3Farr+rdfs%3Alabel+%3FArrestPlace.%7D%0D%0A+OPTIONAL%7B%3Fpers+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FconvoyDeparturePlace%3E+%3Fracc.+%3Fracc+rdfs%3Alabel+%3Fraccolta.%7D%0D%0A%7D+ORDER+BY+%3FName&format=text%2Fhtml&timeout=0&debug=on">[esegui query]</a> &#8211; Localit&agrave; di arresto e luoghi di partenza dei convogli</strong></p>
+				<pre>select distinct ?Name ?BirthPlace ?ArrestPlace ?raccolta from &lt;http://dati.cdec.it/lod/shoah/&gt; where {?IRI a &lt;http://xmlns.com/foaf/0.1/Person&gt;; rdfs:label ?Name; &lt;http://dati.cdec.it/lod/bio-ext/birthPlace&gt; ?Birth. ?Birth rdfs:label ?BirthPlace.?IRI &lt;http://dati.cdec.it/lod/shoah/persecution&gt; ?pers.
+ OPTIONAL{?pers &lt;http://dati.cdec.it/lod/shoah/arrestPlace&gt; ?arr. ?arr rdfs:label ?ArrestPlace.}
+ OPTIONAL{?pers &lt;http://dati.cdec.it/lod/shoah/convoyDeparturePlace&gt; ?racc. ?racc rdfs:label ?raccolta.}
+} ORDER BY ?Name</pre>
+<p><strong><a href="http://lod.xdams.org/sparql?default-graph-uri=&query=select+distinct+%3Fconvoy+%3FlabelConvoy+%3FdeparDate+%3FlabelCamp+from+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2F%3E++where%0D%0A%7B%3Fconvoy+a+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FConvoy%3E%3B%0D%0Ardfs%3Alabel+%3FlabelConvoy%3B%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FdepartureDate%3E+%3FdeparDate%3B%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FtoNaziCamp%3E+%3FnaziCamp.%0D%0A%3FnaziCamp+rdfs%3Alabel+%3FlabelCamp%7D%0D%0AORDER+BY+%3FdeparDate&format=text%2Fhtml&timeout=0&debug=on">[esegui query]</a> &#8211; Tutti i convogli con data di partenza e campo di destinazione</strong></p>
+				<pre>select distinct ?convoy ?labelConvoy ?deparDate ?labelCamp from &lt;http://dati.cdec.it/lod/shoah/&gt;  where
+{?convoy a &lt;http://dati.cdec.it/lod/shoah/Convoy&gt;;
+rdfs:label ?labelConvoy;
+&lt;http://dati.cdec.it/lod/shoah/departureDate&gt; ?deparDate;
+&lt;http://dati.cdec.it/lod/shoah/toNaziCamp&gt; ?naziCamp.
+?naziCamp rdfs:label ?labelCamp}
+ORDER BY ?deparDate</pre>
+
+
+<p><strong><a href="http://lod.xdams.org/sparql?default-graph-uri=&query=select+distinct+%3Fconvoy+%3FlabelConvoy+%3FdeparDate+%3FlabelCamp+%3Fgender+%28count%28%3Fgender%29+as+%3Fcount%29++from+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2F%3E+where+%0D%0A%7B%3Fconvoy+a+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FConvoy%3E%3B+%0D%0Ardfs%3Alabel+%3FlabelConvoy%3B+%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FdepartureDate%3E+%3FdeparDate%3B+%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FtoNaziCamp%3E+%3FnaziCamp.+%0D%0A%3FnaziCamp+rdfs%3Alabel+%3FlabelCamp.%0D%0A%0D%0A%3Fperson+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fpersecution%3E+%3Fpers.%0D%0A%3Fpers+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fconvoy%3E+%3Fconvoy.%0D%0A%0D%0AOPTIONAL+%7B%3Fperson++%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fgender%3E+%3Fgender.%7D%0D%0A%0D%0A%7DORDER+BY+%3Fconvoy&format=text%2Fhtml&timeout=0&debug=on">[esegui query]</a> &#8211; Composizione dei convogli (genere)</strong></p>
+				<pre>select distinct ?convoy ?labelConvoy ?deparDate ?labelCamp ?gender (count(?gender) as ?count)  from &lt;http://dati.cdec.it/lod/shoah/&gt; where
+{?convoy a &lt;http://dati.cdec.it/lod/shoah/Convoy&gt;;
+rdfs:label ?labelConvoy;
+&lt;http://dati.cdec.it/lod/shoah/departureDate&gt; ?deparDate;
+&lt;http://dati.cdec.it/lod/shoah/toNaziCamp&gt; ?naziCamp.
+?naziCamp rdfs:label ?labelCamp.
+
+?person &lt;http://dati.cdec.it/lod/shoah/persecution&gt; ?pers.
+?pers &lt;http://dati.cdec.it/lod/shoah/convoy&gt; ?convoy.
+
+OPTIONAL {?person  &lt;http://xmlns.com/foaf/0.1/gender&gt; ?gender.}
+
+}ORDER BY ?convoy</pre>
+<p><strong><a href="http://lod.xdams.org/sparql?default-graph-uri=&query=select+distinct+%3Fconvoy+%3FlabelConvoy+%3FdeparDate+%3FlabelCamp+%3Fgender+%28count%28%3Fgender%29+as+%3Fcount%29++from+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2F%3E+where+%0D%0A%7B%3Fconvoy+a+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FConvoy%3E%3B+%0D%0Ardfs%3Alabel+%3FlabelConvoy%3B+%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FdepartureDate%3E+%3FdeparDate%3B+%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FtoNaziCamp%3E+%3FnaziCamp.+%0D%0A%3FnaziCamp+rdfs%3Alabel+%3FlabelCamp.%0D%0A%0D%0A%3Fperson+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fpersecution%3E+%3Fpers%3B+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fbio-ext%2FdateOfBirth%3E+%3Fbirth.%0D%0A%3Fpers+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fconvoy%3E+%3Fconvoy.%0D%0A%0D%0AOPTIONAL+%7B%3Fperson++%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2Fgender%3E+%3Fgender.%7D%0D%0AFILTER%28REGEX%28%3Fbirth+%2C%27%5E194%27%2C%27i%27%29+%7C%7CREGEX%28%3Fbirth+%2C%27%5E193%27%2C%27i%27%29%29%0D%0A%7DORDER+BY+%3Fconvoy&format=text%2Fhtml&timeout=0&debug=on">[esegui query]</a> &#8211; Composizione dei convogli (bambini)</strong></p>
+				<pre>select distinct ?convoy ?labelConvoy ?deparDate ?labelCamp ?gender (count(?gender) as ?count)  from &lt;http://dati.cdec.it/lod/shoah/&gt; where
+{?convoy a &lt;http://dati.cdec.it/lod/shoah/Convoy&gt;;
+rdfs:label ?labelConvoy;
+&lt;http://dati.cdec.it/lod/shoah/departureDate&gt; ?deparDate;
+&lt;http://dati.cdec.it/lod/shoah/toNaziCamp&gt; ?naziCamp.
+?naziCamp rdfs:label ?labelCamp.
+
+?person &lt;http://dati.cdec.it/lod/shoah/persecution&gt;?pers; &lt;http://dati.cdec.it/lod/bio-ext/dateOfBirth&gt; ?birth.
+?pers &lt;http://dati.cdec.it/lod/shoah/convoy&gt; ?convoy.
+
+OPTIONAL {?person &lt;http://xmlns.com/foaf/0.1/gender&gt; ?gender.}
+FILTER(REGEX(?birth ,'^194','i') ||REGEX(?birth ,'^193','i'))
+}ORDER BY ?convoy</pre>
+<p><strong><a href="http://lod.xdams.org/sparql?default-graph-uri=&query=select+distinct++%3FlabelConvoy+%3FlabelDeparPlace+%3FdeparDate++%3FArrestPlace+%28count%28%3FArrestPlace%29+as+%3Fcount%29++%3FlabelCamp%0D%0A%09%09%09%09FROM+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2F%3E++where%0D%0A%7B%3Fconvoy+a+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FConvoy%3E%3B%0D%0Ardfs%3Alabel+%3FlabelConvoy%3B%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FdepartureDate%3E+%3FdeparDate%3B%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FconvoyDeparturePlace%3E+%3FdeparPlace%3B%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FtoNaziCamp%3E+%3FnaziCamp.%0D%0A%3FnaziCamp+rdfs%3Alabel+%3FlabelCamp.%0D%0A%3FdeparPlace+rdfs%3Alabel+%3FlabelDeparPlace.%0D%0A%0D%0A%3Fperson+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fpersecution%3E+%3Fpers.%0D%0A%3Fpers+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FarrestPlace%3E+%3Farr.+%3Farr+rdfs%3Alabel+%3FArrestPlace.%0D%0A%3Fpers+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fconvoy%3E+%3Fconvoy.%0D%0A%0D%0A%0D%0A%7DORDER+BY+%3Fconvoy+%3FlabelDeparPlace&format=text%2Fhtml&timeout=0&debug=on">[esegui query]</a> &#8211; Luoghi e date di partenza dei convogli e numero dei deportati per localit&agrave; di arresto</strong></p>
+				<pre>select distinct  ?labelConvoy ?labelDeparPlace ?deparDate  ?ArrestPlace (count(?ArrestPlace) as ?count)  ?labelCamp
+				FROM &lt;http://dati.cdec.it/lod/shoah/&gt;  where
+{?convoy a &lt;http://dati.cdec.it/lod/shoah/Convoy&gt;;
+rdfs:label ?labelConvoy;
+&lt;http://dati.cdec.it/lod/shoah/departureDate&gt; ?deparDate;
+&lt;http://dati.cdec.it/lod/shoah/convoyDeparturePlace&gt; ?deparPlace;
+&lt;http://dati.cdec.it/lod/shoah/toNaziCamp&gt; ?naziCamp.
+?naziCamp rdfs:label ?labelCamp.
+?deparPlace rdfs:label ?labelDeparPlace.
+
+?person &lt;http://dati.cdec.it/lod/shoah/persecution&gt; ?pers.
+?pers &lt;http://dati.cdec.it/lod/shoah/arrestPlace&gt; ?arr. ?arr rdfs:label ?ArrestPlace.
+?pers &lt;http://dati.cdec.it/lod/shoah/convoy&gt; ?convoy.
+
+
+}ORDER BY ?convoy ORDER BY ?labelDeparPlace</pre>
+<p><strong><a href="http://lod.xdams.org/sparql?default-graph-uri=&query=select+distinct+count%28%3Fserial%29+from+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2F%3E+where+%7B%3Fs+a+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2FPerson%3E%3B%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fpersecution%3E+%3Fpersecution.%0D%0A%3Fpersecution+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FcampSerialNumber%3E+%3Fserial.%0D%0AFILTER+%28%3Fserial%3D+%27S%27%29%0D%0A%0D%0A%7D+&format=text%2Fhtml&timeout=0&debug=on">[esegui query]</a> &#8211; Numero complessivo dei deportati selezionati all'arrivo in campo</strong></p>
+				<pre>select distinct count(?serial) from &lt;http://dati.cdec.it/lod/shoah/&gt; where {?s a &lt;http://xmlns.com/foaf/0.1/Person&gt;;
+&lt;http://dati.cdec.it/lod/shoah/persecution&gt; ?persecution.
+?persecution &lt;http://dati.cdec.it/lod/shoah/campSerialNumber&gt; ?serial.
+FILTER (?serial= 'S')
+
+}</pre>
+<p><strong><a href="http://lod.xdams.org/sparql?default-graph-uri=&query=select+distinct+%3Fs+%3Flabel+from+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2F%3E+where+%7B%3Fs+a+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2FPerson%3E%3B+rdfs%3Alabel+%3Flabel%3B%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fpersecution%3E+%3Fpersecution.%0D%0A%3Fpersecution+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FconvoyNumber%3E+%3Fconvoy.%0D%0A%0D%0AFILTER+%28%3Fconvoy%3D%27P%27%29%0D%0A%0D%0A%7D+order+by+%3Flabel&format=text%2Fhtml&timeout=0&debug=on">[esegui query]</a> &#8211; Elenco degli ebrei deportati come oppositori politici</strong></p>
+				<pre>select distinct ?s ?label from &lt;http://dati.cdec.it/lod/shoah/&gt; where {?s a &lt;http://xmlns.com/foaf/0.1/Person&gt;; rdfs:label ?label;
+&lt;http://dati.cdec.it/lod/shoah/persecution&gt; ?persecution.
+?persecution &lt;http://dati.cdec.it/lod/shoah/convoyNumber&gt; ?convoy.
+
+FILTER (?convoy='P')
+
+} order by ?label</pre>
+
+<p><strong><a href="http://lod.xdams.org/sparql?default-graph-uri=&query=select+distinct+%3Fdescr+%28count%28%3Fdescr%29+as+%3Ftipomorte%29+from+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2F%3E+where+%7B%3Fs+a+%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2FPerson%3E%3B%0D%0A%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2Fpersecution%3E+%3Fpersecution.%0D%0A%3Fpersecution+%3Chttp%3A%2F%2Fdati.cdec.it%2Flod%2Fshoah%2FdeathDescription%3E+%3Fdescr.%0D%0A%7D+order+by+%3Ftipomorte&format=text%2Fhtml&timeout=0&debug=on">[esegui query]</a> &#8211; Numero degli ebrei morti in Italia e in campo di sterminio</strong></p>
+				<pre>select distinct ?descr (count(?descr) as ?tipomorte) from &lt;http://dati.cdec.it/lod/shoah/&gt; where {?s a &lt;http://xmlns.com/foaf/0.1/Person&gt;;
+&lt;http://dati.cdec.it/lod/shoah/persecution&gt; ?persecution.
+?persecution &lt;http://dati.cdec.it/lod/shoah/deathDescription&gt; ?descr.
+} order by ?tipomorte</pre>
+
+
+
+</div><!-- chiudo page -->
+
+
+
+
+			<div id="footer">
+
+				<div class="footup">dati.cdec.it</div>
+				<div class="footdown">
+					<div><img src="img/loghino.png" /></div>
+					<div class="accapo"><a href="http://www.cdec.it/" target="_blank">www.cdec.it</a><br /><br /><a href="http://www.regesta.com" target="_blank">realizzato da regesta.exe</a></div>
+				</div>
+			</div>
+		</div><!-- chiudo wrapper -->
+	</body>
+</html>

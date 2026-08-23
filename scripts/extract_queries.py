@@ -893,6 +893,13 @@ def main() -> None:
             seen_pdfs.add(pdf_path)
             if kg.kg_id.lower() not in pdf_path.name.lower() and str(pdf_path) not in kg_sources.get(kg.kg_id, []):
                 continue
+            source_provenance = source_provenance_by_path.get(str(pdf_path), {})
+            catalog_provenance = source_provenance.get("catalog_provenance")
+            if isinstance(catalog_provenance, dict) and catalog_provenance.get("query_role") in {
+                "edit_source",
+                "none",
+            }:
+                continue
             pdf_text = extract_text_from_pdf(pdf_path)
             if not pdf_text.strip():
                 continue
@@ -922,7 +929,6 @@ def main() -> None:
                     )
                     records.append(record_by_key[key])
                 record = record_by_key[key]
-                source_provenance = source_provenance_by_path.get(str(pdf_path), {})
                 record["evidence"].append(
                     {
                         "evidence_id": f"e{len(record['evidence']) + 1}",

@@ -246,3 +246,220 @@ kgs:
       - scope_id: linkedmusic
         label: LinkedMusic Data Lake
         kind: federation
+
+  - kg_id: alyra
+    seed_version: "2026-08-23.1"
+    name: Archaic Lyric Poetry Ontology (ALyrA)
+    project: TALOS AI for SSH
+    description_hint: >
+      Version 1.0 of the Archaic Lyrical Agora ontoterminology, modelling
+      Archaic Greek lyric poets, poetic genres and subgenres, literary works,
+      places, dates, terminology, and defining characteristics in English and
+      Greek.
+    dataset:
+      dump_url: https://zenodo.org/records/13371967/files/ALyrA_v.1.0.rdf.rdf?download=1
+      local_path: var/cache/dumps/alyra-v1.0.rdf
+      format: xml
+    source_ids:
+      - alyra-talos-dataset-page
+      - alyra-zenodo-v1
+      - alyra-v1-rdf-export
+      - alyra-mdtt-2025-paper
+      - alyra-mdtt-2025-paper-query
+    priority: medium
+    notes: >
+      No dedicated ALyrA SPARQL service or public source repository was found.
+      Execute the five validated Zenodo examples and the related MDTT 2025
+      paper query against the complete local v1.0 RDF/XML export. The
+      sparql.org link in the project documentation is a generic client, not an
+      ALyrA endpoint. The dataset is licensed CC BY-NC-ND 4.0.
+    review_domains:
+      - domain_id: archaic-greek-lyric-poetry
+        label: Archaic Greek lyric poetry
+        description: >
+          Archaic Greek lyric poets and poetesses, poetic genres and subgenres,
+          literary works and fragments, metre, dialect, performance, occasion,
+          content, chronology, and associated ancient places and identifiers.
+    familiarity_scopes:
+      - scope_id: alyra
+        label: Archaic Lyric Poetry Ontology (ALyrA)
+        kind: knowledge_graph
+
+  - kg_id: camera-dei-deputati
+    seed_version: "2026-08-23.1"
+    name: Camera dei Deputati Knowledge Graph
+    project: Camera dei deputati open data
+    description_hint: >
+      Official knowledge graph describing the activities and historical record
+      of the Italian Chamber of Deputies, including deputies, mandates,
+      parliamentary groups and offices, legislation, votes, sessions, debates,
+      governments, and related parliamentary resources.
+    sparql:
+      endpoint: https://dati.camera.it/sparql
+      auth: none
+      expected_namespaces:
+        - http://dati.camera.it/ocd/
+    source_ids:
+      - camera-dei-deputati-ocd-documentation
+      - camera-dei-deputati-endpoint-examples
+      - camera-dei-deputati-sparna-article
+    priority: medium
+    notes: >
+      The endpoint interface loads its current examples from the official XML
+      source. The Italian OCD documentation contains an older, substantially
+      overlapping example set, while the Sparna article contributes three
+      English-described examples that require transcription from screenshots.
+      Deduplicate overlapping examples and preserve legislature/version context.
+    review_domains:
+      - domain_id: italian-parliamentary-activity-legislation
+        label: Italian parliamentary activity and legislation
+        description: >
+          The Italian Chamber of Deputies, its members, mandates, parliamentary
+          groups, offices and committees; bills and legislative procedure;
+          votes, sessions and debates; governments and related parliamentary
+          records across historical legislatures.
+    familiarity_scopes:
+      - scope_id: camera-dei-deputati
+        label: Camera dei Deputati Open Data Knowledge Graph (OCD)
+        kind: knowledge_graph
+
+  - kg_id: cdec
+    seed_version: "2026-08-23.1"
+    name: CDEC Knowledge Graph
+    project: Fondazione Centro di Documentazione Ebraica Contemporanea
+    description_hint: >
+      Official linked open data from the CDEC documentary heritage concerning
+      Jews in twentieth-century Italy, with the historical Shoah graph
+      describing people, persecution, arrests, deportations, convoys, camps,
+      places, and related archival evidence.
+    sparql:
+      endpoint: https://lod.xdams.org/sparql
+      auth: none
+      graph: http://dati.cdec.it/lod/shoah/
+      expected_namespaces:
+        - http://dati.cdec.it/lod/shoah/
+        - http://dati.cdec.it/lod/bio-ext/
+    source_ids:
+      - cdec-official-sparql-examples
+    priority: medium
+    notes: >
+      The official examples page contains nine Italian question-and-query pairs
+      and explicitly selects the historical Shoah named graph. The graph IRI is
+      active at the endpoint, although dereferencing it as a webpage currently
+      reaches a broken ontology-documentation redirect. Preserve the graph's
+      historical scope and validate currency before broader CDEC attribution.
+    review_domains:
+      - domain_id: jews-in-italy-shoah-documentation
+        label: Jews in Italy and Shoah documentation
+        description: >
+          Jews in twentieth-century Italy and the documentary record of
+          persecution and the Shoah, including people, arrests, deportations,
+          convoys, camps, places, dates, outcomes, and related CDEC archival
+          evidence.
+    familiarity_scopes:
+      - scope_id: cdec-shoah
+        label: CDEC Linked Open Data Shoah graph
+        kind: knowledge_graph
+
+  - kg_id: nfdi4culture
+    seed_version: "2026-08-23.1"
+    name: NFDI4Culture Culture Knowledge Graph
+    project: NFDI4Culture
+    description_hint: >
+      Cross-domain research information and research data knowledge graph for
+      cultural heritage and the humanities, interconnecting resources from
+      architecture, art history, musicology, performing arts, archives, and
+      audiovisual collections using NFDIcore and the NFDI4Culture Ontology.
+    sparql:
+      endpoint: https://nfdi4culture.de/sparql
+      auth: none
+      expected_namespaces:
+        - https://nfdi4culture.de/ontology/
+        - https://nfdi.fiz-karlsruhe.de/ontology/
+        - https://nfdi4culture.de/id/
+    source_ids:
+      - nfdi4culture-ckg-query-page
+      - nfdi4culture-ckg-deep-dive
+      - nfdi4culture-ckg-approved-examples
+    priority: medium
+    notes: >
+      The canonical curated source contains six approved authored examples:
+      three linked from the public query page and three linked from the official
+      deep-dive presentation. Four generic graph-inspection queries are excluded,
+      as are duplicate repository examples and ontology maintenance, validation,
+      and quality-control SPARQL. One approved example federates with Wikidata.
+    review_domains:
+      - domain_id: architecture-space-management
+        label: Architecture and space management
+        description: >
+          Architectural heritage, buildings, sites, spatial organization,
+          planning, and the research data, standards, institutions, and services
+          used to document and manage them.
+      - domain_id: art-art-history
+        label: Art and art history
+        description: >
+          Artworks, artists, collections, visual culture, provenance, art-
+          historical research, and the repositories, standards, and services
+          that describe them.
+      - domain_id: musicology
+        label: Musicology
+        description: >
+          Musical sources, works, people, performances, collections, and
+          musicological research data, including catalogues, repositories,
+          standards, and related cultural heritage services.
+      - domain_id: performing-arts
+        label: Performing arts
+        description: >
+          Theatre, dance, performance, productions, participants, venues,
+          archives, collections, and the research infrastructures and standards
+          used to document performing arts.
+    familiarity_scopes:
+      - scope_id: nfdi4culture-ckg
+        label: NFDI4Culture Culture Knowledge Graph
+        kind: knowledge_graph
+
+  - kg_id: europeana
+    seed_version: "2026-08-23.3"
+    name: Europeana Knowledge Graph
+    project: Europeana
+    description_hint: >
+      Cross-domain cultural heritage knowledge graph aggregating metadata about
+      digitised objects from European museums, libraries, archives, and
+      audiovisual collections, represented using the Europeana Data Model and
+      linked to contextual resources for people, places, concepts, and periods.
+    sparql:
+      endpoint: https://api.europeana.eu/sparql
+      auth: none
+      expected_namespaces:
+        - http://www.europeana.eu/schemas/edm/
+        - http://www.openarchives.org/ore/terms/
+        - http://purl.org/dc/elements/1.1/
+        - http://purl.org/dc/terms/
+        - http://www.w3.org/2004/02/skos/core#
+    source_ids:
+      - europeana-sparql-api-documentation
+      - europeana-sparql-console-examples
+      - europeana-sparql-api-examples
+      - europeana-sparql-console-select-examples
+    priority: medium
+    notes: >
+      Retain the eight labelled examples from the official SPARQL API
+      documentation and all 52 titled examples from the console's official JSON
+      source, then deduplicate their overlap during extraction. The JSON includes
+      46 SELECT and six DESCRIBE examples; the DESCRIBE examples are preserved as
+      evidence but excluded from the SELECT-only corpus. Generic graph probes and
+      a small number of queries require syntax, currency, or semantic review. The historical
+      https://sparql.europeana.eu/ URL redirects to the console; use the current
+      backend configured here for programmatic execution.
+    review_domains:
+      - domain_id: european-cross-domain-cultural-heritage
+        label: European cross-domain cultural heritage
+        description: >
+          Digitised cultural heritage objects and their metadata across European
+          museums, libraries, archives, and audiovisual collections, including
+          creators, contributors, places, concepts, periods, media resources,
+          rights, providers, aggregators, datasets, and external authority links.
+    familiarity_scopes:
+      - scope_id: europeana
+        label: Europeana Knowledge Graph and Europeana Data Model
+        kind: knowledge_graph

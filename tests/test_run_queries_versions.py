@@ -4,6 +4,7 @@ import pytest
 from rdflib.plugins.sparql.parser import parseQuery
 
 from scripts.run_queries import (
+    adapt_query_for_local_dump,
     apply_graph,
     build_query_jobs,
     clean_query,
@@ -103,3 +104,18 @@ def test_effective_query_can_be_audited_separately_from_retained_text():
     assert sparql_hash(effective) != sparql_hash(retained)
     assert "SELECT * FROM <https://example.org/graph>\nWHERE" in effective
     parseQuery(effective)
+
+
+def test_local_dump_adaptation_removes_only_default_graph_from_clause():
+    retained = """SELECT ?s
+FROM <https://example.org/published-graph>
+WHERE { ?s ?p ?o }"""
+    effective = adapt_query_for_local_dump(retained)
+    assert "FROM" not in effective
+    assert "WHERE { ?s ?p ?o }" in effective
+    parseQuery(effective)
+
+    named = """SELECT ?s
+FROM NAMED <https://example.org/published-graph>
+WHERE { GRAPH ?g { ?s ?p ?o } }"""
+    assert adapt_query_for_local_dump(named) == named

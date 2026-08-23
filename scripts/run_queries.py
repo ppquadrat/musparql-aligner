@@ -600,6 +600,19 @@ def apply_graph(query: str, graph: Optional[str]) -> str:
     return query
 
 
+def adapt_query_for_local_dump(query: str) -> str:
+    """Run a source query's default-graph dataset clause over the loaded dump.
+
+    A local RDF dump is parsed into the executor's default graph. Source queries
+    may still name the graph they used in the publishing endpoint with a simple
+    ``FROM <iri>`` clause. Removing that clause for the execution observation
+    preserves the graph pattern while avoiding an attempted remote graph load.
+    ``FROM NAMED`` is deliberately left untouched because flattening it would
+    change GRAPH-clause semantics.
+    """
+    return re.sub(r"(?im)^\s*FROM\s+<(?![^>]*\s)[^>]+>\s*$", "", query).strip()
+
+
 def non_executable_reason(query: str) -> Optional[str]:
     lowered = query.lower()
     if "x-sparql-anything" in lowered:
@@ -712,7 +725,8 @@ def execute_sparql_observation(
                 graph.parse(dump_path, format=dataset.format or guess_rdf_format(dump_path))
                 graph_cache[kg_id] = graph
             graph = graph_cache[kg_id]
-            result = run_local_select_query(graph, effective)
+            effective_used = adapt_query_for_local_dump(effective)
+            result = run_local_select_query(graph, effective_used)
         except Exception as exc:
             result = {"status": "unavailable", "error": f"{exc.__class__.__name__}: {exc}"}
     duration_ms = int((time.time() - start) * 1000)

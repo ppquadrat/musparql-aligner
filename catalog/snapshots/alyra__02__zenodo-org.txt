@@ -1,0 +1,2219 @@
+SOURCE: https://zenodo.org/records/13371967
+
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+  
+    
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification" content="5fPGCLllnWrvFxH9QWI0l1TadV7byeEvfPcyK2VkS_s"/>
+    <meta name="google-site-verification" content="Rp5zp04IKW-s1IbpTOGB7Z6XY60oloZD5C3kTM-AiY4"/>
+
+    
+    
+    <meta name="generator" content="InvenioRDM 15.0"/>
+
+    
+    
+    
+  
+    <meta name="description" content="This is version 1.0 of the ALyrA ontoterminology (i.e., &#39;a terminology whose conceptual system is a formal ontology&#39;, Roche 2007), which focuses on modelling Archaic Lyric poets (799-430 BCΕ). AlyrA stands for &#34;Archaic Lyrical Agora&#34;.  The ontoterminology was created by Rafail Giannadakis (Department of Philology, University of Crete) under the supervision of Dr. Maria Papadopoulou (Department of Philology, University of Crete). We gratefully acknowledge the generous funding of the European Commission in the context of the TALOS AI for SSH project (Grant agreement ID: 101087269). Contact: giannadakis.uni@gmail.com " />
+    <meta name="citation_title" content="Archaic Lyric Agora (ALyrA) - Ontoterminology of Archaic Lyric Poets - version 1.0" />
+    <meta name="citation_author" content="Giannadakis, Rafail" />
+    <meta name="citation_author" content="Papadopoulou, Maria" />
+    <meta name="citation_doi" content="10.5281/zenodo.13371967" />
+    <meta name="citation_keywords" content="Ontology" />
+    <meta name="citation_keywords" content="Semantic web" />
+    <meta name="citation_keywords" content="Linked Open Data" />
+    <meta name="citation_keywords" content="Ancient Lyric Poetry" />
+    <meta name="citation_keywords" content="Classical Philology" />
+    <meta name="citation_keywords" content="Classics" />
+    <meta name="citation_abstract_html_url" content="https://zenodo.org/records/13371967" />
+    <meta property="og:title" content="Archaic Lyric Agora (ALyrA) - Ontoterminology of Archaic Lyric Poets - version 1.0" />
+    <meta property="og:description" content="This is version 1.0 of the ALyrA ontoterminology (i.e., &#39;a terminology whose conceptual system is a formal ontology&#39;, Roche 2007), which focuses on modelling Archaic Lyric poets (799-430 BCΕ). AlyrA stands for &#34;Archaic Lyrical Agora&#34;.  The ontoterminology was created by Rafail Giannadakis (Department of Philology, University of Crete) under the supervision of Dr. Maria Papadopoulou (Department of Philology, University of Crete). We gratefully acknowledge the generous funding of the European Commission in the context of the TALOS AI for SSH project (Grant agreement ID: 101087269). Contact: giannadakis.uni@gmail.com " />
+    <meta property="og:url" content="https://zenodo.org/records/13371967" />
+    <meta property="og:site_name" content="Zenodo" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@zenodo_org" />
+    <meta name="twitter:title" content="Archaic Lyric Agora (ALyrA) - Ontoterminology of Archaic Lyric Poets - version 1.0" />
+    <meta name="twitter:description" content="This is version 1.0 of the ALyrA ontoterminology (i.e., &#39;a terminology whose conceptual system is a formal ontology&#39;, Roche 2007), which focuses on modelling Archaic Lyric poets (799-430 BCΕ). AlyrA stands for &#34;Archaic Lyrical Agora&#34;.  The ontoterminology was created by Rafail Giannadakis (Department of Philology, University of Crete) under the supervision of Dr. Maria Papadopoulou (Department of Philology, University of Crete). We gratefully acknowledge the generous funding of the European Commission in the context of the TALOS AI for SSH project (Grant agreement ID: 101087269). Contact: giannadakis.uni@gmail.com " />
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_poem.el.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_poem.el.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_all.en.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_all.en.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_location.en.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_location.en.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_composer.en.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_composer.en.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_poem.en.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_poem.en.html">
+    
+    <link rel="alternate" type="application/xml" href="https://zenodo.org/records/13371967/files/ALyrA_v.1.0.rdf.rdf">
+    <link rel="item" type="application/xml" href="https://zenodo.org/records/13371967/files/ALyrA_v.1.0.rdf.rdf">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_all.el.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_all.el.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_poem.el.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_poem.el.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_all.en.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_all.en.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_location.en.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_location.en.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_location.el.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_location.el.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_all.el.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_all.el.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_location.el.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_location.el.html">
+    
+    <link rel="alternate" type="application/octet-stream" href="https://zenodo.org/records/13371967/files/ALyrA_v.1.0.otb">
+    <link rel="item" type="application/octet-stream" href="https://zenodo.org/records/13371967/files/ALyrA_v.1.0.otb">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_composer.el.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_PN_composer.el.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_poem.en.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_poem.en.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_composer.en.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_composer.en.html">
+    
+    <link rel="alternate" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_composer.el.html">
+    <link rel="item" type="text/html" href="https://zenodo.org/records/13371967/files/Alyra_terms_composer.el.html">
+
+
+<link rel="canonical" href="https://zenodo.org/records/13371967">
+    <title>Archaic Lyric Agora (ALyrA) - Ontoterminology of Archaic Lyric Poets - version 1.0</title>
+      <link rel="shortcut icon" type="image/x-icon" href="/static/favicon.ico"/>
+          <link rel="apple-touch-icon" sizes="120x120" href="/static/apple-touch-icon-120.png"/>
+          <link rel="apple-touch-icon" sizes="152x152" href="/static/apple-touch-icon-152.png"/>
+          <link rel="apple-touch-icon" sizes="167x167" href="/static/apple-touch-icon-167.png"/>
+          <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon-180.png"/>
+    
+    <link rel="stylesheet" href="/static/dist/css/3526.47f6673355cc02b3b195.css" />
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+      <link rel="stylesheet" type="text/css"
+            href="https://zenodo.org/communities/eu/community-theme-28.css">
+    
+  </head>
+  <body data-invenio-config='{"isMathJaxEnabled": "//cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js?config=TeX-AMS-MML_HTMLorMML"}' ng-csp  itemscope itemtype="http://schema.org/WebPage" data-spy="scroll" data-target=".scrollspy-target">
+    <!--[if lt IE 8]>
+      <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+    <![endif]-->
+    
+
+<div>
+  <header class="theme header">
+
+    <div class="outer-navbar theme-default">
+        <div class="ui container invenio-header-container theme-default">
+          <nav id="invenio-nav" class="ui inverted menu borderless p-0">
+            <div class="item logo p-0">
+                    <a class="logo-link" href="https://zenodo.org/">
+                      <img class="ui image rdm-logo"
+                           src="/static/images/invenio-rdm.svg"
+                           alt="Zenodo home"/>
+                    </a>
+            </div>
+
+            <div id="rdm-burger-toggle">
+              <button
+                id="rdm-burger-menu-icon"
+                class="ui button transparent"
+                aria-label="Menu"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-controls="invenio-menu"
+              >
+                <span class="navicon" aria-hidden="true"></span>
+              </button>
+            </div>
+
+            <nav
+              id="invenio-menu"
+              aria-labelledby="rdm-burger-menu-icon"
+              class="ui fluid menu borderless mobile-hidden"
+            >
+              <button
+                id="rdm-close-burger-menu-icon"
+                class="ui button transparent"
+                aria-label="Close menu"
+              >
+                <span class="navicon" aria-hidden="true"></span>
+              </button>
+
+    
+        
+          
+        
+    
+      <div class="item p-0 search-bar">
+        <div id="header-search-bar" data-options='[{"key": "communities", "text": "In this community", "value": "/communities/eu/records"}, {"key": "records", "text": "All Zenodo", "value": "/search"}]'>
+          <div class="ui fluid search">
+            <div class="ui icon input">
+              <input
+                autocomplete="off"
+                aria-label="Search records"
+                placeholder="Search records..."
+                type="text"
+                tabindex="0"
+                class="prompt"
+                value=""
+              >
+              <button class="ui icon button right-floated search" aria-label="Search">
+                <i aria-hidden="true" class="search icon"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+                    <div class="item">
+                      <a href="/communities">Communities</a>
+                    </div>
+
+                
+                  <div class="item">
+                    <a href="/me/uploads">My dashboard</a>
+                  </div>
+                
+                <div class="right menu item">
+    <form>
+      <a
+        href="/login/?next=/records/13371967"
+        class="ui button auth-button" aria-busy="false" aria-live="polite" aria-label="Log in"
+      >
+        <i class="sign-in icon auth-icon" aria-hidden="true"></i>
+        Log in
+      </a>
+      
+        <a href="/signup/" class="ui button signup">
+          <i class="edit outline icon"></i>
+          Sign up
+        </a>
+      
+    </form>
+                </div>
+            </nav>
+          </nav>
+        </div>
+    </div>
+      
+      
+    
+      
+    
+    
+</header>
+</div>
+
+  <main id="main">
+    <div class="invenio-page-body">
+<span id="detail-share-btn-require-link-expiration"
+        data-share-btn-require-link-expiration='false'>
+
+  <section id="banners" class="banners" aria-label="Information banner">
+    <!-- COMMUNITY HEADER: hide it when displaying the submission request -->
+    
+      
+        
+        
+          <div
+        class="ui container fluid with-submenu rel-pt-2 ml-0-mobile mr-0-mobile">
+  <div class="ui container fluid mr-0-mobile ml-0-mobile">
+    <div class="ui relaxed container grid">
+      <div class="row pb-0">
+        <div
+                class="sixteen wide mobile sixteen wide tablet ten wide computer column">
+          <div
+                  class="community-header flex align-items-center column-mobile align-items-start-mobile">
+            <div class="flex align-items-center">
+              <div class="ui rounded image community-image mt-5 rel-mr-2">
+                <a href="https://zenodo.org/communities/eu/">
+                  <img
+                          src="https://zenodo.org/api/communities/f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c/logo"
+                          alt=""
+                          class="rel-mb-1"
+                  />
+                </a>
+              </div>
+
+              <div class="mobile only">
+                <a class="remove-default-style" href="https://zenodo.org/communities/eu/">
+                  <h1 class="ui medium header mb-5">
+                    EU Open Research Repository
+                  </h1>
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex align-items-center mb-5 tablet computer only">
+
+                <a class="remove-default-style" href="https://zenodo.org/communities/eu/">
+                  <h1 class="ui medium header mb-0">
+                    EU Open Research Repository
+                  </h1>
+                </a>
+
+                
+              </div>
+
+              <div class="text-muted">
+                
+
+                
+                
+                  
+                  
+
+                  <div class="inline-computer mt-5 rel-mr-1">
+                    
+                      by
+                    
+
+                    European Commission
+
+                    <a target="_blank" class="no-text-decoration" data-tooltip="Verified community" href="https://support.zenodo.org/help/en-gb/11/108">
+                      <i class="green check circle outline link icon"></i>
+                    </a>
+                    
+                  </div>
+                
+              
+
+                
+                  <div class="inline-computer mt-5 rel-mr-1">
+                    <i class="linkify icon" aria-hidden="true"></i>
+                    <a href="https://research-and-innovation.ec.europa.eu">
+                      https://research-and-innovation.ec.europa.eu
+                    </a>
+                  </div>
+                
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+      <div
+        class="sixteen wide mobile sixteen wide tablet six wide computer right aligned middle aligned column">
+          <a href="/communities/eu/pages/how-to-submit"
+            class="ui positive button labeled icon rel-mt-1 theme-secondary">
+            <i class="upload icon" aria-hidden="true"></i>
+            How to submit
+          </a>
+          <a href="/communities/eu/pages/join"
+            class="ui positive item button labeled theme-primary icon rel-mt-1">
+            <i class="users icon" aria-hidden="true"></i>
+            Join with your EU project
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="ui divider mobile only"></div>
+    <div class="ui container fluid theme-tertiary page-subheader rel-mt-2 p-10 mr-0-mobile ml-0-mobile">
+      <h5 class="ui container">
+        Research and Innovation
+      </h5>
+    </div>
+    <div
+            class="ui container fluid secondary pointing stackable menu pl-0 pr-0 theme-primary mt-0 mr-0-mobile ml-0-mobile">
+      
+    </div>
+  </div>
+</div>
+        
+      
+    
+    <!-- /COMMUNITY HEADER -->
+
+    <!-- PREVIEW HEADER -->
+    
+    <!-- /PREVIEW HEADER -->
+
+    
+  </section>
+
+
+  <div class="ui container">
+    <div class="ui relaxed grid mt-5">
+      <div class="two column row top-padded">
+
+        
+        <article
+          class="sixteen wide tablet eleven wide computer column main-record-content">
+          
+
+              
+
+              
+
+              <section id="record-info"
+                       aria-label="Publication date and version number">
+                <div class="ui grid middle aligned">
+                  <div class="two column row">
+                    <div class="left floated left aligned column">
+                      <span class="ui" title="Publication date">
+                        Published August 25, 2024
+                      </span>
+                      <span
+                        class="label text-muted"> | Version 1.0</span>
+                    </div>
+                    <div class="right floated right aligned column">
+
+                      
+                      
+                        
+                          
+                        
+                        
+                          
+                        
+                        <a href="/communities/eu/records?q=&amp;f=resource_type%3Adataset"
+                           role="note"
+                           class="ui label horizontal small neutral mb-5"
+                           aria-label="Resource type"
+                        >
+                          Dataset
+                        </a>
+                      
+
+                      <span role="note"
+                            class="ui label horizontal small access-status open mb-5"
+                            data-tooltip="The record and files are publicly accessible."
+                            data-inverted=""
+                            aria-label="Access status"
+                      >
+                        
+                          <i class="icon unlock"
+                             aria-hidden="true"></i>
+                        
+                        <span
+                          aria-label="The record and files are publicly accessible.">
+                          Open
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <div class="ui divider hidden"></div><section id="record-title-section"
+                       aria-label="Record title, authors and contributors">
+                <h1 id="record-title"
+                    class="wrap-overflowing-text">Archaic Lyric Agora (ALyrA) - Ontoterminology of Archaic Lyric Poets - version 1.0</h1>
+
+                
+                  <section id="creatibutors"
+                           aria-label="Authors and contributors"><div class="ui grid">
+
+  
+    <div id="creators-section" class="row ui accordion affiliations">
+      <div class="sixteen wide mobile twelve wide tablet thirteen wide computer column">
+        <h3 class="sr-only">Authors/Creators</h3>
+        <ul class="creatibutors">
+          
+  
+  <li class="creatibutor-wrap separated"
+      data-affiliation-refs="1"
+      data-affiliations="University of Crete">
+    <a class="ui creatibutor-link"
+      
+        data-tooltip="University of Crete"
+        data-position="bottom center"
+      
+      href="/search?q=metadata.creators.person_or_org.name:%22Giannadakis,+Rafail%22"
+    >
+      <span class="creatibutor-name">Giannadakis, Rafail
+          (Data curator)</span><sup class="font-tiny">1</sup></a>
+  
+
+  
+    
+      
+        
+        <a href="https://orcid.org/0009-0009-6708-4396"
+           aria-label="Giannadakis, Rafail's ORCID profile"
+           title="Giannadakis, Rafail's ORCID profile">
+          <img class="ml-5 inline-id-icon"
+               src="/static/images/orcid.svg"
+               alt="ORCID icon"/>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+  
+
+  
+  
+</li>
+  
+  <li class="creatibutor-wrap separated"
+      data-affiliation-refs="1"
+      data-affiliations="University of Crete">
+    <a class="ui creatibutor-link"
+      
+        data-tooltip="University of Crete"
+        data-position="bottom center"
+      
+      href="/search?q=metadata.creators.person_or_org.name:%22Papadopoulou,+Maria%22"
+    >
+      <span class="creatibutor-name">Papadopoulou, Maria
+          (Supervisor)</span><sup class="font-tiny">1</sup></a>
+  
+
+  
+    
+      
+        
+        <a href="https://orcid.org/0000-0001-6451-8712"
+           aria-label="Papadopoulou, Maria's ORCID profile"
+           title="Papadopoulou, Maria's ORCID profile">
+          <img class="ml-5 inline-id-icon"
+               src="/static/images/orcid.svg"
+               alt="ORCID icon"/>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+  
+
+  
+  
+</li>
+  
+        </ul>
+      </div>
+
+      
+        
+<div id="creators-affiliations-title"
+     class="ui sixteen wide tablet three wide computer column title right aligned bottom aligned">
+  <button class="ui affiliations-button trigger button mini mr-0"
+          aria-controls="creators-affiliations"
+          data-open-text="Show affiliations"
+          data-close-text="Hide affiliations"
+          aria-expanded="false"
+  >
+    Show affiliations
+  </button>
+</div>
+
+<section class="ui sixteen wide column content" id="creators-affiliations" aria-label="Affiliations for creators">
+  
+  <ul>
+    
+    <li data-affiliation-ref="1">
+      1.
+
+      
+        
+        
+
+        
+          <a class="no-text-decoration"
+             href="https://ror.org/00dr28g20"
+             aria-label="University of Crete's ROR profile"
+             title="University of Crete's ROR profile"
+          >
+            <img class="ml-5 inline-id-icon"
+                 src="/static/images/ror-icon.svg"
+                 alt="ROR icon"
+            />
+          </a>
+        
+      
+
+      University of Crete
+    </li>
+    
+  </ul>
+
+</section>
+
+      
+    </div>
+  
+
+  
+
+</div>
+                  </section>
+                
+              </section>
+
+
+
+  <section id="description" class="rel-mt-2 rich-input-content" aria-label="Record description">
+    <h2 id="description-heading" class="sr-only">Description</h2>
+    
+    <div style="word-wrap: break-word;">
+      <p>This is version 1.0 of the ALyrA ontoterminology (i.e., 'a terminology whose conceptual system is a formal ontology', Roche 2007), which focuses on modelling Archaic Lyric poets (799-430 BC&Epsilon;). AlyrA stands for "Archaic Lyrical Agora".&nbsp;</p>
+<p><br>The ontoterminology was created by Rafail Giannadakis (Department of Philology, University of Crete) under the supervision of Dr. Maria Papadopoulou (Department of Philology, University of Crete).</p>
+<p><br>We gratefully acknowledge the generous funding of the European Commission in the context of the TALOS AI for SSH project (Grant agreement ID: 101087269).</p>
+<p>Contact: giannadakis.uni@gmail.com&nbsp;</p>
+    </div>
+  </section>
+
+
+
+  
+    
+    
+    <section
+      id="additional-description-1"
+      class="rel-mt-2 rich-input-content"
+      aria-label="Technical info"
+    >
+      <h2>
+        Technical info
+        <span class="text-muted language">
+          (English)
+        </span>
+      </h2>
+      
+      
+        <p><strong>This version includes:</strong></p>
+<p>1. The .otb file. To view it, please import it in&nbsp; Tedi ontoTerminology Editor</p>
+<p>2. The .rdf file. To view it, please import it in Prot&eacute;g&eacute; ontology editor</p>
+<p>3. The .html files that includes the proper names modelled</p>
+<p>5. The .html files that includes the terms modelled</p>
+<p><strong>Software:</strong></p>
+<p>This dataset was built with&nbsp;<a href="http://ontoterminology.com/tedi">Tedi</a>&nbsp;ontoTerminology Editor.&nbsp;<a href="http://ontoterminology.com/tedi">Tedi</a> ontoTerminology Editor is a software platform for the creation and management of&nbsp;<a href="http://ontoterminology.com/definition">ontoterminologies</a>. Tedi software platform is distributed by the University of Crete (free for academic use, contact: christophe.roche@uoc.gr).</p>
+<p>The .rdf file is queryable via a <a href="https://sparql.org/sparql.html">SPARQL</a> endpoint.</p>
+<p><strong>Downloads:</strong></p>
+<p>Download the&nbsp;RDF/OWL&nbsp;file; to view the ontology metrics import this file in&nbsp;<a href="https://protege.stanford.edu/">Prot&eacute;g&eacute;</a> (open access ontology editor); to visualize the ontology import this file in <a href="https://service.tib.eu/webvowl/">VOWL</a></p>
+<p>To view the .html files in your browser download them and rename them using the .html extension.</p>
+      
+    </section>
+  
+    
+    
+    <section
+      id="additional-description-2"
+      class="rel-mt-2 rich-input-content"
+      aria-label="Technical info"
+    >
+      <h2>
+        Technical info
+        <span class="text-muted language">
+          (English)
+        </span>
+      </h2>
+      
+      
+        <p><strong>Metrics</strong></p>
+<p><em>Tedi:</em></p>
+<ul>
+<li>Number of concepts: 29</li>
+<li>Number of objects: 101</li>
+<li>Number of terms: 58</li>
+<li>Number of proper names: 247</li>
+</ul>
+<p><em>RDF/Prot&eacute;g&eacute;:</em></p>
+<ul>
+<li>Axiom:&nbsp; 4,782</li>
+<li>Logical axiom count: 2,348</li>
+<li>Declaration axioms count: 177&nbsp;&nbsp;</li>
+<li>Class count: 43</li>
+<li>Object property count: 21&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li>
+<li>Data property count: 6&nbsp;</li>
+<li>Individual count : 610&nbsp;&nbsp;&nbsp;&nbsp;</li>
+<li>Annotation Property count: 36</li>
+<li>SubClassOf: 81&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li>
+<li>Disjoint Classes: 53</li>
+<li>Object Property Domain: 20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li>
+<li>Object Property Range:&nbsp; 20</li>
+<li>Data Property Domain: 6</li>
+<li>Data Property Range: 6</li>
+<li>Class Assertion&nbsp; 798&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li>
+<li>Object Property Assertion: 1,291&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li>
+<li>Data Property Assertion: 73</li>
+<li>Annotation Assertion: 2,235&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li>
+<li>Annotation Property Domain: 12&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</li>
+<li>Annotation Property Range Of: 10</li>
+</ul>
+      
+    </section>
+  
+    
+    
+    <section
+      id="additional-description-3"
+      class="rel-mt-2 rich-input-content"
+      aria-label="Technical info"
+    >
+      <h2>
+        Technical info
+        <span class="text-muted language">
+          (English)
+        </span>
+      </h2>
+      
+      
+        <h2>5 SPARQL Queries (queryable via a&nbsp;<a href="https://sparql.org/sparql.html">SPARQL</a> endpoint):</h2>
+<h3>#1 Which are the different Archaic Lyric poems and what differentiates each of them?</h3>
+<pre><code>PREFIX rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt;
+PREFIX skos: &lt;http://www.w3.org/2004/02/skos/core#&gt;
+PREFIX alyra: &lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#&gt;
+PREFIX otv: &lt;http://www.ontologia.fr/OTB/otv#&gt;
+
+SELECT ?poems ?difference ?definition
+FROM &lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf&gt;
+WHERE {    
+       ?x rdfs:subClassOf* alyra:Archaic_Lyric_Poem;
+             rdfs:label ?poems;
+             otv:ownDifference ?y;
+	skos:definition ?definition.
+       ?y rdfs:label ?difference
+FILTER (lang(?poems) = 'en')
+FILTER (lang(?definition) = 'en')
+}
+</code></pre>
+<p>&nbsp;</p>
+      
+    </section>
+  
+    
+    
+    <section
+      id="additional-description-4"
+      class="rel-mt-2 rich-input-content"
+      aria-label="Technical info"
+    >
+      <h2>
+        Technical info
+        <span class="text-muted language">
+          (English)
+        </span>
+      </h2>
+      
+      
+        <h3>#2 What is an &ldquo;hymn&rdquo; and which Archaic Lyric poets/poetesses have composed &ldquo;hymns&rdquo;?</h3>
+<pre><code>PREFIX rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt;
+PREFIX skos: &lt;http://www.w3.org/2004/02/skos/core#&gt;
+PREFIX alyra: &lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#&gt;
+PREFIX otv: &lt;http://www.ontologia.fr/OTB/otv#&gt;
+
+SELECT ?definition ?authorName ?centuryOfLiving 
+FROM &lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf&gt;
+WHERE {    
+    ?x rdfs:label "hymn"@en.
+    ?x skos:definition ?definition.
+          FILTER(langMatches(lang(?definition), "en"))
+    ?y otv:instanceOf ?x;
+          alyra:isWrittenBy ?author.
+    ?author rdfs:label ?authorName;
+            alyra:centuryOfLiving ?c.
+    ?c rdfs:label ?centuryOfLiving.
+}
+ORDER BY ?centuryOfLiving
+</code></pre>
+<pre>&nbsp;</pre>
+      
+    </section>
+  
+    
+    
+    <section
+      id="additional-description-5"
+      class="rel-mt-2 rich-input-content"
+      aria-label="Technical info"
+    >
+      <h2>
+        Technical info
+        <span class="text-muted language">
+          (English)
+        </span>
+      </h2>
+      
+      
+        <h3>#3 Who was Pindar?</h3>
+<pre><code>PREFIX rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt;
+PREFIX alyra: &lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#&gt;
+
+SELECT ?propertyName ?value
+FROM &lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf&gt;
+WHERE {
+  	alyra:pindarus_boeotus ?x ?y .
+  	?x rdfs:label ?propertyName .
+  	?y rdfs:label ?value .
+  	FILTER(LANG(?value) = 'en')
+}
+ORDER BY ?value
+</code></pre>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+      
+    </section>
+  
+    
+    
+    <section
+      id="additional-description-6"
+      class="rel-mt-2 rich-input-content"
+      aria-label="Technical info"
+    >
+      <h2>
+        Technical info
+        <span class="text-muted language">
+          (English)
+        </span>
+      </h2>
+      
+      
+        <h3>#4 Which is the four-digit "Thesaurus Linguae Graecae" identifying number of each Archaic Lyric composer?</h3>
+<pre>&nbsp;</pre>
+<pre><code>PREFIX rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt;
+PREFIX alyra: &lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#&gt;
+PREFIX otv: &lt;http://www.ontologia.fr/OTB/otv#&gt;
+
+SELECT ?nameOfComposer ?tljNumber
+FROM &lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf&gt;
+
+WHERE {
+?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.
+?y otv:instanceOf* ?x.
+?y rdfs:label ?nameOfComposer;
+   	alyra:tlgIdentifyingNumber ?tljNumber}</code></pre>
+<pre>&nbsp;</pre>
+      
+    </section>
+  
+    
+    
+    <section
+      id="additional-description-7"
+      class="rel-mt-2 rich-input-content"
+      aria-label="Technical info"
+    >
+      <h2>
+        Technical info
+        <span class="text-muted language">
+          (English)
+        </span>
+      </h2>
+      
+      
+        <h3>#5 What is the place where most Ancient Greek lyric composers were born and who were they?</h3>
+<pre><code>PREFIX rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt;
+PREFIX otv: &lt;http://www.ontologia.fr/OTB/otv#&gt;
+PREFIX alyra: &lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#&gt;
+
+SELECT ?place ?coordinates ?poetLabel ?resourcePoet
+FROM &lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf&gt;
+
+WHERE {
+  {
+    SELECT ?place (COUNT(?y) AS ?count)
+    WHERE {
+      ?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.
+      ?y otv:instanceOf ?x.
+      ?y alyra:bornIn ?p.
+      ?p rdfs:label ?place.
+    }
+    GROUP BY ?place
+    ORDER BY DESC(?count)
+    LIMIT 1
+  }
+  ?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.
+  ?y otv:instanceOf ?x.
+  ?y alyra:bornIn ?p.
+  ?p rdfs:label ?place.
+  OPTIONAL { ?p alyra:pleiadesCoordinates ?coordinates. }
+  ?y rdfs:label ?poetLabel.
+  OPTIONAL {
+    SELECT ?y (SAMPLE(?resource) AS ?resourcePoet)
+    WHERE {
+      ?y rdfs:seeAlso ?resource.
+      FILTER(CONTAINS(LCASE(STR(?resource)), "perseus:author"))
+    }
+    GROUP BY ?y
+  }
+}
+ORDER BY ?poetLabel
+
+</code></pre>
+      
+    </section>
+  
+<section
+      id="record-files" class="rel-mt-2 rel-mb-3"
+      aria-label="Files"
+    ><h2 id="files-heading">Files</h2>
+  <div class="ui accordion panel mb-10 open" href="#files-list-accordion-panel">
+    <h3 class="active title panel-heading open m-0">
+      <div role="button" id="files-list-accordion-trigger" aria-controls="files-list-accordion-panel" aria-expanded="true" tabindex="0" class="trigger">
+        Files
+        <small class="text-muted"> (3.4 MB)</small>
+        <i class="angle right icon" aria-hidden="true"></i>
+      </div>
+    </h3>
+
+    <div role="region" id="files-list-accordion-panel" aria-labelledby="files-list-accordion-trigger" class="active content pt-0">
+      
+      <div>
+        
+  <table id="file-list-table" class="ui striped table files fluid open">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Size</th>
+        <th class>
+            
+              <a role="button" class="ui compact mini button right floated archive-link" href="https://zenodo.org/api/records/13371967/files-archive">
+                <i class="file archive icon button" aria-hidden="true"></i> Download all
+              </a>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_PN_all.el.html?download=1">Alyra_PN_all.el.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:7aa9750a12531dd038f0941e6360f88e
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>405.4 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_PN_all.el.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_PN_all.en.html?download=1">Alyra_PN_all.en.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:8159ef878c6df234a9bca5ee7bc58b31
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>428.0 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_PN_all.en.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_PN_composer.el.html?download=1">Alyra_PN_composer.el.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:ce663e2cb97024b618d66621a5c90edf
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>232.9 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_PN_composer.el.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_PN_composer.en.html?download=1">Alyra_PN_composer.en.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:13e7f69ac1a594673110865bfb61525f
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>272.8 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_PN_composer.en.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_PN_location.el.html?download=1">Alyra_PN_location.el.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:8716ddbf56d24c75ccfcd6d5e8c9a2dc
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>75.2 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_PN_location.el.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_PN_location.en.html?download=1">Alyra_PN_location.en.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:0282069fe2feef8ce73c9c8e374342d3
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>71.0 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_PN_location.en.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_PN_poem.el.html?download=1">Alyra_PN_poem.el.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:57899c139d126202a681350a47c1408f
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>110.6 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_PN_poem.el.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_PN_poem.en.html?download=1">Alyra_PN_poem.en.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:414e255c160074f8f5650b660deabe44
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>98.2 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_PN_poem.en.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_terms_all.el.html?download=1">Alyra_terms_all.el.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:7bfff8130c4b4af596ab0b8726d33b84
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>135.0 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_terms_all.el.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_terms_all.en.html?download=1">Alyra_terms_all.en.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:d60082c48a2b4bb2ae578778c832146e
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>131.0 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_terms_all.en.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_terms_composer.el.html?download=1">Alyra_terms_composer.el.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:856372af0f147c3e103ee9195127ff36
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>58.8 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_terms_composer.el.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_terms_composer.en.html?download=1">Alyra_terms_composer.en.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:49c554e8ff7a0b21f6b6c43ce12bb663
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>58.4 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_terms_composer.en.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_terms_location.el.html?download=1">Alyra_terms_location.el.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:5c01e5b4df80f46237841657b931c495
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>35.0 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_terms_location.el.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_terms_location.en.html?download=1">Alyra_terms_location.en.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:110fff3452d1b2274d0a4aa63da2c84a
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>34.8 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_terms_location.en.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_terms_poem.el.html?download=1">Alyra_terms_poem.el.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:92ce453aeff344f14a07987476383be1
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>57.2 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_terms_poem.el.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/Alyra_terms_poem.en.html?download=1">Alyra_terms_poem.en.html</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:71b45a2825049cd0e4b1f6350eb13be0
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>53.8 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/Alyra_terms_poem.en.html?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/ALyrA_v.1.0.otb?download=1">ALyrA_v.1.0.otb</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:82f68f6e5972ca8517ccbdc8eb5ee890
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>594.2 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/ALyrA_v.1.0.otb?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+      
+        
+        
+        <tr>
+          <td class="ten wide">
+            <div>
+              <a href="/records/13371967/files/ALyrA_v.1.0.rdf.rdf?download=1">ALyrA_v.1.0.rdf.rdf</a>
+            </div>
+            <small class="ui text-muted font-tiny">md5:ad7e020d75a5986dc78618f9ee3a7634
+            <div class="ui icon inline-block" data-tooltip="This is the file fingerprint (checksum), which can be used to verify the file integrity.">
+              <i class="question circle checksum icon"></i>
+            </div>
+            </small>
+          </td>
+	  <td>503.3 kB</td>
+          <td class="right aligned">
+            <span>
+              
+              <a role="button" class="ui compact mini button" href="/records/13371967/files/ALyrA_v.1.0.rdf.rdf?download=1">
+                <i class="download icon" aria-hidden="true"></i>Download
+              </a>
+            </span>
+          </td>
+        </tr>
+      
+    
+    </tbody>
+  </table>
+      </div>
+    </div>
+  </div>
+
+    </section>
+              
+
+  <section id="additional-details" class="rel-mt-2" aria-label="Additional record details">
+
+
+
+
+
+
+
+
+
+
+
+  <h2 id="record-details-heading">Additional details</h2>
+
+  <div class="ui divider"></div>
+
+  
+
+  
+
+  
+
+  
+   
+      <div class="ui grid">
+        <div class="sixteen wide mobile four wide tablet three wide computer column">
+          <h3 class="ui header">Funding</h3>
+        </div>
+        <div class="sixteen wide mobile twelve wide tablet thirteen wide computer column">
+          <dl class="details-list">
+            
+  
+    
+  <dt class="ui tiny header">European Commission</dt><dt class="ui tiny header">
+    <span class="mr-0 text-muted">
+      TALOS AI4SSH</span><span class="ui mini basic label " id="number-label-0">
+        101087269
+      </span>
+        <a href="https://cordis.europa.eu/project/id/101087269" target="_blank"
+          rel="noopener noreferrer" aria-label="Open external link">
+          <i class="external alternate icon"></i>
+        </a></dt>
+  
+
+          </dl>
+        </div>
+      </div>
+    
+    <div class="ui divider"></div>
+  
+
+  
+    
+      <div class="ui grid">
+        <div class="sixteen wide mobile four wide tablet three wide computer column">
+          <h3 class="ui header">Dates</h3>
+        </div>
+        <div class="sixteen wide mobile twelve wide tablet thirteen wide computer column">
+          <dl class="details-list">
+            
+  
+    
+    <dt class="ui tiny header">Submitted</dt>
+    <dd>
+      <div>2024-08-25</div>
+      <div class="text-muted">YYYY-MM-DD</div>
+    </dd>
+  
+
+          </dl>
+        </div>
+      </div>
+    
+    <div class="ui divider"></div>
+  
+
+  
+
+  
+
+
+
+  
+
+  </section>
+    
+    <section
+      id="citations-search"
+      data-record-pids='{"doi": {"client": "datacite", "identifier": "10.5281/zenodo.13371967", "provider": "datacite"}, "oai": {"identifier": "oai:zenodo.org:13371967", "provider": "oai"}}'
+      data-record-parent-pids='{"doi": {"client": "datacite", "identifier": "10.5281/zenodo.13371966", "provider": "datacite"}}'
+      data-citations-endpoint="https://zenodo-broker.web.cern.ch/api/relationships"
+      aria-label="Record citations"
+      class="rel-mb-1"
+    >
+    </section>
+  
+        </article>
+
+        
+        <aside class="sixteen wide tablet five wide computer column sidebar"
+               aria-label="Record details">
+          
+
+
+
+
+<section id="metrics" aria-label="Metrics" class="ui segment rdm-sidebar sidebar-container">
+
+
+<div class="ui tiny two statistics rel-mt-1">
+  
+  
+
+  <div class="ui statistic">
+    <div class="value">151</div>
+    <div class="label">
+      <i aria-hidden="true" class="eye icon"></i>
+      Views
+    </div>
+  </div>
+
+  <div class="ui statistic">
+    <div class="value">1K</div>
+    <div class="label">
+      <i aria-hidden="true" class="download icon"></i>
+      Downloads
+    </div>
+  </div>
+</div>
+
+<div class="ui accordion rel-mt-1 centered">
+  <div class="title trigger" tabindex="0">
+    <i class="caret right icon" aria-hidden="true"></i>
+    <span
+      data-open-text="Show more details"
+      data-close-text="Show less details"
+    >
+      Show more details
+    </span>
+  </div>
+
+  <div class="content">
+    <table id="record-statistics" class="ui definition table fluid">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="right aligned">All versions</th>
+          <th class="right aligned">This version</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            Views
+            <i
+              tabindex="0"
+              role="button"
+              style="position:relative"
+              class="popup-trigger question circle small icon"
+              aria-expanded="false"
+              aria-label="More info"
+              data-variation="mini inverted"
+            >
+            </i>
+            <p role="tooltip" class="popup-content ui flowing popup transition hidden">
+              Total views
+            </p>
+          </td>
+          <td data-label="All versions" class="right aligned">
+  
+    151
+  
+</td>
+          <td data-label="This version" class="right aligned">
+  
+    151
+  
+</td>
+        </tr>
+        <tr>
+          <td>
+            Downloads
+            <i
+              tabindex="0"
+              role="button"
+              style="position:relative"
+              class="popup-trigger question circle small icon"
+              aria-expanded="false"
+              aria-label="More info"
+              data-variation="mini inverted"
+            >
+            </i>
+            <p role="tooltip" class="popup-content ui flowing popup transition hidden">
+              Total downloads
+            </p>
+          </td>
+          <td data-label="All versions" class="right aligned">
+  
+    1,120
+  
+</td>
+          <td data-label="This version" class="right aligned">
+  
+    1,120
+  
+</td>
+        </tr>
+        <tr>
+          <td>
+            Data volume
+            <i
+              tabindex="0"
+              role="button"
+              style="position:relative"
+              class="popup-trigger question circle small icon"
+              aria-expanded="false"
+              aria-label="More info"
+              data-variation="mini inverted"
+            >
+            </i>
+            <p role="tooltip" class="popup-content ui flowing popup transition hidden">
+              Total data volume
+            </p>
+          </td>
+
+          <td data-label="All versions" class="right aligned">218.8 MB</td>
+          <td data-label="This version" class="right aligned">218.8 MB</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="text-align-center rel-mt-1">
+      <small>
+        <a href="https://zenodo.org/help/statistics">More info on how stats are collected....</a>
+      </small>
+    </p>
+  </div>
+
+</div>
+
+</section>
+
+<div class="sidebar-container">
+  <h2 class="ui medium top attached header mt-0">Versions</h2>
+  <div id="record-versions" class="ui segment rdm-sidebar bottom attached pl-0 pr-0 pt-0">
+    <div class="versions">
+      <div id="recordVersions" data-record='{"access": {"embargo": {"active": false, "reason": null}, "files": "public", "record": "public", "status": "open"}, "created": "2024-08-29T13:42:45.028505+00:00", "custom_fields": {}, "deletion_status": {"is_deleted": false, "status": "P"}, "expanded": {"parent": {"access": {"owned_by": {"active": null, "blocked_at": null, "confirmed_at": null, "email": "", "id": "603690", "is_current_user": false, "links": {"avatar": "https://zenodo.org/api/users/603690/avatar.svg", "records_html": "https://zenodo.org/search?q=parent.access.owned_by.user:603690", "self": "https://zenodo.org/api/users/603690"}, "profile": {"affiliations": "University of Crete - HORIZON-WIDERA-2022-TALENTS-01-01 - ERA Chairs", "full_name": "TALOS AI4SSH"}, "username": "talosAI4SSH", "verified_at": null}}, "communities": {"default": {"access": {"review_policy": "closed", "visibility": "public"}, "id": "f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c", "links": {"logo": "https://zenodo.org/api/communities/f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c/logo"}, "metadata": {"description": "Open repository for EU-funded research outputs from Horizon Europe, Euratom, and earlier Framework Programmes.", "title": "EU Open Research Repository", "type": {"id": "organization", "title": {"de": "Organisation", "en": "Organization"}}}, "slug": "eu"}}}}, "files": {"count": 18, "enabled": true, "entries": {"ALyrA_v.1.0.otb": {"access": {"hidden": false}, "checksum": "md5:82f68f6e5972ca8517ccbdc8eb5ee890", "ext": "otb", "id": "48f99b77-ab82-4143-ba95-108388f91d8c", "key": "ALyrA_v.1.0.otb", "links": {"content": "https://zenodo.org/api/records/13371967/files/ALyrA_v.1.0.otb/content", "self": "https://zenodo.org/api/records/13371967/files/ALyrA_v.1.0.otb"}, "metadata": {}, "mimetype": "application/octet-stream", "size": 594218, "storage_class": "L"}, "ALyrA_v.1.0.rdf.rdf": {"access": {"hidden": false}, "checksum": "md5:ad7e020d75a5986dc78618f9ee3a7634", "ext": "xsl", "id": "4181d50f-2eec-4d0a-8a16-c143c9cdfd1a", "key": "ALyrA_v.1.0.rdf.rdf", "links": {"content": "https://zenodo.org/api/records/13371967/files/ALyrA_v.1.0.rdf.rdf/content", "self": "https://zenodo.org/api/records/13371967/files/ALyrA_v.1.0.rdf.rdf"}, "metadata": {}, "mimetype": "application/xml", "size": 503282, "storage_class": "L"}, "Alyra_PN_all.el.html": {"access": {"hidden": false}, "checksum": "md5:7aa9750a12531dd038f0941e6360f88e", "ext": "html", "id": "ee5460a2-2fd6-4ab8-b249-02105baf19a0", "key": "Alyra_PN_all.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_all.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_all.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 405361, "storage_class": "L"}, "Alyra_PN_all.en.html": {"access": {"hidden": false}, "checksum": "md5:8159ef878c6df234a9bca5ee7bc58b31", "ext": "html", "id": "e521261c-e208-4ae8-a6a8-92fb16fa3886", "key": "Alyra_PN_all.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_all.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_all.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 428022, "storage_class": "L"}, "Alyra_PN_composer.el.html": {"access": {"hidden": false}, "checksum": "md5:ce663e2cb97024b618d66621a5c90edf", "ext": "html", "id": "c4df8259-7dec-420e-8dd6-fb70aed848c3", "key": "Alyra_PN_composer.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_composer.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_composer.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 232941, "storage_class": "L"}, "Alyra_PN_composer.en.html": {"access": {"hidden": false}, "checksum": "md5:13e7f69ac1a594673110865bfb61525f", "ext": "html", "id": "b568f411-425b-4e54-98eb-bb69cea964b9", "key": "Alyra_PN_composer.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_composer.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_composer.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 272800, "storage_class": "L"}, "Alyra_PN_location.el.html": {"access": {"hidden": false}, "checksum": "md5:8716ddbf56d24c75ccfcd6d5e8c9a2dc", "ext": "html", "id": "8db824d8-2847-4955-b721-20175138df1a", "key": "Alyra_PN_location.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_location.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_location.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 75154, "storage_class": "L"}, "Alyra_PN_location.en.html": {"access": {"hidden": false}, "checksum": "md5:0282069fe2feef8ce73c9c8e374342d3", "ext": "html", "id": "fd8703a7-d1b7-4368-8d92-6f1a14d30295", "key": "Alyra_PN_location.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_location.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_location.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 70952, "storage_class": "L"}, "Alyra_PN_poem.el.html": {"access": {"hidden": false}, "checksum": "md5:57899c139d126202a681350a47c1408f", "ext": "html", "id": "7b0e8c5d-aebc-4130-ae1c-5c80b548baec", "key": "Alyra_PN_poem.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_poem.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_poem.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 110603, "storage_class": "L"}, "Alyra_PN_poem.en.html": {"access": {"hidden": false}, "checksum": "md5:414e255c160074f8f5650b660deabe44", "ext": "html", "id": "6264a2df-0c5d-478b-8163-049bdb17d578", "key": "Alyra_PN_poem.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_poem.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_poem.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 98205, "storage_class": "L"}, "Alyra_terms_all.el.html": {"access": {"hidden": false}, "checksum": "md5:7bfff8130c4b4af596ab0b8726d33b84", "ext": "html", "id": "312bead5-e5b5-4ae9-a5b4-70286c162227", "key": "Alyra_terms_all.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_all.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_all.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 134986, "storage_class": "L"}, "Alyra_terms_all.en.html": {"access": {"hidden": false}, "checksum": "md5:d60082c48a2b4bb2ae578778c832146e", "ext": "html", "id": "7228608c-c32a-4b4b-93ec-26a7c7544035", "key": "Alyra_terms_all.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_all.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_all.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 131007, "storage_class": "L"}, "Alyra_terms_composer.el.html": {"access": {"hidden": false}, "checksum": "md5:856372af0f147c3e103ee9195127ff36", "ext": "html", "id": "4e18a551-7924-4f45-a9cf-7ac5d5dde822", "key": "Alyra_terms_composer.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_composer.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_composer.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 58821, "storage_class": "L"}, "Alyra_terms_composer.en.html": {"access": {"hidden": false}, "checksum": "md5:49c554e8ff7a0b21f6b6c43ce12bb663", "ext": "html", "id": "d1242ad7-235d-4dbe-b06c-495e09c87f05", "key": "Alyra_terms_composer.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_composer.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_composer.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 58381, "storage_class": "L"}, "Alyra_terms_location.el.html": {"access": {"hidden": false}, "checksum": "md5:5c01e5b4df80f46237841657b931c495", "ext": "html", "id": "852f5416-744b-4db9-85ab-a86fb63b6157", "key": "Alyra_terms_location.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_location.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_location.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 34957, "storage_class": "L"}, "Alyra_terms_location.en.html": {"access": {"hidden": false}, "checksum": "md5:110fff3452d1b2274d0a4aa63da2c84a", "ext": "html", "id": "453b9cae-0e15-4fac-80c5-4f63d87592d9", "key": "Alyra_terms_location.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_location.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_location.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 34774, "storage_class": "L"}, "Alyra_terms_poem.el.html": {"access": {"hidden": false}, "checksum": "md5:92ce453aeff344f14a07987476383be1", "ext": "html", "id": "1e34458f-2ea5-4e33-914a-fb0f371d1b29", "key": "Alyra_terms_poem.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_poem.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_poem.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 57191, "storage_class": "L"}, "Alyra_terms_poem.en.html": {"access": {"hidden": false}, "checksum": "md5:71b45a2825049cd0e4b1f6350eb13be0", "ext": "html", "id": "828bebe7-b3ab-464e-8d03-bfd1a312cf4a", "key": "Alyra_terms_poem.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_poem.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_poem.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 53815, "storage_class": "L"}}, "order": [], "total_bytes": 3355470}, "id": "13371967", "is_draft": false, "is_published": true, "links": {"access": "https://zenodo.org/api/records/13371967/access", "access_grants": "https://zenodo.org/api/records/13371967/access/grants", "access_links": "https://zenodo.org/api/records/13371967/access/links", "access_request": "https://zenodo.org/api/records/13371967/access/request", "access_users": "https://zenodo.org/api/records/13371967/access/users", "archive": "https://zenodo.org/api/records/13371967/files-archive", "archive_media": "https://zenodo.org/api/records/13371967/media-files-archive", "communities": "https://zenodo.org/api/records/13371967/communities", "communities-suggestions": "https://zenodo.org/api/records/13371967/communities-suggestions", "doi": "https://doi.org/10.5281/zenodo.13371967", "draft": "https://zenodo.org/api/records/13371967/draft", "file_modification": "https://zenodo.org/api/records/13371967/file-modification", "files": "https://zenodo.org/api/records/13371967/files", "latest": "https://zenodo.org/api/records/13371967/versions/latest", "latest_html": "https://zenodo.org/records/13371967/latest", "media_files": "https://zenodo.org/api/records/13371967/media-files", "parent": "https://zenodo.org/api/records/13371966", "parent_doi": "https://doi.org/10.5281/zenodo.13371966", "parent_doi_html": "https://zenodo.org/doi/10.5281/zenodo.13371966", "parent_html": "https://zenodo.org/records/13371966", "preview_html": "https://zenodo.org/records/13371967?preview=1", "quota_increase": "https://zenodo.org/api/records/13371967/quota-increase", "request_deletion": "https://zenodo.org/api/records/13371967/request-deletion", "requests": "https://zenodo.org/api/records/13371967/requests", "reserve_doi": "https://zenodo.org/api/records/13371967/draft/pids/doi", "self": "https://zenodo.org/api/records/13371967", "self_doi": "https://doi.org/10.5281/zenodo.13371967", "self_doi_html": "https://zenodo.org/doi/10.5281/zenodo.13371967", "self_html": "https://zenodo.org/records/13371967", "self_iiif_manifest": "https://zenodo.org/api/iiif/record:13371967/manifest", "self_iiif_sequence": "https://zenodo.org/api/iiif/record:13371967/sequence/default", "versions": "https://zenodo.org/api/records/13371967/versions"}, "media_files": {"count": 0, "enabled": false, "entries": {}, "order": [], "total_bytes": 0}, "metadata": {"additional_descriptions": [{"description": "\u003cp\u003e\u003cstrong\u003eThis version includes:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003e1. The .otb file. To view it, please import it in\u0026nbsp; Tedi ontoTerminology Editor\u003c/p\u003e\n\u003cp\u003e2. The .rdf file. To view it, please import it in Prot\u0026eacute;g\u0026eacute; ontology editor\u003c/p\u003e\n\u003cp\u003e3. The .html files that includes the proper names modelled\u003c/p\u003e\n\u003cp\u003e5. The .html files that includes the terms modelled\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eSoftware:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003eThis dataset was built with\u0026nbsp;\u003ca href=\"http://ontoterminology.com/tedi\"\u003eTedi\u003c/a\u003e\u0026nbsp;ontoTerminology Editor.\u0026nbsp;\u003ca href=\"http://ontoterminology.com/tedi\"\u003eTedi\u003c/a\u003e ontoTerminology Editor is a software platform for the creation and management of\u0026nbsp;\u003ca href=\"http://ontoterminology.com/definition\"\u003eontoterminologies\u003c/a\u003e. Tedi software platform is distributed by the University of Crete (free for academic use, contact: christophe.roche@uoc.gr).\u003c/p\u003e\n\u003cp\u003eThe .rdf file is queryable via a \u003ca href=\"https://sparql.org/sparql.html\"\u003eSPARQL\u003c/a\u003e endpoint.\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eDownloads:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003eDownload the\u0026nbsp;RDF/OWL\u0026nbsp;file; to view the ontology metrics import this file in\u0026nbsp;\u003ca href=\"https://protege.stanford.edu/\"\u003eProt\u0026eacute;g\u0026eacute;\u003c/a\u003e (open access ontology editor); to visualize the ontology import this file in \u003ca href=\"https://service.tib.eu/webvowl/\"\u003eVOWL\u003c/a\u003e\u003c/p\u003e\n\u003cp\u003eTo view the .html files in your browser download them and rename them using the .html extension.\u003c/p\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003cp\u003e\u003cstrong\u003eMetrics\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003e\u003cem\u003eTedi:\u003c/em\u003e\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eNumber of concepts: 29\u003c/li\u003e\n\u003cli\u003eNumber of objects: 101\u003c/li\u003e\n\u003cli\u003eNumber of terms: 58\u003c/li\u003e\n\u003cli\u003eNumber of proper names: 247\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003e\u003cem\u003eRDF/Prot\u0026eacute;g\u0026eacute;:\u003c/em\u003e\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eAxiom:\u0026nbsp; 4,782\u003c/li\u003e\n\u003cli\u003eLogical axiom count: 2,348\u003c/li\u003e\n\u003cli\u003eDeclaration axioms count: 177\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eClass count: 43\u003c/li\u003e\n\u003cli\u003eObject property count: 21\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eData property count: 6\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eIndividual count : 610\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property count: 36\u003c/li\u003e\n\u003cli\u003eSubClassOf: 81\u0026nbsp; \u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eDisjoint Classes: 53\u003c/li\u003e\n\u003cli\u003eObject Property Domain: 20\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eObject Property Range:\u0026nbsp; 20\u003c/li\u003e\n\u003cli\u003eData Property Domain: 6\u003c/li\u003e\n\u003cli\u003eData Property Range: 6\u003c/li\u003e\n\u003cli\u003eClass Assertion\u0026nbsp; 798\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eObject Property Assertion: 1,291\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eData Property Assertion: 73\u003c/li\u003e\n\u003cli\u003eAnnotation Assertion: 2,235\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property Domain: 12\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property Range Of: 10\u003c/li\u003e\n\u003c/ul\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003ch2\u003e5 SPARQL Queries (queryable via a\u0026nbsp;\u003ca href=\"https://sparql.org/sparql.html\"\u003eSPARQL\u003c/a\u003e endpoint):\u003c/h2\u003e\n\u003ch3\u003e#1 Which are the different Archaic Lyric poems and what differentiates each of them?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX skos: \u0026lt;http://www.w3.org/2004/02/skos/core#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?poems ?difference ?definition\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {    \n       ?x rdfs:subClassOf* alyra:Archaic_Lyric_Poem;\n             rdfs:label ?poems;\n             otv:ownDifference ?y;\n\tskos:definition ?definition.\n       ?y rdfs:label ?difference\nFILTER (lang(?poems) = \u0027en\u0027)\nFILTER (lang(?definition) = \u0027en\u0027)\n}\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003ch3\u003e#2 What is an \u0026ldquo;hymn\u0026rdquo; and which Archaic Lyric poets/poetesses have composed \u0026ldquo;hymns\u0026rdquo;?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX skos: \u0026lt;http://www.w3.org/2004/02/skos/core#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?definition ?authorName ?centuryOfLiving \nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {    \n    ?x rdfs:label \"hymn\"@en.\n    ?x skos:definition ?definition.\n          FILTER(langMatches(lang(?definition), \"en\"))\n    ?y otv:instanceOf ?x;\n          alyra:isWrittenBy ?author.\n    ?author rdfs:label ?authorName;\n            alyra:centuryOfLiving ?c.\n    ?c rdfs:label ?centuryOfLiving.\n}\nORDER BY ?centuryOfLiving\n\u003c/code\u003e\u003c/pre\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003ch3\u003e#3 Who was Pindar?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\n\nSELECT ?propertyName ?value\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {\n  \talyra:pindarus_boeotus ?x ?y .\n  \t?x rdfs:label ?propertyName .\n  \t?y rdfs:label ?value .\n  \tFILTER(LANG(?value) = \u0027en\u0027)\n}\nORDER BY ?value\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003ch3\u003e#4 Which is the four-digit \"Thesaurus Linguae Graecae\" identifying number of each Archaic Lyric composer?\u003c/h3\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?nameOfComposer ?tljNumber\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\n\nWHERE {\n?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n?y otv:instanceOf* ?x.\n?y rdfs:label ?nameOfComposer;\n   \talyra:tlgIdentifyingNumber ?tljNumber}\u003c/code\u003e\u003c/pre\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003ch3\u003e#5 What is the place where most Ancient Greek lyric composers were born and who were they?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\n\nSELECT ?place ?coordinates ?poetLabel ?resourcePoet\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\n\nWHERE {\n  {\n    SELECT ?place (COUNT(?y) AS ?count)\n    WHERE {\n      ?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n      ?y otv:instanceOf ?x.\n      ?y alyra:bornIn ?p.\n      ?p rdfs:label ?place.\n    }\n    GROUP BY ?place\n    ORDER BY DESC(?count)\n    LIMIT 1\n  }\n  ?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n  ?y otv:instanceOf ?x.\n  ?y alyra:bornIn ?p.\n  ?p rdfs:label ?place.\n  OPTIONAL { ?p alyra:pleiadesCoordinates ?coordinates. }\n  ?y rdfs:label ?poetLabel.\n  OPTIONAL {\n    SELECT ?y (SAMPLE(?resource) AS ?resourcePoet)\n    WHERE {\n      ?y rdfs:seeAlso ?resource.\n      FILTER(CONTAINS(LCASE(STR(?resource)), \"perseus:author\"))\n    }\n    GROUP BY ?y\n  }\n}\nORDER BY ?poetLabel\n\n\u003c/code\u003e\u003c/pre\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}], "creators": [{"affiliations": [{"id": "00dr28g20", "identifiers": [{"identifier": "00dr28g20", "scheme": "ror"}, {"identifier": "grid.8127.c", "scheme": "grid"}, {"identifier": "0000 0004 0576 3437", "scheme": "isni"}], "name": "University of Crete"}], "person_or_org": {"family_name": "Giannadakis", "given_name": "Rafail", "identifiers": [{"identifier": "0009-0009-6708-4396", "scheme": "orcid"}], "name": "Giannadakis, Rafail", "type": "personal"}, "role": {"id": "datacurator", "title": {"de": "DatenkuratorIn", "en": "Data curator"}}}, {"affiliations": [{"id": "00dr28g20", "identifiers": [{"identifier": "00dr28g20", "scheme": "ror"}, {"identifier": "grid.8127.c", "scheme": "grid"}, {"identifier": "0000 0004 0576 3437", "scheme": "isni"}], "name": "University of Crete"}], "person_or_org": {"family_name": "Papadopoulou", "given_name": "Maria", "identifiers": [{"identifier": "0000-0001-6451-8712", "scheme": "orcid"}], "name": "Papadopoulou, Maria", "type": "personal"}, "role": {"id": "supervisor", "title": {"de": "SupervisorIn", "en": "Supervisor"}}}], "dates": [{"date": "2024-08-25", "description": "YYYY-MM-DD", "type": {"id": "submitted", "title": {"de": "Eingereicht", "en": "Submitted"}}}], "description": "\u003cp\u003eThis is version 1.0 of the ALyrA ontoterminology (i.e., \u0027a terminology whose conceptual system is a formal ontology\u0027, Roche 2007), which focuses on modelling Archaic Lyric poets (799-430 BC\u0026Epsilon;). AlyrA stands for \"Archaic Lyrical Agora\".\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u003cbr\u003eThe ontoterminology was created by Rafail Giannadakis (Department of Philology, University of Crete) under the supervision of Dr. Maria Papadopoulou (Department of Philology, University of Crete).\u003c/p\u003e\n\u003cp\u003e\u003cbr\u003eWe gratefully acknowledge the generous funding of the European Commission in the context of the TALOS AI for SSH project (Grant agreement ID: 101087269).\u003c/p\u003e\n\u003cp\u003eContact: giannadakis.uni@gmail.com\u0026nbsp;\u003c/p\u003e", "funding": [{"award": {"identifiers": [{"identifier": "https://cordis.europa.eu/project/id/101087269", "scheme": "url"}], "number": "101087269", "title": {"en": "TALOS AI4SSH"}}, "funder": {"id": "00k4n6c32", "name": "European Commission"}}], "languages": [{"id": "eng", "title": {"en": "English"}}, {"id": "grc", "title": {"en": "Ancient Greek (to 1453)"}}, {"id": "ell", "title": {"en": "Modern Greek (1453-)"}}], "publication_date": "2024-08-25", "publisher": "Zenodo", "resource_type": {"id": "dataset", "title": {"de": "Datensatz", "en": "Dataset"}}, "rights": [{"description": {"en": "This license enables reusers to copy and distribute the material in any medium or format in unadapted form only, \nfor noncommercial purposes only, and only so long as attribution is given to the creator. \nCC BY-NC-ND includes the following elements:\n\n BY: credit must be given to the creator.\n NC: Only noncommercial uses of the work are permitted.\n ND: No derivatives or adaptations of the work are permitted."}, "link": "https://creativecommons.org/licenses/by-nc-nd/4.0/", "title": {"en": "CC BY-NC-ND Attribution-NonCommercial-NoDerivatives 4.0 International"}}], "subjects": [{"id": "euroscivoc:30060", "identifiers": [{"identifier": "http://data.europa.eu/8mn/euroscivoc/123e5118-1586-4a45-b4da-34583bd74940", "scheme": "url"}], "props": {"parents": "euroscivoc:23,euroscivoc:47,euroscivoc:15962364"}, "scheme": "EuroSciVoc", "subject": "Ontology"}, {"id": "euroscivoc:959", "identifiers": [{"identifier": "http://data.europa.eu/8mn/euroscivoc/981a4eb6-f63a-4360-953d-efe0ec861672", "scheme": "url"}], "props": {"parents": "euroscivoc:23,euroscivoc:47,euroscivoc:305"}, "scheme": "EuroSciVoc", "subject": "Semantic web"}, {"subject": "Linked Open Data"}, {"subject": "Ancient Lyric Poetry"}, {"subject": "Classical Philology"}, {"subject": "Classics"}], "title": "Archaic Lyric Agora (ALyrA) - Ontoterminology of Archaic Lyric Poets - version 1.0", "version": "1.0"}, "parent": {"access": {"owned_by": {"user": "603690"}, "settings": {"accept_conditions_text": null, "allow_guest_requests": false, "allow_user_requests": false, "secret_link_expiration": 0}}, "communities": {"default": "f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c", "entries": [{"access": {"member_policy": "open", "members_visibility": "restricted", "record_submission_policy": "open", "review_policy": "closed", "visibility": "public"}, "children": {"allow": true}, "created": "2022-11-23T15:53:29.436323+00:00", "custom_fields": {}, "deletion_status": {"is_deleted": false, "status": "P"}, "id": "f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c", "links": {}, "metadata": {"curation_policy": "\u003ch2\u003eCuration policy\u003c/h2\u003e\n\u003cp\u003eThe EU Open Research Repository serves as a repository for research outputs (data, software, posters, presentations, publications, etc) which have been funded under an EU research funding programme such as Horizon Europe, Euratom or earlier Framework Programmes.\u003c/p\u003e\n\u003cp\u003eThe community is managed by CERN on behalf of the European Commission.\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u003ca href=\"https://about.zenodo.org/policies/\"\u003eZenodo\u0026rsquo;s general policies\u003c/a\u003e and \u003ca href=\"https://about.zenodo.org/terms/\"\u003eTerms of Use\u003c/a\u003e apply to all content.\u003c/p\u003e\n\u003ch3\u003eScope\u003c/h3\u003e\n\u003cp\u003eThe EU Open Research Repository accepts all digital research objects which is a research output stemming from one of EU\u0026rsquo;s research and innovation funding programmes. The funding programmes currently include:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003e\n\u003cp\u003eHorizon Europe (including ERC, MSCA), earlier Framework Programmes (eg Horizon 2020) as well as Euratom.\u003c/p\u003e\n\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003eIn line with the principle as open as possible, as closed as necessary both public and restricted content is accepted. See note on how \u003ca href=\"https://about.zenodo.org/infrastructure/\"\u003eZenodo handles restricted content\u003c/a\u003e.\u003c/p\u003e\n\u003ch3\u003eContent submission\u003c/h3\u003e\n\u003cp\u003eEU programme beneficiaries are eligible to submit content to the community. The community supports three types of content submissions:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003e\n\u003cp\u003eSubmission via an EU Project Community (through user interface or programmatic APIs).\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eSubmission directly to the EU Open Research Repository.\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eAutomated harvesting from existing Zenodo content.\u003c/p\u003e\n\u003c/li\u003e\n\u003c/ul\u003e\n\u003ch4\u003eProject community (preferred)\u003c/h4\u003e\n\u003cp\u003eA representative of an EU project may request an EU Project Community and invite other project participants as members of the community. The project community is linked to one or more European Commission grants. All records in the project community are automatically integrated into the EU Open Research Repository immediately upon acceptance into the project community.\u0026nbsp;\u003c/p\u003e\n\u003ch4\u003eDirect submission\u003c/h4\u003e\n\u003cp\u003eAny user may submit a record directly to the EU Open Research Repository. The submission will be moderated by Zenodo staff for compliance with the minimal required metadata requirements and its correctness.\u003c/p\u003e\n\u003ch4\u003eAutomated harvesting\u003c/h4\u003e\n\u003cp\u003eRecords found among Zenodo\u0026rsquo;s existing content will on a regular basis automatically be integrated if they are found to comply with the requirements. The submissions through this method are integrated into the EU Open Research Repository with delay in a fully automated way.\u003c/p\u003e\n\u003ch3\u003eDescriptive information\u003c/h3\u003e\n\u003ch4\u003eMinimal metadata requirements\u003c/h4\u003e\n\u003cp\u003eRecords in the EU Open Research Repository are required to comply with the following minimal metadata requirements:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003e\n\u003cp\u003eVisibility: Both public and restricted (with or without embargo and/or access request)\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eResource types: All resource types.\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eLicenses: Public and embargoed records MUST specify a license. The chosen license SHOULD be compliant with the Horizon Europe open science requirements (see \u003ca href=\"/communities/eu/pages/open-science\"\u003eOpen Science in Horizon Europe\u003c/a\u003e)\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eFunding information: Records MUST specify at least one grant from the European Commission.\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003eJournal articles: Records MUST specify at the publishing venue (e.g. the journal the article was published in).\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eCreators: Creators SHOULD be identified with a persistent identifier (e.g. ORCID, GND, \u0026hellip;), and affiliations SHOULD be identified with a persistent identifier (e.g. ROR, ISNI, \u0026hellip;)\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eSubjects: Records SHOULD specify one or more fields of science from the \u003ca href=\"https://op.europa.eu/en/web/eu-vocabularies/euroscivoc\"\u003eEuropean Science Vocabulary\u003c/a\u003e.\u003c/p\u003e\n\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003eThese metadata requirements comes from the related open science requirements in Horizon Europe which are detailed in each project\u0027s grant agreement.\u003c/p\u003e\n\u003ch3\u003eReview \u0026amp; moderation\u003c/h3\u003e\n\u003cp\u003eAll submissions undergo automated curation checks for compliance with the policy. Submissions through project communities are in addition reviewed by the project community. Submission directly to the EU Open Research Repository is in addiotn reviewed by Zenodo staff.\u003c/p\u003e\n\u003cp\u003eCommunity curators may at any point edit metadata of the records in the community without notice through human or automated processing. The curators may at their sole discretion remove records from the community that are deemed not to comply with the content and curation policy or which are deemed of insufficient quality.\u003c/p\u003e\n\u003ch3\u003eUpdates\u003c/h3\u003e\n\u003cp\u003eThe content and curation policy is subject to change by the community owner at any time and without notice, other than through updating this page.\u003c/p\u003e", "description": "Open repository for EU-funded research outputs from Horizon Europe, Euratom, and earlier Framework Programmes.", "organizations": [{"id": "00k4n6c32"}], "page": "\u003ch2\u003eAbout\u003c/h2\u003e\n\u003cp\u003eThe EU Open Research Repository is a Zenodo-community dedicated to fostering open science and enhancing the visibility and accessibility of research outputs funded by the European Union. The community is managed by CERN on behalf of the European Commission.\u003c/p\u003e\n\u003ch3\u003eMission\u003c/h3\u003e\n\u003cp\u003eThe mission of the repository is to support the implementation of the EU\u0027s open science policy, providing a trusted and comprehensive space for researchers to share their research outputs such as data, software, reports, presentations, posters and more. The EU Open Research Repository simplifies the process of complying with open science requirements, ensuring that research outputs from Horizon Europe, Euratom, and earlier Framework Programmes are freely accessible, thereby accelerating scientific discovery and innovation.\u003c/p\u003e\n\u003ch3\u003eEU Open Research Repository vs Open Research Europe (ORE)\u003c/h3\u003e\n\u003cp\u003eThe EU Open Research Repository serves as a complementary platform to the \u003ca href=\"https://open-research-europe.ec.europa.eu/\"\u003eOpen Research Europe\u003c/a\u003e (ORE) publishing platform. Open Research Europe focuses on providing a publishing venue for peer-reviewed articles, ensuring that research meets rigorous academic standards. The EU Open Research Repository provides a space for all the other research outputs including data sets, software, posters, and presentations that are out of scope for ORE. This holistic approach enables researchers to not only publish their findings but also share the underlying data and materials that support their work, fostering transparency and reproducibility in the scientific process.\u0026nbsp;\u003c/p\u003e\n\u003ch3\u003eFunding\u003c/h3\u003e\n\u003cp\u003eThe EU Open Research Repository is funded by the European Union under grant agreement no. \u003ca href=\"https://cordis.europa.eu/project/id/101256740\"\u003e101256740\u003c/a\u003e\u0026nbsp; (HORIZON-ZEN Plus). For more information about the project see \u003ca href=\"https://about.zenodo.org/projects/horizon-zen-plus/\"\u003ehttps://about.zenodo.org/projects/horizon-zen/.\u003c/a\u003e\u003c/p\u003e", "title": "EU Open Research Repository", "type": {"id": "organization"}, "website": "https://research-and-innovation.ec.europa.eu"}, "revision_id": 28, "slug": "eu", "theme": {"brand": "horizon", "enabled": true, "style": {"font": {"family": "Arial, sans-serif", "size": "16px", "weight": 600}, "mainHeaderBackgroundColor": "#FFFFFF", "primaryColor": "#004494", "primaryTextColor": "#FFFFFF", "secondaryColor": "#FFD617", "secondaryTextColor": "#000000", "tertiaryColor": "#e3eefd", "tertiaryTextColor": "#1c5694"}}, "updated": "2026-08-17T14:29:01.587911+00:00"}], "ids": ["f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c"]}, "id": "13371966", "pids": {"doi": {"client": "datacite", "identifier": "10.5281/zenodo.13371966", "provider": "datacite"}}}, "pids": {"doi": {"client": "datacite", "identifier": "10.5281/zenodo.13371967", "provider": "datacite"}, "oai": {"identifier": "oai:zenodo.org:13371967", "provider": "oai"}}, "revision_id": 4, "stats": {"all_versions": {"data_volume": 218784694.0, "downloads": 1135, "unique_downloads": 1120, "unique_views": 151, "views": 168}, "this_version": {"data_volume": 218784694.0, "downloads": 1135, "unique_downloads": 1120, "unique_views": 151, "views": 168}}, "status": "published", "swh": {}, "ui": {"access_status": {"description_l10n": "The record and files are publicly accessible.", "embargo_date_l10n": null, "icon": "unlock", "id": "open", "message_class": "", "title_l10n": "Open"}, "additional_descriptions": [{"description": "\u003cp\u003e\u003cstrong\u003eThis version includes:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003e1. The .otb file. To view it, please import it in\u0026nbsp; Tedi ontoTerminology Editor\u003c/p\u003e\n\u003cp\u003e2. The .rdf file. To view it, please import it in Prot\u0026eacute;g\u0026eacute; ontology editor\u003c/p\u003e\n\u003cp\u003e3. The .html files that includes the proper names modelled\u003c/p\u003e\n\u003cp\u003e5. The .html files that includes the terms modelled\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eSoftware:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003eThis dataset was built with\u0026nbsp;\u003ca href=\"http://ontoterminology.com/tedi\"\u003eTedi\u003c/a\u003e\u0026nbsp;ontoTerminology Editor.\u0026nbsp;\u003ca href=\"http://ontoterminology.com/tedi\"\u003eTedi\u003c/a\u003e ontoTerminology Editor is a software platform for the creation and management of\u0026nbsp;\u003ca href=\"http://ontoterminology.com/definition\"\u003eontoterminologies\u003c/a\u003e. Tedi software platform is distributed by the University of Crete (free for academic use, contact: christophe.roche@uoc.gr).\u003c/p\u003e\n\u003cp\u003eThe .rdf file is queryable via a \u003ca href=\"https://sparql.org/sparql.html\"\u003eSPARQL\u003c/a\u003e endpoint.\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eDownloads:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003eDownload the\u0026nbsp;RDF/OWL\u0026nbsp;file; to view the ontology metrics import this file in\u0026nbsp;\u003ca href=\"https://protege.stanford.edu/\"\u003eProt\u0026eacute;g\u0026eacute;\u003c/a\u003e (open access ontology editor); to visualize the ontology import this file in \u003ca href=\"https://service.tib.eu/webvowl/\"\u003eVOWL\u003c/a\u003e\u003c/p\u003e\n\u003cp\u003eTo view the .html files in your browser download them and rename them using the .html extension.\u003c/p\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003cp\u003e\u003cstrong\u003eMetrics\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003e\u003cem\u003eTedi:\u003c/em\u003e\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eNumber of concepts: 29\u003c/li\u003e\n\u003cli\u003eNumber of objects: 101\u003c/li\u003e\n\u003cli\u003eNumber of terms: 58\u003c/li\u003e\n\u003cli\u003eNumber of proper names: 247\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003e\u003cem\u003eRDF/Prot\u0026eacute;g\u0026eacute;:\u003c/em\u003e\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eAxiom:\u0026nbsp; 4,782\u003c/li\u003e\n\u003cli\u003eLogical axiom count: 2,348\u003c/li\u003e\n\u003cli\u003eDeclaration axioms count: 177\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eClass count: 43\u003c/li\u003e\n\u003cli\u003eObject property count: 21\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eData property count: 6\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eIndividual count : 610\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property count: 36\u003c/li\u003e\n\u003cli\u003eSubClassOf: 81\u0026nbsp; \u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eDisjoint Classes: 53\u003c/li\u003e\n\u003cli\u003eObject Property Domain: 20\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eObject Property Range:\u0026nbsp; 20\u003c/li\u003e\n\u003cli\u003eData Property Domain: 6\u003c/li\u003e\n\u003cli\u003eData Property Range: 6\u003c/li\u003e\n\u003cli\u003eClass Assertion\u0026nbsp; 798\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eObject Property Assertion: 1,291\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eData Property Assertion: 73\u003c/li\u003e\n\u003cli\u003eAnnotation Assertion: 2,235\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property Domain: 12\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property Range Of: 10\u003c/li\u003e\n\u003c/ul\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003ch2\u003e5 SPARQL Queries (queryable via a\u0026nbsp;\u003ca href=\"https://sparql.org/sparql.html\"\u003eSPARQL\u003c/a\u003e endpoint):\u003c/h2\u003e\n\u003ch3\u003e#1 Which are the different Archaic Lyric poems and what differentiates each of them?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX skos: \u0026lt;http://www.w3.org/2004/02/skos/core#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?poems ?difference ?definition\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {    \n       ?x rdfs:subClassOf* alyra:Archaic_Lyric_Poem;\n             rdfs:label ?poems;\n             otv:ownDifference ?y;\n\tskos:definition ?definition.\n       ?y rdfs:label ?difference\nFILTER (lang(?poems) = \u0027en\u0027)\nFILTER (lang(?definition) = \u0027en\u0027)\n}\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003ch3\u003e#2 What is an \u0026ldquo;hymn\u0026rdquo; and which Archaic Lyric poets/poetesses have composed \u0026ldquo;hymns\u0026rdquo;?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX skos: \u0026lt;http://www.w3.org/2004/02/skos/core#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?definition ?authorName ?centuryOfLiving \nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {    \n    ?x rdfs:label \"hymn\"@en.\n    ?x skos:definition ?definition.\n          FILTER(langMatches(lang(?definition), \"en\"))\n    ?y otv:instanceOf ?x;\n          alyra:isWrittenBy ?author.\n    ?author rdfs:label ?authorName;\n            alyra:centuryOfLiving ?c.\n    ?c rdfs:label ?centuryOfLiving.\n}\nORDER BY ?centuryOfLiving\n\u003c/code\u003e\u003c/pre\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003ch3\u003e#3 Who was Pindar?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\n\nSELECT ?propertyName ?value\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {\n  \talyra:pindarus_boeotus ?x ?y .\n  \t?x rdfs:label ?propertyName .\n  \t?y rdfs:label ?value .\n  \tFILTER(LANG(?value) = \u0027en\u0027)\n}\nORDER BY ?value\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003ch3\u003e#4 Which is the four-digit \"Thesaurus Linguae Graecae\" identifying number of each Archaic Lyric composer?\u003c/h3\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?nameOfComposer ?tljNumber\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\n\nWHERE {\n?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n?y otv:instanceOf* ?x.\n?y rdfs:label ?nameOfComposer;\n   \talyra:tlgIdentifyingNumber ?tljNumber}\u003c/code\u003e\u003c/pre\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003ch3\u003e#5 What is the place where most Ancient Greek lyric composers were born and who were they?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\n\nSELECT ?place ?coordinates ?poetLabel ?resourcePoet\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\n\nWHERE {\n  {\n    SELECT ?place (COUNT(?y) AS ?count)\n    WHERE {\n      ?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n      ?y otv:instanceOf ?x.\n      ?y alyra:bornIn ?p.\n      ?p rdfs:label ?place.\n    }\n    GROUP BY ?place\n    ORDER BY DESC(?count)\n    LIMIT 1\n  }\n  ?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n  ?y otv:instanceOf ?x.\n  ?y alyra:bornIn ?p.\n  ?p rdfs:label ?place.\n  OPTIONAL { ?p alyra:pleiadesCoordinates ?coordinates. }\n  ?y rdfs:label ?poetLabel.\n  OPTIONAL {\n    SELECT ?y (SAMPLE(?resource) AS ?resourcePoet)\n    WHERE {\n      ?y rdfs:seeAlso ?resource.\n      FILTER(CONTAINS(LCASE(STR(?resource)), \"perseus:author\"))\n    }\n    GROUP BY ?y\n  }\n}\nORDER BY ?poetLabel\n\n\u003c/code\u003e\u003c/pre\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}], "created_date_l10n_long": "August 29, 2024", "creators": {"affiliations": [[1, "University of Crete", "00dr28g20"]], "creators": [{"affiliations": [[1, "University of Crete"]], "person_or_org": {"family_name": "Giannadakis", "given_name": "Rafail", "identifiers": [{"identifier": "0009-0009-6708-4396", "scheme": "orcid"}], "name": "Giannadakis, Rafail", "type": "personal"}, "role": {"id": "datacurator", "title": "Data curator"}}, {"affiliations": [[1, "University of Crete"]], "person_or_org": {"family_name": "Papadopoulou", "given_name": "Maria", "identifiers": [{"identifier": "0000-0001-6451-8712", "scheme": "orcid"}], "name": "Papadopoulou, Maria", "type": "personal"}, "role": {"id": "supervisor", "title": "Supervisor"}}]}, "custom_fields": {}, "dates": [{"date": "2024-08-25", "description": "YYYY-MM-DD", "type": {"id": "submitted", "title_l10n": "Submitted"}}], "description_stripped": "This is version 1.0 of the ALyrA ontoterminology (i.e., \u0027a terminology whose conceptual system is a formal ontology\u0027, Roche 2007), which focuses on modelling Archaic Lyric poets (799-430 BC\u0395). AlyrA stands for \"Archaic Lyrical Agora\".\u00a0\n\nThe ontoterminology was created by Rafail Giannadakis (Department of Philology, University of Crete) under the supervision of Dr. Maria Papadopoulou (Department of Philology, University of Crete).\n\nWe gratefully acknowledge the generous funding of the European Commission in the context of the TALOS AI for SSH project (Grant agreement ID: 101087269).\n\nContact: giannadakis.uni@gmail.com\u00a0", "funding": [{"award": {"identifiers": [{"identifier": "https://cordis.europa.eu/project/id/101087269", "scheme": "url"}], "number": "101087269", "title_l10n": "TALOS AI4SSH"}, "funder": {"id": "00k4n6c32", "name": "European Commission"}}], "is_draft": false, "languages": [{"id": "eng", "title_l10n": "English"}, {"id": "grc", "title_l10n": "Ancient Greek (to 1453)"}, {"id": "ell", "title_l10n": "Modern Greek (1453-)"}], "publication_date_l10n_long": "August 25, 2024", "publication_date_l10n_medium": "Aug 25, 2024", "resource_type": {"id": "dataset", "title_l10n": "Dataset"}, "rights": [{"description_l10n": "This license enables reusers to copy and distribute the material in any medium or format in unadapted form only, \nfor noncommercial purposes only, and only so long as attribution is given to the creator. \nCC BY-NC-ND includes the following elements:\n\n BY: credit must be given to the creator.\n NC: Only noncommercial uses of the work are permitted.\n ND: No derivatives or adaptations of the work are permitted.", "link": "https://creativecommons.org/licenses/by-nc-nd/4.0/", "title_l10n": "CC BY-NC-ND Attribution-NonCommercial-NoDerivatives 4.0 International"}], "updated_date_l10n_long": "August 29, 2024", "version": "1.0"}, "updated": "2024-08-29T13:42:45.920952+00:00", "versions": {"index": 1, "is_latest": true}}' data-preview='false'>
+        <div class="rel-p-1"></div>
+        <div class="ui fluid placeholder rel-mr-1 rel-ml-1"></div>
+        <div class="header">
+          <div class="line"></div>
+          <div class="line"></div>
+          <div class="line"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><div class="sidebar-container">
+  <h2 class="ui small top attached header">External resources</h2>
+  <dl id="external-resource" aria-label="External resources" class="ui bottom attached segment rdm-sidebar external resource details-list">
+
+    <dt class="ui tiny header">Indexed in</dt>
+      <ul class="ui list no-bullet m-0">
+              <li class="item flex align-items-center">
+
+                
+                  <img class="ui image" src="/static/images/openaire.svg" alt="" width="32">
+                
+
+                <div class="content">
+                  <a
+                    class="header"
+                    href="https://explore.openaire.eu/search/result?pid=10.5281/zenodo.13371967"
+                    target="_blank"
+                    rel="noreferrer"
+                  >OpenAIRE
+                  </a>
+
+                  </div>
+              </li></ul></dl>
+</div>
+<div
+  id="sidebar-communities-manage"
+  data-user-communities-memberships='{}'
+  data-record-community-endpoint='https://zenodo.org/api/records/13371967/communities'
+  data-record-community-search-endpoint='https://zenodo.org/api/records/13371967/communities-suggestions'
+  data-record-community-search-config='{"aggs": [{"aggName": "type", "field": "type", "title": "Type"}, {"aggName": "funder", "field": "metadata.funding.funder", "title": "Funders"}, {"aggName": "organization", "field": "metadata.organizations", "title": "Organizations"}], "appId": "InvenioAppRdm.RecordCommunitiesSuggestions", "defaultSortingOnEmptyQueryString": [{"sortBy": "newest"}], "initialQueryState": {"filters": [], "hiddenParams": null, "layout": "list", "page": 1, "size": 10, "sortBy": "bestmatch"}, "layoutOptions": {"gridView": false, "listView": true}, "paginationOptions": {"defaultValue": 10, "maxTotalResults": 10000, "resultsPerPage": [{"text": "10", "value": 10}, {"text": "20", "value": 20}]}, "searchApi": {"axios": {"headers": {"Accept": "application/vnd.inveniordm.v1+json"}, "url": "https://zenodo.org/api/records/13371967/communities-suggestions", "withCredentials": true}, "invenio": {"requestSerializer": "InvenioRecordsResourcesRequestSerializer"}}, "sortOptions": [{"sortBy": "bestmatch", "text": "Best match"}, {"sortBy": "newest", "text": "Newest"}, {"sortBy": "oldest", "text": "Oldest"}], "sortOrderDisabled": true}'
+  data-record-user-community-search-endpoint=''
+  data-record-user-community-search-config='{"aggs": [{"aggName": "type", "field": "type", "title": "Type"}, {"aggName": "funder", "field": "metadata.funding.funder", "title": "Funders"}, {"aggName": "organization", "field": "metadata.organizations", "title": "Organizations"}], "appId": "InvenioAppRdm.RecordUserCommunitiesSuggestions", "defaultSortingOnEmptyQueryString": [{"sortBy": "newest"}], "initialQueryState": {"filters": [], "hiddenParams": [["membership", "true"]], "layout": "list", "page": 1, "size": 10, "sortBy": "bestmatch"}, "layoutOptions": {"gridView": false, "listView": true}, "paginationOptions": {"defaultValue": 10, "maxTotalResults": 10000, "resultsPerPage": [{"text": "10", "value": 10}, {"text": "20", "value": 20}]}, "searchApi": {"axios": {"headers": {"Accept": "application/vnd.inveniordm.v1+json"}, "url": "https://zenodo.org/api/records/13371967/communities-suggestions", "withCredentials": true}, "invenio": {"requestSerializer": "InvenioRecordsResourcesRequestSerializer"}}, "sortOptions": [{"sortBy": "bestmatch", "text": "Best match"}, {"sortBy": "newest", "text": "Newest"}, {"sortBy": "oldest", "text": "Oldest"}], "sortOrderDisabled": true}'
+  data-pending-communities-search-config='{"aggs": [{"aggName": "type", "field": "type", "title": "Type"}, {"aggName": "status", "field": "status", "title": "Status"}], "appId": "InvenioAppRdm.RecordRequests", "defaultSortingOnEmptyQueryString": [{"sortBy": "newest"}], "initialQueryState": {"filters": [], "hiddenParams": [["expand", "1"], ["is_open", "true"], ["type", "community-inclusion"], ["type", "community-submission"]], "layout": "list", "page": 1, "size": 10, "sortBy": "bestmatch"}, "layoutOptions": {"gridView": false, "listView": true}, "paginationOptions": {"defaultValue": 10, "maxTotalResults": 10000, "resultsPerPage": [{"text": "10", "value": 10}, {"text": "20", "value": 20}, {"text": "50", "value": 50}]}, "searchApi": {"axios": {"headers": {"Accept": "application/json"}, "url": "https://zenodo.org/api/records/13371967/requests", "withCredentials": true}, "invenio": {"requestSerializer": "InvenioRecordsResourcesRequestSerializer"}}, "sortOptions": [{"sortBy": "bestmatch", "text": "Best match"}, {"sortBy": "newest", "text": "Newest"}, {"sortBy": "oldest", "text": "Oldest"}, {"sortBy": "newestactivity", "text": "Newest activity"}, {"sortBy": "oldestactivity", "text": "Oldest activity"}], "sortOrderDisabled": true}'
+  data-permissions='{"can_edit": false, "can_immediately_delete": false, "can_manage": false, "can_media_read_files": true, "can_moderate": false, "can_new_version": false, "can_read_files": true, "can_remove_community_from_record": false, "can_request_deletion": false, "can_review": false, "can_update_draft": false, "can_view": false, "removable_community_ids": []}'
+  data-record='{"access": {"embargo": {"active": false, "reason": null}, "files": "public", "record": "public", "status": "open"}, "created": "2024-08-29T13:42:45.028505+00:00", "custom_fields": {}, "deletion_status": {"is_deleted": false, "status": "P"}, "expanded": {"parent": {"access": {"owned_by": {"active": null, "blocked_at": null, "confirmed_at": null, "email": "", "id": "603690", "is_current_user": false, "links": {"avatar": "https://zenodo.org/api/users/603690/avatar.svg", "records_html": "https://zenodo.org/search?q=parent.access.owned_by.user:603690", "self": "https://zenodo.org/api/users/603690"}, "profile": {"affiliations": "University of Crete - HORIZON-WIDERA-2022-TALENTS-01-01 - ERA Chairs", "full_name": "TALOS AI4SSH"}, "username": "talosAI4SSH", "verified_at": null}}, "communities": {"default": {"access": {"review_policy": "closed", "visibility": "public"}, "id": "f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c", "links": {"logo": "https://zenodo.org/api/communities/f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c/logo"}, "metadata": {"description": "Open repository for EU-funded research outputs from Horizon Europe, Euratom, and earlier Framework Programmes.", "title": "EU Open Research Repository", "type": {"id": "organization", "title": {"de": "Organisation", "en": "Organization"}}}, "slug": "eu"}}}}, "files": {"count": 18, "enabled": true, "entries": {"ALyrA_v.1.0.otb": {"access": {"hidden": false}, "checksum": "md5:82f68f6e5972ca8517ccbdc8eb5ee890", "ext": "otb", "id": "48f99b77-ab82-4143-ba95-108388f91d8c", "key": "ALyrA_v.1.0.otb", "links": {"content": "https://zenodo.org/api/records/13371967/files/ALyrA_v.1.0.otb/content", "self": "https://zenodo.org/api/records/13371967/files/ALyrA_v.1.0.otb"}, "metadata": {}, "mimetype": "application/octet-stream", "size": 594218, "storage_class": "L"}, "ALyrA_v.1.0.rdf.rdf": {"access": {"hidden": false}, "checksum": "md5:ad7e020d75a5986dc78618f9ee3a7634", "ext": "xsl", "id": "4181d50f-2eec-4d0a-8a16-c143c9cdfd1a", "key": "ALyrA_v.1.0.rdf.rdf", "links": {"content": "https://zenodo.org/api/records/13371967/files/ALyrA_v.1.0.rdf.rdf/content", "self": "https://zenodo.org/api/records/13371967/files/ALyrA_v.1.0.rdf.rdf"}, "metadata": {}, "mimetype": "application/xml", "size": 503282, "storage_class": "L"}, "Alyra_PN_all.el.html": {"access": {"hidden": false}, "checksum": "md5:7aa9750a12531dd038f0941e6360f88e", "ext": "html", "id": "ee5460a2-2fd6-4ab8-b249-02105baf19a0", "key": "Alyra_PN_all.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_all.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_all.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 405361, "storage_class": "L"}, "Alyra_PN_all.en.html": {"access": {"hidden": false}, "checksum": "md5:8159ef878c6df234a9bca5ee7bc58b31", "ext": "html", "id": "e521261c-e208-4ae8-a6a8-92fb16fa3886", "key": "Alyra_PN_all.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_all.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_all.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 428022, "storage_class": "L"}, "Alyra_PN_composer.el.html": {"access": {"hidden": false}, "checksum": "md5:ce663e2cb97024b618d66621a5c90edf", "ext": "html", "id": "c4df8259-7dec-420e-8dd6-fb70aed848c3", "key": "Alyra_PN_composer.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_composer.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_composer.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 232941, "storage_class": "L"}, "Alyra_PN_composer.en.html": {"access": {"hidden": false}, "checksum": "md5:13e7f69ac1a594673110865bfb61525f", "ext": "html", "id": "b568f411-425b-4e54-98eb-bb69cea964b9", "key": "Alyra_PN_composer.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_composer.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_composer.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 272800, "storage_class": "L"}, "Alyra_PN_location.el.html": {"access": {"hidden": false}, "checksum": "md5:8716ddbf56d24c75ccfcd6d5e8c9a2dc", "ext": "html", "id": "8db824d8-2847-4955-b721-20175138df1a", "key": "Alyra_PN_location.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_location.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_location.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 75154, "storage_class": "L"}, "Alyra_PN_location.en.html": {"access": {"hidden": false}, "checksum": "md5:0282069fe2feef8ce73c9c8e374342d3", "ext": "html", "id": "fd8703a7-d1b7-4368-8d92-6f1a14d30295", "key": "Alyra_PN_location.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_location.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_location.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 70952, "storage_class": "L"}, "Alyra_PN_poem.el.html": {"access": {"hidden": false}, "checksum": "md5:57899c139d126202a681350a47c1408f", "ext": "html", "id": "7b0e8c5d-aebc-4130-ae1c-5c80b548baec", "key": "Alyra_PN_poem.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_poem.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_poem.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 110603, "storage_class": "L"}, "Alyra_PN_poem.en.html": {"access": {"hidden": false}, "checksum": "md5:414e255c160074f8f5650b660deabe44", "ext": "html", "id": "6264a2df-0c5d-478b-8163-049bdb17d578", "key": "Alyra_PN_poem.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_PN_poem.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_PN_poem.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 98205, "storage_class": "L"}, "Alyra_terms_all.el.html": {"access": {"hidden": false}, "checksum": "md5:7bfff8130c4b4af596ab0b8726d33b84", "ext": "html", "id": "312bead5-e5b5-4ae9-a5b4-70286c162227", "key": "Alyra_terms_all.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_all.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_all.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 134986, "storage_class": "L"}, "Alyra_terms_all.en.html": {"access": {"hidden": false}, "checksum": "md5:d60082c48a2b4bb2ae578778c832146e", "ext": "html", "id": "7228608c-c32a-4b4b-93ec-26a7c7544035", "key": "Alyra_terms_all.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_all.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_all.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 131007, "storage_class": "L"}, "Alyra_terms_composer.el.html": {"access": {"hidden": false}, "checksum": "md5:856372af0f147c3e103ee9195127ff36", "ext": "html", "id": "4e18a551-7924-4f45-a9cf-7ac5d5dde822", "key": "Alyra_terms_composer.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_composer.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_composer.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 58821, "storage_class": "L"}, "Alyra_terms_composer.en.html": {"access": {"hidden": false}, "checksum": "md5:49c554e8ff7a0b21f6b6c43ce12bb663", "ext": "html", "id": "d1242ad7-235d-4dbe-b06c-495e09c87f05", "key": "Alyra_terms_composer.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_composer.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_composer.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 58381, "storage_class": "L"}, "Alyra_terms_location.el.html": {"access": {"hidden": false}, "checksum": "md5:5c01e5b4df80f46237841657b931c495", "ext": "html", "id": "852f5416-744b-4db9-85ab-a86fb63b6157", "key": "Alyra_terms_location.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_location.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_location.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 34957, "storage_class": "L"}, "Alyra_terms_location.en.html": {"access": {"hidden": false}, "checksum": "md5:110fff3452d1b2274d0a4aa63da2c84a", "ext": "html", "id": "453b9cae-0e15-4fac-80c5-4f63d87592d9", "key": "Alyra_terms_location.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_location.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_location.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 34774, "storage_class": "L"}, "Alyra_terms_poem.el.html": {"access": {"hidden": false}, "checksum": "md5:92ce453aeff344f14a07987476383be1", "ext": "html", "id": "1e34458f-2ea5-4e33-914a-fb0f371d1b29", "key": "Alyra_terms_poem.el.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_poem.el.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_poem.el.html"}, "metadata": {}, "mimetype": "text/html", "size": 57191, "storage_class": "L"}, "Alyra_terms_poem.en.html": {"access": {"hidden": false}, "checksum": "md5:71b45a2825049cd0e4b1f6350eb13be0", "ext": "html", "id": "828bebe7-b3ab-464e-8d03-bfd1a312cf4a", "key": "Alyra_terms_poem.en.html", "links": {"content": "https://zenodo.org/api/records/13371967/files/Alyra_terms_poem.en.html/content", "self": "https://zenodo.org/api/records/13371967/files/Alyra_terms_poem.en.html"}, "metadata": {}, "mimetype": "text/html", "size": 53815, "storage_class": "L"}}, "order": [], "total_bytes": 3355470}, "id": "13371967", "is_draft": false, "is_published": true, "links": {"access": "https://zenodo.org/api/records/13371967/access", "access_grants": "https://zenodo.org/api/records/13371967/access/grants", "access_links": "https://zenodo.org/api/records/13371967/access/links", "access_request": "https://zenodo.org/api/records/13371967/access/request", "access_users": "https://zenodo.org/api/records/13371967/access/users", "archive": "https://zenodo.org/api/records/13371967/files-archive", "archive_media": "https://zenodo.org/api/records/13371967/media-files-archive", "communities": "https://zenodo.org/api/records/13371967/communities", "communities-suggestions": "https://zenodo.org/api/records/13371967/communities-suggestions", "doi": "https://doi.org/10.5281/zenodo.13371967", "draft": "https://zenodo.org/api/records/13371967/draft", "file_modification": "https://zenodo.org/api/records/13371967/file-modification", "files": "https://zenodo.org/api/records/13371967/files", "latest": "https://zenodo.org/api/records/13371967/versions/latest", "latest_html": "https://zenodo.org/records/13371967/latest", "media_files": "https://zenodo.org/api/records/13371967/media-files", "parent": "https://zenodo.org/api/records/13371966", "parent_doi": "https://doi.org/10.5281/zenodo.13371966", "parent_doi_html": "https://zenodo.org/doi/10.5281/zenodo.13371966", "parent_html": "https://zenodo.org/records/13371966", "preview_html": "https://zenodo.org/records/13371967?preview=1", "quota_increase": "https://zenodo.org/api/records/13371967/quota-increase", "request_deletion": "https://zenodo.org/api/records/13371967/request-deletion", "requests": "https://zenodo.org/api/records/13371967/requests", "reserve_doi": "https://zenodo.org/api/records/13371967/draft/pids/doi", "self": "https://zenodo.org/api/records/13371967", "self_doi": "https://doi.org/10.5281/zenodo.13371967", "self_doi_html": "https://zenodo.org/doi/10.5281/zenodo.13371967", "self_html": "https://zenodo.org/records/13371967", "self_iiif_manifest": "https://zenodo.org/api/iiif/record:13371967/manifest", "self_iiif_sequence": "https://zenodo.org/api/iiif/record:13371967/sequence/default", "versions": "https://zenodo.org/api/records/13371967/versions"}, "media_files": {"count": 0, "enabled": false, "entries": {}, "order": [], "total_bytes": 0}, "metadata": {"additional_descriptions": [{"description": "\u003cp\u003e\u003cstrong\u003eThis version includes:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003e1. The .otb file. To view it, please import it in\u0026nbsp; Tedi ontoTerminology Editor\u003c/p\u003e\n\u003cp\u003e2. The .rdf file. To view it, please import it in Prot\u0026eacute;g\u0026eacute; ontology editor\u003c/p\u003e\n\u003cp\u003e3. The .html files that includes the proper names modelled\u003c/p\u003e\n\u003cp\u003e5. The .html files that includes the terms modelled\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eSoftware:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003eThis dataset was built with\u0026nbsp;\u003ca href=\"http://ontoterminology.com/tedi\"\u003eTedi\u003c/a\u003e\u0026nbsp;ontoTerminology Editor.\u0026nbsp;\u003ca href=\"http://ontoterminology.com/tedi\"\u003eTedi\u003c/a\u003e ontoTerminology Editor is a software platform for the creation and management of\u0026nbsp;\u003ca href=\"http://ontoterminology.com/definition\"\u003eontoterminologies\u003c/a\u003e. Tedi software platform is distributed by the University of Crete (free for academic use, contact: christophe.roche@uoc.gr).\u003c/p\u003e\n\u003cp\u003eThe .rdf file is queryable via a \u003ca href=\"https://sparql.org/sparql.html\"\u003eSPARQL\u003c/a\u003e endpoint.\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eDownloads:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003eDownload the\u0026nbsp;RDF/OWL\u0026nbsp;file; to view the ontology metrics import this file in\u0026nbsp;\u003ca href=\"https://protege.stanford.edu/\"\u003eProt\u0026eacute;g\u0026eacute;\u003c/a\u003e (open access ontology editor); to visualize the ontology import this file in \u003ca href=\"https://service.tib.eu/webvowl/\"\u003eVOWL\u003c/a\u003e\u003c/p\u003e\n\u003cp\u003eTo view the .html files in your browser download them and rename them using the .html extension.\u003c/p\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003cp\u003e\u003cstrong\u003eMetrics\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003e\u003cem\u003eTedi:\u003c/em\u003e\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eNumber of concepts: 29\u003c/li\u003e\n\u003cli\u003eNumber of objects: 101\u003c/li\u003e\n\u003cli\u003eNumber of terms: 58\u003c/li\u003e\n\u003cli\u003eNumber of proper names: 247\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003e\u003cem\u003eRDF/Prot\u0026eacute;g\u0026eacute;:\u003c/em\u003e\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eAxiom:\u0026nbsp; 4,782\u003c/li\u003e\n\u003cli\u003eLogical axiom count: 2,348\u003c/li\u003e\n\u003cli\u003eDeclaration axioms count: 177\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eClass count: 43\u003c/li\u003e\n\u003cli\u003eObject property count: 21\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eData property count: 6\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eIndividual count : 610\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property count: 36\u003c/li\u003e\n\u003cli\u003eSubClassOf: 81\u0026nbsp; \u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eDisjoint Classes: 53\u003c/li\u003e\n\u003cli\u003eObject Property Domain: 20\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eObject Property Range:\u0026nbsp; 20\u003c/li\u003e\n\u003cli\u003eData Property Domain: 6\u003c/li\u003e\n\u003cli\u003eData Property Range: 6\u003c/li\u003e\n\u003cli\u003eClass Assertion\u0026nbsp; 798\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eObject Property Assertion: 1,291\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eData Property Assertion: 73\u003c/li\u003e\n\u003cli\u003eAnnotation Assertion: 2,235\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property Domain: 12\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property Range Of: 10\u003c/li\u003e\n\u003c/ul\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003ch2\u003e5 SPARQL Queries (queryable via a\u0026nbsp;\u003ca href=\"https://sparql.org/sparql.html\"\u003eSPARQL\u003c/a\u003e endpoint):\u003c/h2\u003e\n\u003ch3\u003e#1 Which are the different Archaic Lyric poems and what differentiates each of them?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX skos: \u0026lt;http://www.w3.org/2004/02/skos/core#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?poems ?difference ?definition\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {    \n       ?x rdfs:subClassOf* alyra:Archaic_Lyric_Poem;\n             rdfs:label ?poems;\n             otv:ownDifference ?y;\n\tskos:definition ?definition.\n       ?y rdfs:label ?difference\nFILTER (lang(?poems) = \u0027en\u0027)\nFILTER (lang(?definition) = \u0027en\u0027)\n}\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003ch3\u003e#2 What is an \u0026ldquo;hymn\u0026rdquo; and which Archaic Lyric poets/poetesses have composed \u0026ldquo;hymns\u0026rdquo;?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX skos: \u0026lt;http://www.w3.org/2004/02/skos/core#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?definition ?authorName ?centuryOfLiving \nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {    \n    ?x rdfs:label \"hymn\"@en.\n    ?x skos:definition ?definition.\n          FILTER(langMatches(lang(?definition), \"en\"))\n    ?y otv:instanceOf ?x;\n          alyra:isWrittenBy ?author.\n    ?author rdfs:label ?authorName;\n            alyra:centuryOfLiving ?c.\n    ?c rdfs:label ?centuryOfLiving.\n}\nORDER BY ?centuryOfLiving\n\u003c/code\u003e\u003c/pre\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003ch3\u003e#3 Who was Pindar?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\n\nSELECT ?propertyName ?value\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {\n  \talyra:pindarus_boeotus ?x ?y .\n  \t?x rdfs:label ?propertyName .\n  \t?y rdfs:label ?value .\n  \tFILTER(LANG(?value) = \u0027en\u0027)\n}\nORDER BY ?value\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003ch3\u003e#4 Which is the four-digit \"Thesaurus Linguae Graecae\" identifying number of each Archaic Lyric composer?\u003c/h3\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?nameOfComposer ?tljNumber\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\n\nWHERE {\n?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n?y otv:instanceOf* ?x.\n?y rdfs:label ?nameOfComposer;\n   \talyra:tlgIdentifyingNumber ?tljNumber}\u003c/code\u003e\u003c/pre\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}, {"description": "\u003ch3\u003e#5 What is the place where most Ancient Greek lyric composers were born and who were they?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\n\nSELECT ?place ?coordinates ?poetLabel ?resourcePoet\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\n\nWHERE {\n  {\n    SELECT ?place (COUNT(?y) AS ?count)\n    WHERE {\n      ?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n      ?y otv:instanceOf ?x.\n      ?y alyra:bornIn ?p.\n      ?p rdfs:label ?place.\n    }\n    GROUP BY ?place\n    ORDER BY DESC(?count)\n    LIMIT 1\n  }\n  ?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n  ?y otv:instanceOf ?x.\n  ?y alyra:bornIn ?p.\n  ?p rdfs:label ?place.\n  OPTIONAL { ?p alyra:pleiadesCoordinates ?coordinates. }\n  ?y rdfs:label ?poetLabel.\n  OPTIONAL {\n    SELECT ?y (SAMPLE(?resource) AS ?resourcePoet)\n    WHERE {\n      ?y rdfs:seeAlso ?resource.\n      FILTER(CONTAINS(LCASE(STR(?resource)), \"perseus:author\"))\n    }\n    GROUP BY ?y\n  }\n}\nORDER BY ?poetLabel\n\n\u003c/code\u003e\u003c/pre\u003e", "lang": {"id": "eng", "title": {"en": "English"}}, "type": {"id": "technical-info", "title": {"de": "Technische Informationen", "en": "Technical info"}}}], "creators": [{"affiliations": [{"id": "00dr28g20", "identifiers": [{"identifier": "00dr28g20", "scheme": "ror"}, {"identifier": "grid.8127.c", "scheme": "grid"}, {"identifier": "0000 0004 0576 3437", "scheme": "isni"}], "name": "University of Crete"}], "person_or_org": {"family_name": "Giannadakis", "given_name": "Rafail", "identifiers": [{"identifier": "0009-0009-6708-4396", "scheme": "orcid"}], "name": "Giannadakis, Rafail", "type": "personal"}, "role": {"id": "datacurator", "title": {"de": "DatenkuratorIn", "en": "Data curator"}}}, {"affiliations": [{"id": "00dr28g20", "identifiers": [{"identifier": "00dr28g20", "scheme": "ror"}, {"identifier": "grid.8127.c", "scheme": "grid"}, {"identifier": "0000 0004 0576 3437", "scheme": "isni"}], "name": "University of Crete"}], "person_or_org": {"family_name": "Papadopoulou", "given_name": "Maria", "identifiers": [{"identifier": "0000-0001-6451-8712", "scheme": "orcid"}], "name": "Papadopoulou, Maria", "type": "personal"}, "role": {"id": "supervisor", "title": {"de": "SupervisorIn", "en": "Supervisor"}}}], "dates": [{"date": "2024-08-25", "description": "YYYY-MM-DD", "type": {"id": "submitted", "title": {"de": "Eingereicht", "en": "Submitted"}}}], "description": "\u003cp\u003eThis is version 1.0 of the ALyrA ontoterminology (i.e., \u0027a terminology whose conceptual system is a formal ontology\u0027, Roche 2007), which focuses on modelling Archaic Lyric poets (799-430 BC\u0026Epsilon;). AlyrA stands for \"Archaic Lyrical Agora\".\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u003cbr\u003eThe ontoterminology was created by Rafail Giannadakis (Department of Philology, University of Crete) under the supervision of Dr. Maria Papadopoulou (Department of Philology, University of Crete).\u003c/p\u003e\n\u003cp\u003e\u003cbr\u003eWe gratefully acknowledge the generous funding of the European Commission in the context of the TALOS AI for SSH project (Grant agreement ID: 101087269).\u003c/p\u003e\n\u003cp\u003eContact: giannadakis.uni@gmail.com\u0026nbsp;\u003c/p\u003e", "funding": [{"award": {"identifiers": [{"identifier": "https://cordis.europa.eu/project/id/101087269", "scheme": "url"}], "number": "101087269", "title": {"en": "TALOS AI4SSH"}}, "funder": {"id": "00k4n6c32", "name": "European Commission"}}], "languages": [{"id": "eng", "title": {"en": "English"}}, {"id": "grc", "title": {"en": "Ancient Greek (to 1453)"}}, {"id": "ell", "title": {"en": "Modern Greek (1453-)"}}], "publication_date": "2024-08-25", "publisher": "Zenodo", "resource_type": {"id": "dataset", "title": {"de": "Datensatz", "en": "Dataset"}}, "rights": [{"description": {"en": "This license enables reusers to copy and distribute the material in any medium or format in unadapted form only, \nfor noncommercial purposes only, and only so long as attribution is given to the creator. \nCC BY-NC-ND includes the following elements:\n\n BY: credit must be given to the creator.\n NC: Only noncommercial uses of the work are permitted.\n ND: No derivatives or adaptations of the work are permitted."}, "link": "https://creativecommons.org/licenses/by-nc-nd/4.0/", "title": {"en": "CC BY-NC-ND Attribution-NonCommercial-NoDerivatives 4.0 International"}}], "subjects": [{"id": "euroscivoc:30060", "identifiers": [{"identifier": "http://data.europa.eu/8mn/euroscivoc/123e5118-1586-4a45-b4da-34583bd74940", "scheme": "url"}], "props": {"parents": "euroscivoc:23,euroscivoc:47,euroscivoc:15962364"}, "scheme": "EuroSciVoc", "subject": "Ontology"}, {"id": "euroscivoc:959", "identifiers": [{"identifier": "http://data.europa.eu/8mn/euroscivoc/981a4eb6-f63a-4360-953d-efe0ec861672", "scheme": "url"}], "props": {"parents": "euroscivoc:23,euroscivoc:47,euroscivoc:305"}, "scheme": "EuroSciVoc", "subject": "Semantic web"}, {"subject": "Linked Open Data"}, {"subject": "Ancient Lyric Poetry"}, {"subject": "Classical Philology"}, {"subject": "Classics"}], "title": "Archaic Lyric Agora (ALyrA) - Ontoterminology of Archaic Lyric Poets - version 1.0", "version": "1.0"}, "parent": {"access": {"owned_by": {"user": "603690"}, "settings": {"accept_conditions_text": null, "allow_guest_requests": false, "allow_user_requests": false, "secret_link_expiration": 0}}, "communities": {"default": "f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c", "entries": [{"access": {"member_policy": "open", "members_visibility": "restricted", "record_submission_policy": "open", "review_policy": "closed", "visibility": "public"}, "children": {"allow": true}, "created": "2022-11-23T15:53:29.436323+00:00", "custom_fields": {}, "deletion_status": {"is_deleted": false, "status": "P"}, "id": "f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c", "links": {}, "metadata": {"curation_policy": "\u003ch2\u003eCuration policy\u003c/h2\u003e\n\u003cp\u003eThe EU Open Research Repository serves as a repository for research outputs (data, software, posters, presentations, publications, etc) which have been funded under an EU research funding programme such as Horizon Europe, Euratom or earlier Framework Programmes.\u003c/p\u003e\n\u003cp\u003eThe community is managed by CERN on behalf of the European Commission.\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u003ca href=\"https://about.zenodo.org/policies/\"\u003eZenodo\u0026rsquo;s general policies\u003c/a\u003e and \u003ca href=\"https://about.zenodo.org/terms/\"\u003eTerms of Use\u003c/a\u003e apply to all content.\u003c/p\u003e\n\u003ch3\u003eScope\u003c/h3\u003e\n\u003cp\u003eThe EU Open Research Repository accepts all digital research objects which is a research output stemming from one of EU\u0026rsquo;s research and innovation funding programmes. The funding programmes currently include:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003e\n\u003cp\u003eHorizon Europe (including ERC, MSCA), earlier Framework Programmes (eg Horizon 2020) as well as Euratom.\u003c/p\u003e\n\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003eIn line with the principle as open as possible, as closed as necessary both public and restricted content is accepted. See note on how \u003ca href=\"https://about.zenodo.org/infrastructure/\"\u003eZenodo handles restricted content\u003c/a\u003e.\u003c/p\u003e\n\u003ch3\u003eContent submission\u003c/h3\u003e\n\u003cp\u003eEU programme beneficiaries are eligible to submit content to the community. The community supports three types of content submissions:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003e\n\u003cp\u003eSubmission via an EU Project Community (through user interface or programmatic APIs).\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eSubmission directly to the EU Open Research Repository.\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eAutomated harvesting from existing Zenodo content.\u003c/p\u003e\n\u003c/li\u003e\n\u003c/ul\u003e\n\u003ch4\u003eProject community (preferred)\u003c/h4\u003e\n\u003cp\u003eA representative of an EU project may request an EU Project Community and invite other project participants as members of the community. The project community is linked to one or more European Commission grants. All records in the project community are automatically integrated into the EU Open Research Repository immediately upon acceptance into the project community.\u0026nbsp;\u003c/p\u003e\n\u003ch4\u003eDirect submission\u003c/h4\u003e\n\u003cp\u003eAny user may submit a record directly to the EU Open Research Repository. The submission will be moderated by Zenodo staff for compliance with the minimal required metadata requirements and its correctness.\u003c/p\u003e\n\u003ch4\u003eAutomated harvesting\u003c/h4\u003e\n\u003cp\u003eRecords found among Zenodo\u0026rsquo;s existing content will on a regular basis automatically be integrated if they are found to comply with the requirements. The submissions through this method are integrated into the EU Open Research Repository with delay in a fully automated way.\u003c/p\u003e\n\u003ch3\u003eDescriptive information\u003c/h3\u003e\n\u003ch4\u003eMinimal metadata requirements\u003c/h4\u003e\n\u003cp\u003eRecords in the EU Open Research Repository are required to comply with the following minimal metadata requirements:\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003e\n\u003cp\u003eVisibility: Both public and restricted (with or without embargo and/or access request)\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eResource types: All resource types.\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eLicenses: Public and embargoed records MUST specify a license. The chosen license SHOULD be compliant with the Horizon Europe open science requirements (see \u003ca href=\"/communities/eu/pages/open-science\"\u003eOpen Science in Horizon Europe\u003c/a\u003e)\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eFunding information: Records MUST specify at least one grant from the European Commission.\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003eJournal articles: Records MUST specify at the publishing venue (e.g. the journal the article was published in).\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eCreators: Creators SHOULD be identified with a persistent identifier (e.g. ORCID, GND, \u0026hellip;), and affiliations SHOULD be identified with a persistent identifier (e.g. ROR, ISNI, \u0026hellip;)\u003c/p\u003e\n\u003c/li\u003e\n\u003cli\u003e\n\u003cp\u003eSubjects: Records SHOULD specify one or more fields of science from the \u003ca href=\"https://op.europa.eu/en/web/eu-vocabularies/euroscivoc\"\u003eEuropean Science Vocabulary\u003c/a\u003e.\u003c/p\u003e\n\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003eThese metadata requirements comes from the related open science requirements in Horizon Europe which are detailed in each project\u0027s grant agreement.\u003c/p\u003e\n\u003ch3\u003eReview \u0026amp; moderation\u003c/h3\u003e\n\u003cp\u003eAll submissions undergo automated curation checks for compliance with the policy. Submissions through project communities are in addition reviewed by the project community. Submission directly to the EU Open Research Repository is in addiotn reviewed by Zenodo staff.\u003c/p\u003e\n\u003cp\u003eCommunity curators may at any point edit metadata of the records in the community without notice through human or automated processing. The curators may at their sole discretion remove records from the community that are deemed not to comply with the content and curation policy or which are deemed of insufficient quality.\u003c/p\u003e\n\u003ch3\u003eUpdates\u003c/h3\u003e\n\u003cp\u003eThe content and curation policy is subject to change by the community owner at any time and without notice, other than through updating this page.\u003c/p\u003e", "description": "Open repository for EU-funded research outputs from Horizon Europe, Euratom, and earlier Framework Programmes.", "organizations": [{"id": "00k4n6c32"}], "page": "\u003ch2\u003eAbout\u003c/h2\u003e\n\u003cp\u003eThe EU Open Research Repository is a Zenodo-community dedicated to fostering open science and enhancing the visibility and accessibility of research outputs funded by the European Union. The community is managed by CERN on behalf of the European Commission.\u003c/p\u003e\n\u003ch3\u003eMission\u003c/h3\u003e\n\u003cp\u003eThe mission of the repository is to support the implementation of the EU\u0027s open science policy, providing a trusted and comprehensive space for researchers to share their research outputs such as data, software, reports, presentations, posters and more. The EU Open Research Repository simplifies the process of complying with open science requirements, ensuring that research outputs from Horizon Europe, Euratom, and earlier Framework Programmes are freely accessible, thereby accelerating scientific discovery and innovation.\u003c/p\u003e\n\u003ch3\u003eEU Open Research Repository vs Open Research Europe (ORE)\u003c/h3\u003e\n\u003cp\u003eThe EU Open Research Repository serves as a complementary platform to the \u003ca href=\"https://open-research-europe.ec.europa.eu/\"\u003eOpen Research Europe\u003c/a\u003e (ORE) publishing platform. Open Research Europe focuses on providing a publishing venue for peer-reviewed articles, ensuring that research meets rigorous academic standards. The EU Open Research Repository provides a space for all the other research outputs including data sets, software, posters, and presentations that are out of scope for ORE. This holistic approach enables researchers to not only publish their findings but also share the underlying data and materials that support their work, fostering transparency and reproducibility in the scientific process.\u0026nbsp;\u003c/p\u003e\n\u003ch3\u003eFunding\u003c/h3\u003e\n\u003cp\u003eThe EU Open Research Repository is funded by the European Union under grant agreement no. \u003ca href=\"https://cordis.europa.eu/project/id/101256740\"\u003e101256740\u003c/a\u003e\u0026nbsp; (HORIZON-ZEN Plus). For more information about the project see \u003ca href=\"https://about.zenodo.org/projects/horizon-zen-plus/\"\u003ehttps://about.zenodo.org/projects/horizon-zen/.\u003c/a\u003e\u003c/p\u003e", "title": "EU Open Research Repository", "type": {"id": "organization"}, "website": "https://research-and-innovation.ec.europa.eu"}, "revision_id": 28, "slug": "eu", "theme": {"brand": "horizon", "enabled": true, "style": {"font": {"family": "Arial, sans-serif", "size": "16px", "weight": 600}, "mainHeaderBackgroundColor": "#FFFFFF", "primaryColor": "#004494", "primaryTextColor": "#FFFFFF", "secondaryColor": "#FFD617", "secondaryTextColor": "#000000", "tertiaryColor": "#e3eefd", "tertiaryTextColor": "#1c5694"}}, "updated": "2026-08-17T14:29:01.587911+00:00"}], "ids": ["f0a8b890-f97a-4eb2-9eac-8b8a712d3a6c"]}, "id": "13371966", "pids": {"doi": {"client": "datacite", "identifier": "10.5281/zenodo.13371966", "provider": "datacite"}}}, "pids": {"doi": {"client": "datacite", "identifier": "10.5281/zenodo.13371967", "provider": "datacite"}, "oai": {"identifier": "oai:zenodo.org:13371967", "provider": "oai"}}, "revision_id": 4, "stats": {"all_versions": {"data_volume": 218784694.0, "downloads": 1135, "unique_downloads": 1120, "unique_views": 151, "views": 168}, "this_version": {"data_volume": 218784694.0, "downloads": 1135, "unique_downloads": 1120, "unique_views": 151, "views": 168}}, "status": "published", "swh": {}, "ui": {"access_status": {"description_l10n": "The record and files are publicly accessible.", "embargo_date_l10n": null, "icon": "unlock", "id": "open", "message_class": "", "title_l10n": "Open"}, "additional_descriptions": [{"description": "\u003cp\u003e\u003cstrong\u003eThis version includes:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003e1. The .otb file. To view it, please import it in\u0026nbsp; Tedi ontoTerminology Editor\u003c/p\u003e\n\u003cp\u003e2. The .rdf file. To view it, please import it in Prot\u0026eacute;g\u0026eacute; ontology editor\u003c/p\u003e\n\u003cp\u003e3. The .html files that includes the proper names modelled\u003c/p\u003e\n\u003cp\u003e5. The .html files that includes the terms modelled\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eSoftware:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003eThis dataset was built with\u0026nbsp;\u003ca href=\"http://ontoterminology.com/tedi\"\u003eTedi\u003c/a\u003e\u0026nbsp;ontoTerminology Editor.\u0026nbsp;\u003ca href=\"http://ontoterminology.com/tedi\"\u003eTedi\u003c/a\u003e ontoTerminology Editor is a software platform for the creation and management of\u0026nbsp;\u003ca href=\"http://ontoterminology.com/definition\"\u003eontoterminologies\u003c/a\u003e. Tedi software platform is distributed by the University of Crete (free for academic use, contact: christophe.roche@uoc.gr).\u003c/p\u003e\n\u003cp\u003eThe .rdf file is queryable via a \u003ca href=\"https://sparql.org/sparql.html\"\u003eSPARQL\u003c/a\u003e endpoint.\u003c/p\u003e\n\u003cp\u003e\u003cstrong\u003eDownloads:\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003eDownload the\u0026nbsp;RDF/OWL\u0026nbsp;file; to view the ontology metrics import this file in\u0026nbsp;\u003ca href=\"https://protege.stanford.edu/\"\u003eProt\u0026eacute;g\u0026eacute;\u003c/a\u003e (open access ontology editor); to visualize the ontology import this file in \u003ca href=\"https://service.tib.eu/webvowl/\"\u003eVOWL\u003c/a\u003e\u003c/p\u003e\n\u003cp\u003eTo view the .html files in your browser download them and rename them using the .html extension.\u003c/p\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003cp\u003e\u003cstrong\u003eMetrics\u003c/strong\u003e\u003c/p\u003e\n\u003cp\u003e\u003cem\u003eTedi:\u003c/em\u003e\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eNumber of concepts: 29\u003c/li\u003e\n\u003cli\u003eNumber of objects: 101\u003c/li\u003e\n\u003cli\u003eNumber of terms: 58\u003c/li\u003e\n\u003cli\u003eNumber of proper names: 247\u003c/li\u003e\n\u003c/ul\u003e\n\u003cp\u003e\u003cem\u003eRDF/Prot\u0026eacute;g\u0026eacute;:\u003c/em\u003e\u003c/p\u003e\n\u003cul\u003e\n\u003cli\u003eAxiom:\u0026nbsp; 4,782\u003c/li\u003e\n\u003cli\u003eLogical axiom count: 2,348\u003c/li\u003e\n\u003cli\u003eDeclaration axioms count: 177\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eClass count: 43\u003c/li\u003e\n\u003cli\u003eObject property count: 21\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eData property count: 6\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eIndividual count : 610\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property count: 36\u003c/li\u003e\n\u003cli\u003eSubClassOf: 81\u0026nbsp; \u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eDisjoint Classes: 53\u003c/li\u003e\n\u003cli\u003eObject Property Domain: 20\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eObject Property Range:\u0026nbsp; 20\u003c/li\u003e\n\u003cli\u003eData Property Domain: 6\u003c/li\u003e\n\u003cli\u003eData Property Range: 6\u003c/li\u003e\n\u003cli\u003eClass Assertion\u0026nbsp; 798\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eObject Property Assertion: 1,291\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eData Property Assertion: 73\u003c/li\u003e\n\u003cli\u003eAnnotation Assertion: 2,235\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property Domain: 12\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u0026nbsp;\u003c/li\u003e\n\u003cli\u003eAnnotation Property Range Of: 10\u003c/li\u003e\n\u003c/ul\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003ch2\u003e5 SPARQL Queries (queryable via a\u0026nbsp;\u003ca href=\"https://sparql.org/sparql.html\"\u003eSPARQL\u003c/a\u003e endpoint):\u003c/h2\u003e\n\u003ch3\u003e#1 Which are the different Archaic Lyric poems and what differentiates each of them?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX skos: \u0026lt;http://www.w3.org/2004/02/skos/core#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?poems ?difference ?definition\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {    \n       ?x rdfs:subClassOf* alyra:Archaic_Lyric_Poem;\n             rdfs:label ?poems;\n             otv:ownDifference ?y;\n\tskos:definition ?definition.\n       ?y rdfs:label ?difference\nFILTER (lang(?poems) = \u0027en\u0027)\nFILTER (lang(?definition) = \u0027en\u0027)\n}\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003ch3\u003e#2 What is an \u0026ldquo;hymn\u0026rdquo; and which Archaic Lyric poets/poetesses have composed \u0026ldquo;hymns\u0026rdquo;?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX skos: \u0026lt;http://www.w3.org/2004/02/skos/core#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?definition ?authorName ?centuryOfLiving \nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {    \n    ?x rdfs:label \"hymn\"@en.\n    ?x skos:definition ?definition.\n          FILTER(langMatches(lang(?definition), \"en\"))\n    ?y otv:instanceOf ?x;\n          alyra:isWrittenBy ?author.\n    ?author rdfs:label ?authorName;\n            alyra:centuryOfLiving ?c.\n    ?c rdfs:label ?centuryOfLiving.\n}\nORDER BY ?centuryOfLiving\n\u003c/code\u003e\u003c/pre\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003ch3\u003e#3 Who was Pindar?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\n\nSELECT ?propertyName ?value\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\nWHERE {\n  \talyra:pindarus_boeotus ?x ?y .\n  \t?x rdfs:label ?propertyName .\n  \t?y rdfs:label ?value .\n  \tFILTER(LANG(?value) = \u0027en\u0027)\n}\nORDER BY ?value\n\u003c/code\u003e\u003c/pre\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u0026nbsp;\u003c/p\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003ch3\u003e#4 Which is the four-digit \"Thesaurus Linguae Graecae\" identifying number of each Archaic Lyric composer?\u003c/h3\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\n\nSELECT ?nameOfComposer ?tljNumber\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\n\nWHERE {\n?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n?y otv:instanceOf* ?x.\n?y rdfs:label ?nameOfComposer;\n   \talyra:tlgIdentifyingNumber ?tljNumber}\u003c/code\u003e\u003c/pre\u003e\n\u003cpre\u003e\u0026nbsp;\u003c/pre\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}, {"description": "\u003ch3\u003e#5 What is the place where most Ancient Greek lyric composers were born and who were they?\u003c/h3\u003e\n\u003cpre\u003e\u003ccode\u003ePREFIX rdfs: \u0026lt;http://www.w3.org/2000/01/rdf-schema#\u0026gt;\nPREFIX otv: \u0026lt;http://www.ontologia.fr/OTB/otv#\u0026gt;\nPREFIX alyra: \u0026lt;http://www.ontologia.fr/OTB/ALyrA_v.1.0#\u0026gt;\n\nSELECT ?place ?coordinates ?poetLabel ?resourcePoet\nFROM \u0026lt;http://ontologia.fr/OTB/ALyrA_v.1.0.rdf\u0026gt;\n\nWHERE {\n  {\n    SELECT ?place (COUNT(?y) AS ?count)\n    WHERE {\n      ?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n      ?y otv:instanceOf ?x.\n      ?y alyra:bornIn ?p.\n      ?p rdfs:label ?place.\n    }\n    GROUP BY ?place\n    ORDER BY DESC(?count)\n    LIMIT 1\n  }\n  ?x rdfs:subClassOf* alyra:Archaic_Lyric_Composer.\n  ?y otv:instanceOf ?x.\n  ?y alyra:bornIn ?p.\n  ?p rdfs:label ?place.\n  OPTIONAL { ?p alyra:pleiadesCoordinates ?coordinates. }\n  ?y rdfs:label ?poetLabel.\n  OPTIONAL {\n    SELECT ?y (SAMPLE(?resource) AS ?resourcePoet)\n    WHERE {\n      ?y rdfs:seeAlso ?resource.\n      FILTER(CONTAINS(LCASE(STR(?resource)), \"perseus:author\"))\n    }\n    GROUP BY ?y\n  }\n}\nORDER BY ?poetLabel\n\n\u003c/code\u003e\u003c/pre\u003e", "lang": {"id": "eng", "title_l10n": "English"}, "type": {"id": "technical-info", "title_l10n": "Technical info"}}], "created_date_l10n_long": "August 29, 2024", "creators": {"affiliations": [[1, "University of Crete", "00dr28g20"]], "creators": [{"affiliations": [[1, "University of Crete"]], "person_or_org": {"family_name": "Giannadakis", "given_name": "Rafail", "identifiers": [{"identifier": "0009-0009-6708-4396", "scheme": "orcid"}], "name": "Giannadakis, Rafail", "type": "personal"}, "role": {"id": "datacurator", "title": "Data curator"}}, {"affiliations": [[1, "University of Crete"]], "person_or_org": {"family_name": "Papadopoulou", "given_name": "Maria", "identifiers": [{"identifier": "0000-0001-6451-8712", "scheme": "orcid"}], "name": "Papadopoulou, Maria", "type": "personal"}, "role": {"id": "supervisor", "title": "Supervisor"}}]}, "custom_fields": {}, "dates": [{"date": "2024-08-25", "description": "YYYY-MM-DD", "type": {"id": "submitted", "title_l10n": "Submitted"}}], "description_stripped": "This is version 1.0 of the ALyrA ontoterminology (i.e., \u0027a terminology whose conceptual system is a formal ontology\u0027, Roche 2007), which focuses on modelling Archaic Lyric poets (799-430 BC\u0395). AlyrA stands for \"Archaic Lyrical Agora\".\u00a0\n\nThe ontoterminology was created by Rafail Giannadakis (Department of Philology, University of Crete) under the supervision of Dr. Maria Papadopoulou (Department of Philology, University of Crete).\n\nWe gratefully acknowledge the generous funding of the European Commission in the context of the TALOS AI for SSH project (Grant agreement ID: 101087269).\n\nContact: giannadakis.uni@gmail.com\u00a0", "funding": [{"award": {"identifiers": [{"identifier": "https://cordis.europa.eu/project/id/101087269", "scheme": "url"}], "number": "101087269", "title_l10n": "TALOS AI4SSH"}, "funder": {"id": "00k4n6c32", "name": "European Commission"}}], "is_draft": false, "languages": [{"id": "eng", "title_l10n": "English"}, {"id": "grc", "title_l10n": "Ancient Greek (to 1453)"}, {"id": "ell", "title_l10n": "Modern Greek (1453-)"}], "publication_date_l10n_long": "August 25, 2024", "publication_date_l10n_medium": "Aug 25, 2024", "resource_type": {"id": "dataset", "title_l10n": "Dataset"}, "rights": [{"description_l10n": "This license enables reusers to copy and distribute the material in any medium or format in unadapted form only, \nfor noncommercial purposes only, and only so long as attribution is given to the creator. \nCC BY-NC-ND includes the following elements:\n\n BY: credit must be given to the creator.\n NC: Only noncommercial uses of the work are permitted.\n ND: No derivatives or adaptations of the work are permitted.", "link": "https://creativecommons.org/licenses/by-nc-nd/4.0/", "title_l10n": "CC BY-NC-ND Attribution-NonCommercial-NoDerivatives 4.0 International"}], "updated_date_l10n_long": "August 29, 2024", "version": "1.0"}, "updated": "2024-08-29T13:42:45.920952+00:00", "versions": {"index": 1, "is_latest": true}}'
+  data-record-requests='{}'
+  class='sidebar-container'
+>
+
+  <h2 class="ui medium top attached header">Communities</h2>
+
+  <div class="ui segment bottom attached rdm-sidebar">
+    <div class="ui fluid placeholder">
+      <div class="image header">
+        <div class="line"></div>
+        <div class="line"></div>
+      </div>
+      <div class="image header">
+        <div class="line"></div>
+        <div class="line"></div>
+      </div>
+      <div class="image header">
+        <div class="line"></div>
+        <div class="line"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+  <div class="sidebar-container">
+    <h2 class="ui medium top attached header mt-0">Keywords and subjects</h2>
+    <div id="keywords-and-subjects" aria-label="Keywords and subjects"
+            class="ui segment bottom attached rdm-sidebar">
+  
+  
+  <h3 class="hidden">Keywords</h3>
+  <ul class="ui horizontal list no-bullets subjects">
+    <li class="item">
+      <a href="/search?q=metadata.subjects.subject:%22Linked+Open+Data%22"
+          class="subject"
+          title="Search results for Linked Open Data"
+      >
+        Linked Open Data
+      </a>
+    </li>
+    <li class="item">
+      <a href="/search?q=metadata.subjects.subject:%22Ancient+Lyric+Poetry%22"
+          class="subject"
+          title="Search results for Ancient Lyric Poetry"
+      >
+        Ancient Lyric Poetry
+      </a>
+    </li>
+    <li class="item">
+      <a href="/search?q=metadata.subjects.subject:%22Classical+Philology%22"
+          class="subject"
+          title="Search results for Classical Philology"
+      >
+        Classical Philology
+      </a>
+    </li>
+    <li class="item">
+      <a href="/search?q=metadata.subjects.subject:%22Classics%22"
+          class="subject"
+          title="Search results for Classics"
+      >
+        Classics
+      </a>
+    </li>
+  </ul>
+  
+  <h3 class="ui tiny header">EuroSciVoc</h3>
+  <ul class="ui horizontal list no-bullets subjects">
+    <li class="item">
+      <a href="/search?q=metadata.subjects.id:%22euroscivoc:30060%22"
+         class="subject"
+         title="Search results for Ontology"
+      >
+        Ontology
+      </a>
+    </li>
+    <li class="item">
+      <a href="/search?q=metadata.subjects.id:%22euroscivoc:959%22"
+         class="subject"
+         title="Search results for Semantic web"
+      >
+        Semantic web
+      </a>
+    </li>
+  </ul>
+
+    </div>
+  </div>
+
+
+<div class="sidebar-container">
+  <h2 class="ui medium top attached header mt-0">Details</h2>
+  <div id="record-details" class="ui segment bottom attached rdm-sidebar">
+
+    <dl class="details-list">
+      
+
+ 
+  <dt class="ui tiny header">DOI
+    
+  </dt>
+  <dd>
+    <span class="get-badge details-doi-section" data-toggle="tooltip" data-placement="bottom">
+      <img id='record-doi-badge' data-target="[data-modal='10.5281/zenodo.13371967']" title="Get the DOI badge!"
+        src="/badge/DOI/10.5281/zenodo.13371967.svg" alt="10.5281/zenodo.13371967" />
+      <div id="copy-button-record-doi-badge" class="copy-doi-button" data-value=https://doi.org/10.5281/zenodo.13371967 data-size="mini"></div>
+    </span>
+
+    <div id="doi-modal" class="ui modal fade badge-modal" data-modal="10.5281/zenodo.13371967">
+      <div class="header">DOI Badge</div>
+      <div class="content">
+        <h4>
+          <small>DOI</small>
+        </h4>
+        <h4>
+          <pre>10.5281/zenodo.13371967</pre>
+        </h4>
+        
+        
+
+    <h3 class="ui small header">
+      Markdown
+    </h3>
+    <div class="ui message code">
+      <pre>[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13371967.svg)](https://doi.org/10.5281/zenodo.13371967)</pre>
+    </div>
+
+    <h3 class="ui small header">
+      reStructuredText
+    </h3>
+      <div class="ui message code">
+        <pre>.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.13371967.svg
+  :target: https://doi.org/10.5281/zenodo.13371967</pre>
+      </div>
+
+    <h3 class="ui small header">
+      HTML
+    </h3>
+    <div class="ui message code">
+      <pre>&lt;a href="https://doi.org/10.5281/zenodo.13371967"&gt;&lt;img src="https://zenodo.org/badge/DOI/10.5281/zenodo.13371967.svg" alt="DOI"&gt;&lt;/a&gt;</pre>
+    </div>
+
+    <h3 class="ui small header">
+      Image URL
+    </h3>
+    <div class="ui message code">
+      <pre>https://zenodo.org/badge/DOI/10.5281/zenodo.13371967.svg</pre>
+    </div>
+
+    <h3 class="ui small header">
+    Target URL
+    </h3>
+    <div class="ui message code">
+      <pre>https://doi.org/10.5281/zenodo.13371967</pre>
+    </div>
+      </div>
+    </div>
+  </dd>
+
+      
+      
+  <dt class="ui tiny header">Resource type</dt>
+  <dd>Dataset</dd>
+      
+      
+  <dt class="ui tiny header">Publisher</dt>
+  <dd>Zenodo</dd>
+      
+      
+      
+      
+      
+  <dt class="ui tiny header">Languages</dt>
+  <dd>
+  
+    English, 
+  
+    Ancient Greek (to 1453), 
+  
+    Modern Greek (1453-)
+  
+</dd>
+      
+      
+    </dl>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+  <div class="sidebar-container">
+    <h2 class="ui medium top attached header mt-0">Rights</h2>
+    <div id="licenses" class="ui segment bottom attached rdm-sidebar">
+      <dl class="details-list">
+      
+        <dt class="ui tiny header">License</dt><dd id="license--1" class="has-popup">
+              <div id="title--1"
+                   class="license clickable"
+                   tabindex="0"
+                   aria-haspopup="dialog"
+                   aria-expanded="false"
+                   role="button"
+                   aria-label="CC BY-NC-ND Attribution-NonCommercial-NoDerivatives 4.0 International"
+              >
+                
+                <span class="title-text">
+                CC BY-NC-ND Attribution-NonCommercial-NoDerivatives 4.0 International
+              </span>
+              </div>
+              <div id="description--1"
+                   class="licenses-description ui flowing popup transition hidden"
+                   role="dialog"
+                   aria-labelledby="title--1"
+              >
+                <i role="button" tabindex="0" class="close icon text-muted"
+                   aria-label="Close"></i>
+                <div id="license-description-1" class="description">
+                <span class="text-muted">
+                  This license enables reusers to copy and distribute the material in any medium or format in unadapted form only, 
+for noncommercial purposes only, and only so long as attribution is given to the creator. 
+CC BY-NC-ND includes the following elements:
+
+ BY: credit must be given to the creator.
+ NC: Only noncommercial uses of the work are permitted.
+ ND: No derivatives or adaptations of the work are permitted.
+                </span>
+                  
+  
+    <a class="license-link" href="https://creativecommons.org/licenses/by-nc-nd/4.0/" target="_blank"
+       title="Opens in new tab">Read more</a>
+  
+
+                </div>
+              </div>
+            </dd>
+          
+      
+      
+      </dl>
+    </div>
+  </div>
+
+<div class="sidebar-container">
+  <h2 class="ui medium top attached header mt-0">Citation</h2>
+  <div id="citation" class="ui segment bottom attached rdm-sidebar">
+
+<div id="recordCitation" data-record-links='{"access": "https://zenodo.org/api/records/13371967/access", "access_grants": "https://zenodo.org/api/records/13371967/access/grants", "access_links": "https://zenodo.org/api/records/13371967/access/links", "access_request": "https://zenodo.org/api/records/13371967/access/request", "access_users": "https://zenodo.org/api/records/13371967/access/users", "archive": "https://zenodo.org/api/records/13371967/files-archive", "archive_media": "https://zenodo.org/api/records/13371967/media-files-archive", "communities": "https://zenodo.org/api/records/13371967/communities", "communities-suggestions": "https://zenodo.org/api/records/13371967/communities-suggestions", "doi": "https://doi.org/10.5281/zenodo.13371967", "draft": "https://zenodo.org/api/records/13371967/draft", "file_modification": "https://zenodo.org/api/records/13371967/file-modification", "files": "https://zenodo.org/api/records/13371967/files", "latest": "https://zenodo.org/api/records/13371967/versions/latest", "latest_html": "https://zenodo.org/records/13371967/latest", "media_files": "https://zenodo.org/api/records/13371967/media-files", "parent": "https://zenodo.org/api/records/13371966", "parent_doi": "https://doi.org/10.5281/zenodo.13371966", "parent_doi_html": "https://zenodo.org/doi/10.5281/zenodo.13371966", "parent_html": "https://zenodo.org/records/13371966", "preview_html": "https://zenodo.org/records/13371967?preview=1", "quota_increase": "https://zenodo.org/api/records/13371967/quota-increase", "request_deletion": "https://zenodo.org/api/records/13371967/request-deletion", "requests": "https://zenodo.org/api/records/13371967/requests", "reserve_doi": "https://zenodo.org/api/records/13371967/draft/pids/doi", "self": "https://zenodo.org/api/records/13371967", "self_doi": "https://doi.org/10.5281/zenodo.13371967", "self_doi_html": "https://zenodo.org/doi/10.5281/zenodo.13371967", "self_html": "https://zenodo.org/records/13371967", "self_iiif_manifest": "https://zenodo.org/api/iiif/record:13371967/manifest", "self_iiif_sequence": "https://zenodo.org/api/iiif/record:13371967/sequence/default", "versions": "https://zenodo.org/api/records/13371967/versions"}'
+  data-styles='[["apa", "APA"], ["harvard-cite-them-right", "Harvard"], ["modern-language-association", "MLA"], ["nlm-citation-sequence", "Vancouver"], ["chicago-notes-bibliography", "Chicago"], ["ieee", "IEEE"]]'
+  data-defaultstyle='"apa"'
+  data-include-deleted='false'>
+</div>
+  </div>
+</div>
+  <div class="sidebar-container">
+    <h2 class="ui medium top attached header mt-0">Export</h2>
+    <div id="export-record" class="ui segment bottom attached exports rdm-sidebar">
+
+      
+      
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        <div id="recordExportDownload" data-formats='[{"export_url": "/records/13371967/export/json", "name": "JSON"}, {"export_url": "/records/13371967/export/json-ld", "name": "JSON-LD"}, {"export_url": "/records/13371967/export/csl", "name": "CSL"}, {"export_url": "/records/13371967/export/datacite-json", "name": "DataCite JSON"}, {"export_url": "/records/13371967/export/datacite-xml", "name": "DataCite XML"}, {"export_url": "/records/13371967/export/dublincore", "name": "Dublin Core XML"}, {"export_url": "/records/13371967/export/marcxml", "name": "MARCXML"}, {"export_url": "/records/13371967/export/bibtex", "name": "BibTeX"}, {"export_url": "/records/13371967/export/geojson", "name": "GeoJSON"}, {"export_url": "/records/13371967/export/dcat-ap", "name": "DCAT"}, {"export_url": "/records/13371967/export/codemeta", "name": "Codemeta"}, {"export_url": "/records/13371967/export/cff", "name": "Citation File Format"}, {"export_url": "/records/13371967/export/datapackage", "name": "Data Package JSON"}]'></div>
+    </div>
+  </div>
+
+<section
+  id="upload-info"
+  role="note"
+  aria-label="Upload information"
+  class="sidebar-container ui segment rdm-sidebar text-muted"
+>
+  <h2 class="ui small header text-muted p-0 mb-5"><small>Technical metadata</small></h2>
+  <dl class="m-0">
+    <dt class="inline"><small>Created</small></dt>
+    <dd class="inline">
+      <small>August 29, 2024</small>
+    </dd>
+    <div>
+      <dt class="rel-mt-1 inline"><small>Modified</small></dt>
+      <dd class="inline">
+        <small>August 29, 2024</small>
+      </dd>
+    </div>
+  </dl>
+</section>
+          
+        </aside>
+      </div>
+    </div>
+
+    <div class="ui container">
+      <div class="ui relaxed grid">
+        <div class="two column row">
+          <div class="sixteen wide tablet eleven wide computer column">
+            <div class="ui grid">
+                <div class="centered row rel-mt-1">
+                  <button id="jump-btn" class="jump-to-top ui button labeled icon"
+                          aria-label="Jump to top of page">
+                    <i class="arrow alternate circle up outline icon"></i>
+                    Jump up
+                  </button>
+                </div>
+              </div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+    </div>
+  </main>
+    <footer id="rdm-footer-element">
+        
+<div class="footer-top theme-primary horizon-footer">
+    <div class="ui container">
+
+      <div class="ui grid divided relaxed">
+        <div class="row">
+
+            <div
+              class="rdm-footer five wide tablet three wide computer sixteen wide mobile column rel-mb-2">
+              <h2 class="ui small header">Managed by</h2>
+              
+                <a href="https://open-research-europe.ec.europa.eu/">CERN on behalf of the European Commission</a>
+                <i class="green check circle outline icon"></i>
+              
+            </div>
+            <div
+              class="rdm-footer eleven wide tablet thirteen wide computer sixteen wide mobile column">
+              <div class="ui equal width stackable grid">
+                <div class="column">
+
+                  <h2 class="ui small header">About</h2>
+                     <p><a href="/communities/eu/about">About the EU Open Research Repository</a></p>
+                     <p><a href="/communities/eu/pages/open-science">Open Science in Horizon Europe</a></p>
+                     <p><a href="/communities/eu/curation-policy">Curation policy</a></p>
+                     <p><a href="/communities/eu/pages/roadmap">Roadmap</a></p>
+                     <p><a href="https://support.zenodo.org/help/en-gb/28">FAQ</a></p>
+                     <p><a href="/communities/eu/pages/contact">Contact</a></p>
+                </div>
+                <div class="column">
+                  <h2 class="ui small header">Submission</h2>
+                     <p><a href="/communities/eu/pages/how-to-submit">How to submit</a></p>
+                     <p><a href="/communities/eu/pages/join">Join with your EU project</a></p>
+                     <p><a href="https://help.zenodo.org/guides/eu/">Help documentation</a></p>
+                </div>
+                <div class="right aligned column">
+                    <a href="https://open-research-europe.ec.europa.eu/" aria-label="CERN">
+                      <img src="/static/images/eufunded.png" width="100" height="100" alt="" />
+                    </a>
+                  </div>
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+        
+<div class="footer-bottom sub-footer theme-default rel-p-1">
+  <div class="ui container">
+    <div class="ui grid">
+        <div
+        class="four wide computer six wide tablet sixteen wide mobile column left middle aligned"
+        >
+          
+            Powered by
+            <a href="https://home.cern/science/computing/data-centre">CERN Data Centre</a> & <a href="https://inveniordm.docs.cern.ch/">InvenioRDM</a>
+          
+        </div>
+
+      <div
+        class="four wide computer four wide tablet sixteen wide mobile column centered middle aligned"
+      >
+        
+          <i class="green check circle outline icon"></i>
+            <a href="https://support.zenodo.org/help/en-gb/11/108">Verified community</a>
+        
+      </div>
+      <div
+        class="four wide computer six wide tablet sixteen wide mobile column right aligned"
+      >
+          <div class="ui horizontal list">
+            <div class="item"><a href="https://stats.uptimerobot.com/vlYOVuWgM/">Status</a></div>
+            <div class="item"><a href="https://about.zenodo.org/privacy-policy">Privacy policy</a></div>
+            <div class="item"><a href="https://about.zenodo.org/cookie-policy">Cookie policy</a></div>
+            <div class="item"><a href="https://about.zenodo.org/terms">Terms of use</a></div>
+          </div>
+      </div>
+    </div>
+  </div>
+</div>
+    </footer>
+  
+  
+    
+
+<script src="/static/dist/js/manifest.b8e609db6666f0b074a4.js"></script>
+<script src="/static/dist/js/73.f303276fb71f5bf1306d.js"></script>
+<script src="/static/dist/js/3526.6ee68113c9042728aa15.js"></script>
+<script src="/static/dist/js/theme.9b5592a8ce23a54674f4.js"></script>
+<script src="/static/dist/js/2827.ca8ee570dd946b3b4503.js"></script>
+<script src="/static/dist/js/8064.59cb7805fb3dab44a8ec.js"></script>
+<script src="/static/dist/js/1057.5ddd1f1319a1d02c4357.js"></script>
+<script src="/static/dist/js/7655.a2d9550c6f53a9bb6566.js"></script>
+<script src="/static/dist/js/5092.8091a76a2d1cb45dc17e.js"></script>
+<script src="/static/dist/js/8871.54170ea898ff454e86c5.js"></script>
+<script src="/static/dist/js/278.f60f3420798497a23f8a.js"></script>
+<script src="/static/dist/js/3088.1814b6066589c8ba3184.js"></script>
+<script src="/static/dist/js/8012.a2b39713762ef4643284.js"></script>
+<script src="/static/dist/js/8118.5b868b79024b83110c8b.js"></script>
+<script src="/static/dist/js/4157.4ac437dfd467fd6af135.js"></script>
+<script src="/static/dist/js/4903.5650ae0a8d3982e1e838.js"></script>
+<script src="/static/dist/js/2913.d6dd282f7e964f919c55.js"></script>
+<script src="/static/dist/js/4826.59f26f3e15088029a0e8.js"></script>
+<script src="/static/dist/js/5049.0fef4c565ab4879e7d80.js"></script>
+<script src="/static/dist/js/17.c24b7ffaad57b6886380.js"></script>
+<script src="/static/dist/js/base-theme-rdm.f3235539f10ce5b62ff1.js"></script>
+<script src="/static/dist/js/i18n_app.f8b237dc67ed86974687.js"></script>
+<script src="/static/dist/js/2301.c858a798c584f97883c7.js"></script>
+<script src="/static/dist/js/4252.4b16ba48c180b7e954b8.js"></script>
+<script src="/static/dist/js/overridable-registry.19c44f414d2eaf96b9f1.js"></script>
+  
+    
+      <script type='application/ld+json'>{"@context": "http://schema.org", "@id": "https://doi.org/10.5281/zenodo.13371967", "@type": "https://schema.org/Dataset", "author": [{"@id": "https://orcid.org/0009-0009-6708-4396", "@type": "Person", "affiliation": [{"@id": "https://ror.org/00dr28g20", "@type": "Organization", "name": "University of Crete"}], "familyName": "Giannadakis", "givenName": "Rafail", "name": "Giannadakis, Rafail"}, {"@id": "https://orcid.org/0000-0001-6451-8712", "@type": "Person", "affiliation": [{"@id": "https://ror.org/00dr28g20", "@type": "Organization", "name": "University of Crete"}], "familyName": "Papadopoulou", "givenName": "Maria", "name": "Papadopoulou, Maria"}], "contentSize": "3.2 MB", "creator": [{"@id": "https://orcid.org/0009-0009-6708-4396", "@type": "Person", "affiliation": [{"@id": "https://ror.org/00dr28g20", "@type": "Organization", "name": "University of Crete"}], "familyName": "Giannadakis", "givenName": "Rafail", "name": "Giannadakis, Rafail"}, {"@id": "https://orcid.org/0000-0001-6451-8712", "@type": "Person", "affiliation": [{"@id": "https://ror.org/00dr28g20", "@type": "Organization", "name": "University of Crete"}], "familyName": "Papadopoulou", "givenName": "Maria", "name": "Papadopoulou, Maria"}], "dateCreated": "2024-08-29T13:42:45.028505+00:00", "dateModified": "2024-08-29T13:42:45.920952+00:00", "datePublished": "2024-08-25", "description": "\u003cp\u003eThis is version 1.0 of the ALyrA ontoterminology (i.e., \u0027a terminology whose conceptual system is a formal ontology\u0027, Roche 2007), which focuses on modelling Archaic Lyric poets (799-430 BC\u0026Epsilon;). AlyrA stands for \"Archaic Lyrical Agora\".\u0026nbsp;\u003c/p\u003e\n\u003cp\u003e\u003cbr\u003eThe ontoterminology was created by Rafail Giannadakis (Department of Philology, University of Crete) under the supervision of Dr. Maria Papadopoulou (Department of Philology, University of Crete).\u003c/p\u003e\n\u003cp\u003e\u003cbr\u003eWe gratefully acknowledge the generous funding of the European Commission in the context of the TALOS AI for SSH project (Grant agreement ID: 101087269).\u003c/p\u003e\n\u003cp\u003eContact: giannadakis.uni@gmail.com\u0026nbsp;\u003c/p\u003e", "distribution": [{"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_PN_poem.el.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_terms_all.en.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_terms_location.en.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_PN_composer.en.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_PN_poem.en.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/ALyrA_v.1.0.rdf.rdf/content", "encodingFormat": "application/xml"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_PN_all.el.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_terms_poem.el.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_PN_all.en.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_PN_location.en.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_PN_location.el.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_terms_all.el.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_terms_location.el.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/ALyrA_v.1.0.otb/content", "encodingFormat": "application/octet-stream"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_PN_composer.el.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_terms_poem.en.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_terms_composer.en.html/content", "encodingFormat": "text/html"}, {"@type": "DataDownload", "contentUrl": "https://zenodo.org/api/records/13371967/files/Alyra_terms_composer.el.html/content", "encodingFormat": "text/html"}], "funding": [{"funder": {"@id": "00k4n6c32", "@type": "Organization", "name": "European Commission"}, "name": "TALOS AI4SSH (101087269)", "url": {"identifier": "https://cordis.europa.eu/project/id/101087269", "scheme": "url"}}], "identifier": "https://doi.org/10.5281/zenodo.13371967", "inLanguage": {"@type": "Language", "alternateName": "eng", "name": "English"}, "keywords": "Ontology, Semantic web, Linked Open Data, Ancient Lyric Poetry, Classical Philology, Classics", "license": "https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode", "name": "Archaic Lyric Agora (ALyrA) - Ontoterminology of Archaic Lyric Poets - version 1.0", "publisher": {"@type": "Organization", "name": "Zenodo"}, "size": "3.2 MB", "temporal": ["2024-08-25"], "url": "https://zenodo.org/records/13371967", "version": "1.0"}</script>
+
+  <script src="/static/dist/js/invenio-app-rdm-landing-page-theme.b904c8cc319a041ad44d.js"></script>
+  <script src="/static/dist/js/4426.5d785fb2b6e9fc85cf27.js"></script>
+<script src="/static/dist/js/1223.7b0323ef43aabdfb9376.js"></script>
+<script src="/static/dist/js/2332.65b219de958106e24d15.js"></script>
+<script src="/static/dist/js/6368.480549dbf74385a28cce.js"></script>
+<script src="/static/dist/js/7302.ed1276ea7b155835ecfc.js"></script>
+<script src="/static/dist/js/8585.d5ed8ce54bdea30f4f62.js"></script>
+<script src="/static/dist/js/1357.d899b23f7540e9cd2912.js"></script>
+<script src="/static/dist/js/5002.3cbec61fa2c14874759f.js"></script>
+<script src="/static/dist/js/3064.ecbc315d22b1b38170cc.js"></script>
+<script src="/static/dist/js/1644.e6f1086090bda011befa.js"></script>
+<script src="/static/dist/js/5974.41d0dfbe3e997745bb13.js"></script>
+<script src="/static/dist/js/1230.d9da101f8e613d966d6f.js"></script>
+<script src="/static/dist/js/5097.e52d6740ace0c9f484bd.js"></script>
+<script src="/static/dist/js/invenio-app-rdm-landing-page.211a4beab7942eb6dbc9.js"></script>
+  <script src="/static/dist/js/previewer_theme.48f8c2ee142931db6810.js"></script>
+  <script src="/static/dist/js/zenodo-rdm-citations.53f00c44facc56c17150.js"></script>
+  
+<div class="ui container info message cookie-banner hidden">
+  <i class="close icon"></i>
+  <div>
+    <i aria-hidden="true" class="info icon"></i>
+    <p class="inline">This site uses cookies. Find out more on <a href="https://about.zenodo.org/cookie-policy">how we use cookies</a></p>
+  </div>
+  <div class="buttons">
+    <button class="ui button small primary" id="cookies-all">Accept all cookies</button>
+    <button class="ui button small" id="cookies-essential">Accept only essential cookies</button>
+  </div>
+</div>
+
+<script>
+  var _paq = window._paq = window._paq || [];
+  _paq.push(['requireCookieConsent']);
+
+  (function() {
+    var u="https://webanalytics.web.cern.ch/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '366']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+
+  const cookieConsent = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("cookie_consent="))
+    ?.split("=")[1];
+
+  if (cookieConsent) {
+    if (cookieConsent === "all") {
+      matomo();
+    }
+  } else {
+    document.querySelector(".cookie-banner").classList.remove("hidden")
+    _paq.push(['forgetConsentGiven']);
+  }
+
+  $('.cookie-banner .close')
+    .on('click', function () {
+      $(this)
+        .closest('.message')
+        .transition('fade');
+      setCookie("cookie_consent","essential");
+    });
+
+  $('#cookies-essential')
+    .on('click', function () {
+      $(this)
+        .closest('.message')
+        .transition('fade');
+      setCookie("cookie_consent","essential");
+    });
+
+  $('#cookies-all')
+    .on('click', function () {
+      $(this)
+        .closest('.message')
+        .transition('fade');
+      setCookie("cookie_consent","all");
+      _paq.push(['rememberCookieConsentGiven']);
+      matomo();
+    });
+
+  function matomo() {
+    /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+    _paq.push(['trackPageView']);
+    _paq.push(['enableLinkTracking']);
+  }
+
+  function setCookie(cname, cvalue) {
+    var d = new Date();
+    d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000)); // one year
+    var expires = "expires=" + d.toUTCString();
+    var cookie = cname + "=" + cvalue + ";" + expires + ";"
+    cookie += "Domain=zenodo.org;Path=/;SameSite=None; Secure";
+    document.cookie = cookie;
+  }
+</script>
+  </body>
+</html>

@@ -1,0 +1,641 @@
+SOURCE: https://dati.camera.it/ocd/dump/custom_endpoint/sparql.xml
+
+<?xml version="1.0"?>
+<queries>
+	<qgroup label="BPR - Bibliografia del Parlamento italiano e degli studi elettorali">
+		<query label="Elenco di tutti gli articoli con data di pubblicazione successiva al 2010, con codice di classificazione 'D40' e appartenenti al periodo repubblicano">
+<![CDATA[select ?s ?titolo ?nomeAutore ?dataPubblicazione ?citazione ?tipologia ?note  from <http://dati.camera.it/ocd/bpr/> where {
+  
+  ?s dc:title ?titolo; <http://purl.org/dc/terms/issued> ?dataPubblicazione; dc:type ?tipologia .
+  OPTIONAL{?s <http://purl.org/dc/terms/bibliographicCitation> ?citazione.} 
+  OPTIONAL{ ?s <http://purl.org/dc/terms/creator> ?autore. ?autore <http://www.w3.org/2000/01/rdf-schema#label> ?nomeAutore }
+  OPTIONAL{?s <http://www.w3.org/2008/05/skos#note> ?note.}
+   
+  ## FILTRO PER CLASSIFICAZIONE
+  ?s <http://purl.org/dc/terms/subject> ?classificazione .
+  ?classificazione <http://www.w3.org/2008/05/skos#notation> ?codiceClassificazione . 
+  FILTER(regex(?codiceClassificazione,"^D40$")) .
+  
+  ## FILTRO PER PERIODO
+  ?s dc:coverage "Periodo repubblicano" .
+  
+  ## FILTRO PER DATA DI PUBBLICAZIONE 
+  FILTER(?dataPubblicazione >= "2010")
+  
+  ## FILTRO PER TIPLOGIA
+  FILTER(str(?tipologia)="spoglio")
+
+} ORDER BY asc(?dataPubblicazione) LIMIT 100]]>
+
+		</query>
+	</qgroup>
+	<qgroup label="Deputati">
+		<query label="tutti i deputati in carica nella XIX Legislatura con info e numero totale di mandati"><![CDATA[
+SELECT DISTINCT ?persona ?cognome ?nome ?info
+?dataNascita ?luogoNascita ?genere
+?collegio ?lista ?nomeGruppo  COUNT(DISTINCT ?madatoCamera) as ?numeroMandati ?aggiornamento
+WHERE {
+?persona ocd:rif_mandatoCamera ?mandato; a foaf:Person.
+
+## deputato
+?d a ocd:deputato;
+ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_19>;
+ocd:rif_mandatoCamera ?mandato.
+OPTIONAL{?d ocd:aderisce ?aderisce} 
+OPTIONAL{?d dc:description ?info}
+
+##anagrafica
+?d foaf:surname ?cognome; foaf:gender ?genere;foaf:firstName ?nome.
+OPTIONAL{
+?persona <http://purl.org/vocab/bio/0.1/Birth> ?nascita.
+?nascita <http://purl.org/vocab/bio/0.1/date> ?dataNascita;
+rdfs:label ?nato; ocd:rif_luogo ?luogoNascitaUri.
+?luogoNascitaUri dc:title ?luogoNascita.
+}
+
+##aggiornamento del sistema
+OPTIONAL{?d <http://lod.xdams.org/ontologies/ods/modified> ?aggiornamento.}
+
+## mandato
+?mandato ocd:rif_elezione ?elezione. 
+MINUS{?mandato ocd:endDate ?fineMandato.}
+ 
+## totale mandati
+?persona ocd:rif_mandatoCamera ?madatoCamera.
+
+## elezione
+OPTIONAL {
+?elezione dc:coverage ?collegio
+}
+OPTIONAL {
+?elezione ocd:lista ?lista
+}
+
+## adesione a gruppo
+OPTIONAL {?aderisce ocd:rif_gruppoParlamentare ?gruppo}
+OPTIONAL {?aderisce rdfs:label ?nomeGruppo}
+MINUS{?aderisce ocd:endDate ?fineAdesione}
+ 
+} 
+
+]]>
+		</query>
+		<query label="deputati in carica: cognome, nome, info biografiche, collegio di elezione, gruppo di appartenenza, commissione di afferenza"><![CDATA[SELECT DISTINCT ?persona ?cognome ?nome 
+?dataNascita  ?nato ?luogoNascita ?genere 
+?collegio ?nomeGruppo ?sigla ?commissione ?aggiornamento  
+WHERE {
+?persona ocd:rif_mandatoCamera ?mandato; a foaf:Person.
+
+## deputato
+?d a ocd:deputato; ocd:aderisce ?aderisce;
+ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_19>;
+ocd:rif_mandatoCamera ?mandato.
+
+##anagrafica
+?d foaf:surname ?cognome; foaf:gender ?genere;foaf:firstName ?nome.
+OPTIONAL{
+?persona <http://purl.org/vocab/bio/0.1/Birth> ?nascita.
+?nascita <http://purl.org/vocab/bio/0.1/date> ?dataNascita; 
+rdfs:label ?nato; ocd:rif_luogo ?luogoNascitaUri. 
+?luogoNascitaUri dc:title ?luogoNascita. 
+}
+
+##aggiornamento del sistema
+OPTIONAL{?d <http://lod.xdams.org/ontologies/ods/modified> ?aggiornamento.}
+
+## mandato
+?mandato ocd:rif_elezione ?elezione.  
+MINUS{?mandato ocd:endDate ?fineMandato.}
+
+## elezione
+?elezione dc:coverage ?collegio.
+
+## adesione a gruppo
+OPTIONAL{
+  ?aderisce ocd:rif_gruppoParlamentare ?gruppo.
+  ?gruppo <http://purl.org/dc/terms/alternative> ?sigla.
+  ?gruppo dc:title ?nomeGruppo.
+}
+
+MINUS{?aderisce ocd:endDate ?fineAdesione}
+
+## organo
+OPTIONAL{
+?d ocd:membro ?membro.?membro ocd:rif_organo ?organo. 
+?organo dc:title ?commissione .
+}
+
+MINUS{?membro ocd:endDate ?fineMembership}
+}]]></query>
+<query label="tutti i deputati nella XVIII Legislatura con info, estremi di mandato e numero totale di mandati (anche successivi) (la URI &lt;http://dati.camera.it/ocd/legislatura.rdf/repubblica_18&gt; identifica la Legislatura)"><![CDATA[SELECT DISTINCT ?persona ?cognome ?nome ?info
+?dataNascita ?luogoNascita ?genere  ?inizioMandato ?fineMandato
+?collegio  COUNT(DISTINCT ?madatoCamera) as ?numeroMandati ?aggiornamento 
+WHERE {
+?persona ocd:rif_mandatoCamera ?mandato; a foaf:Person.
+
+## deputato
+?d a ocd:deputato; ocd:aderisce ?aderisce;
+ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>;
+ocd:rif_mandatoCamera ?mandato.
+OPTIONAL{?d dc:description ?info}
+
+##anagrafica
+?d foaf:surname ?cognome; foaf:gender ?genere;foaf:firstName ?nome.
+OPTIONAL{
+?persona <http://purl.org/vocab/bio/0.1/Birth> ?nascita.
+?nascita <http://purl.org/vocab/bio/0.1/date> ?dataNascita; 
+rdfs:label ?nato; ocd:rif_luogo ?luogoNascitaUri. 
+?luogoNascitaUri dc:title ?luogoNascita. 
+}
+##aggiornamento del sistema
+OPTIONAL{?d <http://lod.xdams.org/ontologies/ods/modified> ?aggiornamento.}
+## mandato
+?mandato ocd:rif_elezione ?elezione.  
+OPTIONAL{?mandato ocd:endDate ?fineMandato.}
+OPTIONAL{?mandato ocd:startDate ?inizioMandato.}
+ 
+## totale mandati
+?persona ocd:rif_mandatoCamera ?madatoCamera.
+ 
+## elezione
+?elezione dc:coverage ?collegio.
+ 
+}   ]]>
+		</query>
+
+		<query label="tutti i deputati nella XVI Legislatura con info, estremi di mandato e numero totale di mandati (anche successivi) (la URI &lt;http://dati.camera.it/ocd/legislatura.rdf/repubblica_16&gt; identifica la Legislatura)"><![CDATA[SELECT DISTINCT ?persona ?cognome ?nome ?info
+?dataNascita ?luogoNascita ?genere  ?inizioMandato ?fineMandato
+?collegio  COUNT(DISTINCT ?madatoCamera) as ?numeroMandati ?aggiornamento 
+WHERE {
+?persona ocd:rif_mandatoCamera ?mandato; a foaf:Person.
+
+## deputato
+?d a ocd:deputato; ocd:aderisce ?aderisce;
+ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_16>;
+ocd:rif_mandatoCamera ?mandato.
+OPTIONAL{?d dc:description ?info}
+
+##anagrafica
+?d foaf:surname ?cognome; foaf:gender ?genere;foaf:firstName ?nome.
+OPTIONAL{
+?persona <http://purl.org/vocab/bio/0.1/Birth> ?nascita.
+?nascita <http://purl.org/vocab/bio/0.1/date> ?dataNascita; 
+rdfs:label ?nato; ocd:rif_luogo ?luogoNascitaUri. 
+?luogoNascitaUri dc:title ?luogoNascita. 
+}
+##aggiornamento del sistema
+OPTIONAL{?d <http://lod.xdams.org/ontologies/ods/modified> ?aggiornamento.}
+## mandato
+?mandato ocd:rif_elezione ?elezione.  
+OPTIONAL{?mandato ocd:endDate ?fineMandato.}
+OPTIONAL{?mandato ocd:startDate ?inizioMandato.}
+ 
+## totale mandati
+?persona ocd:rif_mandatoCamera ?madatoCamera.
+ 
+## elezione
+?elezione dc:coverage ?collegio.
+ 
+}   ]]>
+		</query>
+	</qgroup>
+	<qgroup label="Organi, Gruppi parlamentari ed incarichi">
+		<query label="tutti gli incarichi in organi parlamentari nella XIX Legislatura con i relativi estremi (la URI &lt;http://dati.camera.it/ocd/legislatura.rdf/repubblica_19&gt; identifica la Legislatura)"><![CDATA[SELECT DISTINCT ?d ?cognome ?nome ?info
+?dataNascita ?luogoNascita ?genere ?ufficio ?organo ?inizioUfficio ?fineUfficio
+?collegio   ?aggiornamento 
+WHERE {
+?persona ocd:rif_mandatoCamera ?mandato; a foaf:Person.
+## deputato
+?d a ocd:deputato; ocd:aderisce ?aderisce;
+ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_19>;
+ocd:rif_mandatoCamera ?mandato.
+OPTIONAL{?d dc:description ?info}
+##anagrafica
+?d foaf:surname ?cognome; foaf:gender ?genere;foaf:firstName ?nome.
+OPTIONAL{
+?persona <http://purl.org/vocab/bio/0.1/Birth> ?nascita.
+?nascita <http://purl.org/vocab/bio/0.1/date> ?dataNascita; 
+rdfs:label ?nato; ocd:rif_luogo ?luogoNascitaUri. 
+?luogoNascitaUri dc:title ?luogoNascita. 
+}
+##aggiornamento del sistema
+OPTIONAL{?d <http://lod.xdams.org/ontologies/ods/modified> ?aggiornamento.}
+## mandato
+?mandato ocd:rif_elezione ?elezione.   
+ 
+## elezione
+?elezione dc:coverage ?collegio.
+ 
+## uffici parlamentari
+?d ocd:rif_ufficioParlamentare ?ufficioUri.
+?ufficioUri ocd:rif_organo ?organoUri; ocd:carica ?ufficio.
+OPTIONAL{?ufficioUri ocd:endDate ?fineUfficio.}
+OPTIONAL{?ufficioUri ocd:startDate ?inizioUfficio.}
+?organoUri dc:title ?organo.
+
+}   ORDER BY ?d LIMIT 10000]]>
+		</query>
+		<query label="tutti gli incarichi nei gruppi parlamentari nella XIX Legislatura con i relativi estremi
+(la URI &lt;http://dati.camera.it/ocd/legislatura.rdf/repubblica_19&gt; identifica la Legislatura)"><![CDATA[SELECT DISTINCT ?d ?cognome ?nome ?genere ?incarico ?organo ?inizioIncarico ?fineIncarico ?aggiornamento 
+WHERE {
+?persona ocd:rif_mandatoCamera ?mandato; a foaf:Person.
+## deputato
+?d a ocd:deputato; ocd:aderisce ?aderisce;
+ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_19>;
+ocd:rif_mandatoCamera ?mandato.
+ 
+##anagrafica
+?d foaf:surname ?cognome; foaf:gender ?genere;foaf:firstName ?nome.
+ 
+##aggiornamento del sistema
+OPTIONAL{?d <http://lod.xdams.org/ontologies/ods/modified> ?aggiornamento.}
+ 
+## uffici parlamentari
+?d ocd:rif_incarico ?incaricoUri.
+?incaricoUri ocd:rif_gruppoParlamentare  ?organoUri; ocd:ruolo ?incarico.
+OPTIONAL{?incaricoUri ocd:endDate ?fineIncarico.}
+OPTIONAL{?incaricoUri ocd:startDate ?inizioIncarico.}
+?organoUri dc:title ?organo.
+
+}   ORDER BY ?d LIMIT 10000]]>
+		</query>
+
+	</qgroup>
+	<qgroup label="Atti">
+
+		<query label="tutti gli atti della Legislatura XVIII con relative fasi di iter ed eventuale data di approvazione (la URI &lt;http://dati.camera.it/ocd/legislatura.rdf/repubblica_18&gt; identifica la Legislatura)"><![CDATA[select distinct ?atto ?numero ?iniziativa ?presentazione ?titolo ?fase ?dataIter ?dataApprovazione { 
+  	  ?atto a ocd:atto; 
+          ocd:iniziativa ?iniziativa; 
+          dc:identifier ?numero; 
+          ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>;
+          dc:date ?presentazione;
+          dc:title ?titolo; ocd:rif_statoIter ?statoIter .
+  		  ?statoIter  dc:title ?fase ; dc:date ?dataIter .
+          OPTIONAL{
+        	  ?votazione a ocd:votazione; ocd:rif_attoCamera ?atto;
+              ocd:approvato "1"^^xsd:integer;
+              ocd:votazioneFinale "1"^^xsd:integer;
+              dc:date ?dataApprovazione.
+          }
+	  } ORDER BY ?presentazione ?dataIter			]]>
+		</query>
+
+
+
+		<query label="tutti gli atti (pdl, mozioni, etc.) presentati da un deputato come primo e altro firmatario
+(la URI &lt;http://dati.camera.it/ocd/legislatura.rdf/repubblica_18&gt; identifica la Legislatura e 'ANZALDI', nell'esempio, il cognome del deputato)"><![CDATA[select distinct ?atto ?tipoRuolo ?tipo ?numeroAtto ?date ?titolo where {
+{
+ ?atto  ?ruolo ?deputato;
+ dc:date ?date;
+ dc:identifier	?numeroAtto;
+ dc:title ?titolo. 
+ OPTIONAL{?atto dc:type ?tipo }
+ FILTER(?ruolo = ocd:primo_firmatario)
+}
+UNION{
+ ?atto  ?ruolo ?deputato;
+ dc:date ?date;
+ dc:identifier	?numeroAtto;
+ dc:title ?titolo. 
+ OPTIONAL{?atto dc:type ?tipo }
+ FILTER(?ruolo = ocd:altro_firmatario)
+}
+
+?ruolo rdfs:label ?tipoRuolo.
+## seleziono deputato nella legislatura
+?deputato foaf:surname ?cognome; foaf:firstName ?nome; ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>
+FILTER(REGEX(?cognome,'ANZALDI','i'))
+
+
+} ORDER BY DESC(?ruolo) ASC(?tipo)  ASC(?date) LIMIT 10000]]></query>
+
+
+
+
+
+
+
+		<query label="numero degli atti presentati dal deputato, siano essi progetti di legge o atti di SI come primo firmatario e poi come altro firmatario -  
+per iniziale di cognome (commentando con # la riga, si ha il dato per tutti i deputati) - per annomese (commentando con # la riga si ha il risultato aggregato per legislatura)"><![CDATA[select distinct ?cognome ?nome ?tipoRuolo ?tipo COUNT(DISTINCT ?atto) as ?numeroAtti  where {
+{
+ ?atto  ?ruolo ?deputato;
+  dc:date ?date;
+  dc:identifier	?numeroAtti.
+OPTIONAL{?atto dc:type ?tipo }
+ FILTER(?ruolo = ocd:primo_firmatario)
+}
+UNION{
+ ?atto  ?ruolo ?deputato;
+ dc:date ?date;
+ dc:identifier	?numeroAtti.
+ OPTIONAL{?atto dc:type ?tipo }
+ FILTER(?ruolo = ocd:altro_firmatario)
+}
+
+?ruolo rdfs:label ?tipoRuolo.
+## seleziono deputato nella legislatura
+?deputato foaf:surname ?cognome; foaf:firstName ?nome; ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>
+## commentare la riga seguente per avere il dato per tutti i deputati
+## sostituire la lettera A con altra per modificare l'iniziale 
+## sostiruire i caratteri ^A con un cognome per avere i dati relativi ad un deputato
+FILTER(REGEX(?cognome,'^A','i'))
+## commentare la riga seguente per avere il dato di tutta la legislatura
+## i dati sono per anno 2018 e mese 03 per avere altri anni o mesi modiifcare ad es. 201309 
+## per avere i  dati di tutto l'anno, eliminare il mese 03
+FILTER(REGEX(?date,'^201803','i'))
+
+} ORDER BY  ASC(?cognome) ASC(?nome) DESC(?ruolo) ASC(?tipo)  LIMIT 10000]]></query>
+
+	</qgroup>
+	<qgroup label="Votazioni">
+		<query label="tutte le votazioni finali della XVIII Legislatura 
+(la URI &lt;http://dati.camera.it/ocd/legislatura.rdf/repubblica_18&gt; identifica la Legislatura)"><![CDATA[SELECT distinct * WHERE {
+?votazione a ocd:votazione; 
+dc:date ?data; 
+dc:title ?denominazione; 
+dc:description ?descrizione;
+ocd:votanti ?votanti;
+ocd:votazioneFinale 1;
+ocd:favorevoli ?favorevoli;
+ocd:contrari ?contrari;
+ocd:astenuti ?astenuti;
+ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>} 
+ORDER BY DESC(?data)]]>
+		</query>
+		<query label="tutte le votazioni con richiesta di fiducia da parte del Governo"><![CDATA[SELECT distinct * WHERE {
+?votazione a ocd:votazione; 
+dc:date ?data; 
+dc:title ?denominazione; 
+dc:description ?descrizione;
+ocd:votanti ?votanti; 
+ocd:richiestaFiducia 1;
+ocd:approvato ?approvato;
+ocd:favorevoli ?favorevoli;
+ocd:contrari ?contrari;
+ocd:astenuti ?astenuti;
+ocd:rif_leg ?leg} 
+ORDER BY DESC(?data)]]></query>
+		<query label="tutte le espressioni di voto di una data votazione (es. prima votazione - 001 - del 6 giugno 2014 - 20140611)"><![CDATA[select distinct ?votazione ?titolo ?descrizione ?numeroVotazione ?cognome ?nome ?espressione ?infoAssenza ?deputato where {
+
+## prima votazione del 6 giugno 2014
+?votazione a ocd:votazione;
+   dc:date '20140611';
+   rdfs:label ?titolo;
+   dc:description ?descrizione;
+   dc:identifier ?numeroVotazione. FILTER(regex(?numeroVotazione,'001$'))
+
+## voti espressi
+?voto a ocd:voto;
+   ocd:rif_votazione ?votazione;
+   dc:type ?espressione;
+   ocd:rif_deputato ?deputato.
+OPTIONAL{?voto dc:description ?infoAssenza}
+
+## info deputato
+?deputato foaf:surname ?cognome; foaf:firstName ?nome  
+
+} ORDER BY ?cognome]]></query>
+ <query label="tutte le espressioni di voto di un deputato nella legislatura (es. deputato - SPERANZA - XVIII legislatura - &lt;http://dati.camera.it/ocd/legislatura.rdf/repubblica_18&gt;) con filtro sulla data (data specifica, tutto l'anno o mese ed anno es. mese di settembre 2018 - FILTER&amp;#40;REGEX&amp;#40;?data,'^201809','i')) ) con filtro sulla espressione di voto (favorevole,contrario, Ha votato, Non ha votato, Astensione es. favorevole - FILTER&amp;#40;REGEX&amp;#40;espressione,'Favorevole','i')) nessun filtro:&lt;br /&gt; ## FILTER&amp;#40;REGEX&amp;#40;?espressione,'','i')) )"><![CDATA[select distinct ?cognome ?nome ?votazione ?data ?descrizione ?numeroVotazione 
+?espressione ?esitoVotazione 
+?infoAssenza where {
+
+## seleziono deputato nella legislatura
+?deputato foaf:surname ?cognome; foaf:firstName ?nome; ocd:rif_leg 
+<http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>
+FILTER(REGEX(?cognome,'SPERANZA','i'))
+
+## voti espressi dal deputato
+?voto a ocd:voto;
+   ocd:rif_votazione ?votazione;
+   dc:type ?espressione;
+   ocd:rif_deputato ?deputato.
+   	FILTER(REGEX(?espressione,'Favorevole','i'))
+OPTIONAL{?voto dc:description ?infoAssenza}
+
+
+## informazione sulla relativa votazione
+?votazione a ocd:votazione;
+   ocd:approvato ?esitoVotazione;
+   dc:description ?descrizione;
+   dc:identifier ?numeroVotazione;
+## filtro sulla data si puÃ² scegliere anno/mese ('^201809') o anno ('^2018') o anche una data ('20180904')
+	dc:date ?data. FILTER(REGEX(?data,'^201809','i')) 
+## FILTER(REGEX(?infoAssenza,'In missione','i'))
+
+} ORDER BY ?numeroVotazione LIMIT 1000]]></query>
+<query label="query che conta il numero dei voti per un tipo di assenza al voto, per un gruppo di deputati 
+nella XVII legislatura (es. deputati il cui cognome inizia per A - FILTER&amp;#40;REGEX&amp;#40;?cognome,'^A','i')) ) con filtro sulla data per anno mese(es. mese di settembre 2018 - FILTER&amp;#40;REGEX&amp;#40;?data,'^201809','i')) )"><![CDATA[select distinct ?cognome ?nome ?infoAssenza COUNT(DISTINCT ?votazione) as ?numero  where {
+
+## seleziono deputato nella legislatura
+?deputato foaf:surname ?cognome; foaf:firstName ?nome; ocd:rif_leg
+<http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>
+FILTER(REGEX(?cognome,'^A','i'))
+
+?votazione a ocd:votazione;
+dc:date ?date.
+FILTER(REGEX(?date,'^201809','i'))
+## voti espressi dal deputato
+?voto a ocd:voto;
+   ocd:rif_votazione ?votazione;
+   dc:description ?infoAssenza;
+   ocd:rif_deputato ?deputato;
+   dc:identifier ?numero. 
+## altra 'Non ha partecipato', 'In missione'
+   	FILTER(REGEX(?infoAssenza,'Non ha partecipato','i'))
+
+} ORDER BY DESC(?numero) ASC(?cognome) ASC(?nome) LIMIT 10000]]></query>
+<query label="query che conta il numero dei voti per un tipo di espressione di voto per un gruppo di deputati 
+nella XVIII legislatura
+(es. deputati il cui cognome inizia per A - FILTER&amp;#40;REGEX&amp;#40;?cognome,'^A','i')) )
+con filtro sulla data per anno mese(es. mese di settembre 2018 - FILTER&amp;#40;REGEX&amp;#40;?data,'^201809','i')) )"><![CDATA[
+select distinct ?cognome ?nome ?espressione COUNT(DISTINCT ?votazione) as ?numero  where {
+
+## seleziono deputato nella legislatura
+?deputato foaf:surname ?cognome; foaf:firstName ?nome; ocd:rif_leg
+<http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>
+FILTER(REGEX(?cognome,'^A','i'))
+
+?votazione a ocd:votazione;
+dc:date ?date.
+FILTER(REGEX(?date,'^201809','i'))
+## voti espressi dal deputato
+?voto a ocd:voto;
+   ocd:rif_votazione ?votazione;
+   dc:type ?espressione;
+   ocd:rif_deputato ?deputato;
+   dc:identifier ?numero. 
+## altre Contrario, Favorevole, Ha votato, Non ha votato
+   FILTER(REGEX(?espressione,'Astensione','i'))
+
+} ORDER BY DESC(?numero) ASC(?cognome) ASC(?nome) LIMIT 10000]]>
+</query>
+<query label="query che conta il numero dei voti per esito per ogni tipo di espressione di voto per un gruppo di deputati 
+nella XVIII legislatura
+(es. deputati il cui cognome inizia per A - FILTER&amp;#40;REGEX&amp;#40;?cognome,'^A','i')) )
+con filtro sulla data per anno mese(es. mese di settembre 2018 - FILTER&amp;#40;REGEX&amp;#40;?data,'^201809','i')) )">
+<![CDATA[
+select distinct ?cognome ?nome ?espressione ?esito COUNT(DISTINCT ?votazione) as ?numero  where {
+
+## seleziono deputato nella legislatura
+?deputato foaf:surname ?cognome; foaf:firstName ?nome; ocd:rif_leg
+<http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>
+FILTER(REGEX(?cognome,'^A','i'))
+
+?votazione a ocd:votazione;
+ocd:approvato ?esito;
+          dc:date ?date.
+FILTER(REGEX(?date,'^201809','i'))
+## voti espressi dal deputato
+?voto a ocd:voto;
+   ocd:rif_votazione ?votazione;
+
+   dc:type ?espressione;
+   ocd:rif_deputato ?deputato;
+   dc:identifier ?numero. 
+
+} ORDER BY ASC(?cognome) ASC(?nome) ?espressione ?esito DESC(?numero)  LIMIT 10000
+]]>
+</query>
+<query label="query che conta il numero dei voti per ogni tipo di espressione di voto per un gruppo di deputati 
+nella XVIII legislatura
+(es. deputati il cui cognome inizia per A - FILTER&amp;#40;REGEX&amp;#40;?cognome,'^A','i')) )
+con filtro sulla data per anno mese(es. mese di settembre 2018 - FILTER&amp;#40;REGEX&amp;#40;?data,'^201808','i')) )">
+<![CDATA[
+select distinct ?cognome ?nome ?espressione COUNT(DISTINCT ?votazione) as ?numero  where {
+
+## seleziono deputato nella legislatura
+?deputato foaf:surname ?cognome; foaf:firstName ?nome; ocd:rif_leg
+<http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>
+FILTER(REGEX(?cognome,'^A','i'))
+
+?votazione a ocd:votazione;
+dc:date ?date.
+FILTER(REGEX(?date,'^201809','i'))
+## voti espressi dal deputato
+?voto a ocd:voto;
+   ocd:rif_votazione ?votazione;
+   dc:type ?espressione;
+   ocd:rif_deputato ?deputato;
+   dc:identifier ?numero. 
+
+} ORDER BY ASC(?cognome) ASC(?nome) ?espressione DESC(?numero) LIMIT 10000
+]]>
+</query>
+	</qgroup>
+	<qgroup label="Governi">
+		<query label="tutti gli incarichi di governo di deputati della XIX Legislatura con i relativi estremi
+(la URI &lt;http://dati.camera.it/ocd/legislatura.rdf/repubblica_19&gt; identifica la Legislatura)"><![CDATA[SELECT DISTINCT  ?d ?cognome ?nome ?membroGoverno
+  ?dataInizio  ?dataFine ?carica ?nomeGoverno ?nomeOrganoGoverno ?delega
+	?aggiornamento 
+WHERE {
+?persona ocd:rif_mandatoCamera ?mandato; a foaf:Person.
+## deputato
+?d a ocd:deputato; ocd:aderisce ?aderisce;
+ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_19>;
+ocd:rif_mandatoCamera ?mandato.
+OPTIONAL{?d dc:description ?info}
+##anagrafica
+?d foaf:surname ?cognome; foaf:gender ?genere;foaf:firstName ?nome.
+
+##aggiornamento del sistema
+OPTIONAL{?d <http://lod.xdams.org/ontologies/ods/modified> ?aggiornamento.}
+
+?persona ocd:rif_membroGoverno ?membroGoverno.
+?membroGoverno ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_19>; ocd:startDate ?dataInizio;ocd:membroGoverno ?carica.
+
+## GOVERNO
+?membroGoverno ocd:rif_governo ?governo.
+?governo dc:title ?nomeGoverno.
+
+## ORGANO
+OPTIONAL{
+?membroGoverno ocd:rif_organoGoverno ?organoGoverno.
+?organoGoverno dc:title ?nomeOrganoGoverno.
+}
+
+OPTIONAL {?membroGoverno ocd:endDate ?dataFine}
+
+## informazioni di delega
+OPTIONAL {?membroGoverno dc:description ?delega}
+
+## e intermin
+OPTIONAL {?membroGoverno ocd:interim ?interim}
+
+}   ORDER BY  ?nomeGoverno LIMIT 10000]]>
+		</query>
+	</qgroup>
+<qgroup label="Dibattiti in Aula">
+
+
+
+
+
+	<query label="ultime 100 discussioni in organi ed aula"><![CDATA[select distinct ?seduta ?dataSeduta ?inDiscussione  ?commissione ?aula ?resoconto where {
+  ?seduta a ocd:seduta; ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>; dc:date ?dataSeduta.
+  ?discussione a ocd:discussione; ocd:rif_seduta ?seduta; dc:title ?inDiscussione.
+  OPTIONAL{?seduta ocd:rif_organo ?organo. ?organo dc:title ?commissione}
+  OPTIONAL{?seduta ocd:rif_assemblea ?assemblea. BIND("Aula" AS ?aula)}
+  OPTIONAL{?seduta dc:relation ?resoconto. FILTER(REGEX(STR(?resoconto),'pdf'))}
+
+} ORDER BY DESC(?dataSeduta) LIMIT 100 
+ 
+		
+	]]></query>
+
+	<query label="Deputati intervenuti in Aula in materia di 'immigrazione' nella XVIII Legislatura"><![CDATA[select distinct ?deputatoId ?cognome ?nome ?argomento  
+?titoloSeduta ?testo  where {
+  
+  ?dibattito a ocd:dibattito; ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_18>.
+  
+  ?dibattito ocd:rif_discussione ?discussione.
+  ?discussione ocd:rif_seduta ?seduta.
+  ?seduta dc:date ?data; dc:title ?titoloSeduta.
+  ?seduta ocd:rif_assemblea ?assemblea.
+  
+  ##titolo della discussione
+  ?discussione rdfs:label ?argomento.
+  FILTER(regex(?argomento,'immigrazione','i'))
+    
+  ##deputato intevenuto
+  ?discussione ocd:rif_intervento ?intervento.
+  ?intervento ocd:rif_deputato ?deputatoId; dc:relation ?testo. 
+  ?deputatoId foaf:firstName ?nome; foaf:surname ?cognome .
+   
+} ORDER BY ?cognome ?nome ?data 
+		
+	]]></query>
+
+
+<query label="Interventi in Aula, nella XVII Legislatura, del deputato Ignazio Abrignani (id 302940)"><![CDATA[select distinct ?deputatoId ?cognome ?nome ?argomento  
+?titoloSeduta ?testo  where {
+  
+  ?dibattito a ocd:dibattito; ocd:rif_leg <http://dati.camera.it/ocd/legislatura.rdf/repubblica_17>.
+  
+  ?dibattito ocd:rif_discussione ?discussione.
+  ?discussione ocd:rif_seduta ?seduta.
+  ?seduta dc:date ?data; dc:title ?titoloSeduta.
+  ?seduta ocd:rif_assemblea ?assemblea.
+  
+  ##titolo della discussione
+  ?discussione rdfs:label ?argomento.
+    
+  ##deputato intevenuto
+  ?discussione ocd:rif_intervento ?intervento.
+  ?intervento ocd:rif_deputato ?deputatoId; dc:relation ?testo. 
+  ?deputatoId foaf:firstName ?nome; foaf:surname ?cognome .
+  
+  ##filtro con uri deputato
+  #FILTER(?deputatoId=<http://dati.camera.it/ocd/deputato.rdf/d302940_17>)
+  
+  ##oppure filtro su nome e cognome
+  FILTER(REGEX(STR(?nome),'Ignazio','i')).
+  FILTER(REGEX(STR(?cognome),'Abrignani','i'))
+  
+  #in un determinato anno
+  #FILTER(REGEX(STR(?data),'^2015','i')).
+
+  
+} ORDER BY ?cognome ?nome ?data]]></query>
+</qgroup>
+</queries>
+<!-- <query label=""><![CDATA[]]></query> -->

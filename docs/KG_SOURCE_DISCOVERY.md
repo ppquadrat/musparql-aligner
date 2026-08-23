@@ -73,12 +73,21 @@ Human review remains mandatory. Inspect candidate authority and relevance,
 search separately for omissions, and only then make a distinct, reviewed change
 to the source catalogue and KG seed catalogue.
 
-## Provisional agent-review prompt
+The method and its two-phase, ten-graph evidence record are documented in the
+[`2026-08-22 KG source discovery experiment`](experiments/2026-08-22-kg-source-discovery-experiment.md).
+Per-graph source pre-checks for graphs being added are kept in
+[`docs/graph-discovery/`](graph-discovery/README.md).
+
+## Agent-review prompt
 
 The following prompt formalizes lessons from the initial source-discovery
-evaluation. It has not yet been tested on a new graph and should be revised in
-response to future runs. Publication supplements are inspected by the agent;
-the discovery script does not automate that step.
+experiment. It was exercised on five new graphs on 2026-08-23: ALyrA, Camera
+dei Deputati, CDEC, NFDI4Culture CKG, and Europeana. Those reviews confirmed
+that authoritative-link traversal, publication supplements, dynamic-interface
+backing files, mixed-KG publications, and source/version identity must all be
+checked explicitly. Publication supplements and dynamic interfaces are
+inspected by the reviewing agent; the discovery script does not automate those
+steps. Continue revising the prompt when later runs expose new failure modes.
 
 ```text
 Review the saved source-discovery report(s) for:
@@ -116,6 +125,13 @@ Perform the following review:
      PREFIX, competency question, competency questions, and CQ.
    - Record the exact public URL and the section, page, or file containing the
      evidence. Report mentioned but inaccessible supplements explicitly.
+   - Follow authoritative project and dataset pages to every linked deposit,
+     download record, supplement, repository, and additional-file page. Treat a
+     missed linked record as a recall failure even when its parent page was found.
+   - A paper may describe multiple KGs. For every query, identify its namespace,
+     graph IRI, dataset, and surrounding section before assigning it. Record
+     useful queries for other ontologies as separate discovery leads; do not
+     bulk-attribute the paper's queries to the KG that initiated the search.
 
 3. Repository inspection
    - Look beyond the displayed shortlist whenever omission counts are non-zero.

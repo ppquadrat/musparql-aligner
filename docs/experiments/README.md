@@ -22,3 +22,8 @@ Recommended fields:
 
 The benchmark answers which NL-SPARQL pairs are valid dataset examples. Experiment
 notes answer which pipeline variants were tried and what happened.
+
+Per-graph source searches and pre-catalog reviews are operational records rather
+than pipeline experiments. Keep them in [`docs/graph-discovery/`](../graph-discovery/README.md);
+an experiment note may synthesize lessons across several graph reviews without
+duplicating their full evidence.

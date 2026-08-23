@@ -175,3 +175,121 @@ sources:
       - linkedmusic-corrected-examples-working-copy
     query_role: edit_source
     description: Append-only approved SPARQL versions with immutable hashes and minimal non-private provenance, used to restore version state after clean extraction.
+
+  - source_id: alyra-talos-dataset-page
+    type: web_document
+    title: TALOS AI4SSH ALyrA dataset page
+    url: https://talos-ai4ssh.uoc.gr/resources/open-datasets/open-dataset-2-ancient-lyric-poetry-alyra-ontology/
+    query_role: none
+    description: Official project documentation for ALyrA v1.0, including creators, scope, metrics, license, and links to the Zenodo deposit.
+
+  - source_id: alyra-zenodo-v1
+    type: web_document
+    title: Archaic Lyric Agora (ALyrA) ontoterminology version 1.0
+    url: https://zenodo.org/records/13371967
+    query_role: canonical
+    description: Official versioned dataset record containing five human-authored natural-language question and SPARQL pairs.
+
+  - source_id: alyra-v1-rdf-export
+    type: local_document
+    title: ALyrA v1.0 RDF/XML export
+    url: https://zenodo.org/records/13371967/files/ALyrA_v.1.0.rdf.rdf?download=1
+    local_path: var/cache/dumps/alyra-v1.0.rdf
+    query_role: none
+    description: Complete official v1.0 ontology-plus-instance export; the local cache is used to execute ALyrA queries without a live endpoint.
+
+  - source_id: alyra-mdtt-2025-paper
+    type: publication
+    title: "Creating ontoterminologies for antiquity: workflow, challenges and solutions"
+    url: https://ceur-ws.org/Vol-3990/paper4.pdf
+    local_path: catalog/pdfs/2025-mdtt-creating-ontoterminologies-for-antiquity.pdf
+    query_role: none
+    description: The complete paper contains one ALyrA query and two queries for other ontoterminologies; bulk query extraction is disabled to prevent cross-KG attribution.
+
+  - source_id: alyra-mdtt-2025-paper-query
+    type: derivative
+    title: ALyrA query curated from the MDTT 2025 ontoterminology paper
+    local_path: catalog/curated/alyra-mdtt-2025-paper-query.jsonl
+    derived_from: [alyra-mdtt-2025-paper]
+    query_role: canonical
+    description: Source-faithful extraction of only the ALyrA SELECT query from section 4, pages 6-7 and Figure 5; excludes the paper's Ancient Greek Oratory and Göbekli Tepe queries.
+
+  - source_id: camera-dei-deputati-ocd-documentation
+    type: web_document
+    title: OCD semantic representation and documentation
+    url: https://dati.camera.it/ocd-rappresentazione-semantica-e-documentazione
+    query_role: canonical
+    description: Official Italian documentation containing natural-language formulations and 21 displayed SPARQL examples; one bibliography intent is duplicated and the examples largely use older legislature versions.
+
+  - source_id: camera-dei-deputati-endpoint-examples
+    type: web_document
+    title: Camera dei Deputati SPARQL endpoint examples
+    url: https://dati.camera.it/ocd/dump/custom_endpoint/sparql.xml
+    query_role: canonical
+    description: Official machine-readable XML loaded by the endpoint interface, currently containing 22 Italian natural-language formulations paired with SPARQL, including newer legislature variants and an additional debate query.
+
+  - source_id: camera-dei-deputati-sparna-article
+    type: web_document
+    title: "dati.camera.it's Sparnatural instance: a query builder for the Italian Chamber of Deputies"
+    url: https://www.sparna.fr/en/posts/dati-camera-it-s-sparnatural-instance-a-query-builder-for-the-italian-chamber-of-deputies/
+    query_role: canonical
+    description: Third-party authored article containing three English-described Camera dei Deputati SPARQL examples displayed in screenshots; retain for curated transcription and deduplicate against the official examples.
+
+  - source_id: cdec-official-sparql-examples
+    type: web_document
+    title: CDEC SPARQL query examples
+    url: https://dati.cdec.it/esempi.html
+    query_role: canonical
+    description: Official page containing nine Italian natural-language formulations paired with complete SELECT queries over the historical CDEC Shoah named graph.
+
+  - source_id: nfdi4culture-ckg-query-page
+    type: web_document
+    title: NFDI4Culture public Culture Knowledge Graph query page
+    url: https://nfdi4culture.de/resources/knowledge-graph.html
+    query_role: none
+    description: Official public query interface linking three domain-specific authored examples and four generic graph-inspection queries; only the three domain examples are retained in the curated derivative.
+
+  - source_id: nfdi4culture-ckg-deep-dive
+    type: publication
+    title: Culture Knowledge Graph deep dive
+    url: https://zenodo.org/records/18292744
+    query_role: none
+    description: Official NFDI4Culture presentation whose pages 22, 26, and 39 link three complete authored CKG queries covering RISM and Gregorovius letters, Epidat with Wikidata, and community standards in data portals.
+
+  - source_id: nfdi4culture-ckg-approved-examples
+    type: derivative
+    title: Curated NFDI4Culture Culture Knowledge Graph examples
+    local_path: catalog/curated/nfdi4culture-ckg-approved-examples.jsonl
+    derived_from: [nfdi4culture-ckg-query-page, nfdi4culture-ckg-deep-dive]
+    query_role: canonical
+    description: Source-faithful capture of the six approved authored NL-SPARQL pairs; excludes the four generic inspection/count queries and repository maintenance or ontology-quality-control SPARQL.
+
+  - source_id: europeana-sparql-api-documentation
+    type: web_document
+    title: Europeana SPARQL API documentation
+    url: https://europeana.atlassian.net/wiki/spaces/EF/pages/2385870903/SPARQL+API+Documentation
+    query_role: none
+    description: Official authored documentation containing eight labelled SPARQL examples in its More examples section; the rendered Confluence HTML mangles examples 6 and 8, so query extraction uses the source-faithful curated derivative.
+
+  - source_id: europeana-sparql-api-examples
+    type: derivative
+    title: Curated Europeana SPARQL API documentation examples
+    local_path: catalog/curated/europeana-sparql-api-examples.jsonl
+    derived_from: [europeana-sparql-api-documentation]
+    query_role: canonical
+    description: Source-faithful capture of all eight labelled examples from the More examples section; the two federated queries were recovered from the percent-encoded query-service links in the official Confluence storage representation rather than its mangled rendered code blocks.
+
+  - source_id: europeana-sparql-console-examples
+    type: web_document
+    title: Europeana SPARQL console query samples
+    url: https://raw.githubusercontent.com/europeana/sparql-ui/master/europeana/query-samples.json
+    query_role: none
+    description: Official machine-readable source used by the Europeana SPARQL console, containing 52 titled authored examples across general, media, contextual-resource, and provenance categories; all 52 remain preserved in the source snapshot, including six DESCRIBE examples outside the SELECT-only corpus policy.
+
+  - source_id: europeana-sparql-console-select-examples
+    type: derivative
+    title: Curated SELECT examples from the Europeana SPARQL console
+    local_path: catalog/curated/europeana-sparql-console-select-examples.jsonl
+    derived_from: [europeana-sparql-console-examples]
+    query_role: canonical
+    description: Mechanical source-faithful conversion of the console JSON's 46 SELECT examples to curated NL-SPARQL records; the six DESCRIBE examples remain in the parent snapshot but are intentionally excluded from the SELECT-only query corpus.

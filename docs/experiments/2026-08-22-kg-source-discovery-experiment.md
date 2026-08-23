@@ -1,6 +1,6 @@
-# Knowledge-Graph Source Discovery Evaluation
+# Knowledge-Graph Source Discovery Experiment
 
-Date: 2026-08-22
+Dates: 2026-08-22–2026-08-23
 
 ## Question
 
@@ -8,7 +8,7 @@ What can the source-discovery script realistically surface for a knowledge
 graph, and what review process should Musparql use when applying it to new
 graphs?
 
-The evaluation compares saved discovery reports for Organs, MEETUPS, MuSOW,
+The first phase compares saved discovery reports for Organs, MEETUPS, MuSOW,
 LinkedMusic, and Jazz Ontology with the curated KG seeds, source catalog, and
 the queries already extracted into Musparql. It asks three things:
 
@@ -16,6 +16,11 @@ the queries already extracted into Musparql. It asks three things:
 2. Which known sources did it miss or hide?
 3. Which new findings have a realistic chance of containing additional SPARQL
    or competency questions?
+
+The second phase applies the resulting review process to five previously
+uncatalogued graphs—ALyrA, Camera dei Deputati, CDEC, NFDI4Culture CKG, and
+Europeana—and records what the script, authoritative-source inspection, and
+human review contributed at each stage.
 
 ## Materials
 
@@ -29,6 +34,18 @@ the queries already extracted into Musparql. It asks three things:
   - `var/source-discovery/musow.json`
   - `var/source-discovery/linkedmusic.json`
   - `var/source-discovery/jazz-ontology-grouped-aliases.json`
+- New-graph discovery reports:
+  - `var/source-discovery/alyra.json`
+  - `var/source-discovery/camera-dei-deputati.json`
+  - `var/source-discovery/cdec.json`
+  - `var/source-discovery/nfdi4culture.json`
+  - `var/source-discovery/europeana.json`
+- Detailed new-graph reviews:
+  - [`2026-08-23-alyra.md`](../graph-discovery/2026-08-23-alyra.md)
+  - [`2026-08-23-camera-dei-deputati.md`](../graph-discovery/2026-08-23-camera-dei-deputati.md)
+  - [`2026-08-23-cdec.md`](../graph-discovery/2026-08-23-cdec.md)
+  - [`2026-08-23-nfdi4culture.md`](../graph-discovery/2026-08-23-nfdi4culture.md)
+  - [`2026-08-23-europeana.md`](../graph-discovery/2026-08-23-europeana.md)
 
 Discovery reports are non-authoritative search results. “Found” below means
 that a useful source appeared in the saved shortlist unless explicitly stated
@@ -153,7 +170,103 @@ supplementary attachments often have opaque filenames and poor search indexing.
 Publication candidates should prompt an explicit check of their landing pages
 for supplementary material.
 
-## Overall evaluation
+## Follow-up lesson: ALyrA link traversal and mixed-KG publications
+
+The 2026-08-23 ALyrA review exposed two additional failure modes that should be
+part of the standard discovery assessment.
+
+First, the discovery report recovered the official TALOS ALyrA page but missed
+the main [Zenodo dataset record](https://zenodo.org/records/13371967), even
+though the recovered page explicitly directs readers there for the RDF export,
+competency questions, and SPARQL examples. The missed page contains all five
+primary human-authored question-query pairs. Recovering an authoritative
+landing page is therefore not enough: review must traverse its dataset,
+download, supplement, repository, and “more information” links and treat those
+linked records as first-class recall targets. A result should not be credited
+with recovering the linked evidence merely because it found a page that
+mentions it.
+
+Second, the later paper [*Creating ontoterminologies for antiquity: workflow,
+challenges and solutions*](https://ceur-ws.org/Vol-3990/paper4.pdf) contains
+three complete SPARQL examples for three different ontoterminologies:
+
+1. **Ancient Greek Oratory Ontology:** a query for ancient Greek terms and
+   natural-language definitions of legal proceedings supervised by the
+   Thesmothetai, using graph `http://www.ontologia.fr/OTB/oratory_v.1.0.rdf`.
+   The paper cites the dataset at <https://doi.org/10.5281/zenodo.13379144>.
+2. **ALyrA:** a query for the essential characteristics defining “hymn” and
+   the poetess who composed that type of poem, using graph
+   `http://ontologia.fr/OTB/ALyrA_v.1.0.rdf`.
+3. **Göbekli Tepe Ontoterminology:** a query for English terms and definitions
+   of archaeological concepts, using graph
+   `http://www.ontologia.fr/OTB/Gobekli_Tepe_v.1.0.rdf`. The paper cites the
+   dataset at <https://doi.org/10.5281/zenodo.13370343>.
+
+A relevant paper can therefore be both a source for the graph under review and
+a discovery lead for other graphs. Publication inspection must classify every
+query by namespace, graph IRI, described dataset, and surrounding prose before
+assigning it to a KG. Bulk extraction of the PDF as an ALyrA source would have
+silently misattributed the Oratory and Göbekli Tepe queries. The adopted pattern
+is to retain the complete paper for provenance, disable indiscriminate query
+extraction when it is mixed-KG, and create a source-faithful per-KG curated
+record for the applicable query. The other queries remain recorded discovery
+leads until their own KGs are reviewed and approved.
+
+## Five-new-graph extension
+
+The detailed reports remain the evidence record. The table below captures only
+the approved source outcome and the principal lesson contributed by each new
+graph.
+
+| Graph | Approved query-bearing outcome | Main lesson |
+|---|---|---|
+| ALyrA | Five Zenodo question–query pairs, one related paper query, and the complete v1.0 RDF/XML dump | Follow authoritative pages to deposits; classify every query in a mixed-KG paper before extraction. |
+| Camera dei Deputati | Italian documentation with 21 displayed query blocks, endpoint XML with 22 NL–SPARQL records, and a third-party article with English-described examples | A visible endpoint UI may load a better machine-readable example source; preserve language and version context and deduplicate the rendered page against its backing data. |
+| CDEC | Nine Italian NL–SPARQL examples, the current xDams endpoint, and the historical Shoah named graph | Distinguish a current service from the older named graph targeted by its examples; broken ontology documentation does not invalidate the graph IRI. |
+| NFDI4Culture CKG | Six retained authored examples: three public domain queries and three richer deep-dive presentation queries | Prepared-query URL fragments and slide links can contain the best evidence; repository SPARQL may instead be maintenance, validation, or generic inspection material. |
+| Europeana | Eight documentation examples and 52 console examples preserved; 46 console SELECTs curated while six DESCRIBEs remain source evidence | Trace dynamic interfaces to official JSON/configuration files, and separate complete source preservation from the narrower query forms admitted to the corpus. |
+
+### Lessons added by the five reviews
+
+1. **Traverse authoritative links, not only search results.** Landing pages must
+   be followed to versioned deposits, downloads, supplements, repositories,
+   prepared-query links, and additional files. ALyrA's most valuable Zenodo
+   page was one explicit link away from the page the script recovered.
+2. **Inspect how interactive pages obtain their examples.** Camera dei
+   Deputati's endpoint loads an official XML file, Europeana's console loads an
+   official 52-record JSON file, and NFDI4Culture encodes complete queries in
+   prepared-query links. The backing artifact is often more complete and more
+   reproducible than the rendered interface.
+3. **Preserve the source collection separately from corpus eligibility.** The
+   Europeana JSON remains a 52-example source even though the current corpus is
+   SELECT-only and its curated derivative contains 46 records. Generic probes,
+   DESCRIBEs, synthetic fixtures, maintenance queries, and malformed examples
+   should remain auditable without being silently promoted.
+4. **Treat identity and currency as query-level questions.** A current endpoint
+   can expose examples for an older named graph; a paper can contain several
+   ontologies; closely related projects can reuse the same namespace. Graph
+   IRI, namespace, endpoint, version, and surrounding prose must be checked for
+   each candidate.
+5. **Authorship and intent matter more than syntax.** Syntactically valid
+   SPARQL can be a generic graph probe, validation routine, application-internal
+   operation, or synthetic test. Conversely, a short imperative label in
+   Italian or English may be genuine authored natural-language evidence.
+6. **Human review is part of the method, not a final formality.** The owner
+   supplied graph identity, recognized genuine examples, rejected wrong
+   artifact types, approved source boundaries, and decided which ambiguous
+   materials merited preservation. The script supplied leads and reproducible
+   search evidence, not catalog decisions.
+7. **Use parent sources plus curated derivatives when rendering is lossy or a
+   source is mixed.** Keep the official page, paper, XML, or JSON as provenance;
+   give it `query_role: none` when indiscriminate extraction would be unsafe;
+   and create a source-faithful per-KG or SELECT-only derivative as the canonical
+   extraction input.
+
+The five new seeds and approved sources were added to the catalog with immutable
+seed history and source snapshots. Query extraction and endpoint execution for
+these five graphs remain a separate, explicitly approved phase.
+
+## Overall result
 
 The findings are a useful starting point for an assistant. They record
 repeatable searches across repositories, publications, and web pages, group
@@ -176,8 +289,10 @@ For new graphs, use the following review loop:
    omissions, and provenance remain inspectable.
 2. **Assistant review and prioritization.** Compare the report with any existing
    seeds, sources, and query corpus. Inspect promising repositories, publication
-   supplements, and papers; look beyond non-zero cutoffs; identify likely SPARQL
-   or CQ locations; and separate context from extraction candidates.
+   supplements, and papers; follow authoritative pages to linked deposits and
+   additional files; look beyond non-zero cutoffs; identify likely SPARQL or CQ
+   locations; classify every query in a mixed-KG publication before assigning
+   it; and separate context from extraction candidates.
 3. **Human review.** The owner checks the prioritized findings, corrects
    mistaken relevance judgments, obtains inaccessible material where possible,
    and decides which sources should be added.
@@ -189,9 +304,9 @@ This experiment adopts the process, not any automatic acceptance threshold.
 The immediate approved follow-up was to add `DDMAL/SESEMMI` to LinkedMusic and
 rerun the pipeline. Other candidates remain review leads.
 
-Future runs will test a standardized agent-review prompt that explicitly checks
-publication supplements, since these often contain competency questions and
-SPARQL examples omitted from the main paper.
+The standardized agent-review prompt was tested in the five-new-graph extension
+and updated with the lessons above. Its maintained form is in
+[`../KG_SOURCE_DISCOVERY.md`](../KG_SOURCE_DISCOVERY.md).
 
 ## Approved follow-up result
 

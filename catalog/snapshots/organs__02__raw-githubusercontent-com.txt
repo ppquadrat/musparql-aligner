@@ -1,4 +1,4 @@
-SOURCE: https://raw.githubusercontent.com/polifonia-project/organs-ontology/7480bcc383455aaeb7a114e42ccaab4fa4bebfe4/README.md
+SOURCE: https://raw.githubusercontent.com/polifonia-project/organs-ontology/main/README.md
 
 # Organs Ontology
 An ontology to describe organs, their properties and their evolution.

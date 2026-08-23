@@ -1,0 +1,537 @@
+SOURCE: https://www.sparna.fr/en/posts/dati-camera-it-s-sparnatural-instance-a-query-builder-for-the-italian-chamber-of-deputies/
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<title>dati.camera.itâs Sparnatural instance : a query builder for the Italian Chamber of Deputies </title>
+	<meta name="google-site-verification" content="IkU6vMBuAjxGZlU-z2UeeeDTxfSy_M5bSfF9vcPCAsI" />
+	<link rel="canonical" href="https://www.sparna.fr/en/posts/dati-camera-it-s-sparnatural-instance-a-query-builder-for-the-italian-chamber-of-deputies/" />
+
+	<link rel="alternate" hreflang="en" href="https://www.sparna.fr/en/posts/dati-camera-it-s-sparnatural-instance-a-query-builder-for-the-italian-chamber-of-deputies/"/>
+	
+
+  	<link rel="icon" href="../../../assets/icons/favicon.ico">
+
+	<link rel='stylesheet' id='style-main-css'  href="../../../assets/css/style.css" type='text/css' media='all' />
+	<link rel='stylesheet'  href="../../../assets/css/style-newwebsite.css" type='text/css' media='all' />
+	<link rel='stylesheet'  href="../../../assets/css/contact-form.css" type='text/css' media='all' />
+
+	<link rel='stylesheet' id='fonts-css'  href="../../../assets/css/fonts/fonts.css" type='text/css' media='all' />
+
+	<script
+			  src="https://code.jquery.com/jquery-3.7.1.min.js"
+			  integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+			  crossorigin="anonymous"></script>
+
+	<script type='text/javascript' src="../../../assets/js/sparna.js"></script>
+
+	<!-- Jetpack Open Graph Tags -->
+	<meta property="og:type" content="article" />
+	<meta property="og:title" content="Sparna" />
+	<meta property="og:description" content="Web de donnÃ©es | Architecture de l&#039;informations | AccÃ¨s aux connaissances" />
+	<meta property="og:url" content="https://www.sparna.fr/en/posts/dati-camera-it-s-sparnatural-instance-a-query-builder-for-the-italian-chamber-of-deputies/" />
+	<meta property="og:site_name" content="Sparna" />
+	<meta property="og:image" content="../../../assets/images/logo.png" />
+	<meta property="og:locale" content="en" />
+
+
+	<script data-goatcounter="https://sparna.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+
+</head>
+
+<body class="single single-post">
+	<div class="interieur">
+		<header id="header">
+			<div id="logo"><a href="/fr" title = "Sparna"><img src="../../../assets/images/logo.png" alt = "" /></a></div>
+			<nav id = "menu">
+				<div class="menu-menu-principal-container">
+					<ul id="menu-menu-principal" class="nav-menu">
+						<li id="menu-item-48" class="menu-item menu-item-type-post_type menu-item-object-page page_item page-item-46 menu-item-48"><a href="/en/">Home</a></li>
+						<li id="menu-item-26" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-26"><a href="/en/references">Use cases</a></li>
+						<li id="menu-item-22" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-22"><a href="/en/formations">Training offers</a></li>
+						<li id="menu-item-10" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-10"><a href="/en/team">The Team</a></li>
+						<li id="menu-item-posts" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-posts"><a href="/en/posts">Social Medias</a></li>
+						<li id="menu-item-9" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-9"><a href="/en/contact">Contact</a></li>
+						<li id="menu-item-50" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-50"><a href="https://blog.sparna.fr" target="_blank">Blog</a></li>
+						<li>
+							<div>
+								
+
+								
+							</div>					
+						</li>
+					</ul>
+				</div>			
+			</nav>			
+		</header>
+		
+		<section id = "contenu">
+			
+
+
+
+
+
+
+<script type="application/ld+json">
+    {
+        "@context" : "https://schema.org",
+        "@type" : "BlogPosting",
+        "@id" : "https://www.sparna.fr/en/posts/dati-camera-it-s-sparnatural-instance-a-query-builder-for-the-italian-chamber-of-deputies/",
+        "headline" : "dati.camera.itâs Sparnatural instance : a query builder for the Italian Chamber of Deputies ",
+        "datePublished" : "2025-07-17T00:00:00Z",
+        "publisher" : {
+            "@type" : "Organization",
+            "name" : "Sparna",
+            "@id" : "https://sparna.fr",
+            "url" : "https://www.sparna.fr"
+        },
+        "inLanguage" : "en",
+        "author": {
+            "@type" : "Person",
+            "name" : "Marie Muller",
+            "url" : "https://www.sparna.fr/en/auteurs/marie-muller"
+        },
+        "image": "https://www.sparna.fr/assets/posts-images/dati-ontology.png",
+        "keywords": "open data,  linked open data,  Sparnatural,  ontology",
+        "about": ["open data"
+            ,"linked open data"
+            ,"Sparnatural"
+            ,"ontology"
+            
+        ]
+    }
+</script>
+
+
+<article 
+    id="dati.camera.it&#39;s-sparnatural-instance-:-a-query-builder-for-the-italian-chamber-of-deputies" 
+    class="post h-entry" 
+    role="article" 
+    itemscope 
+    itemtype="http://schema.org/BlogPosting"
+    itemid="https://www.sparna.fr/en/posts/dati-camera-it-s-sparnatural-instance-a-query-builder-for-the-italian-chamber-of-deputies/"
+    aria-labelledby="dati.camera.it&#39;s-sparnatural-instance-:-a-query-builder-for-the-italian-chamber-of-deputies-title" 
+>
+
+    <div class="post__header">
+        <h1 id="dati.camera.it&#39;s-sparnatural-instance-:-a-query-builder-for-the-italian-chamber-of-deputies-title" class="post__title p-name title">dati.camera.itâs Sparnatural instance : a query builder for the Italian Chamber of Deputies </h1>
+        <div class="post__meta">
+            <p>
+                <time class="post__date dt-published">17 Jul 2025</time>
+                
+                <span aria-label="author">&middot;</span> <span class="post__author p-author">by <span>Marie Muller</span>
+                </span>
+                
+                
+                <span aria-label="in category">&middot;</span> <span class="post__tags p-category">open data,  linked open data,  Sparnatural,  ontology</span>
+                
+            </p>
+        </div>
+    </div>
+
+
+    <div class="post__content e-content markdown" itemprop="articleBody">
+        <p class="lead">While universities, research centers, and foundations have no difficulty using direct SPARQL queries, the use of Sparnatural is the solution that offers everyone the ability to explore the data</p>
+<p>The open data portal of the Italian Chamber of Deputies (<a href="http://dati.camera.it/" title="http://dati.camera.it/">dati.camera.it</a>) offers public data on parliamentary activity in an open and reusable format for citizens, developers, journalists, scholars and public administrations. The published data concern, for instance, the activity of parliamentarians, parliamentary groups and organs of the Chamber, the composition and offices of the government, bills and parliamentary acts in general, sessions and minutes, results of electronic votes, etc. The data are organised according to a semantic model, formally represented by <a href="https://dati.camera.it/en/ontology-chamber-deputies" title="https://dati.camera.it/en/ontology-chamber-deputies">the ontology of the Chamber of Deputies (OCD)</a>.</p>
+<p><a href="/assets/posts-images/dati-ontology.png"><img src="/assets/posts-images/dati-ontology.png" alt=""></a></p>
+<p>The portal offers the ability to export data as linked open data (LOD) collections, in RDF format, organized into thematic datasets ...</p>
+<p><a href="/assets/posts-images/dati-themes.png"><img src="/assets/posts-images/dati-themes.png" alt=""></a></p>
+<p>... or to query open data directly, exposing <a href="https://dati.camera.it/sparql" title="https://dati.camera.it/sparql">a dedicated SPARQL</a> endpoint. All data are provided under <a href="https://creativecommons.org/licenses/by/4.0/" title="https://creativecommons.org/licenses/by/4.0/">a Creative Commons By license</a>. Knowing the OCD ontology, it is then possible to write SPARQL queries and obtain the desired data, to be used for studies and research.</p>
+<p><a href="/assets/posts-images/dati-queries.png"><img src="/assets/posts-images/dati-queries.png" alt=""></a></p>
+<p><a href="https://dati.camera.it/lodlive/?http://dati.camera.it/ocd/" title="https://dati.camera.it/lodlive/?http://dati.camera.it/ocd/">A Lodlive graph</a> is also available in the menu, where you can enter the URI of a resource and visualize all of its properties and relationships with other entities.</p>
+<p><a href="/assets/posts-images/dati-lodlive.png"><img src="/assets/posts-images/dati-lodlive.png" alt=""></a></p>
+<p>While universities, research centers, and foundations have no difficulty accessing the open data, via direct SPARQL queries, this is not so true for ordinary citizens. The use of Sparnaâs <a href="https://sparnatural.eu/" title="https://sparnatural.eu/">Sparnatural  query builder</a>  is therefore the solution that offers everyone the ability to explore the data, through an intuitive interface that guides the user in composing the desired search path.</p>
+<p><a href="https://dati.camera.it/sparnatural/">Dati.camera.it's Sparnatural</a> allows SPARQL queries to be constructed, visually and intuitively :</p>
+<p><a href="/assets/posts-images/dati-sparnatural.png"><img src="/assets/posts-images/dati-sparnatural.png" alt=""></a></p>
+<p>Aiming at querying the knowledge graph in a user-friendly way (i.e. the users donât need to know SPARQL query language to use the query builder), the tool has been highly appreciated by the users of theÂ dati.camera.itÂ portal.</p>
+<p>Here some examples of queries and their results in Sparnatural (click on &quot;Toggle SPARQL query&quot; button to display the SPARQL query itself)Â :</p>
+<p><strong>The list of deputies who belong to Italy's Green and Left Alliance (Alleanza Verdi e Sinistra)  parliamentary groupÂ :</strong></p>
+<p><a href="/assets/posts-images/dati-query1.png"><img src="/assets/posts-images/dati-query1.png" alt=""></a></p>
+<p><a href="/assets/posts-images/dati-sparql1.png"><img src="/assets/posts-images/dati-sparql1.png" alt=""></a></p>
+<p><strong>The list of acts initiated by the government for the term of the First Constituent AssemblyÂ :</strong></p>
+<p><a href="/assets/posts-images/dati-query2.png"><img src="/assets/posts-images/dati-query2.png" alt=""></a></p>
+<p><a href="/assets/posts-images/dati-sparql2.png"><img src="/assets/posts-images/dati-sparql2.png" alt=""></a></p>
+<p><strong>The Presidents of the Parliamentary Groups of the XIX Legislature of the Italian Republic</strong></p>
+<p><a href="/assets/posts-images/dati-query3.png"><img src="/assets/posts-images/dati-query3.png" alt=""></a></p>
+<p><a href="/assets/posts-images/dati-sparql3.png"><img src="/assets/posts-images/dati-sparql3.png" alt=""></a></p>
+<p>Give it a try here : <a href="https://dati.camera.it/sparnatural/">https://dati.camera.it/sparnatural/</a></p>
+<p>Another interesting implementation of Sparnatural in the context of parliamentary linked open data (see our latest blog article about <a href="https://blog.sparna.fr/2025/04/09/european-parliament-open-data-portal-a-shacl-powered-knowledge-graph/">European Parliament Open Data Portal</a>) !</p>
+
+    </div>
+
+    
+    <div class="post__footer">
+        <div hidden>
+            <a class="u-url" href="/en/posts/dati-camera-it-s-sparnatural-instance-a-query-builder-for-the-italian-chamber-of-deputies/">dati.camera.itâs Sparnatural instance : a query builder for the Italian Chamber of Deputies </a>
+        </div>
+
+        <p class="post__footer-info">
+            Published in open data,  linked open data,  Sparnatural,  ontology &middot; 17 Jul 2025 <br/>
+            <a href="https://github.com/sparna-git/sparna.fr/tree/master/./src/en/posts/20250717-dati.camera.it-Sparnatural.md" title="suggest a change to this post by submitting a PR">edit this post</a>
+        </p>
+
+
+        
+
+        
+
+        
+    </div>
+    
+</article>
+
+
+
+<div class="postsection">
+    <h3 class="postsection__title">Other posts</h3>
+    <ol class="otherposts">
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/mcp-protocol-over-sparql-endpoints/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2026-04-25T00:00:00Z" aria-label=", written 25 Apr 2026">
+                        25 Apr 2026
+                    </time>
+                    <span class="otherposts__title">MCP protocol over SPARQL endpoints</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/isidore-sparql-endpoint-experiment-with-qlever/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2026-04-24T00:00:00Z" aria-label=", written 24 Apr 2026">
+                        24 Apr 2026
+                    </time>
+                    <span class="otherposts__title">Isidore SPARQL endpoint experiment with QLever</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/shacl-play-documentation-generation-document-your-knowledge-graph/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2026-04-14T00:00:00Z" aria-label=", written 14 Apr 2026">
+                        14 Apr 2026
+                    </time>
+                    <span class="otherposts__title">SHACL Play documentation generation : document your knowledge graph !</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/fr/posts/publication-de-l-archive-du-theaterlexikon-der-schweiz-tls-ou-dictionnaire-du-theatre-en-suisse/" class="otherposts__link" hreflang="fr">
+                    <img class="otherposts__flag" src="/assets/images/FR.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-10-30T00:00:00Z" aria-label=", written 30 Oct 2025">
+                        30 Oct 2025
+                    </time>
+                    <span class="otherposts__title">Publication de l&#39;archive du Theaterlexikon der Schweiz (TLS) ou Dictionnaire du thÃ©Ã¢tre en Suisse</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/complete-sparql-training-slidedeck-130-slides/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-10-28T00:00:00Z" aria-label=", written 28 Oct 2025">
+                        28 Oct 2025
+                    </time>
+                    <span class="otherposts__title">Complete SPARQL training slidedeck, 130+ slides</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/vocbench-sheet2rdf-import-guide/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-10-01T00:00:00Z" aria-label=", written 01 Oct 2025">
+                        01 Oct 2025
+                    </time>
+                    <span class="otherposts__title">VocBench Sheet2RDF import guide</span>
+                </a>
+            </li>
+            
+        
+            
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/call-for-papers-semweb-pro-2025/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-05-13T00:00:00Z" aria-label=", written 13 May 2025">
+                        13 May 2025
+                    </time>
+                    <span class="otherposts__title">Call for papers SemWeb.Pro 2025</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/multilingualism-multi-labels-how-to-play-and-display-the-literals-of-a-graph-in-sparnatural/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-05-07T00:00:00Z" aria-label=", written 07 May 2025">
+                        07 May 2025
+                    </time>
+                    <span class="otherposts__title">Multilingualism, multi-labelsÂ : how to play and display the literals of a graph in Sparnatural</span>
+                </a>
+            </li>
+            
+        
+            
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/sapa-foundation-a-data-graph-linked-to-the-heart-of-the-archives/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-04-14T00:00:00Z" aria-label=", written 14 Apr 2025">
+                        14 Apr 2025
+                    </time>
+                    <span class="otherposts__title">SAPA Foundation, a data graph linked to the heart of the archives</span>
+                </a>
+            </li>
+            
+        
+            
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/call-for-nominations-for-the-semweb-pro-program-committee/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-04-11T00:00:00Z" aria-label=", written 11 Apr 2025">
+                        11 Apr 2025
+                    </time>
+                    <span class="otherposts__title">Call for nominations for the SemWeb.Pro program committee</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/sparnas-tools-in-semantic-web-tool-hub/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-04-08T00:00:00Z" aria-label=", written 08 Apr 2025">
+                        08 Apr 2025
+                    </time>
+                    <span class="otherposts__title">Sparna&#39;s tools in Semantic Web Tool Hub</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/issn-contributes-130k-periodical-records-in-wikidata/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-03-14T00:00:00Z" aria-label=", written 14 Mar 2025">
+                        14 Mar 2025
+                    </time>
+                    <span class="otherposts__title">ISSN contributes 130k periodical records in Wikidata</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/widgets-wednesday-a-thread-about-sparnatural-widgets/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-03-05T00:00:00Z" aria-label=", written 05 Mar 2025">
+                        05 Mar 2025
+                    </time>
+                    <span class="otherposts__title">Widgets Wednesday !  a thread about Sparnatural widgets...</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/ric-o-converter-3-0-transition-from-ead-or-eac-to-archival-knowledge-graphs/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-02-26T00:00:00Z" aria-label=", written 26 Feb 2025">
+                        26 Feb 2025
+                    </time>
+                    <span class="otherposts__title">RiC-O converter 3.0 : transition from EAD or EAC to archival knowledge graphs</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/rdf2gephi-load-rdf-graphs-in-gephi/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-02-13T00:00:00Z" aria-label=", written 13 Feb 2025">
+                        13 Feb 2025
+                    </time>
+                    <span class="otherposts__title">rdf2gephi : load RDF graphs in Gephi</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/nakala-from-an-rdf-dataset-to-a-query-ui-in-minutes-shacl-automated-generation-and-sparnatural/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-02-06T00:00:00Z" aria-label=", written 06 Feb 2025">
+                        06 Feb 2025
+                    </time>
+                    <span class="otherposts__title">Nakala : from an RDF dataset to a query UI in minutes â SHACL automated generation and Sparnatural</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/ontologists-knowledge-engineers-are-your-data-shapes-in-good-shape/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-01-30T00:00:00Z" aria-label=", written 30 Jan 2025">
+                        30 Jan 2025
+                    </time>
+                    <span class="otherposts__title">Ontologists, knowledge engineers : are your data shapes in good shape ?</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/sparnatural-configuration-with-shacl/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-01-25T00:00:00Z" aria-label=", written 25 Jan 2025">
+                        25 Jan 2025
+                    </time>
+                    <span class="otherposts__title">Sparnatural configuration with SHACL</span>
+                </a>
+            </li>
+            
+        
+            
+            
+        
+            
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/awesome-semantic-shapes/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-01-08T00:00:00Z" aria-label=", written 08 Jan 2025">
+                        08 Jan 2025
+                    </time>
+                    <span class="otherposts__title">Awesome semantic shapes</span>
+                </a>
+            </li>
+            
+        
+            
+            
+            <li class="otherposts__item">
+                <a href="/en/posts/closeup-conference/" class="otherposts__link" hreflang="en">
+                    <img class="otherposts__flag" src="/assets/images/EN.png" alt="flag" />
+                    &middot;
+                    <time class="otherposts__date" datetime="2025-01-08T00:00:00Z" aria-label=", written 08 Jan 2025">
+                        08 Jan 2025
+                    </time>
+                    <span class="otherposts__title">CLOSEuP conference</span>
+                </a>
+            </li>
+            
+        
+    </ol>
+</div>
+		</section>
+		</div>
+
+		<footer id = "footer">
+			<div class = "interieur">
+				<section class = "colonne">
+					<div class="menu-menu-principal-container">
+						<ul id="menu-menu-principal-1" class="nav-menu"><li class="menu-item menu-item-type-post_type menu-item-object-page page_item page-item-46 menu-item-48"><a href="/">Home</a></li>
+							<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-26"><a href="/en/references">Use cases</a></li>
+							<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-22"><a href="/en/formations">Training offers</a></li>
+							<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-10"><a href="/en/team">The Team</a></li>
+							<li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-9"><a href="/en/contact">Contact</a></li>
+							<li class="menu-item menu-item-type-custom menu-item-object-custom menu-item-50"><a href="https://blog.sparna.fr" target="_blank">Blog</a></li>
+						</ul>
+					</div>
+				</section>
+
+				<section class = "colonne double"></section>
+
+				<section class = "colonne double">
+					<h5><a class="rsswidget" href="https://blog.sparna.fr/feed"><img style="border:0" width="14" height="14" src="../../../assets/images/rss.png " alt="RSS"></a> <a class="rsswidget" href="https://blog.sparna.fr/">Last articles from the blog</a></h5>
+					<ul>
+								<li><a href="https://blog.sparna.fr/2025/06/03/sparnatural-data-federation-sparql/">Sparnatural as a simple data federation facade</a></li>
+							
+						
+								<li><a href="https://blog.sparna.fr/2025/04/09/european-parliament-open-data-portal-a-shacl-powered-knowledge-graph/">European Parliament Open Data Portal : a SHACL-powered knowledge graph</a></li>
+							
+						
+								<li><a href="https://blog.sparna.fr/2025/03/28/the-genesis-of-sparnatural-in-the-context-of-the-openarchaeo-platform/">The Genesis of Sparnatural in the context of the OpenArchaeo platform</a></li>
+							
+						
+								<li><a href="https://blog.sparna.fr/2025/02/14/retour-sur-le-deploiement-de-sparnatural-pour-francearchives/">Retour sur â¦ Le dÃ©ploiement de Sparnatural pour FranceArchives</a></li>
+							
+						
+								<li><a href="https://blog.sparna.fr/2025/02/06/nakala-from-an-rdf-dataset-to-a-query-ui-in-minutes-shacl-automated-generation-and-sparnatural/">Nakala : from an RDF dataset to a query UI in minutes â SHACL automated generation and Sparnatural</a></li>
+							
+						
+						
+						
+						
+						
+						
+					</ul>
+				</section>
+			</div>
+		</footer>
+
+	</body>
+</html>

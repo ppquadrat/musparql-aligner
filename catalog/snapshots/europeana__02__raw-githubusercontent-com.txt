@@ -1,0 +1,315 @@
+SOURCE: https://raw.githubusercontent.com/europeana/sparql-ui/master/europeana/query-samples.json
+
+[ {
+  "category" : "General",
+  "title" : "List all available objects",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE { ?ProvidedCHO rdf:type edm:ProvidedCHO }\nLIMIT 10",
+  "tags" : [ "edm:ProvidedCHO" ],
+  "href" : "Examples#List all available objects"
+}, {
+  "category" : "General",
+  "title" : "Get metadata for an object",
+  "query" : "SELECT DISTINCT ?ProvidedCHO ?property ?value\nWHERE { \n  ?ProvidedCHO rdf:type edm:ProvidedCHO . \n  FILTER (?ProvidedCHO = <http://data.europeana.eu/item/08501/Athena_Update_ProvidedCHO_Bildarchiv_Foto_Marburg_obj_00023128_LA_2_088_40>) .\n  ?Proxy ore:proxyFor ?ProvidedCHO .\n  ?Proxy ?property ?value .\n  FILTER (?property not in (edm:europeanaProxy, ore:proxyIn, ore:proxyFor))\n}",
+  "tags" : [ "edm:ProvidedCHO" ],
+  "href" : "Examples#Get metadata for an object"
+}, {
+  "category" : "General",
+  "title" : "List provider proxies",
+  "query" : "SELECT ?Proxy\r\nWHERE {\r\n  ?Proxy rdf:type ore:Proxy ;\r\n         edm:europeanaProxy \"false\"\r\n}\r",
+  "tags" : [ "ore:Proxy", "edm:europeanaProxy" ],
+  "href" : "Examples#List provider proxies"
+}, {
+  "category" : "General",
+  "title" : "List Europeana proxies",
+  "query" : "SELECT ?Proxy\nWHERE {\n  ?EuropeanaAggregation rdf:type edm:EuropeanaAggregation .\n  ?Proxy ore:proxyIn ?EuropeanaAggregation\n}\n",
+  "tags" : [ "ore:Proxy", "edm:EuropeanaAggregation" ],
+  "href" : "Examples#List Europeana proxies"
+}, {
+  "category" : "Searching for media available in objects",
+  "title" : "Metadata for a media resource",
+  "query" : "DESCRIBE <https://www.mauritshuis.nl/media/wlola5to/0670_repro_2.jpg>",
+  "tags" : [ "edm:WebResource" ],
+  "href" : "Examples#Metadata for a media resource"
+}, {
+  "category" : "Searching for media available in objects",
+  "title" : "List media resources",
+  "query" : "SELECT DISTINCT ?WebResource\nWHERE { ?WebResource rdf:type edm:WebResource }",
+  "tags" : [ "edm:WebResource" ],
+  "href" : "Examples#List media resources"
+}, {
+  "category" : "Searching for media available in objects",
+  "title" : "List media resources of an object",
+  "query" : "SELECT DISTINCT ?WebResource\nWHERE { \n  ?Aggregation edm:isShownBy|edm:hasView ?WebResource ;\n               edm:aggregatedCHO <http://data.europeana.eu/item/08501/Athena_Update_ProvidedCHO_Bildarchiv_Foto_Marburg_obj_00023128_LA_2_088_40> \n}",
+  "tags" : [ "edm:WebResource", "edm:ProvidedCHO" ],
+  "href" : "Examples#List media resources of an object"
+}, {
+  "category" : "Searching for media available in objects",
+  "title" : "Distribution of web resources per type",
+  "query" : "SELECT ?EuropeanaType (count(*) as ?count) \r\nWHERE {\r\n  ?Aggregation edm:isShownBy|edm:hasView ?WebResource .\r\n  ?Proxy ore:proxyIn ?Aggregation ;\r\n         edm:type ?EuropeanaType . \r\n}\r\nGROUP BY ?EuropeanaType",
+  "tags" : [ "edm:WebResource", "edm:isShownBy", "edm:hasView" ],
+  "href" : "Examples#Distribution of web resources per type"
+}, {
+  "category" : "Searching for media available in objects",
+  "title" : "Distribution of web resources per rights statement",
+  "query" : "SELECT ?Rights (count(*) as ?count) \nWHERE {\n  ?Aggregation edm:rights ?Rights ;\n               edm:isShownBy|edm:hasView ?WebResource\n}\nGROUP BY ?Rights\nORDER BY DESC (?count)",
+  "tags" : [ "edm:WebResource", "edm:isShownBy", "edm:hasView" ],
+  "href" : "Examples#Distribution of web resources per rights statement"
+}, {
+  "category" : "Searching for media available in objects",
+  "title" : "List openly licensed video resources and its respective object",
+  "query" : "SELECT DISTINCT ?WebResource ?ProvidedCHO\nWHERE { \n  ?Aggregation edm:rights ?Rights ;\n               edm:isShownBy|edm:hasView ?WebResource ;\n               edm:aggregatedCHO ?ProvidedCHO .\n  ?Proxy ore:proxyIn ?Aggregation ;\n         edm:type \"VIDEO\" . \n  FILTER (?Rights IN ( <http://creativecommons.org/publicdomain/mark/1.0/>\n                     , <http://creativecommons.org/publicdomain/zero/1.0/>\n                     , <http://creativecommons.org/licenses/by/1.0/> \n                     , <http://creativecommons.org/licenses/by-sa/1.0/> ))\n}",
+  "tags" : [ "edm:WebResource", "edm:isShownBy", "edm:hasView", "edm:rights", "edm:ProvidedCHO" ],
+  "href" : "Examples#List openly licensed video resources and its respective object"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "Metadata for a specific agent resource (ie. Vermeer)",
+  "query" : "DESCRIBE <http://viaf.org/viaf/207945332>",
+  "tags" : [ "edm:Agent" ],
+  "href" : "Examples#Metadata for a specific agent resource (ie. Vermeer)"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List agent resources that are associated to objects",
+  "query" : "SELECT DISTINCT ?Agent\nWHERE { ?Agent rdf:type edm:Agent }\nLIMIT 10",
+  "tags" : [ "edm:Agent" ],
+  "href" : "Examples#List agent resources that are associated to objects"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List agent resources from VIAF",
+  "query" : "SELECT DISTINCT ?Agent\nWHERE {\n  ?Agent rdf:type edm:Agent .\n  FILTER strstarts(str(?Agent), \"http://viaf.org/viaf/\")\n}\nLIMIT 10",
+  "tags" : [ "edm:Agent" ],
+  "href" : "Examples#List agent resources from VIAF"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects that reference an agent resource",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE {\n  ?Place rdf:type edm:Agent .\n  ?Proxy ?property ?Agent ;\n         ore:proxyFor ?ProvidedCHO\n}\nLIMIT 10",
+  "tags" : [ "edm:Agent", "edm:ProvidedCHO" ],
+  "href" : "Examples#List objects that reference an agent resource"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects that have creator or contributor information",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE {\n  ?Proxy dc:creator|dc:contributor ?Agent ;\n         ore:proxyFor ?ProvidedCHO\n}\nLIMIT 10",
+  "tags" : [ "edm:Agent", "edm:ProvidedCHO", "dc:creator", "dc:contributor" ],
+  "href" : "Examples#List objects that have creator or contributor information"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects that reference agents from VIAF",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE {\n  ?Proxy ?property ?Agent ;\n         ore:proxyFor ?ProvidedCHO .\n  ?Agent rdf:type edm:Agent .\n  FILTER strstarts(str(?Agent), \"http://viaf.org/viaf/\")\n}\nLIMIT 10",
+  "tags" : [ "edm:Agent", "edm:ProvidedCHO" ],
+  "href" : "Examples#List objects that reference agents from VIAF"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "Metadata for a specific place",
+  "query" : "DESCRIBE <http://sws.geonames.org/2759794/>",
+  "tags" : [ "edm:Place" ],
+  "href" : "Examples#Metadata for a specific place"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List place resources that are associated to objects",
+  "query" : "SELECT DISTINCT ?Place\nWHERE { ?Place rdf:type edm:Place }",
+  "tags" : [ "edm:Place" ],
+  "href" : "Examples#List place resources that are associated to objects"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List place resources from Geonames",
+  "query" : "SELECT DISTINCT ?Place\nWHERE {\n  ?Place rdf:type edm:Place .\n  FILTER strstarts(str(?Place), \"http://sws.geonames.org/\")\n}",
+  "tags" : [ "edm:Place" ],
+  "href" : "Examples#List place resources from Geonames"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects that reference a place resource",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE {\n  ?Place rdf:type edm:Place .\n  ?Proxy ?property ?Place ;\n         ore:proxyFor ?ProvidedCHO\n}",
+  "tags" : [ "edm:Place" ],
+  "href" : "Examples#List objects that reference a place resource"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects that have spatial or coverage information",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE {\n  ?Place rdf:type edm:Place .\n  ?Proxy dcterms:spatial|dc:coverage ?Place ;\n         ore:proxyFor ?ProvidedCHO\n}",
+  "tags" : [ "edm:ProvidedCHO", "dcterms:spatial", "dc:coverage" ],
+  "href" : "Examples#List objects that have spatial or coverage information"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects that reference places from Geonames",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE {\n  ?Place rdf:type edm:Place .\n  FILTER strstarts(str(?Place), \"http://sws.geonames.org/\")\n  ?Proxy ?property ?Place ; \n         ore:proxyFor ?ProvidedCHO\n}",
+  "tags" : [ ],
+  "href" : "Examples#List objects that reference places from Geonames"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "Obtain the most detailed Place in Europeana",
+  "query" : "SELECT ?Place (count(DISTINCT ?property) as ?count)\nWHERE {\n  ?Place rdf:type edm:Place ;\n         ?property ?value .\n}\nGROUP BY ?Place \nORDER BY DESC(?count)",
+  "tags" : [ "edm:Place", "edm:ProvidedCHO" ],
+  "href" : "Examples#Obtain the most detailed Place in Europeana"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "Metadata for a specific concept",
+  "query" : "DESCRIBE <http://vocab.getty.edu/aat/300033618>",
+  "tags" : [ "skos:Concept" ],
+  "href" : "Examples#Metadata for a specific concept"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List concept resources that are associated to objects",
+  "query" : "SELECT DISTINCT ?Concept\nWHERE { ?Concept rdf:type skos:Concept }",
+  "tags" : [ "skos:Concept" ],
+  "href" : "Examples#List concept resources that are associated to objects"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List concept resources from Getty’s Art & Architecture Thesaurus",
+  "query" : "SELECT DISTINCT ?Concept\nWHERE {\n  ?Concept rdf:type skos:Concept .\n  FILTER strstarts(str(?Concept), \"http://vocab.getty.edu/aat/\") .\n}",
+  "tags" : [ "skos:Concept" ],
+  "href" : "Examples#List concept resources from Getty’s Art & Architecture Thesaurus"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects that reference a concept resource",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE {\n  ?Concept rdf:type skos:Concept .\n  ?Proxy ?property ?Concept ; \n         ore:proxyFor ?ProvidedCHO\n}",
+  "tags" : [ "skos:Concept", "edm:ProvidedCHO" ],
+  "href" : "Examples#List objects that reference a concept resource"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects that have type or subject information",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE {\n  ?Proxy dc:type|dc:subject ?Concept ;\n         ore:proxyFor ?ProvidedCHO\n}",
+  "tags" : [ "skos:Concept", "edm:ProvidedCHO" ],
+  "href" : "Examples#List objects that have type or subject information"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects that reference concepts from Getty’ Art & Architecture Thesaurus",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE {\n  ?Concept rdf:type skos:Concept .\n  FILTER strstarts(str(?Concept), \"http://vocab.getty.edu/aat/\") .\n  ?Proxy ?property ?Concept ;\n         ore:proxyFor ?ProvidedCHO\n}",
+  "tags" : [ "skos:Concept", "edm:ProvidedCHO" ],
+  "href" : "Examples#List objects that reference concepts from Getty’ Art & Architecture Thesaurus"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "Metadata for a specific time period",
+  "query" : "DESCRIBE <http://data.europeana.eu/timespan/20>",
+  "tags" : [ "edm:TimeSpan" ],
+  "href" : "Examples#Metadata for a specific time period"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List time period resources that are associated to objects",
+  "query" : "SELECT DISTINCT ?TimeSpan\nWHERE { ?TimeSpan rdf:type edm:TimeSpan }",
+  "tags" : [ "edm:TimeSpan" ],
+  "href" : "Examples#List time period resources that are associated to objects"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects that reference a time period resource",
+  "query" : "SELECT DISTINCT ?ProvidedCHO\nWHERE {\n  ?Time rdf:type edm:TimeSpan .\n  ?Proxy ?property ?Time ;\n         ore:proxyFor ?ProvidedCHO\n}",
+  "tags" : [ "edm:TimeSpan", "edm:ProvidedCHO" ],
+  "href" : "Examples#List objects that reference a time period resource"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List objects of the 18th century from France",
+  "query" : "SELECT ?ProvidedCHO ?year\nWHERE {\n  ?Aggregation edm:aggregatedCHO ?ProvidedCHO ;\n               edm:country \"France\" .\n  ?Proxy ore:proxyFor ?ProvidedCHO ;\n         edm:year ?year .\n  FILTER (?year > \"1700\" && ?year <= \"1800\")\n}\nORDER BY asc(?year)",
+  "tags" : [ "edm:ProvidedCHO", "edm:country", "edm:year" ],
+  "href" : "Examples#List objects of the 18th century from France"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "List Spanish Periodicals by Year",
+  "query" : "SELECT ?date (count(*) as ?count)  {\r\n  ?proxy dc:type 'info:eu-repo/semantics/article'.\r\n  OPTIONAL { ?proxy dcterms:issued ?issued }\r\n  OPTIONAL { ?proxy dc:date        ?dcdate }\r\n  bind (xsd:integer(substr(coalesce(?issued,?dcdate),1,4)) as ?date)\r\n}\r\nGROUP BY ?date HAVING (?count>1)\r\nORDER BY ?date\r",
+  "tags" : [ ],
+  "href" : "Examples#List Spanish Periodicals by Year"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "Polish Periodicals by Year and Library",
+  "query" : "SELECT\n  ?year \n  (sum(?n1) as ?Uniwersytetu_Warszawskiego)\n  (sum(?n2) as ?Politechniki_Lubelskiej)\n  (sum(?n3) as ?Baltycka)\n{\n  ?Periodical dc:type 'periodical'@en.\n  ?Periodical ore:proxyIn/edm:dataProvider ?dataProvider.\n  ?Periodical dc:date ?date.\n  bind (xsd:integer(concat(substr(?date,1,3),'0')) as ?year)\n  bind (if(?dataProvider='e-biblioteka Uniwersytetu Warszawskiego',1,0) as ?n1)\n  bind (if(?dataProvider='Biblioteka Cyfrowa Politechniki Lubelskiej',1,0) as ?n2)\n  bind (if(?dataProvider='Bałtycka Biblioteka Cyfrowa',1,0) as ?n3)\n}\nGROUP BY ?year\nORDER BY ?year\n",
+  "tags" : [ ],
+  "href" : "Examples#Polish Periodicals by Year and Library"
+}, {
+  "category" : "Searching by contextual information associated to objects",
+  "title" : "Europeana Newspapers by Year",
+  "query" : "SELECT ?Date (COUNT(*) as ?count)\r\nWHERE {\r\n  ?x edm:hasType <http://vocab.getty.edu/aat/300026656> ;\r\n     dc:date ?dat .\r\n  bind(concat(substr(?dat,1,3),\"0\") as ?Date)\r\n}\r\nGROUP BY ?Date HAVING (?count>1)\r\nORDER BY ?Date\r",
+  "tags" : [ ],
+  "href" : "Examples#Europeana Newspapers by Year"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "Metadata for a specific organisation",
+  "query" : "DESCRIBE <http://data.europeana.eu/organization/4373>",
+  "tags" : [ "foaf:Organization" ],
+  "href" : "Examples#Metadata for a specific organisation"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "List organisations that provided objects",
+  "query" : "SELECT DISTINCT ?Organisation\nWHERE { ?Organisation rdf:type foaf:Organization }",
+  "tags" : [ "foaf:Organization" ],
+  "href" : "Examples#List organisations that provided objects"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "List only organisations that are aggregators",
+  "query" : "SELECT DISTINCT ?Aggregator\nWHERE { ?Aggregation edm:provider ?Aggregator }",
+  "tags" : [ "edm:provider" ],
+  "href" : "Examples#List only organisations that are aggregators"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "List only organisations that are data providers",
+  "query" : "SELECT DISTINCT ?DataProvider\nWHERE { ?Aggregation edm:dataProvider ?DataProvider }",
+  "tags" : [ "edm:dataProvider" ],
+  "href" : "Examples#List only organisations that are data providers"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "Distribution of objects by aggregator",
+  "query" : "SELECT ?Provider (count(*) as ?count)\nWHERE {\n  ?Aggregation edm:aggregatedCHO ?ProvidedCHO ;\n               edm:provider ?Provider .\n}\nGROUP BY ?Provider \nORDER BY DESC(?count)",
+  "tags" : [ "edm:ProvidedCHO", "edm:provider" ],
+  "href" : "Examples#Distribution of objects by aggregator"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "Distribution of objects by data provider and aggregator",
+  "query" : "SELECT ?Provider ?DataProvider (count(*) as ?count)\nWHERE {\n  ?Aggregation edm:aggregatedCHO ?ProvidedCHO ;\n               edm:provider ?Provider ;\n               edm:dataProvider ?DataProvider\n}\nGROUP BY ?Provider ?DataProvider \nORDER BY ?Provider ?DataProvider ",
+  "tags" : [ "edm:provider", "edm:dataProvider", "edm:ProvidedCHO" ],
+  "href" : "Examples#Distribution of objects by data provider and aggregator"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "Distribution of objects per country",
+  "query" : "SELECT ?Country (count(*) as ?count)\nWHERE {\n  ?Aggregation edm:aggregatedCHO ?ProvidedCHO ;\n               edm:country ?Country .\n}\nGROUP BY ?Country\nORDER BY DESC(?count)",
+  "tags" : [ "edm:country", "edm:ProvidedCHO" ],
+  "href" : "Examples#Distribution of objects per country"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "List objects from the Netherlands",
+  "query" : "SELECT ?ProvidedCHO\nWHERE {\n  ?Aggregation edm:aggregatedCHO ?ProvidedCHO ;\n               edm:country ?Country .\n  FILTER (?Country = \"netherlands\")\n}",
+  "tags" : [ "edm:country", "edm:ProvidedCHO" ],
+  "href" : "Examples#List objects from the Netherlands"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "Distribution of objects per country and provider",
+  "query" : "SELECT ?Country ?Provider (count(*) as ?count) \nWHERE {\n  ?AggregationEuropeana edm:country ?Country ;\n                        edm:aggregatedCHO ?ProvidedCHO .\n  ?AggregationProvider  edm:aggregatedCHO ?ProvidedCHO ;\n                        rdf:type ore:Aggregation ;\n                        edm:provider ?Provider. \n}\nGROUP BY ?Country ?Provider \nORDER BY ?Country ?Provider",
+  "tags" : [ "edm:country", "edm:provider", "edm:ProvidedCHO" ],
+  "href" : "Examples#Distribution of objects per country and provider"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "Distribution of objects per country and Europeana type",
+  "query" : "SELECT ?Country ?EuropeanaType (count(*) as ?count)\nWHERE {\n  ?AggregationEuropeana edm:country ?Country ;\n                        edm:aggregatedCHO ?ProvidedCHO .\n  ?AggregationProvider  edm:aggregatedCHO ?ProvidedCHO ;\n                        rdf:type ore:Aggregation ;\n                        edm:provider ?Provider .  \n  ?Proxy ore:proxyIn ?AggregationEuropeana ;\n         edm:type ?EuropeanaType .\n}\nGROUP BY ?Country ?EuropeanaType \nORDER BY ?Country ?EuropeanaType",
+  "tags" : [ "edm:country", "edm:provider", "edm:ProvidedCHO" ],
+  "href" : "Examples#Distribution of objects per country and Europeana type"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "Distribution of objects per language of the metadata",
+  "query" : "SELECT ?Lang (count(*) as ?count) \nWHERE {\n  ?Aggregation edm:language ?Lang ;\n               edm:aggregatedCHO ?ProvidedCHO .\n}\nGROUP BY ?Lang\nORDER BY DESC(?count)",
+  "tags" : [ "edm:language", "edm:ProvidedCHO" ],
+  "href" : "Examples#Distribution of objects per language of the metadata"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "List datasets",
+  "query" : "SELECT DISTINCT ?Dataset\nWHERE {\n  ?Aggregation edm:datasetName ?Dataset\n}\n",
+  "tags" : [ "edm:datasetName" ],
+  "href" : "Examples#List datasets"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "List datasets from Italy",
+  "query" : "SELECT ?Dataset\nWHERE {\n  ?Aggregation edm:datasetName ?Dataset ;\n               edm:country \"Italy\"\n}\n",
+  "tags" : [ "edm:datasetName", "edm:country" ],
+  "href" : "Examples#List datasets from Italy"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "List datasets with video content",
+  "query" : "SELECT DISTINCT ?Dataset\nWHERE {\n  ?Aggregation edm:datasetName ?Dataset .\n  ?Proxy ore:proxyIn ?Aggregation ;\n         edm:type \"VIDEO\"\n}\n",
+  "tags" : [ "edm:datasetName", "edm:type" ],
+  "href" : "Examples#List datasets with video content"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "List datasets with video content from the Netherlands",
+  "query" : "SELECT DISTINCT ?Dataset\nWHERE {\n  ?Aggregation edm:datasetName ?Dataset ;\n               edm:country \"netherlands\" .\n  ?Proxy ore:proxyIn ?Aggregation ;\n         edm:type \"VIDEO\"\n}\n",
+  "tags" : [ "edm:datasetName", "edm:country", "edm:type" ],
+  "href" : "Examples#List datasets with video content from the Netherlands"
+}, {
+  "category" : "Searching by the provenance of the objects",
+  "title" : "List datasets with openly licensed content",
+  "query" : "SELECT DISTINCT ?Dataset\nWHERE {\n  ?Aggregation edm:datasetName ?Dataset ;\n               edm:rights ?Rights .\n  FILTER (?Rights IN ( <http://creativecommons.org/publicdomain/mark/1.0/>\n                     , <http://creativecommons.org/publicdomain/zero/1.0/>\n                     , <http://creativecommons.org/licenses/by/1.0/> \n                     , <http://creativecommons.org/licenses/by-sa/1.0/> ))\n}\n",
+  "tags" : [ "edm:datasetName", "edm:rights" ],
+  "href" : "Examples#List datasets with openly licensed content"
+} ]

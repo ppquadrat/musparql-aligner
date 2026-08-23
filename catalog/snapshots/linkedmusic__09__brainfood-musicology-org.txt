@@ -3,7 +3,7 @@ SOURCE: https://brainfood.musicology.org/vol-9-no-1-2025/integrating-online-musi
 <!doctype html>
 <html lang="en-US">
 <head>
-
+	
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
 	<link rel="profile" href="https://gmpg.org/xfn/11">
@@ -100,7 +100,7 @@ input[type="search"]:focus {
 .qtip-default {
 	border-radius: 20px !important;
 	padding: 8px !important;
-
+	
 }
 
 /* Bio */
@@ -174,7 +174,7 @@ input[type="search"]:focus {
 	border-top: 1px solid #dbdfe1;
 	padding-top: 32px;
 	text-align: center;}
-.ct-comments {
+.ct-comments {	
 	text-align: center;}
 #reply-title {
 	display: inherit;
@@ -203,7 +203,7 @@ input[type="search"]:focus {
 .container {
 	border-radius: 20px !important;
   border: 1px solid var(--theme-palette-color-5);
-  box-shadow: 5px 5px 12px 0px var(--theme-palette-color-5) !important;
+  box-shadow: 5px 5px 12px 0px var(--theme-palette-color-5) !important;	
 	padding: 20px !important;
 }
 label a {
@@ -260,7 +260,7 @@ label a {
 	color: #417686;}
 .container-ftr a:hover {
 	color: #074d64;}
-.image-ftr {
+.image-ftr {	
 	margin-right: 10px;}
 .has-text-align-right, #block-13 {
 	font-size: 11pt;
@@ -350,12 +350,12 @@ label a {
 			</div>
 
 			<div class="ct-panel-content">
-
+				
 
 <form role="search" method="get" class="ct-search-form" data-form-controls="inside" data-taxonomy-filter="false" data-submit-button="icon" action="https://brainfood.musicology.org/" data-live-results="thumbs">
 
 	<div class="ct-search-form-inner ct-pseudo-input" >
-
+		
 			<input
 				type="search" class="modal-field"				placeholder="Start typing to search"
 				value=""
@@ -365,13 +365,13 @@ label a {
 				aria-label="Search for..."
 									role="combobox"
 					aria-autocomplete="list"
-					aria-controls="ct-search-results-186"
-					aria-describedby="ct-search-status-186"
+					aria-controls="ct-search-results-144"
+					aria-describedby="ct-search-status-144"
 					aria-expanded="false"
 											>
 
-
-
+			
+		
 		<button type="submit" class="wp-element-button" aria-label="Search button">
 			<svg class="ct-icon ct-search-button-content" aria-hidden="true" width="15" height="15" viewBox="0 0 15 15"><path d="M14.8,13.7L12,11c0.9-1.2,1.5-2.6,1.5-4.2c0-3.7-3-6.8-6.8-6.8S0,3,0,6.8s3,6.8,6.8,6.8c1.6,0,3.1-0.6,4.2-1.5l2.8,2.8c0.1,0.1,0.3,0.2,0.5,0.2s0.4-0.1,0.5-0.2C15.1,14.5,15.1,14,14.8,13.7z M1.5,6.8c0-2.9,2.4-5.2,5.2-5.2S12,3.9,12,6.8S9.6,12,6.8,12S1.5,9.6,1.5,6.8z"/></svg>
 			<span class="ct-ajax-loader">
@@ -395,31 +395,31 @@ label a {
 		</button>
 
 					<input type="hidden" name="post_type" value="post">
-
-
-
+		
+		
+		
 
 			</div>
 
 			<div
 			class="screen-reader-text"
-			id="ct-search-status-186"
+			id="ct-search-status-144"
 			aria-live="polite"
 			role="status">
 			No results		</div>
-
+	
 </form>
 			</div>
 		</div>
 
 		<div id="offcanvas" class="ct-panel ct-header" data-behaviour="right-side" role="dialog" aria-label="Offcanvas modal" inert=""><div class="ct-panel-inner">
 				<div class="ct-panel-actions">
-
-
+					
+					
 				<button class="ct-toggle-close" data-type="type-1" aria-label="Close drawer">
 					<svg class="ct-icon" width="12" height="12" viewBox="0 0 15 15"><path d="M1 15a1 1 0 01-.71-.29 1 1 0 010-1.41l5.8-5.8-5.8-5.8A1 1 0 011.7.29l5.8 5.8 5.8-5.8a1 1 0 011.41 1.41l-5.8 5.8 5.8 5.8a1 1 0 01-1.41 1.41l-5.8-5.8-5.8 5.8A1 1 0 011 15z"/></svg>
 				</button>
-
+			
 				</div>
 			<div class="ct-panel-content" data-device="desktop"><div class="ct-panel-content-inner"></div></div><div class="ct-panel-content" data-device="mobile"><div class="ct-panel-content-inner">
 <nav
@@ -437,7 +437,7 @@ label a {
 
 		<div class="container">
 							<div class="ct-cookies-content"><p>We use cookies to give you the best experience on our website.</p></div>
-
+			
 			<div class="ct-button-group">
 				<button type="button" class="ct-button ct-cookies-accept-button">Accept</button>
 
@@ -451,7 +451,7 @@ label a {
 <div	class="site-branding"
 	data-id="logo"		itemscope="itemscope" itemtype="https://schema.org/Organization">
 
-			<a href="https://brainfood.musicology.org/" class="site-logo-container" rel="home" itemprop="url" ><img width="100" height="100" src="https://brainfood.musicology.org/wp-content/uploads/brainfood_header.svg" class="sticky-logo" alt="IMS Musicological Brainfood" decoding="async" /><img width="100" height="100" src="https://brainfood.musicology.org/wp-content/uploads/brainfood_header.svg" class="default-logo" alt="IMS Musicological Brainfood" decoding="async" /></a>
+			<a href="https://brainfood.musicology.org/" class="site-logo-container" rel="home" itemprop="url" ><img width="100" height="100" src="https://brainfood.musicology.org/wp-content/uploads/brainfood_header.svg" class="sticky-logo" alt="IMS Musicological Brainfood" decoding="async" /><img width="100" height="100" src="https://brainfood.musicology.org/wp-content/uploads/brainfood_header.svg" class="default-logo" alt="IMS Musicological Brainfood" decoding="async" /></a>	
 	</div>
 
 </div></div><div data-column="end" data-placements="1"><div data-items="primary">
@@ -497,7 +497,7 @@ label a {
 <div	class="site-branding"
 	data-id="logo"		>
 
-			<a href="https://brainfood.musicology.org/" class="site-logo-container" rel="home" itemprop="url" ><img width="100" height="100" src="https://brainfood.musicology.org/wp-content/uploads/brainfood_header.svg" class="sticky-logo" alt="IMS Musicological Brainfood" decoding="async" /><img width="100" height="100" src="https://brainfood.musicology.org/wp-content/uploads/brainfood_header.svg" class="default-logo" alt="IMS Musicological Brainfood" decoding="async" /></a>
+			<a href="https://brainfood.musicology.org/" class="site-logo-container" rel="home" itemprop="url" ><img width="100" height="100" src="https://brainfood.musicology.org/wp-content/uploads/brainfood_header.svg" class="sticky-logo" alt="IMS Musicological Brainfood" decoding="async" /><img width="100" height="100" src="https://brainfood.musicology.org/wp-content/uploads/brainfood_header.svg" class="default-logo" alt="IMS Musicological Brainfood" decoding="async" /></a>	
 	</div>
 
 </div></div><div data-column="end" data-placements="1"><div data-items="primary">
@@ -534,26 +534,26 @@ label a {
 </div></div></div></div></div></header>
 	<main id="main" class="site-main hfeed" tabindex="-1" itemscope="itemscope" itemtype="https://schema.org/CreativeWork">
 
-
+		
 	<div
 		class="ct-container-full"
 				data-content="narrow"		data-vertical-spacing="top:bottom">
 
-
-
+		
+		
 	<article
 		id="post-2564"
 		class="post-2564 post type-post status-publish format-standard has-post-thumbnail hentry category-vol-9-no-1-2025 tag-interoperability tag-large-language-models tag-metadata tag-multilingualism tag-wikidata">
 
-
+		
 <div class="hero-section is-width-constrained" data-type="type-1">
 			<header class="entry-header">
 			<h1 class="page-title" itemprop="headline">Integrating Online Music Databases: The LinkedMusic Project</h1><ul class="entry-meta" data-type="simple:slash" ><li class="meta-categories" data-type="simple"><a href="https://brainfood.musicology.org/author/ichiro-fujinaga/" rel="tag" class="ct-term-142">Ichiro Fujinaga</a></li><li class="meta-date" itemprop="datePublished"><time class="ct-meta-element-date" datetime="2025-03-12T07:02:00+01:00">12 March 2025</time></li><li class="meta-categories" data-type="simple"><a href="https://brainfood.musicology.org/./vol-9-no-1-2025/" rel="tag" class="ct-term-141">Vol. 9 • No. 1 • 2025</a></li></ul>		</header>
 	</div>
-
-
+		
+		
 		<div class="entry-content is-layout-constrained">
-
+			
 <p class="wp-block-paragraph">Advancements in digital technology have made online text searches seamless, enabling scholars to tackle complex research questions with ease. Searching for musical information online, however, remains a significant challenge. Despite the vast amount of music-related data available on the internet, researchers struggle to perform large-scale searches due to the fragmented nature of music databases and the diversity of musical formats—scores, recordings, and images.</p>
 
 
@@ -674,10 +674,10 @@ label a {
 
 <p class="wp-block-paragraph">This research has been supported by the Social Sciences and Humanities Research Council of Canada (SSHRC 895-2022-1004) and the Fonds de Recherche du Québec—Société et Culture (FRQSC SE3-303927).</p>
 
-
+                
                     <!--begin code -->
 
-
+                    
                     <div class="pp-multiple-authors-boxes-wrapper pp-multiple-authors-wrapper pp-multiple-authors-layout-centered multiple-authors-target-the-content box-post-id-941 box-instance-id-1 ppma_boxes_941"
                     data-post_id="941"
                     data-instance_id="1"
@@ -687,25 +687,25 @@ label a {
                         <div class="ppma-author-category-wrap">
                                                                                                                                     <span class="ppma-category-group ppma-category-group-1 category-index-0">
                                                                                                                         <ul class="pp-multiple-authors-boxes-ul author-ul-0">
-
+                                                                                                                                                                                                                                                                                                                                                            
                                                                                                                     <li class="pp-multiple-authors-boxes-li author_index_0 author_ichiro-fujinaga has-avatar">
                                                                                                                                                                                     <div class="pp-author-boxes-avatar">
                                                                     <div class="avatar-image">
                                                                                                                                                                                                                 <img alt='Ichiro Fujinaga' src='https://brainfood.musicology.org/wp-content/uploads/fujinaga.jpg' srcset='https://brainfood.musicology.org/wp-content/uploads/fujinaga.jpg' class='multiple_authors_guest_author_avatar avatar' height='0' width='0'/>                                                                                                                                                                                                            </div>
                                                                                                                                     </div>
-
+                                                            
                                                             <div class="pp-author-boxes-avatar-details">
-                                                                <h4 class="pp-author-boxes-name multiple-authors-name"><a href="https://brainfood.musicology.org/author/ichiro-fujinaga/" rel="author" title="Ichiro Fujinaga" class="author url fn">Ichiro Fujinaga</a></h4>
+                                                                <h4 class="pp-author-boxes-name multiple-authors-name"><a href="https://brainfood.musicology.org/author/ichiro-fujinaga/" rel="author" title="Ichiro Fujinaga" class="author url fn">Ichiro Fujinaga</a></h4>                                                                                                                                                                                                    
                                                                                                                                             <div class="pp-author-boxes-description multiple-authors-description author-description-0">
                                                                                                                                                     <p>Ichiro Fujinaga (<a href="mailto:ichiro.fujinaga@mcgill.ca">ichiro.fujinaga@mcgill.ca</a>) is Canada Research Chair in Music Information Retrieval and Professor in the Music Technology Area of the Department of Music Research at the Schulich School of Music, McGill University. He has bachelor’s degrees in mathematics and music (percussion) from the University of Alberta, a master’s degree in music theory, and a PhD in music technology from McGill. For forty years, his primary research focus has been optical music recognition. Appointed to McGill in 2002, he established the Distributed Digital Music Archives &amp; Libraries laboratory, pioneering digital music archive and library systems for an emerging online world. </p>
                                                                                                                                                 </div>
-
+                                                                                                                                                                                                    
                                                                                                                                     <span class="pp-author-boxes-meta multiple-authors-links">
                                                                         <a href="https://brainfood.musicology.org/author/ichiro-fujinaga/" title="View all posts">
                                                                             <span>View all posts</span>
                                                                         </a>
                                                                     </span>
-
+                                                                                                                                
                                                                                                                             </div>
                                                                                                                                                                                                                         </li>
                                                                                                                                                                                                                                                                                         </ul>
@@ -714,18 +714,18 @@ label a {
                         <span class="ppma-layout-suffix"></span>
                                             </div>
                     <!--end code -->
-
-
-
+                    
+                
+                            
         <div class="easy-footnote-title"><h4>References</h4></div><ol class="easy-footnotes-wrapper"><li class="easy-footnote-single"><span id="easy-footnote-bottom-1-2564" class="easy-footnote-margin-adjust"></span>Europeana is a digital platform for cultural heritage supported by the European Union.<a class="easy-footnote-to-top" href="#easy-footnote-1-2564"></a></li><li class="easy-footnote-single"><span id="easy-footnote-bottom-2-2564" class="easy-footnote-margin-adjust"></span>We currently use a software called Virtuoso by OpenLink to implement this graph database.<a class="easy-footnote-to-top" href="#easy-footnote-2-2564"></a></li></ol>		</div>
 
-
-					<div class="entry-tags is-width-constrained "><h2 class="ct-module-title">Keywords</h2><div class="entry-tags-items"><a href="https://brainfood.musicology.org/tags/interoperability/" rel="tag"><span>#</span> interoperability</a><a href="https://brainfood.musicology.org/tags/large-language-models/" rel="tag"><span>#</span> Large Language Models</a><a href="https://brainfood.musicology.org/tags/metadata/" rel="tag"><span>#</span> metadata</a><a href="https://brainfood.musicology.org/tags/multilingualism/" rel="tag"><span>#</span> multilingualism</a><a href="https://brainfood.musicology.org/tags/wikidata/" rel="tag"><span>#</span> Wikidata</a></div></div>
-
+		
+					<div class="entry-tags is-width-constrained "><h2 class="ct-module-title">Keywords</h2><div class="entry-tags-items"><a href="https://brainfood.musicology.org/tags/interoperability/" rel="tag"><span>#</span> interoperability</a><a href="https://brainfood.musicology.org/tags/large-language-models/" rel="tag"><span>#</span> Large Language Models</a><a href="https://brainfood.musicology.org/tags/metadata/" rel="tag"><span>#</span> metadata</a><a href="https://brainfood.musicology.org/tags/multilingualism/" rel="tag"><span>#</span> multilingualism</a><a href="https://brainfood.musicology.org/tags/wikidata/" rel="tag"><span>#</span> Wikidata</a></div></div>		
+					
 		<div class="ct-share-box is-width-constrained" data-location="bottom" data-type="type-2" >
 			<span class="ct-module-title">Share This Provocation</span>
 			<div data-color="custom" data-icons-type="custom:solid">
-
+							
 				<a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fbrainfood.musicology.org%2Fvol-9-no-1-2025%2Fintegrating-online-music-databases%2F" data-network="facebook" aria-label="Facebook" rel="noopener noreferrer nofollow">
 					<span class="ct-icon-container">
 					<svg
@@ -736,7 +736,7 @@ label a {
 						<path d="M20,10.1c0-5.5-4.5-10-10-10S0,4.5,0,10.1c0,5,3.7,9.1,8.4,9.9v-7H5.9v-2.9h2.5V7.9C8.4,5.4,9.9,4,12.2,4c1.1,0,2.2,0.2,2.2,0.2v2.5h-1.3c-1.2,0-1.6,0.8-1.6,1.6v1.9h2.8L13.9,13h-2.3v7C16.3,19.2,20,15.1,20,10.1z"/>
 					</svg>
 				</span>				</a>
-
+							
 				<a href="https://twitter.com/intent/tweet?url=https%3A%2F%2Fbrainfood.musicology.org%2Fvol-9-no-1-2025%2Fintegrating-online-music-databases%2F&amp;text=Integrating%20Online%20Music%20Databases%3A%20The%20LinkedMusic%20Project" data-network="twitter" aria-label="X (Twitter)" rel="noopener noreferrer nofollow">
 					<span class="ct-icon-container">
 					<svg
@@ -747,7 +747,7 @@ label a {
 						<path d="M2.9 0C1.3 0 0 1.3 0 2.9v14.3C0 18.7 1.3 20 2.9 20h14.3c1.6 0 2.9-1.3 2.9-2.9V2.9C20 1.3 18.7 0 17.1 0H2.9zm13.2 3.8L11.5 9l5.5 7.2h-4.3l-3.3-4.4-3.8 4.4H3.4l5-5.7-5.3-6.7h4.4l3 4 3.5-4h2.1zM14.4 15 6.8 5H5.6l7.7 10h1.1z"/>
 					</svg>
 				</span>				</a>
-
+							
 				<a href="https://www.linkedin.com/shareArticle?url=https%3A%2F%2Fbrainfood.musicology.org%2Fvol-9-no-1-2025%2Fintegrating-online-music-databases%2F&amp;title=Integrating%20Online%20Music%20Databases%3A%20The%20LinkedMusic%20Project" data-network="linkedin" aria-label="LinkedIn" rel="noopener noreferrer nofollow">
 					<span class="ct-icon-container">
 					<svg
@@ -758,7 +758,7 @@ label a {
 						<path d="M18.6,0H1.4C0.6,0,0,0.6,0,1.4v17.1C0,19.4,0.6,20,1.4,20h17.1c0.8,0,1.4-0.6,1.4-1.4V1.4C20,0.6,19.4,0,18.6,0z M6,17.1h-3V7.6h3L6,17.1L6,17.1zM4.6,6.3c-1,0-1.7-0.8-1.7-1.7s0.8-1.7,1.7-1.7c0.9,0,1.7,0.8,1.7,1.7C6.3,5.5,5.5,6.3,4.6,6.3z M17.2,17.1h-3v-4.6c0-1.1,0-2.5-1.5-2.5c-1.5,0-1.8,1.2-1.8,2.5v4.7h-3V7.6h2.8v1.3h0c0.4-0.8,1.4-1.5,2.8-1.5c3,0,3.6,2,3.6,4.5V17.1z"/>
 					</svg>
 				</span>				</a>
-
+							
 				<a href="mailto:?subject=Integrating%20Online%20Music%20Databases%3A%20The%20LinkedMusic%20Project&amp;body=https%3A%2F%2Fbrainfood.musicology.org%2Fvol-9-no-1-2025%2Fintegrating-online-music-databases%2F" data-network="email" aria-label="Email" rel="noopener noreferrer nofollow">
 					<span class="ct-icon-container">
 					<svg
@@ -769,25 +769,25 @@ label a {
 						<path d="M10,10.1L0,4.7C0.1,3.2,1.4,2,3,2h14c1.6,0,2.9,1.2,3,2.8L10,10.1z M10,11.8c-0.1,0-0.2,0-0.4-0.1L0,6.4V15c0,1.7,1.3,3,3,3h4.9h4.3H17c1.7,0,3-1.3,3-3V6.4l-9.6,5.2C10.2,11.7,10.1,11.7,10,11.8z"/>
 					</svg>
 				</span>				</a>
-
+			
 			</div>
 					</div>
 
-
-
+			
+		
 	</article>
 
-
-
+	
+		
 			</div>
 
 <div class="ct-comments-container"><div class="ct-container-narrow">
 
 <div class="ct-comments" id="comments">
-
-
-
-
+	
+	
+	
+	
 		<div id="respond" class="comment-respond">
 		<h2 id="reply-title" class="comment-reply-title">Leave a Reply<span class="ct-cancel-reply"><a rel="nofollow" id="cancel-comment-reply-link" href="/vol-9-no-1-2025/integrating-online-music-databases/#respond" style="display:none;">Cancel Reply</a></span></h2><form action="https://brainfood.musicology.org/wp-comments-post.php" method="post" id="commentform" class="comment-form has-website-field has-labels-inside"><p class="comment-notes"><span id="email-notes">Your email address will not be published.</span> <span class="required-field-message">Required fields are marked <span class="required">*</span></span></p><p class="comment-form-field-input-author">
 			<label for="author">Name <b class="required">&nbsp;*</b></label>
@@ -813,12 +813,12 @@ label a {
 
 	<p class="form-submit"><button type="submit" name="submit" id="submit" class="submit" value="Post Comment">Post Comment</button> <input type='hidden' name='comment_post_ID' value='2564' id='comment_post_ID' />
 <input type='hidden' name='comment_parent' id='comment_parent' value='0' />
-</p><p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="b569436c76" /></p><p style="display: none !important;" class="akismet-fields-container" data-prefix="ak_"><label>&#916;<textarea name="ak_hp_textarea" cols="45" rows="8" maxlength="100"></textarea></label><input type="hidden" id="ak_js_1" name="ak_js" value="130"/><script>
+</p><p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="8be9fb6759" /></p><p style="display: none !important;" class="akismet-fields-container" data-prefix="ak_"><label>&#916;<textarea name="ak_hp_textarea" cols="45" rows="8" maxlength="100"></textarea></label><input type="hidden" id="ak_js_1" name="ak_js" value="6"/><script>
 document.getElementById( "ak_js_1" ).setAttribute( "value", ( new Date() ).getTime() );
 </script>
 </p></form>	</div><!-- #respond -->
 	<p class="akismet_comment_form_privacy_notice">This site uses Akismet to reduce spam. <a href="https://akismet.com/privacy/" target="_blank" rel="nofollow noopener">Learn how your comment data is processed.</a></p>
-
+	
 </div>
 
 </div></div>	</main>
@@ -835,95 +835,95 @@ PO Box 633, Basel, 4001 Switzerland<br />
 {"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/wp-*.php","/wp-admin/*","/wp-content/uploads/*","/wp-content/*","/wp-content/plugins/*","/wp-content/themes/blocksy/*","/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
 </script>
 <style id="mutliple-author-box-inline-style">    .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .box-header-title {
-        text-align: center !important;
+        text-align: center !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-avatar img {
-        border-style: none !important;
+        border-style: none !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-avatar img {
-        border-width: 1px !important;
+        border-width: 1px !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-avatar img {
-        border-color: #074d64 !important;
+        border-color: #074d64 !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-avatar img {
-        border-radius: 50% !important;
+        border-radius: 50% !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-name a {
-        color: #074d64 !important;
+        color: #074d64 !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-description {
-        text-align: center !important;
+        text-align: center !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-description {
-        color: #333333 !important;
+        color: #333333 !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-meta a span {
-        font-weight: 500 !important;
+        font-weight: 500 !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-meta {
-        text-align: left !important;
+        text-align: left !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-meta a {
-        background-color: #074d64 !important;
+        background-color: #074d64 !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-meta a {
-        color: #ffffff !important;
+        color: #ffffff !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-meta a:hover {
-        color: #69a2b5 !important;
+        color: #69a2b5 !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .ppma-author-user_email-profile-data {
-        background-color: #655997 !important;
+        background-color: #655997 !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .ppma-author-user_email-profile-data {
-        border-radius: 100% !important;
+        border-radius: 100% !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .ppma-author-user_email-profile-data {
-        color: #ffffff !important;
+        color: #ffffff !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .ppma-author-user_email-profile-data:hover {
-        color: #ffffff !important;
+        color: #ffffff !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-recent-posts-title {
-        border-bottom-style: dotted !important;
+        border-bottom-style: dotted !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-author-boxes-recent-posts-item {
-        text-align: left !important;
+        text-align: left !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-multiple-authors-boxes-li {
-        margin-top: 10px !important;
+        margin-top: 10px !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-multiple-authors-boxes-li {
-        border-style: none !important;
+        border-style: none !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-multiple-authors-boxes-li {
-        border-color: #074d64 !important;
+        border-color: #074d64 !important; 
     }
 
     .pp-multiple-authors-boxes-wrapper.pp-multiple-authors-layout-centered.multiple-authors-target-the-content .pp-multiple-authors-boxes-li {
-        color: #3c434a !important;
+        color: #3c434a !important; 
     }
 
 .pp-author-boxes-avatar {
@@ -945,7 +945,7 @@ var ct_localizations = {"ajax_url":"https://brainfood.musicology.org/wp-admin/ad
 <script id="ct-scripts-js" src="https://brainfood.musicology.org/wp-content/themes/blocksy/static/bundle/main.js?ver=2.1.51"></script>
 <script async data-wp-strategy="async" fetchpriority="low" id="comment-reply-js" src="https://brainfood.musicology.org/wp-includes/js/comment-reply.min.js?ver=7.1"></script>
 <script id="wp-statistics-tracker-js-extra">
-var WP_Statistics_Tracker_Object = {"requestUrl":"https://brainfood.musicology.org/wp-json/wp-statistics/v2","ajaxUrl":"https://brainfood.musicology.org/wp-admin/admin-ajax.php","hitParams":{"wp_statistics_hit":1,"source_type":"post","source_id":2564,"search_query":"","signature":"b6ccd4c6c0410a7f2728745a4da4ac01","endpoint":"hit"},"option":{"dntEnabled":false,"bypassAdBlockers":false,"consentIntegration":{"name":null,"status":[]},"isPreview":false,"userOnline":false,"isWpConsentApiActive":false},"isLegacyEventLoaded":"","customEventAjaxUrl":"https://brainfood.musicology.org/wp-admin/admin-ajax.php?action=wp_statistics_custom_event&nonce=a64fd94b8a","onlineParams":{"wp_statistics_hit":1,"source_type":"post","source_id":2564,"search_query":"","signature":"b6ccd4c6c0410a7f2728745a4da4ac01","action":"wp_statistics_online_check"},"jsCheckTime":"60000"};
+var WP_Statistics_Tracker_Object = {"requestUrl":"https://brainfood.musicology.org/wp-json/wp-statistics/v2","ajaxUrl":"https://brainfood.musicology.org/wp-admin/admin-ajax.php","hitParams":{"wp_statistics_hit":1,"source_type":"post","source_id":2564,"search_query":"","signature":"b6ccd4c6c0410a7f2728745a4da4ac01","endpoint":"hit"},"option":{"dntEnabled":false,"bypassAdBlockers":false,"consentIntegration":{"name":null,"status":[]},"isPreview":false,"userOnline":false,"isWpConsentApiActive":false},"isLegacyEventLoaded":"","customEventAjaxUrl":"https://brainfood.musicology.org/wp-admin/admin-ajax.php?action=wp_statistics_custom_event&nonce=bf1e3f5855","onlineParams":{"wp_statistics_hit":1,"source_type":"post","source_id":2564,"search_query":"","signature":"b6ccd4c6c0410a7f2728745a4da4ac01","action":"wp_statistics_online_check"},"jsCheckTime":"60000"};
 //# sourceURL=wp-statistics-tracker-js-extra
 </script>
 <script id="wp-statistics-tracker-js" src="https://brainfood.musicology.org/wp-content/plugins/wp-statistics/assets/js/tracker.js?ver=14.16.10"></script>
