@@ -1,4 +1,4 @@
-SOURCE: https://raw.githubusercontent.com/polifonia-project/musicbo-knowledge-graph/22c3062d278438c982bb6b672afbda59c641b5b1/README.md
+SOURCE: https://raw.githubusercontent.com/polifonia-project/musicbo-knowledge-graph/HEAD/README.md
 
 ---
 component-id: musicbo-knowledge-graph

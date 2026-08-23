@@ -143,10 +143,10 @@ query LinkedMusic.”
 
 The saved report did directly surface the associated 2026 ACM paper,
 [Facilitating Access to LinkedMusic with SESEMMI](https://doi.org/10.1145/3815723.3815727),
-as its top publication. The paper contains one complete NLQ–SPARQL example,
-transcribed separately by the owner. The repository may contain additional
-examples, so it should be added to the LinkedMusic source catalog and passed
-through the normal extraction pipeline.
+as its top publication. The paper contains one complete NLQ–SPARQL example in
+Appendix A; that example is now retained in a source-faithful curated derivative.
+The repository may contain additional examples, so it should be added to the
+LinkedMusic source catalog and passed through the normal extraction pipeline.
 
 This case distinguishes backend recall from shortlist recall: the search found
 the repository, but the default report view effectively hid it. Omission counts
@@ -307,20 +307,3 @@ rerun the pipeline. Other candidates remain review leads.
 The standardized agent-review prompt was tested in the five-new-graph extension
 and updated with the lessons above. Its maintained form is in
 [`../KG_SOURCE_DISCOVERY.md`](../KG_SOURCE_DISCOVERY.md).
-
-## Approved follow-up result
-
-`DDMAL/SESEMMI` was added as `sesemmi-linkedmusic-repository`, and the
-LinkedMusic pipeline was rerun. The normal corpus grew from 70 to 248 queries:
-the original 70 plus 178 examples from `llm-service/app/graph/examples.py`.
-
-The first pass also extracted 11 plausible queries from synthetic tests and
-assigned them ordinary query IDs, showing that valid SPARQL is not enough to
-establish benchmark provenance. SESEMMI test files are now excluded by default,
-with an explicit diagnostic opt-in.
-
-The pipeline does not yet recover the natural-language questions paired with
-the 178 Python examples, so they still need source-aware pairing and review.
-This reinforces the central result: extraction can surface a valuable candidate
-set, but source semantics and human judgment determine what belongs in
-Musparql.

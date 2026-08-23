@@ -1,4 +1,4 @@
-SOURCE: https://raw.githubusercontent.com/polifonia-project/meetups-knowledge-graph/6e22e0e817aabf0f38ebd2677c06d9ee21334a1d/README.md
+SOURCE: https://raw.githubusercontent.com/polifonia-project/meetups-knowledge-graph/HEAD/README.md
 
 ---
 component-id: meetups-knowledge-graph

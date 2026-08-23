@@ -115,13 +115,13 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
   <meta name="route-pattern" content="/:user_id/:repository/wiki/:id(.:format)" data-turbo-transient>
   <meta name="route-controller" content="wiki" data-turbo-transient>
   <meta name="route-action" content="show" data-turbo-transient>
-  <meta name="fetch-nonce" content="v2:31097213-d576-cdbf-4189-55ed59da34da">
+  <meta name="fetch-nonce" content="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6">
 
     
   <meta name="current-catalog-service-hash" content="27690012a2eb28b75d0bacab0f2c11870266e8db9e019fa71fea812b82397bd6">
 
 
-  <meta name="request-id" content="CD44:261369:129AFED:16EDD83:6A8A5746" data-pjax-transient="true"/><meta name="html-safe-nonce" content="c20afa33a7c3d82884720d31257635c92be2e79ea952ddc6499bed74fd15540c" data-pjax-transient="true"/><meta name="visitor-payload" content="eyJyZWZlcnJlciI6IiIsInJlcXVlc3RfaWQiOiJDRDQ0OjI2MTM2OToxMjlBRkVEOjE2RUREODM6NkE4QTU3NDYiLCJ2aXNpdG9yX2lkIjoiMjUyNTY5NTMwMDE4NzM0Njc1OCIsInJlZ2lvbl9lZGdlIjoidWtzb3V0aCIsInJlZ2lvbl9yZW5kZXIiOiJ1a3NvdXRoIn0=" data-pjax-transient="true"/><meta name="visitor-hmac" content="8600c3490bc47f50f6ab463ac728632b38ed6e0e18fb272d421b27cadeff4ee7" data-pjax-transient="true"/>
+  <meta name="request-id" content="D049:10A0A5:12F9D85:1767D3E:6A8A617B" data-pjax-transient="true"/><meta name="html-safe-nonce" content="85de88719d5ac3d7467884fcbaf1bea55077b529439f9f3dce76ff3efbfcb7fc" data-pjax-transient="true"/><meta name="visitor-payload" content="eyJyZWZlcnJlciI6IiIsInJlcXVlc3RfaWQiOiJEMDQ5OjEwQTBBNToxMkY5RDg1OjE3NjdEM0U6NkE4QTYxN0IiLCJ2aXNpdG9yX2lkIjoiNDE5OTc3MjcyMzUxNTkwODQ3NSIsInJlZ2lvbl9lZGdlIjoidWtzb3V0aCIsInJlZ2lvbl9yZW5kZXIiOiJ1a3NvdXRoIn0=" data-pjax-transient="true"/><meta name="visitor-hmac" content="d2dc0e63a4d8b4e862c381555cd21c3b47b5538c3293eba744b272ce04aac4b7" data-pjax-transient="true"/>
 
 
     <meta name="hovercard-subject-tag" content="repository:670654180" data-turbo-transient>
@@ -288,10 +288,10 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
         <span class="js-stale-session-flash-signed-out" hidden>You signed out in another tab or window. <a class="Link--inTextBlock" href="">Reload</a> to refresh your session.</span>
         <span class="js-stale-session-flash-switched" hidden>You switched accounts on another tab or window. <a class="Link--inTextBlock" href="">Reload</a> to refresh your session.</span>
 
-    <button id="icon-button-11cc2096-8f4b-46bb-acb5-8ec05dba6e4b" aria-labelledby="tooltip-b36f7351-54c1-4e19-9499-1850169cb407" type="button" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium flash-close js-flash-close">  <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x Button-visual">
+    <button id="icon-button-55ebfd06-9f66-4a09-a105-2b90889bb3bb" aria-labelledby="tooltip-850cb34c-9e0a-49b5-8790-a77eede875f9" type="button" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium flash-close js-flash-close">  <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x Button-visual">
     <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path>
 </svg>
-</button><tool-tip id="tooltip-b36f7351-54c1-4e19-9499-1850169cb407" for="icon-button-11cc2096-8f4b-46bb-acb5-8ec05dba6e4b" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Dismiss alert</tool-tip>
+</button><tool-tip id="tooltip-850cb34c-9e0a-49b5-8790-a77eede875f9" for="icon-button-55ebfd06-9f66-4a09-a105-2b90889bb3bb" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Dismiss alert</tool-tip>
 
 
   
@@ -354,7 +354,7 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
     
     
 
-      <include-fragment src="/in-product-messaging/budget-threshold-banner?organization=DDMAL" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true">
+      <include-fragment src="/in-product-messaging/budget-threshold-banner?organization=DDMAL" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true">
   
   <div data-show-on-forbidden-error hidden>
     <div class="Box">
@@ -417,7 +417,7 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
             <a href="/login?return_to=%2FDDMAL%2Flinkedmusic-datalake" rel="nofollow" id="repository-details-watch-button" data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;notification subscription menu watch&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;LOG_IN&quot;,&quot;originating_url&quot;:&quot;https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-SPARQL-Queries&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="ee91a91b1ce93f9fca94f032c830c6381f4b801044f6be10148c6fe7c7f4bc8b" aria-label="You must be signed in to change notification settings" data-view-component="true" class="btn-sm btn">    <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-bell mr-2 tmp-mr-2">
     <path d="M8 16a2 2 0 0 0 1.985-1.75c.017-.137-.097-.25-.235-.25h-3.5c-.138 0-.252.113-.235.25A2 2 0 0 0 8 16ZM3 5a5 5 0 0 1 10 0v2.947c0 .05.015.098.042.139l1.703 2.555A1.519 1.519 0 0 1 13.482 13H2.518a1.516 1.516 0 0 1-1.263-2.36l1.703-2.554A.255.255 0 0 0 3 7.947Zm5-3.5A3.5 3.5 0 0 0 4.5 5v2.947c0 .346-.102.683-.294.97l-1.703 2.556a.017.017 0 0 0-.003.01l.001.006c0 .002.002.004.004.006l.006.004.007.001h10.964l.007-.001.006-.004.004-.006.001-.007a.017.017 0 0 0-.003-.01l-1.703-2.554a1.745 1.745 0 0 1-.294-.97V5A3.5 3.5 0 0 0 8 1.5Z"></path>
 </svg>Notifications
-</a>    <tool-tip id="tooltip-4236e28c-b468-4ca7-a435-e396c38f5b9a" for="repository-details-watch-button" popover="manual" data-direction="s" data-type="description" data-view-component="true" class="sr-only position-absolute">You must be signed in to change notification settings</tool-tip>
+</a>    <tool-tip id="tooltip-edd91b92-4364-476f-9098-896ac6257bb8" for="repository-details-watch-button" popover="manual" data-direction="s" data-type="description" data-view-component="true" class="sr-only position-absolute">You must be signed in to change notification settings</tool-tip>
 
   </li>
 
@@ -562,22 +562,22 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
 </ul>
     <div style="visibility:hidden;" data-view-component="true" class="UnderlineNav-actions js-responsive-underlinenav-overflow position-absolute pr-3 tmp-pr-3 pr-md-4 tmp-pr-md-4 pr-lg-5 tmp-pr-lg-5 right-0">      <action-menu data-select-variant="none" data-view-component="true">
   <focus-group direction="vertical" mnemonics retain>
-    <button id="action-menu-d9d8f03d-1d7e-489c-ae32-fc05b7130501-button" popovertarget="action-menu-d9d8f03d-1d7e-489c-ae32-fc05b7130501-overlay" aria-controls="action-menu-d9d8f03d-1d7e-489c-ae32-fc05b7130501-list" aria-haspopup="true" aria-labelledby="tooltip-1dd9b65c-2807-445c-81f0-a6ce865f9150" type="button" data-view-component="true" class="Button Button--iconOnly Button--secondary Button--medium UnderlineNav-item">  <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-kebab-horizontal Button-visual">
+    <button id="action-menu-a0bae186-c561-4ccc-b869-07c3624e849c-button" popovertarget="action-menu-a0bae186-c561-4ccc-b869-07c3624e849c-overlay" aria-controls="action-menu-a0bae186-c561-4ccc-b869-07c3624e849c-list" aria-haspopup="true" aria-labelledby="tooltip-1ea492f6-58b9-4e8f-8542-873f3b16b307" type="button" data-view-component="true" class="Button Button--iconOnly Button--secondary Button--medium UnderlineNav-item">  <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-kebab-horizontal Button-visual">
     <path d="M8 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM1.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm13 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path>
 </svg>
-</button><tool-tip id="tooltip-1dd9b65c-2807-445c-81f0-a6ce865f9150" for="action-menu-d9d8f03d-1d7e-489c-ae32-fc05b7130501-button" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Additional navigation options</tool-tip>
+</button><tool-tip id="tooltip-1ea492f6-58b9-4e8f-8542-873f3b16b307" for="action-menu-a0bae186-c561-4ccc-b869-07c3624e849c-button" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Additional navigation options</tool-tip>
 
 
-<anchored-position data-target="action-menu.overlay" id="action-menu-d9d8f03d-1d7e-489c-ae32-fc05b7130501-overlay" anchor="action-menu-d9d8f03d-1d7e-489c-ae32-fc05b7130501-button" align="start" side="outside-bottom" anchor-offset="normal" popover="auto" data-view-component="true">
+<anchored-position data-target="action-menu.overlay" id="action-menu-a0bae186-c561-4ccc-b869-07c3624e849c-overlay" anchor="action-menu-a0bae186-c561-4ccc-b869-07c3624e849c-button" align="start" side="outside-bottom" anchor-offset="normal" popover="auto" data-view-component="true">
   <div data-view-component="true" class="Overlay Overlay--size-auto">
     
       <div data-view-component="true" class="Overlay-body Overlay-body--paddingNone">          <action-list>
   <div data-view-component="true">
-    <ul aria-labelledby="action-menu-d9d8f03d-1d7e-489c-ae32-fc05b7130501-button" id="action-menu-d9d8f03d-1d7e-489c-ae32-fc05b7130501-list" role="menu" data-view-component="true" class="ActionListWrap--inset ActionListWrap">
+    <ul aria-labelledby="action-menu-a0bae186-c561-4ccc-b869-07c3624e849c-button" id="action-menu-a0bae186-c561-4ccc-b869-07c3624e849c-list" role="menu" data-view-component="true" class="ActionListWrap--inset ActionListWrap">
         <li hidden="hidden" data-menu-item="i0code-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
     
     
-    <a tabindex="-1" id="item-001b9ae8-f688-4cf5-94a4-d635904013d6" href="/DDMAL/linkedmusic-datalake" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
+    <a tabindex="-1" id="item-d70c2411-9ec1-4c47-b303-5edb54b5404b" href="/DDMAL/linkedmusic-datalake" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
         <span class="ActionListItem-visual ActionListItem-visual--leading">
           <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-code">
     <path d="m11.28 3.22 4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L13.94 8l-3.72-3.72a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215Zm-6.56 0a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z"></path>
@@ -593,7 +593,7 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
         <li hidden="hidden" data-menu-item="i1issues-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
     
     
-    <a tabindex="-1" id="item-1f235034-d4ae-4170-962c-97d96cc94b12" href="/DDMAL/linkedmusic-datalake/issues" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
+    <a tabindex="-1" id="item-61e67fcc-860c-4e11-9377-a53629017be5" href="/DDMAL/linkedmusic-datalake/issues" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
         <span class="ActionListItem-visual ActionListItem-visual--leading">
           <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-issue-opened">
     <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path>
@@ -609,7 +609,7 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
         <li hidden="hidden" data-menu-item="i2pull-requests-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
     
     
-    <a tabindex="-1" id="item-3e0addb0-d235-489f-a6e7-a0267537975c" href="/DDMAL/linkedmusic-datalake/pulls" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
+    <a tabindex="-1" id="item-d863d750-a5a4-45e3-b90e-936cdec6c5d9" href="/DDMAL/linkedmusic-datalake/pulls" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
         <span class="ActionListItem-visual ActionListItem-visual--leading">
           <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-git-pull-request">
     <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"></path>
@@ -625,7 +625,7 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
         <li hidden="hidden" data-menu-item="i3discussions-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
     
     
-    <a tabindex="-1" id="item-eff16cab-d5c4-4029-869c-a6dd524db892" href="/DDMAL/linkedmusic-datalake/discussions" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
+    <a tabindex="-1" id="item-9d7a4e46-12fd-43b1-959c-f5694e22cb33" href="/DDMAL/linkedmusic-datalake/discussions" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
         <span class="ActionListItem-visual ActionListItem-visual--leading">
           <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-comment-discussion">
     <path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 10.25 10H7.061l-2.574 2.573A1.458 1.458 0 0 1 2 11.543V10h-.25A1.75 1.75 0 0 1 0 8.25v-5.5C0 1.784.784 1 1.75 1ZM1.5 2.75v5.5c0 .138.112.25.25.25h1a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h3.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13 2a.25.25 0 0 0-.25-.25h-.5a.75.75 0 0 1 0-1.5h.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 14.25 12H14v1.543a1.458 1.458 0 0 1-2.487 1.03L9.22 12.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.22 2.22v-2.19a.75.75 0 0 1 .75-.75h1a.25.25 0 0 0 .25-.25Z"></path>
@@ -641,7 +641,7 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
         <li hidden="hidden" data-menu-item="i4actions-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
     
     
-    <a tabindex="-1" id="item-cfc2e360-df60-4bac-a6ef-a1ada3e3d3dc" href="/DDMAL/linkedmusic-datalake/actions" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
+    <a tabindex="-1" id="item-584f5ab5-7885-43ff-8eb8-917ba56f8ddc" href="/DDMAL/linkedmusic-datalake/actions" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
         <span class="ActionListItem-visual ActionListItem-visual--leading">
           <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-play">
     <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path>
@@ -657,7 +657,7 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
         <li hidden="hidden" data-menu-item="i5projects-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
     
     
-    <a tabindex="-1" id="item-ec469a26-8442-41c0-98d4-385bdf0833f1" href="/DDMAL/linkedmusic-datalake/projects" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
+    <a tabindex="-1" id="item-d395cb2c-c451-4531-854d-c7521782dee8" href="/DDMAL/linkedmusic-datalake/projects" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
         <span class="ActionListItem-visual ActionListItem-visual--leading">
           <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-table">
     <path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25ZM6.5 6.5v8h7.75a.25.25 0 0 0 .25-.25V6.5Zm8-1.5V1.75a.25.25 0 0 0-.25-.25H6.5V5Zm-13 1.5v7.75c0 .138.112.25.25.25H5v-8ZM5 5V1.5H1.75a.25.25 0 0 0-.25.25V5Z"></path>
@@ -673,7 +673,7 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
         <li hidden="hidden" data-menu-item="i6wiki-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
     
     
-    <a tabindex="-1" id="item-4ca99a98-199a-45fc-85dd-d5858419cf0e" href="/DDMAL/linkedmusic-datalake/wiki" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
+    <a tabindex="-1" id="item-439a1a0b-9df3-4428-b013-c2591f739326" href="/DDMAL/linkedmusic-datalake/wiki" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
         <span class="ActionListItem-visual ActionListItem-visual--leading">
           <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-book">
     <path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"></path>
@@ -689,7 +689,7 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
         <li hidden="hidden" data-menu-item="i7security-and-quality-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
     
     
-    <a tabindex="-1" id="item-80ad4fc8-cc4c-4d71-8c4e-de5a681a337f" href="/DDMAL/linkedmusic-datalake/security" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
+    <a tabindex="-1" id="item-ae987978-5d4a-4789-ba42-3d0dc4ad0c82" href="/DDMAL/linkedmusic-datalake/security" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
         <span class="ActionListItem-visual ActionListItem-visual--leading">
           <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-shield">
     <path d="M7.467.133a1.748 1.748 0 0 1 1.066 0l5.25 1.68A1.75 1.75 0 0 1 15 3.48V7c0 1.566-.32 3.182-1.303 4.682-.983 1.498-2.585 2.813-5.032 3.855a1.697 1.697 0 0 1-1.33 0c-2.447-1.042-4.049-2.357-5.032-3.855C1.32 10.182 1 8.566 1 7V3.48a1.75 1.75 0 0 1 1.217-1.667Zm.61 1.429a.25.25 0 0 0-.153 0l-5.25 1.68a.25.25 0 0 0-.174.238V7c0 1.358.275 2.666 1.057 3.86.784 1.194 2.121 2.34 4.366 3.297a.196.196 0 0 0 .154 0c2.245-.956 3.582-2.104 4.366-3.298C13.225 9.666 13.5 8.36 13.5 7V3.48a.251.251 0 0 0-.174-.237l-5.25-1.68ZM8.75 4.75v3a.75.75 0 0 1-1.5 0v-3a.75.75 0 0 1 1.5 0ZM9 10.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path>
@@ -705,7 +705,7 @@ SOURCE: https://github.com/DDMAL/linkedmusic-datalake/wiki/List-of-Prefixes-for-
         <li hidden="hidden" data-menu-item="i8insights-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
     
     
-    <a tabindex="-1" id="item-49fd27e2-973c-4f73-91bb-5b74c3c08033" href="/DDMAL/linkedmusic-datalake/pulse" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
+    <a tabindex="-1" id="item-7e224ebe-69de-4aa5-ba3c-aa8d5a723133" href="/DDMAL/linkedmusic-datalake/pulse" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
         <span class="ActionListItem-visual ActionListItem-visual--leading">
           <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-graph">
     <path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path>
@@ -1408,10 +1408,10 @@ LIMIT 100
 <div class="Box Box--condensed color-shadow-small">
   <div class="Box-header px-2 py-1 js-wiki-toggle-collapse" style="cursor: pointer">
     <h2 class="Box-title d-flex flex-items-center" id="wiki-pages-box-heading">
-      <button id="icon-button-12829a35-417d-43d1-8f30-8d326ca79507" aria-controls="wiki-pages-toc" aria-expanded="false" aria-labelledby="tooltip-657ef303-d05e-4498-a2d5-c752d5c8e6f4" type="button" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--small js-wiki-sidebar-pages-toggle-chevron ">  <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-triangle-down Button-visual">
+      <button id="icon-button-88399ff0-7771-42a5-8274-3ab120667264" aria-controls="wiki-pages-toc" aria-expanded="false" aria-labelledby="tooltip-1bb855a4-a6c5-4e7c-8793-46a76985f953" type="button" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--small js-wiki-sidebar-pages-toggle-chevron ">  <svg aria-hidden="true" data-component="Octicon" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-triangle-down Button-visual">
     <path d="m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"></path>
 </svg>
-</button><tool-tip id="tooltip-657ef303-d05e-4498-a2d5-c752d5c8e6f4" for="icon-button-12829a35-417d-43d1-8f30-8d326ca79507" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Wiki pages</tool-tip>
+</button><tool-tip id="tooltip-1bb855a4-a6c5-4e7c-8793-46a76985f953" for="icon-button-88399ff0-7771-42a5-8274-3ab120667264" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Wiki pages</tool-tip>
 
       <span>Pages <span title="30" data-view-component="true" class="Counter Counter--primary">30</span></span>
     </h2>
@@ -1442,7 +1442,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Home-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Home/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Home/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1482,7 +1482,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Accessing-the-Virtuoso-SPARQL-Endpoint-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Accessing-the-Virtuoso-SPARQL-Endpoint/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Accessing-the-Virtuoso-SPARQL-Endpoint/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1522,7 +1522,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Archive-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Archive/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Archive/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1562,7 +1562,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Backing-Up-Data-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Backing-Up-Data/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Backing-Up-Data/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1602,7 +1602,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="CKG-Ingestion-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/CKG-Ingestion/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/CKG-Ingestion/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1642,7 +1642,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Cross-Database-Queries-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Cross-Database-Queries/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Cross-Database-Queries/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1682,7 +1682,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Current-Pipeline-for-Adding-a-New-Dataset-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Current-Pipeline-for-Adding-a-New-Dataset/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Current-Pipeline-for-Adding-a-New-Dataset/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1722,7 +1722,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Data-Reconciliation-Guidelines-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Data-Reconciliation-Guidelines/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Data-Reconciliation-Guidelines/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1762,7 +1762,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Exporting-an-RDF-Graph-from-Virtuoso-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Exporting-an-RDF-Graph-from-Virtuoso/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Exporting-an-RDF-Graph-from-Virtuoso/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1802,7 +1802,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Importing-and-Updating-Data-on-Virtuoso-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Importing-and-Updating-Data-on-Virtuoso/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Importing-and-Updating-Data-on-Virtuoso/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1842,7 +1842,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="ISQL-(Virtuoso)-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/ISQL-(Virtuoso)/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/ISQL-(Virtuoso)/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -1882,7 +1882,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="LinkedMusic-Ontology-Separated-by-Subgraph-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/LinkedMusic-Ontology-Separated-by-Subgraph/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/LinkedMusic-Ontology-Separated-by-Subgraph/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2003,7 +2003,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="NL2SPARQL-Overview-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/NL2SPARQL-Overview/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/NL2SPARQL-Overview/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2043,7 +2043,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="NLQ2SPARQL-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/NLQ2SPARQL/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/NLQ2SPARQL/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2083,7 +2083,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="NLQ2SPARQL-Design-Rationale-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/NLQ2SPARQL-Design-Rationale/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/NLQ2SPARQL-Design-Rationale/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2123,7 +2123,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Old-Ideas-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Old-Ideas/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Old-Ideas/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2163,7 +2163,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Project-Status-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Project-Status/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Project-Status/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2203,7 +2203,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="RDF-Conversion-Guidelines-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/RDF-Conversion-Guidelines/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/RDF-Conversion-Guidelines/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2243,7 +2243,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Restarting-Virtuoso-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Restarting-Virtuoso/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Restarting-Virtuoso/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2283,7 +2283,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Sample-LinkedMusic-Queries-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Sample-LinkedMusic-Queries/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Sample-LinkedMusic-Queries/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2323,7 +2323,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Server-Access-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Server-Access/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Server-Access/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2363,7 +2363,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="The-Full-LinkedMusic-Data-Lake-Ontology-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/The-Full-LinkedMusic-Data-Lake-Ontology/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/The-Full-LinkedMusic-Data-Lake-Ontology/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2403,7 +2403,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Uploading-CSV-Data-to-Virtuoso-with-ISQL-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Uploading-CSV-Data-to-Virtuoso-with-ISQL/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Uploading-CSV-Data-to-Virtuoso-with-ISQL/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2443,7 +2443,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Virtual-Environment-Setup-and-Activation-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Virtual-Environment-Setup-and-Activation/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Virtual-Environment-Setup-and-Activation/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2483,7 +2483,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Virtuoso-Setup-Guide-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Virtuoso-Setup-Guide/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Virtuoso-Setup-Guide/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2523,7 +2523,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Visualizing-the-Graph-Relationships-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Visualizing-the-Graph-Relationships/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Visualizing-the-Graph-Relationships/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2563,7 +2563,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Wikidata-Uploading-(Feast-Day-Project)-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Wikidata-Uploading-(Feast-Day-Project)/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Wikidata-Uploading-(Feast-Day-Project)/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2603,7 +2603,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Wikidata:-Things-we-should-add-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Wikidata:-Things-we-should-add/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Wikidata:-Things-we-should-add/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>
@@ -2643,7 +2643,7 @@ LIMIT 100
       </div></a>  </div>
 
   <div id="Working-with-Virtuoso-table-of-contents" class="d-none js-wiki-sidebar-toc-container">
-      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Working-with-Virtuoso/_toc" data-nonce="v2:31097213-d576-cdbf-4189-55ed59da34da" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
+      <include-fragment loading="lazy" src="https://github.com/DDMAL/linkedmusic-datalake/wiki/Working-with-Virtuoso/_toc" data-nonce="v2:b9d0fc3b-d523-b569-c480-5b422a1a77f6" data-view-component="true" class="js-wiki-sidebar-toc-fragment">
   
 
   <div data-show-on-forbidden-error hidden>

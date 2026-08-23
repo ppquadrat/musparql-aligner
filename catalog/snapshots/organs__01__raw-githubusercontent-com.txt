@@ -1,4 +1,4 @@
-SOURCE: https://raw.githubusercontent.com/polifonia-project/organs-knowledge-graph/4f42cd41dd79875539741ba805242c22f47c52b7/README.md
+SOURCE: https://raw.githubusercontent.com/polifonia-project/organs-knowledge-graph/HEAD/README.md
 
 ---
 component-id: organs-knowledge-graph

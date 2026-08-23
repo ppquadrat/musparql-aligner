@@ -164,7 +164,7 @@ kgs:
         kind: knowledge_graph
 
   - kg_id: linkedmusic
-    seed_version: "2026-08-22.1"
+    seed_version: "2026-08-23.1"
     name: LinkedMusic Data Lake
     project: LinkedMusic
     description_hint: >
@@ -188,6 +188,8 @@ kgs:
       - linkedmusic-prefix-catalogue
       - linkedmusic-public-query-database
       - sesemmi-linkedmusic-2025-paper
+      - sesemmi-linkedmusic-2026-acm-paper
+      - sesemmi-linkedmusic-2026-acm-paper-query
       - sesemmi-linkedmusic-repository
       - linkedmusic-integrating-databases-2025-article
       - linkedmusic-sustainable-archiving-2025-paper
@@ -196,7 +198,8 @@ kgs:
     notes: >
       Official sources provide twenty public NLQ-SPARQL benchmark pairs across
       four challenge levels, plus repository and wiki documentation for the
-      constituent named graphs and cross-graph querying.
+      constituent named graphs and cross-graph querying. The DLfM 2026 paper
+      contributes one additional authored cross-database example.
     review_domains:
       - domain_id: medieval-european-music-manuscripts
         label: Medieval European music manuscripts
@@ -286,7 +289,7 @@ kgs:
         kind: knowledge_graph
 
   - kg_id: camera-dei-deputati
-    seed_version: "2026-08-23.1"
+    seed_version: "2026-08-23.2"
     name: Camera dei Deputati Knowledge Graph
     project: Camera dei deputati open data
     description_hint: >
@@ -302,13 +305,15 @@ kgs:
     source_ids:
       - camera-dei-deputati-ocd-documentation
       - camera-dei-deputati-endpoint-examples
+      - camera-dei-deputati-endpoint-examples-curated
       - camera-dei-deputati-sparna-article
+      - camera-dei-deputati-sparna-examples-curated
     priority: medium
     notes: >
       The endpoint interface loads its current examples from the official XML
       source. The Italian OCD documentation contains an older, substantially
       overlapping example set, while the Sparna article contributes three
-      English-described examples that require transcription from screenshots.
+      English-described examples transcribed from its query screenshots.
       Deduplicate overlapping examples and preserve legislature/version context.
     review_domains:
       - domain_id: italian-parliamentary-activity-legislation

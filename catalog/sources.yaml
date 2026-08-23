@@ -94,6 +94,21 @@ sources:
     title: "SESEMMI for LinkedMusic: Democratizing Access to Musical Archives via Large Language Models"
     url: https://openreview.net/forum?id=hSDeNeUzcy
 
+  - source_id: sesemmi-linkedmusic-2026-acm-paper
+    type: publication
+    title: "Facilitating Access to LinkedMusic with SESEMMI: Converting Natural Language Queries to SPARQL with Large Language Models"
+    url: https://doi.org/10.1145/3815723.3815727
+    query_role: none
+    description: Open-access DLfM 2026 paper containing one complete authored cross-database NLQ-SPARQL example in Appendix A; retained as parent evidence for the curated derivative.
+
+  - source_id: sesemmi-linkedmusic-2026-acm-paper-query
+    type: derivative
+    title: LinkedMusic query curated from the DLfM 2026 SESEMMI paper
+    local_path: catalog/curated/linkedmusic-sesemmi-2026-acm-paper-query.jsonl
+    derived_from: [sesemmi-linkedmusic-2026-acm-paper]
+    query_role: canonical
+    description: Source-faithful transcription of the Appendix A NLQ-SPARQL example over the LinkedMusic MusicBrainz and DIAMM named graphs; line numbers copied from the HTML rendering were removed, while the paper's absence of inline PREFIX declarations was preserved.
+
   - source_id: sesemmi-linkedmusic-repository
     type: repository
     title: SESEMMI LinkedMusic agent repository
@@ -225,15 +240,31 @@ sources:
     type: web_document
     title: Camera dei Deputati SPARQL endpoint examples
     url: https://dati.camera.it/ocd/dump/custom_endpoint/sparql.xml
+    query_role: none
+    description: Official machine-readable XML loaded by the endpoint interface, currently containing 22 Italian natural-language formulations paired with SPARQL, including newer legislature variants and an additional debate query; retained as the parent evidence for the curated derivative.
+
+  - source_id: camera-dei-deputati-endpoint-examples-curated
+    type: derivative
+    title: Curated Camera dei Deputati endpoint examples
+    local_path: catalog/curated/camera-dei-deputati-endpoint-examples.jsonl
+    derived_from: [camera-dei-deputati-endpoint-examples]
     query_role: canonical
-    description: Official machine-readable XML loaded by the endpoint interface, currently containing 22 Italian natural-language formulations paired with SPARQL, including newer legislature variants and an additional debate query.
+    description: Mechanical source-faithful extraction of all 22 Italian natural-language/SPARQL pairs from the official endpoint examples XML.
 
   - source_id: camera-dei-deputati-sparna-article
     type: web_document
     title: "dati.camera.it's Sparnatural instance: a query builder for the Italian Chamber of Deputies"
     url: https://www.sparna.fr/en/posts/dati-camera-it-s-sparnatural-instance-a-query-builder-for-the-italian-chamber-of-deputies/
+    query_role: none
+    description: Third-party authored article containing three English-described Camera dei Deputati SPARQL examples displayed in screenshots; retained as the parent evidence for the curated transcription.
+
+  - source_id: camera-dei-deputati-sparna-examples-curated
+    type: derivative
+    title: Curated Camera dei Deputati examples from the Sparna article
+    local_path: catalog/curated/camera-dei-deputati-sparna-examples.jsonl
+    derived_from: [camera-dei-deputati-sparna-article]
     query_role: canonical
-    description: Third-party authored article containing three English-described Camera dei Deputati SPARQL examples displayed in screenshots; retain for curated transcription and deduplicate against the official examples.
+    description: Source-faithful manual transcription of the three clear query screenshots, paired with their authored English formulations; deduplicate against the official examples during extraction.
 
   - source_id: cdec-official-sparql-examples
     type: web_document

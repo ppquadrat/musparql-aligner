@@ -1,4 +1,4 @@
-SOURCE: https://raw.githubusercontent.com/polifonia-project/musow-licences-experiments-llm/556bd235b44f410385282900781e77d73b17e9f6/README.md
+SOURCE: https://raw.githubusercontent.com/polifonia-project/musow-licences-experiments-llm/HEAD/README.md
 
 ---
 component-id: musow-licences

@@ -1,4 +1,4 @@
-SOURCE: https://raw.githubusercontent.com/polifonia-project/registry-data/c371e2d4286a1c32440b949c3dd4423bb2c30a79/README.md
+SOURCE: https://raw.githubusercontent.com/polifonia-project/registry-data/HEAD/README.md
 
 # The Polifonia Registry
 

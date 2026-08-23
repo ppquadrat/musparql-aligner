@@ -1,4 +1,4 @@
-SOURCE: https://raw.githubusercontent.com/DDMAL/linkedmusic-datalake/59b4448580ab89ff9ffa2555ebf26843d6e5745b/README.md
+SOURCE: https://raw.githubusercontent.com/DDMAL/linkedmusic-datalake/HEAD/README.md
 
 # LinkedMusic Data Lake
 

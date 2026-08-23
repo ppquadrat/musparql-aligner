@@ -1,4 +1,4 @@
-SOURCE: https://raw.githubusercontent.com/ppquadrat/DigThatLick/982eaf61bf262a3e30f39b5ab161e87e8d8518a6/README.md
+SOURCE: https://raw.githubusercontent.com/ppquadrat/DigThatLick/HEAD/README.md
 
 # DigThatLick
 [Dig That Lick](http://dig-that-lick.eecs.qmul.ac.uk/index.html) was an international research project concerned with large-scale melodic analysis of jazz improvisations. The central idea of the project was to use licks to trace musical influence and style transmission among jazz musicians. A web interface to our ['100 years of jazz'](https://dig-that-lick.hfm-weimar.de/similarity_search/search?id=1276&group_by=n_gram) dataset will give you an idea of what can be achieved with automatic analysis of a large jazz corpus.
