@@ -263,8 +263,28 @@ graph.
    extraction input.
 
 The five new seeds and approved sources were added to the catalog with immutable
-seed history and source snapshots. Query extraction and endpoint execution for
-these five graphs remain a separate, explicitly approved phase.
+seed history and source snapshots. The subsequent explicitly approved pipeline
+run also covered the new LinkedMusic paper query. Existing holdout identities
+were excluded before execution and model-input construction, and the corpus's
+literal `WHERE`-keyword requirement was applied before generation.
+
+### Pipeline outcome
+
+| Graph | New extracted | Excluded: no `WHERE` | Ready for review | Model classified as generated | Executed successfully/empty |
+|---|---:|---:|---:|---:|---:|
+| ALyrA | 6 | 0 | 6 | 2 | 6 |
+| Camera dei Deputati | 46 | 1 | 45 | 45 | 34 |
+| CDEC | 9 | 0 | 9 | 3 | 8 |
+| Europeana | 54 | 2 | 52 | 52 | 40 |
+| LinkedMusic | 1 | 0 | 1 | 1 | 1 |
+| NFDI4Culture | 6 | 0 | 6 | 6 | 3 |
+| **Total** | **122** | **3** | **119** | **109** | **92** |
+
+All 119 eligible inputs produced schema-valid model outputs with no generation
+errors or citation warnings. The remaining alignment modes were nine
+paraphrased formulations and one verbatim formulation. Execution success is
+reported separately because remote endpoint failures do not determine whether
+a source-authored query remains eligible for human review or SPARQL editing.
 
 ## Overall result
 
