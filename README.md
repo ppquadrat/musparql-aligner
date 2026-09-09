@@ -64,8 +64,12 @@ the human verifies and places that file at the local path.
 
 ## Documentation
 
+- [`docs/ICF_HOSTING_BOUNDARY.md`](docs/ICF_HOSTING_BOUNDARY.md) — mandatory
+  read-first production-hosting boundary and current ICF infrastructure source
+  of truth.
 - [`docs/HOME_SERVER_BOUNDARY.md`](docs/HOME_SERVER_BOUNDARY.md) — mandatory
-  read-first ownership and safety boundary for all home-server work.
+  read-first ownership and safety boundary for explicitly requested legacy
+  home-server work.
 - [`docs/WORKFLOW.md`](docs/WORKFLOW.md) — readable end-to-end workflow,
   including the boundaries between deterministic processing, external
   observations, LLM assistance, and human decisions.

@@ -29,6 +29,11 @@ review/public_exports/
 # Schemas and handling instructions remain tracked in this directory.
 confidential/reviewers/*.jsonl
 confidential/reviewers/*.json
+# Infrastructure handovers may contain provider account identifiers, restore
+# endpoints, or named administrative arrangements. Keep the local originals
+# beside the project, but commit only their public-safe summaries.
+confidential/infrastructure/*
+!confidential/infrastructure/README.md
 benchmark/v*/holdout.jsonl
 benchmark/v*/included.jsonl
 benchmark/v*/dismissed.jsonl
