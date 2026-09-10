@@ -112,3 +112,8 @@ Do not invite or enrol a real participant until every item in section 6 of
 - run the Phase 8 concurrency check on the deployed revision;
 - complete an external synthetic browser journey; and
 - deliberately reboot and confirm that all three services recover.
+
+Run the installed Phase 8 verifier with
+`--project-root /opt/musparql/current` so its version-matched catalogue,
+workbench, and schema resources come from the pinned checkout rather than the
+Python environment.

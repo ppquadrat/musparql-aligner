@@ -51,6 +51,16 @@ From a clean checkout with the test dependencies installed:
   --output var/verification/phase8-workshop.json
 ```
 
+When running from an installed production package, identify the checkout that
+contains the version-matched catalogue, workbench, and schema resources:
+
+```bash
+/opt/musparql/venv/bin/python -m musparql.web.workshop_verify \
+  --project-root /opt/musparql/current \
+  --reviewers 10 \
+  --output /srv/musparql/verification/phase8-workshop.json
+```
+
 The default verification workspace is a temporary mode-`0700` directory and is
 removed after the result is printed. To retain its synthetic database, receipt
 files, and candidate audits for diagnosis, pass a new or empty directory:

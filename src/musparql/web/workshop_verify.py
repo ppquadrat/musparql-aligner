@@ -148,8 +148,12 @@ def _token_hash(raw_token: str) -> str:
     ).hexdigest()
 
 
-def _app_config(root: Path) -> dict[str, Any]:
-    project_root = Path(__file__).resolve().parents[3]
+def _app_config(root: Path, project_root: Path | None = None) -> dict[str, Any]:
+    project_root = (
+        project_root.resolve()
+        if project_root is not None
+        else Path(__file__).resolve().parents[3]
+    )
     return {
         "TESTING": True,
         "DATABASE_PATH": root / "phase8.sqlite3",
@@ -167,6 +171,7 @@ def _app_config(root: Path) -> dict[str, Any]:
             project_root / "schemas/linguistic_annotation_export.schema.json"
         ),
         "EXPERTISE_SUGGESTIONS_PATH": project_root / "catalog/expertise_domain_suggestions.yaml",
+        "LANGUAGE_OPTIONS_PATH": project_root / "catalog/language_options.json",
     }
 
 
@@ -206,7 +211,12 @@ def _require(condition: bool, message: str) -> None:
         raise VerificationError(message)
 
 
-def run_verification(root: Path, reviewer_count: int = MINIMUM_REVIEWERS) -> dict[str, Any]:
+def run_verification(
+    root: Path,
+    reviewer_count: int = MINIMUM_REVIEWERS,
+    *,
+    project_root: Path | None = None,
+) -> dict[str, Any]:
     """Run the synthetic Phase 8 scenario in an empty, caller-owned directory."""
     if not MINIMUM_REVIEWERS <= reviewer_count <= MAXIMUM_REVIEWERS:
         raise ValueError(
@@ -279,7 +289,7 @@ def run_verification(root: Path, reviewer_count: int = MINIMUM_REVIEWERS) -> dic
                 )
     engine.dispose()
 
-    app = create_app(_app_config(root))
+    app = create_app(_app_config(root, project_root))
     seed_payload = _payload(**seed_context)
     seed_receipt = app.extensions["musparql_submissions"].submit(
         seed_context["assignment_id"], SEED_REVIEWER_ID, seed_payload
@@ -419,7 +429,7 @@ def run_verification(root: Path, reviewer_count: int = MINIMUM_REVIEWERS) -> dic
         interrupted.started_at = timestamp(utc_now())
     restart_engine.dispose()
 
-    restarted_app = create_app(_app_config(root))
+    restarted_app = create_app(_app_config(root, project_root))
     processing = restarted_app.extensions["musparql_processing"]
     _require(
         processing.recover_interrupted() == 1,
@@ -568,6 +578,11 @@ def parser() -> argparse.ArgumentParser:
         type=Path,
         help="Empty directory to retain after the run; omitted uses a temporary directory",
     )
+    result.add_argument(
+        "--project-root",
+        type=Path,
+        help="Checkout containing catalog, review, and schemas resources",
+    )
     result.add_argument("--output", type=Path, help="Write the JSON report to this path")
     return result
 
@@ -576,9 +591,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if args.workspace is None:
         with tempfile.TemporaryDirectory(prefix="musparql-phase8-") as temporary:
-            report = run_verification(Path(temporary), args.reviewers)
+            report = run_verification(
+                Path(temporary), args.reviewers, project_root=args.project_root
+            )
     else:
-        report = run_verification(args.workspace, args.reviewers)
+        report = run_verification(
+            args.workspace, args.reviewers, project_root=args.project_root
+        )
     rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
