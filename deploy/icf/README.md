@@ -60,7 +60,7 @@ sudo cp /opt/musparql/current/deploy/icf/musparql.env.example /etc/musparql/musp
 sudo chown root:musparql /etc/musparql/musparql.env
 sudo chmod 0640 /etc/musparql/musparql.env
 sudo install -o root -g musparql -m 0640 /dev/null /etc/musparql/app-secret
-sudo openssl rand -hex 32 -out /etc/musparql/app-secret
+sudo openssl rand -hex -out /etc/musparql/app-secret 32
 ```
 
 The initial configuration is explicitly synthetic. It must not receive real
