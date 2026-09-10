@@ -144,6 +144,9 @@ class SubmissionService:
                 id=receipt_id,
                 assignment_id=assignment_id,
                 reviewer_id=reviewer_id,
+                review_group_id=None,
+                submitted_by_reviewer_id=reviewer_id,
+                contributor_reviewer_ids=[reviewer_id],
                 export_path=relative,
                 export_digest=digest,
                 submitted_at=now,
@@ -170,6 +173,9 @@ class SubmissionService:
             session.add(job)
             persisted.status = "submitted"
             persisted.submitted_at = now
+            persisted.participant_status = "completed"
+            persisted.completed_at = now
+            persisted.closed_contributor_ids = [reviewer_id]
             session.commit()
             return self._receipt(submission, job, duplicate=False)
         except Exception:

@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+import hmac
 from typing import Any
 import unicodedata
+import uuid
 
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from musparql.reviewer_provenance import (
@@ -23,6 +26,11 @@ from .models import (
     ReviewerDomainExpertise,
     ReviewerKgDomainAssessment,
     ReviewerResourceFamiliarityAssessment,
+    Reviewer,
+    ReviewGroupMember,
+    WorkshopEntryCode,
+    WorkshopEntryRedemption,
+    WorkshopRound,
 )
 from .repositories import AssignmentRepository, ProvenanceRepository, SeedRepository
 
@@ -42,6 +50,103 @@ def normalize_email(value: str) -> str:
     if "." not in ascii_domain or ascii_domain.startswith(".") or ascii_domain.endswith("."):
         raise ValueError("Email address is invalid")
     return f"{local.casefold()}@{ascii_domain}"
+
+
+class WorkshopAdmissionError(ValueError):
+    """A shared-code admission could not be completed safely."""
+
+
+class WorkshopAdmissionService:
+    """Serialize shared-code admission against the capacity of the whole round."""
+
+    def __init__(self, sessions: sessionmaker[Session]) -> None:
+        self.sessions = sessions
+
+    def redeem(
+        self,
+        *,
+        entry_code_id: str,
+        presented_code_digest: str,
+        reviewer: Reviewer,
+        redeemed_at: str,
+    ) -> str:
+        if reviewer.registration_method != "workshop_code":
+            raise WorkshopAdmissionError(
+                "Shared-code registrations must identify their registration method"
+            )
+        if reviewer.email_verified_at is not None:
+            raise WorkshopAdmissionError(
+                "A shared-code registration cannot label its email as verified"
+            )
+        if (
+            reviewer.consent_statement_version is not None
+            or reviewer.consented_at is not None
+        ):
+            raise WorkshopAdmissionError(
+                "Shared-code admission must route to consent before recording consent"
+            )
+
+        session = self.sessions()
+        try:
+            # SQLite has no row-level SELECT FOR UPDATE. BEGIN IMMEDIATE makes the
+            # round-wide count, reviewer insert, redemption, and counter update a
+            # single serialized admission decision, including after code reissue.
+            session.execute(text("BEGIN IMMEDIATE"))
+            entry_code = session.get(WorkshopEntryCode, entry_code_id)
+            if entry_code is None or not hmac.compare_digest(
+                entry_code.code_digest, presented_code_digest
+            ):
+                raise WorkshopAdmissionError("Workshop entry code is invalid")
+            workshop_round = session.get(WorkshopRound, entry_code.workshop_round_id)
+            if (
+                workshop_round is None
+                or workshop_round.status != "open"
+                or redeemed_at < workshop_round.opens_at
+                or redeemed_at >= workshop_round.closes_at
+                or entry_code.revoked_at is not None
+                or redeemed_at >= entry_code.expires_at
+            ):
+                raise WorkshopAdmissionError("Workshop entry code is not active")
+            if entry_code.redemption_count >= entry_code.max_redemptions:
+                raise WorkshopAdmissionError("Workshop entry code is fully redeemed")
+            round_redemptions = int(
+                session.scalar(
+                    select(func.count())
+                    .select_from(WorkshopEntryRedemption)
+                    .join(
+                        WorkshopEntryCode,
+                        WorkshopEntryCode.id == WorkshopEntryRedemption.entry_code_id,
+                    )
+                    .where(
+                        WorkshopEntryCode.workshop_round_id == workshop_round.id
+                    )
+                )
+                or 0
+            )
+            if round_redemptions >= workshop_round.max_participants:
+                raise WorkshopAdmissionError("Workshop round is at participant capacity")
+            if session.get(Reviewer, reviewer.id) is not None:
+                raise WorkshopAdmissionError("Reviewer already exists")
+
+            redemption_id = "redemption-" + uuid.uuid4().hex
+            session.add(reviewer)
+            session.flush()
+            session.add(
+                WorkshopEntryRedemption(
+                    id=redemption_id,
+                    entry_code_id=entry_code.id,
+                    reviewer_id=reviewer.id,
+                    redeemed_at=redeemed_at,
+                )
+            )
+            entry_code.redemption_count += 1
+            session.commit()
+            return redemption_id
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
 
 class SeedSnapshotService:
@@ -208,8 +313,26 @@ class ProvenanceService:
             if assignment is None:
                 raise ValueError(f"Unknown review assignment: {assignment_id}")
             reviewer_ids = {validate_reviewer_id(record.get("reviewer_id")) for record in records}
-            if reviewer_ids != {assignment.reviewer_id}:
-                raise ValueError("Pre-review assessments must belong to the assigned reviewer")
+            if assignment.reviewer_id is not None:
+                if reviewer_ids != {assignment.reviewer_id}:
+                    raise ValueError(
+                        "Pre-review assessments must belong to the assigned reviewer"
+                    )
+            elif assignment.review_group_id is not None:
+                member_ids = set(
+                    session.scalars(
+                        select(ReviewGroupMember.reviewer_id).where(
+                            ReviewGroupMember.group_id == assignment.review_group_id,
+                            ReviewGroupMember.reviewer_id.in_(reviewer_ids),
+                        )
+                    )
+                )
+                if member_ids != reviewer_ids:
+                    raise ValueError(
+                        "Pre-review assessments must belong to an assigned group member"
+                    )
+            else:
+                raise ValueError("Review assignment has no owner")
 
             provided_domains = {
                 (
@@ -247,6 +370,8 @@ class ProvenanceService:
                     raise ValueError("Only a ready assignment can be activated")
                 assignment.status = "active"
                 assignment.opened_at = str(records[0]["assessed_at"])
+                assignment.participant_status = "active"
+                assignment.claimed_at = str(records[0]["assessed_at"])
 
     def _append_assessment(
         self, session: Session, record: Mapping[str, Any], *, domain: bool

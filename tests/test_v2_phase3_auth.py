@@ -33,6 +33,10 @@ def reviewer(reviewer_id: str, email: str, *, status: str = "active") -> Reviewe
         updated_at=now,
         privacy_notice_version=None,
         privacy_notice_acknowledged_at=None,
+        registration_method="email_invitation",
+        email_verified_at=now if status == "active" else None,
+        consent_statement_version=None,
+        consented_at=None,
     )
 
 
@@ -128,7 +132,7 @@ def test_digest_limiter_has_hard_key_bounds() -> None:
 
 def test_phase3_migration_is_current_and_audit_is_append_only(portal_app) -> None:
     _app, _sender, database_path = portal_app
-    assert current_revision(database_path) == "20260820_06"
+    assert current_revision(database_path) == "20260910_07"
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
     try:
@@ -156,7 +160,7 @@ def test_auth_hardening_migrates_an_existing_phase3_database(tmp_path: Path) -> 
     upgrade_database(database_path, "20260819_02")
     assert current_revision(database_path) == "20260819_02"
     upgrade_database(database_path)
-    assert current_revision(database_path) == "20260820_06"
+    assert current_revision(database_path) == "20260910_07"
 
     engine = create_database_engine(database_path)
     try:
@@ -426,7 +430,9 @@ def test_successful_login_activates_invitation_and_rotates_existing_session(port
     sessions = session_factory(engine)
     try:
         with sessions() as session:
-            assert session.get(Reviewer, "reviewer-0042").status == "active"
+            invited = session.get(Reviewer, "reviewer-0042")
+            assert invited.status == "active"
+            assert invited.email_verified_at is not None
     finally:
         engine.dispose()
 

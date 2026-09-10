@@ -40,6 +40,10 @@ def reviewer(reviewer_id: str, email: str, *, status: str = "active") -> Reviewe
         updated_at=now,
         privacy_notice_version=None,
         privacy_notice_acknowledged_at=None,
+        registration_method="email_invitation",
+        email_verified_at=now if status == "active" else None,
+        consent_statement_version=None,
+        consented_at=None,
     )
 
 

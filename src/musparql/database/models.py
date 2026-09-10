@@ -50,6 +50,10 @@ class Reviewer(Base):
     updated_at: Mapped[str] = mapped_column(String)
     privacy_notice_version: Mapped[str | None] = mapped_column(String, nullable=True)
     privacy_notice_acknowledged_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    registration_method: Mapped[str] = mapped_column(String)
+    email_verified_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    consent_statement_version: Mapped[str | None] = mapped_column(String, nullable=True)
+    consented_at: Mapped[str | None] = mapped_column(String, nullable=True)
     __table_args__ = (
         CheckConstraint(
             "length(id) >= 13 AND substr(id, 1, 9) = 'reviewer-' "
@@ -57,6 +61,112 @@ class Reviewer(Base):
             name="ck_reviewers_id",
         ),
         CheckConstraint("status IN ('invited','active','disabled','withdrawn')", name="ck_reviewers_status"),
+        CheckConstraint(
+            "registration_method IN ('email_invitation','workshop_code')",
+            name="ck_reviewers_registration_method",
+        ),
+        CheckConstraint(
+            "(consent_statement_version IS NULL AND consented_at IS NULL) OR "
+            "(consent_statement_version IS NOT NULL AND consented_at IS NOT NULL)",
+            name="ck_reviewers_consent_pair",
+        ),
+    )
+
+
+class WorkshopRound(Base):
+    __tablename__ = "workshop_rounds"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String)
+    opens_at: Mapped[str] = mapped_column(String)
+    closes_at: Mapped[str] = mapped_column(String)
+    max_participants: Mapped[int] = mapped_column(Integer)
+    allow_additional_assignments: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[str] = mapped_column(String)
+    __table_args__ = (
+        CheckConstraint("status IN ('draft','open','closed')", name="ck_workshop_rounds_status"),
+        CheckConstraint("max_participants > 0", name="ck_workshop_rounds_capacity"),
+        CheckConstraint("opens_at < closes_at", name="ck_workshop_rounds_window"),
+    )
+
+
+class WorkshopEntryCode(Base):
+    __tablename__ = "workshop_entry_codes"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workshop_round_id: Mapped[str] = mapped_column(ForeignKey("workshop_rounds.id"))
+    code_digest: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[str] = mapped_column(String)
+    max_redemptions: Mapped[int] = mapped_column(Integer)
+    redemption_count: Mapped[int] = mapped_column(Integer, default=0)
+    revoked_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[str] = mapped_column(String)
+    __table_args__ = (
+        CheckConstraint("max_redemptions > 0", name="ck_workshop_entry_codes_capacity"),
+        CheckConstraint(
+            "redemption_count >= 0 AND redemption_count <= max_redemptions",
+            name="ck_workshop_entry_codes_redemptions",
+        ),
+        Index(
+            "uq_workshop_entry_codes_unrevoked_round",
+            "workshop_round_id",
+            unique=True,
+            sqlite_where=text("revoked_at IS NULL"),
+        ),
+    )
+
+
+class WorkshopEntryRedemption(Base):
+    __tablename__ = "workshop_entry_redemptions"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    entry_code_id: Mapped[str] = mapped_column(ForeignKey("workshop_entry_codes.id"))
+    reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"), unique=True)
+    redeemed_at: Mapped[str] = mapped_column(String)
+
+
+class ReviewGroup(Base):
+    __tablename__ = "review_groups"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workshop_round_id: Mapped[str] = mapped_column(ForeignKey("workshop_rounds.id"))
+    join_code_digest: Mapped[str] = mapped_column(Text, unique=True)
+    created_at: Mapped[str] = mapped_column(String)
+
+
+class ReviewGroupMember(Base):
+    __tablename__ = "review_group_members"
+    group_id: Mapped[str] = mapped_column(ForeignKey("review_groups.id"), primary_key=True)
+    reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"), primary_key=True)
+    joined_at: Mapped[str] = mapped_column(String)
+
+
+class WorkshopWorkPackage(Base):
+    __tablename__ = "workshop_work_packages"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workshop_round_id: Mapped[str] = mapped_column(ForeignKey("workshop_rounds.id"))
+    kg_id: Mapped[str] = mapped_column(String)
+    seed_version: Mapped[str] = mapped_column(String)
+    seed_digest: Mapped[str] = mapped_column(String)
+    display_name: Mapped[str] = mapped_column(Text)
+    short_description: Mapped[str] = mapped_column(Text, default="")
+    display_order: Mapped[int] = mapped_column(Integer)
+    bundle_path: Mapped[str] = mapped_column(Text)
+    bundle_digest: Mapped[str] = mapped_column(String)
+    processing_recipe: Mapped[str] = mapped_column(String)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[str] = mapped_column(String)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["kg_id", "seed_version", "seed_digest"],
+            ["kg_seed_snapshots.kg_id", "kg_seed_snapshots.seed_version", "kg_seed_snapshots.seed_digest"],
+            name="fk_workshop_package_seed",
+        ),
+        UniqueConstraint("workshop_round_id", "kg_id", name="uq_workshop_package_round_kg"),
+        UniqueConstraint("workshop_round_id", "display_order", name="uq_workshop_package_display_order"),
+        CheckConstraint("display_order > 0", name="ck_workshop_package_display_order"),
+        CheckConstraint("bundle_digest LIKE 'sha256:%'", name="ck_workshop_package_bundle_digest"),
+        CheckConstraint(
+            f"processing_recipe IN ({INITIAL_PROCESSING_RECIPES})",
+            name="ck_workshop_package_processing_recipe",
+        ),
     )
 
 
@@ -231,7 +341,21 @@ class OwnerAuditEvent(Base):
 class ReviewAssignment(Base):
     __tablename__ = "review_assignments"
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"))
+    reviewer_id: Mapped[str | None] = mapped_column(ForeignKey("reviewers.id"), nullable=True)
+    review_group_id: Mapped[str | None] = mapped_column(
+        ForeignKey("review_groups.id"), nullable=True
+    )
+    work_package_id: Mapped[str | None] = mapped_column(
+        ForeignKey("workshop_work_packages.id"), nullable=True
+    )
+    participant_status: Mapped[str] = mapped_column(String, default="not_started")
+    claimed_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    completed_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    completion_item_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    completion_total_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    closed_contributor_ids: Mapped[list[str] | None] = mapped_column(
+        JSON(none_as_null=True), nullable=True
+    )
     mode: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String)
     bundle_path: Mapped[str] = mapped_column(Text)
@@ -244,6 +368,7 @@ class ReviewAssignment(Base):
     submitted_at: Mapped[str | None] = mapped_column(String, nullable=True)
     __table_args__ = (
         UniqueConstraint("id", "reviewer_id", name="uq_assignment_reviewer"),
+        UniqueConstraint("id", "review_group_id", name="uq_assignment_review_group"),
         UniqueConstraint("id", "processing_recipe", name="uq_assignment_recipe"),
         CheckConstraint("mode IN ('initial','compare','linguistic')", name="ck_assignment_mode"),
         CheckConstraint(
@@ -251,6 +376,31 @@ class ReviewAssignment(Base):
             name="ck_assignment_status",
         ),
         CheckConstraint("holdout_capability = 0", name="ck_assignment_no_holdout"),
+        CheckConstraint(
+            "(reviewer_id IS NOT NULL AND review_group_id IS NULL) OR "
+            "(reviewer_id IS NULL AND review_group_id IS NOT NULL)",
+            name="ck_assignment_owner",
+        ),
+        CheckConstraint(
+            "participant_status IN ('not_started','active','completed','partial','abandoned')",
+            name="ck_assignment_participant_status",
+        ),
+        CheckConstraint(
+            "(completion_item_count IS NULL AND completion_total_count IS NULL) OR "
+            "(completion_item_count IS NOT NULL AND completion_total_count IS NOT NULL "
+            "AND completion_item_count >= 0 AND completion_total_count >= 0 "
+            "AND completion_item_count <= completion_total_count)",
+            name="ck_assignment_completion_counts",
+        ),
+        CheckConstraint(
+            "closed_contributor_ids IS NULL OR json_valid(closed_contributor_ids)",
+            name="ck_assignment_closed_contributors_json",
+        ),
+        CheckConstraint(
+            "participant_status NOT IN ('completed','partial','abandoned') OR "
+            "closed_contributor_ids IS NOT NULL",
+            name="ck_assignment_terminal_contributors",
+        ),
         CheckConstraint("bundle_digest LIKE 'sha256:%'", name="ck_assignment_bundle_digest"),
         CheckConstraint(
             f"processing_recipe IN ({PROCESSING_RECIPES})", name="ck_assignment_recipe"
@@ -300,7 +450,10 @@ class ReviewerKgDomainAssessment(Base):
             ["reviewer_kg_domain_assessments.id", "reviewer_kg_domain_assessments.reviewer_id", "reviewer_kg_domain_assessments.kg_id", "reviewer_kg_domain_assessments.review_domain_id"],
             name="fk_domain_assessment_predecessor_subject",
         ),
-        ForeignKeyConstraint(["assignment_id", "reviewer_id"], ["review_assignments.id", "review_assignments.reviewer_id"]),
+        ForeignKeyConstraint(
+            ["assignment_id"], ["review_assignments.id"],
+            name="fk_domain_assessment_assignment",
+        ),
         ForeignKeyConstraint(
             ["assignment_id", "kg_id", "seed_version"],
             ["assignment_kg_seeds.assignment_id", "assignment_kg_seeds.kg_id", "assignment_kg_seeds.seed_version"],
@@ -347,7 +500,10 @@ class ReviewerResourceFamiliarityAssessment(Base):
             ["reviewer_resource_familiarity_assessments.id", "reviewer_resource_familiarity_assessments.reviewer_id", "reviewer_resource_familiarity_assessments.kg_id", "reviewer_resource_familiarity_assessments.familiarity_scope_id"],
             name="fk_familiarity_assessment_predecessor_subject",
         ),
-        ForeignKeyConstraint(["assignment_id", "reviewer_id"], ["review_assignments.id", "review_assignments.reviewer_id"]),
+        ForeignKeyConstraint(
+            ["assignment_id"], ["review_assignments.id"],
+            name="fk_familiarity_assessment_assignment",
+        ),
         ForeignKeyConstraint(
             ["assignment_id", "kg_id", "seed_version"],
             ["assignment_kg_seeds.assignment_id", "assignment_kg_seeds.kg_id", "assignment_kg_seeds.seed_version"],
@@ -378,7 +534,12 @@ class ReviewSubmission(Base):
     __tablename__ = "review_submissions"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     assignment_id: Mapped[str] = mapped_column(String)
-    reviewer_id: Mapped[str] = mapped_column(String)
+    reviewer_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    review_group_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    submitted_by_reviewer_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    contributor_reviewer_ids: Mapped[list[str] | None] = mapped_column(
+        JSON(none_as_null=True), nullable=True
+    )
     export_path: Mapped[str] = mapped_column(Text)
     export_digest: Mapped[str] = mapped_column(String)
     submitted_at: Mapped[str] = mapped_column(String)
@@ -390,11 +551,36 @@ class ReviewSubmission(Base):
     decided_at: Mapped[str | None] = mapped_column(String, nullable=True)
     __table_args__ = (
         ForeignKeyConstraint(["assignment_id", "reviewer_id"], ["review_assignments.id", "review_assignments.reviewer_id"]),
+        ForeignKeyConstraint(
+            ["assignment_id", "review_group_id"],
+            ["review_assignments.id", "review_assignments.review_group_id"],
+            name="fk_submission_assignment_group",
+        ),
+        ForeignKeyConstraint(
+            ["review_group_id", "submitted_by_reviewer_id"],
+            ["review_group_members.group_id", "review_group_members.reviewer_id"],
+            name="fk_submission_group_submitter",
+        ),
+        ForeignKeyConstraint(
+            ["submitted_by_reviewer_id"], ["reviewers.id"],
+            name="fk_submission_submitter",
+        ),
         UniqueConstraint("id", "assignment_id", name="uq_submission_assignment"),
         UniqueConstraint("assignment_id", "revision", name="uq_submission_revision"),
         UniqueConstraint("assignment_id", "export_digest", name="uq_submission_retry"),
         CheckConstraint("revision >= 1", name="ck_submission_revision"),
         CheckConstraint("export_digest LIKE 'sha256:%'", name="ck_submission_digest"),
+        CheckConstraint(
+            "(reviewer_id IS NOT NULL AND review_group_id IS NULL) OR "
+            "(reviewer_id IS NULL AND review_group_id IS NOT NULL "
+            "AND submitted_by_reviewer_id IS NOT NULL "
+            "AND contributor_reviewer_ids IS NOT NULL)",
+            name="ck_submission_owner",
+        ),
+        CheckConstraint(
+            "contributor_reviewer_ids IS NULL OR json_valid(contributor_reviewer_ids)",
+            name="ck_submission_contributors_json",
+        ),
         CheckConstraint(
             "inclusion_status IN ('pending','included','revision_requested','rejected')",
             name="ck_submission_inclusion_status",
