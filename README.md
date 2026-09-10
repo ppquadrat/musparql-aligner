@@ -87,6 +87,9 @@ the human verifies and places that file at the local path.
   review procedure.
 - [`docs/REVIEWER_PRIVACY_NOTICE.md`](docs/REVIEWER_PRIVACY_NOTICE.md) — privacy
   notice requirements for reviewer profile administration.
+- [`docs/MUSPARQL_PARTICIPANT_NOTICE_DRAFT.md`](docs/MUSPARQL_PARTICIPANT_NOTICE_DRAFT.md) —
+  participant information and consent notice draft for ICF approval; it is not
+  approved for real-data collection while its marked decisions remain open.
 - [`docs/HOLDOUT_SECURITY.md`](docs/HOLDOUT_SECURITY.md) and
   [`docs/HOLDOUT_RUNBOOK.md`](docs/HOLDOUT_RUNBOOK.md) — holdout boundary and
   human-only procedure.
