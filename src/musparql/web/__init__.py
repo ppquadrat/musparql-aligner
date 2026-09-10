@@ -22,6 +22,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     app.config.from_mapping(
         DATABASE_PATH=os.environ.get("MUSPARQL_DATABASE_PATH"),
         APP_SECRET=os.environ.get("MUSPARQL_APP_SECRET"),
+        APP_SECRET_PATH=os.environ.get("MUSPARQL_APP_SECRET_PATH"),
         OWNER_REVIEWER_ID=os.environ.get("MUSPARQL_OWNER_REVIEWER_ID"),
         AUTH_COOKIE_NAME="musparql_session",
         LOGIN_CHALLENGE_COOKIE_NAME="musparql_login_challenge",
@@ -84,6 +85,15 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     )
     if test_config:
         app.config.update(test_config)
+
+    if not app.config.get("APP_SECRET") and app.config.get("APP_SECRET_PATH"):
+        secret_path = Path(app.config["APP_SECRET_PATH"]).expanduser().resolve()
+        try:
+            app.config["APP_SECRET"] = secret_path.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise RuntimeError(
+                f"The configured application secret cannot be read: {secret_path}"
+            ) from exc
 
     if not app.config.get("PRIVACY_NOTICE_BODY") and app.config.get(
         "PRIVACY_NOTICE_PATH"

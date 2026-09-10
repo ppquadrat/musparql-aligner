@@ -51,14 +51,16 @@ sudo /opt/musparql/venv/bin/pip install '/opt/musparql/current[production]'
 ```
 
 Create the restricted configuration directory and generate the application
-secret without printing it:
+secret directly into its restricted file, without printing it or placing it in
+a process argument:
 
 ```bash
 sudo install -d -o root -g musparql -m 0750 /etc/musparql
 sudo cp /opt/musparql/current/deploy/icf/musparql.env.example /etc/musparql/musparql.env
 sudo chown root:musparql /etc/musparql/musparql.env
 sudo chmod 0640 /etc/musparql/musparql.env
-sudo sed -i "s|replace-with-at-least-32-random-bytes|$(openssl rand -hex 32)|" /etc/musparql/musparql.env
+sudo install -o root -g musparql -m 0640 /dev/null /etc/musparql/app-secret
+sudo openssl rand -hex 32 -out /etc/musparql/app-secret
 ```
 
 The initial configuration is explicitly synthetic. It must not receive real

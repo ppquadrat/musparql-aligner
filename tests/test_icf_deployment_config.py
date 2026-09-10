@@ -98,3 +98,16 @@ def test_privacy_notice_can_be_loaded_from_a_restricted_file(tmp_path: Path) -> 
     finally:
         app.extensions["musparql_email_dispatcher"].shutdown()
         app.extensions["musparql_engine"].dispose()
+
+
+def test_application_secret_can_be_loaded_from_a_restricted_file(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    secret = tmp_path / "app-secret"
+    secret.write_text(SECRET + "\n", encoding="utf-8")
+    config.update({"APP_SECRET": None, "APP_SECRET_PATH": secret})
+    app = create_app(config)
+    try:
+        assert app.config["APP_SECRET"] == SECRET
+    finally:
+        app.extensions["musparql_email_dispatcher"].shutdown()
+        app.extensions["musparql_engine"].dispose()
