@@ -24,6 +24,9 @@ musparql-worker = "musparql.web.worker:main"
 musparql-local-hardening = "musparql.web.local_hardening:main"
 
 [project.optional-dependencies]
+production = [
+    "gunicorn>=23,<24",
+]
 test = [
     "pytest>=8,<10",
 ]

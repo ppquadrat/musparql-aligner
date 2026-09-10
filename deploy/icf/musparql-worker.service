@@ -1,0 +1,27 @@
+[Unit]
+Description=Musparql submission processing worker
+After=network-online.target musparql-web.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=musparql
+Group=musparql
+WorkingDirectory=/opt/musparql/current
+EnvironmentFile=/etc/musparql/musparql.env
+ExecStart=/opt/musparql/venv/bin/musparql-worker
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadWritePaths=/srv/musparql
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,27 @@
+[Unit]
+Description=Musparql web application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=musparql
+Group=musparql
+WorkingDirectory=/opt/musparql/current
+EnvironmentFile=/etc/musparql/musparql.env
+ExecStart=/opt/musparql/venv/bin/gunicorn --workers 1 --threads 4 --bind 127.0.0.1:8000 --timeout 60 "musparql.web:create_app()"
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadWritePaths=/srv/musparql
+
+[Install]
+WantedBy=multi-user.target

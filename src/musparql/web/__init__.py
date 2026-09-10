@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from musparql.database import create_database_engine, session_factory
 from musparql.database.migrations import upgrade_database
@@ -74,12 +75,26 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         ),
         PRIVACY_NOTICE_VERSION=os.environ.get("MUSPARQL_PRIVACY_NOTICE_VERSION"),
         PRIVACY_NOTICE_BODY=os.environ.get("MUSPARQL_PRIVACY_NOTICE_BODY"),
+        PRIVACY_NOTICE_PATH=os.environ.get("MUSPARQL_PRIVACY_NOTICE_PATH"),
+        TRUSTED_HOSTS=_environment_list("MUSPARQL_TRUSTED_HOSTS"),
+        BEHIND_SINGLE_PROXY=os.environ.get("MUSPARQL_BEHIND_SINGLE_PROXY") == "1",
         ALLOW_SYNTHETIC_PRIVACY_NOTICE=(
             os.environ.get("MUSPARQL_ALLOW_SYNTHETIC_PRIVACY_NOTICE") == "1"
         ),
     )
     if test_config:
         app.config.update(test_config)
+
+    if not app.config.get("PRIVACY_NOTICE_BODY") and app.config.get(
+        "PRIVACY_NOTICE_PATH"
+    ):
+        notice_path = Path(app.config["PRIVACY_NOTICE_PATH"]).expanduser().resolve()
+        try:
+            app.config["PRIVACY_NOTICE_BODY"] = notice_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise RuntimeError(
+                f"The configured privacy notice cannot be read: {notice_path}"
+            ) from exc
 
     if app.config["TESTING"] or app.config["ALLOW_SYNTHETIC_PRIVACY_NOTICE"]:
         app.config["PRIVACY_NOTICE_VERSION"] = app.config.get(
@@ -89,6 +104,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             "Synthetic development notice. Do not enter real personal data. "
             "This notice is only for testing the Musparql onboarding workflow."
         )
+
+    if app.config["BEHIND_SINGLE_PROXY"]:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)  # type: ignore[method-assign]
 
     _validate_config(app)
     database_path = Path(app.config["DATABASE_PATH"]).expanduser().resolve()
@@ -176,6 +194,8 @@ def _validate_config(app: Flask) -> None:
         raise RuntimeError("Missing required application configuration: " + ", ".join(missing))
     if len(app.config["APP_SECRET"].encode("utf-8")) < 32:
         raise RuntimeError("APP_SECRET must contain at least 32 UTF-8 bytes")
+    if app.config["BEHIND_SINGLE_PROXY"] and not app.config.get("TRUSTED_HOSTS"):
+        raise RuntimeError("TRUSTED_HOSTS is required behind a reverse proxy")
     if not app.config.get("PRIVACY_NOTICE_VERSION") or not app.config.get(
         "PRIVACY_NOTICE_BODY"
     ):
@@ -219,6 +239,14 @@ def _validate_config(app: Flask) -> None:
     for name in ("REVIEW_EXPORT_SCHEMA_PATH", "LINGUISTIC_EXPORT_SCHEMA_PATH"):
         if not Path(app.config[name]).expanduser().resolve().is_file():
             raise RuntimeError(f"The configured schema does not exist: {name}")
+
+
+def _environment_list(name: str) -> list[str] | None:
+    raw = os.environ.get(name)
+    if raw is None:
+        return None
+    values = [value.strip() for value in raw.split(",") if value.strip()]
+    return values or None
 
 
 __all__ = ["create_app"]
