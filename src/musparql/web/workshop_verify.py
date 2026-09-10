@@ -80,6 +80,10 @@ def _reviewer(reviewer_id: str, index: int) -> Reviewer:
         updated_at=now,
         privacy_notice_version="synthetic-phase-8-v1",
         privacy_notice_acknowledged_at=now,
+        registration_method="email_invitation",
+        email_verified_at=now,
+        consent_statement_version=None,
+        consented_at=None,
     )
 
 

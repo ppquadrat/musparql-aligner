@@ -103,6 +103,10 @@ def _reviewer(reviewer_id: str, email: str, name: str) -> Reviewer:
         updated_at=now,
         privacy_notice_version=None,
         privacy_notice_acknowledged_at=None,
+        registration_method="email_invitation",
+        email_verified_at=now,
+        consent_statement_version=None,
+        consented_at=None,
     )
 
 

@@ -33,6 +33,10 @@ def reviewer(reviewer_id: str, email: str, *, status: str = "active") -> Reviewe
         updated_at=now,
         privacy_notice_version=None,
         privacy_notice_acknowledged_at=None,
+        registration_method="email_invitation",
+        email_verified_at=now if status == "active" else None,
+        consent_statement_version=None,
+        consented_at=None,
     )
 
 
@@ -426,7 +430,9 @@ def test_successful_login_activates_invitation_and_rotates_existing_session(port
     sessions = session_factory(engine)
     try:
         with sessions() as session:
-            assert session.get(Reviewer, "reviewer-0042").status == "active"
+            invited = session.get(Reviewer, "reviewer-0042")
+            assert invited.status == "active"
+            assert invited.email_verified_at is not None
     finally:
         engine.dispose()
 

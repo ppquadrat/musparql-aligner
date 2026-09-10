@@ -45,6 +45,10 @@ def _reviewer(reviewer_id: str, email: str, *, notice: bool = False) -> Reviewer
         updated_at=now,
         privacy_notice_version="synthetic-phase5-v1" if notice else None,
         privacy_notice_acknowledged_at=now if notice else None,
+        registration_method="email_invitation",
+        email_verified_at=now,
+        consent_statement_version=None,
+        consented_at=None,
     )
 
 

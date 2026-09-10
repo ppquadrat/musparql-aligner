@@ -309,6 +309,8 @@ class AuthService:
                 login_code.consumed_at = timestamp(now)
                 return None
             login_code.consumed_at = timestamp(now)
+            if reviewer.email_verified_at is None:
+                reviewer.email_verified_at = timestamp(now)
             if reviewer.status == "invited":
                 reviewer.status = "active"
                 reviewer.updated_at = timestamp(now)
@@ -416,6 +418,10 @@ class AuthService:
                 updated_at=timestamp(now),
                 privacy_notice_version=None,
                 privacy_notice_acknowledged_at=None,
+                registration_method="email_invitation",
+                email_verified_at=None,
+                consent_statement_version=None,
+                consented_at=None,
             )
             session.add(reviewer)
             self._audit(
