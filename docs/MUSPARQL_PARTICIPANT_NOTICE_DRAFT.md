@@ -6,6 +6,9 @@ Draft date: 10 September 2026
 
 Proposed notice version: `musparql-participant-notice-2026-09-v1`
 
+ICF review copy: [`Musparql_Participant_Notice_ICF_Review.docx`](Musparql_Participant_Notice_ICF_Review.docx).
+This Markdown file remains the editable source of truth.
+
 This draft implements the ICF decision recorded in the 29 August 2026 hosting
 handover. It is not legal advice and must be approved by ICF before the first
 invitation or collection of real reviewer data.
@@ -17,20 +20,17 @@ invitation or collection of real reviewer data.
 2. Confirm that `musparql@industrycommons.net` is active and monitored before
    publishing the notice.
 3. Insert the selected transactional email provider, its processing locations,
-   and any relevant international-transfer wording. Brevo/Mailjet is not a
-   sufficiently definite disclosure.
-4. Resolve the withdrawal/retained-annotations issue. ICF selected consent as
-   the lawful basis but also approved retaining pseudonymous annotations with
-   the dataset. Pseudonymisation alone does not make data anonymous. ICF must
-   decide and document whether, after withdrawal, earlier annotations will:
-
-   - be irreversibly anonymised so the reviewer is no longer identifiable;
-   - remain pseudonymous under a separate lawful ground or applicable research
-     safeguard/exception identified by ICF; or
-   - be deleted.
-
-   The bracketed paragraph under **Withdrawal and retention** must be replaced
-   with the approved outcome.
+   and any relevant international-transfer wording.
+4. Confirm the lawful basis for the agreed withdrawal model. On withdrawal,
+   Musparql will delete the contact registry (name, email, optional affiliation,
+   account access, and the identity link) but retain the reviewer's existing
+   annotations and the language proficiency, expertise, and KG-familiarity
+   values needed to analyse them in the private pseudonymous research dataset.
+   Pseudonymisation alone does not make these data anonymous, particularly in a
+   small expert cohort. ICF must identify and document the separate lawful
+   ground or applicable research provision that permits this retention after
+   consent to participate has been withdrawn. The marked text under **Lawful
+   basis and consent** must then name that basis.
 5. Confirm whether consent is the lawful basis for every listed operation, or
    whether minimal service-security, rights-request, and incident records use a
    different lawful basis. The final notice must map each purpose to the basis
@@ -39,15 +39,72 @@ invitation or collection of real reviewer data.
    that must be named in addition to the Musparql address.
 7. Confirm that the Swedish Authority for Privacy Protection (IMY) is the
    supervisory authority ICF wants identified.
-8. Define how and when the project is formally declared closed so the two-year
-   retention period has a determinate starting point.
+8. Approve the proposed project-closure rule: the project lead recommends
+   closure and ICF formally records it when no recruitment, annotation rounds,
+   or planned analyses requiring pseudonymous reviewer data remain active and
+   no approved successor arrangement exists. Leaving ICF triggers a transition
+   review rather than automatic closure or data transfer.
 9. Complete ICF's OPERAS/data-management-plan registration check.
 10. Make this notice available with the invitation and from the login page.
     Replace the application's current acknowledgement-only checkbox with the
     approved affirmative consent wording. Consent must not be inferred merely
     from requesting a login code or continuing to use the site.
+11. Update the v2 public-release projection so new external-reviewer releases
+    do not publish stable reviewer IDs, reviewer-level expertise/familiarity, or
+    linked individual annotations. Existing v1–v10 single-reviewer releases
+    remain unchanged.
 
 ---
+
+## Application presentation and consent flow — implementation specification
+
+This section is for the Musparql application team and should not appear as part
+of the published participant notice.
+
+The first-time journey is:
+
+1. The invitation links to the complete participant notice.
+2. The login page offers the complete notice before an email address is entered.
+3. After successful code verification, and before profile or research data are
+   collected, a dedicated consent screen appears.
+4. The screen shows the essential information in a short summary, followed by a
+   prominent way to expand or open the complete notice. Essential or surprising
+   information must not exist only behind the expandable section.
+5. An unticked, required checkbox records affirmative consent. The profile form
+   is shown only after it is selected and submitted.
+6. The complete notice remains available later from the profile or site footer.
+   Returning reviewers do not see the gate again unless a material change
+   requires a revised notice and fresh consent.
+
+Recommended consent-screen summary:
+
+> **Before you take part**
+>
+> Musparql is an ICF research study about reviewing natural-language questions
+> and SPARQL queries. Taking part is voluntary. We collect your profile,
+> expertise, language and review data to run the study and analyse the benchmark.
+> We publish benchmark questions and ambiguity/alternative data, but not your
+> name, contact details, reviewer profile, or reviewer-linked annotations.
+>
+> You may stop or withdraw at any time. If you withdraw, we delete your contact
+> details and the link between your identity and reviewer ID. Existing
+> annotations and their linked language, expertise and KG-familiarity data may
+> remain in ICF's private pseudonymous research dataset under the lawful basis
+> stated in the complete notice. Contact musparql@industrycommons.net about the
+> study or your data rights.
+>
+> **Read the complete participant information and privacy notice**
+
+The checkbox beside that summary should say:
+
+> I confirm that I am aged 18 or over, that I have read the Musparql participant
+> information and privacy notice, and that I voluntarily agree to take part and
+> to Industry Commons Foundation using my personal data as described.
+
+Do not preselect the checkbox. Do not infer consent from an invitation, code
+request, successful login, or continued use. Store the notice version, consent
+statement version, and timestamp. The final screen must use the wording approved
+by ICF after it confirms the lawful basis and withdrawal model.
 
 ## Participant-facing notice
 
@@ -74,7 +131,9 @@ The study will help us:
   room for interpretation.
 
 The purpose is to study the review method and the resulting benchmark data. It
-is not to rank, evaluate, or make decisions about individual reviewers.
+is not to rank, evaluate, or make decisions about individual reviewers. The
+public benchmark is separate from the private reviewer research dataset used
+to study expertise, familiarity, learning, and reviewer agreement.
 
 ### Who is responsible for your data?
 
@@ -128,7 +187,11 @@ assignment. You may pause and return later while the assignment remains open.
 We collect only the information needed to operate the invited review service
 and conduct the study:
 
-- **Identity and contact:** your name, email address, and optional affiliation.
+- **Operational identity and contact:** your name, email address, optional
+  affiliation, account status, and the confidential link to your pseudonymous
+  reviewer identifier. These details are used for invitations, login,
+  follow-up questions about your annotations, and future annotation invitations;
+  they are not research variables.
 - **Languages:** the languages you select and your self-described proficiency.
 - **General expertise:** research domains you enter and your selected expertise
   level in each domain.
@@ -140,10 +203,9 @@ and conduct the study:
   model, or graph representation.
 - **Review contributions:** decisions, rewrites, alternative formulations,
   ratings, comments, problem reports, and submission timestamps.
-- **Service and security records:** invitation and account status, login-code
-  and session records, assignment status, submission receipts, processing
-  status, email-delivery status, and limited security/audit records needed to
-  protect and operate the service.
+- **Service and security records:** login-code and session records, assignment
+  status, submission receipts, processing status, email-delivery status, and
+  limited security/audit records needed to protect and operate the service.
 
 Please do not enter sensitive personal information—such as health information,
 political opinions, religious beliefs, sexual orientation, trade-union
@@ -159,8 +221,11 @@ ICF uses the data to:
 - understand which forms of expertise and knowledge-graph familiarity are
   represented in the reviewer group;
 - compare review judgements across reviewers and, where relevant, across time;
-- construct, verify, document, and publish Musparql research datasets and
-  related analyses;
+- construct, verify, document, and publish the Musparql benchmark and public
+  alternatives/provenance file;
+- conduct private reviewer-level analyses of expertise, familiarity, learning,
+  and agreement, and publish only appropriate aggregate findings unless ICF
+  separately approves another disclosure;
 - secure, back up, restore, maintain, and audit the service; and
 - answer participant questions and data-protection requests.
 
@@ -170,34 +235,47 @@ decision or make a consequential decision about a reviewer.
 
 ### Lawful basis and consent
 
-ICF relies on your consent for the research processing described in this
-notice. Consent must be freely given, informed, specific, and expressed through
-a clear affirmative action. You can refuse or later withdraw without
-disadvantage.
+ICF relies on your consent to participate and to collect and use your personal
+data for the Musparql activities described in this notice while you take part.
+Consent must be freely given, informed, specific, and expressed through a clear
+affirmative action. You can refuse or later withdraw without disadvantage.
 
-**[ICF to confirm whether a different lawful basis applies to minimal security,
-rights-request, incident, or legal-accountability records and insert it here if
-so.]**
+**[ICF to insert and explain the lawful basis for retaining existing
+pseudonymous annotations and their associated language, expertise, and
+KG-familiarity research variables after withdrawal. ICF must also confirm
+whether a different lawful basis applies to minimal security, rights-request,
+incident, or legal-accountability records.]**
 
 ### Pseudonymisation and research outputs
 
-The system assigns you a random identifier such as `reviewer-0001`. Your name,
-email address, affiliation, language profile, expertise information,
-knowledge-graph familiarity, authentication data, and rights-request records
-are kept in confidential storage and are not placed in ordinary review bundles,
-published benchmark files, model prompts, or public reports.
+The system assigns you a random identifier such as `reviewer-0001`. Musparql
+keeps two separate private records:
 
-Research-facing review provenance uses the pseudonymous reviewer identifier.
-Published reporting will normally be aggregated and will avoid singling out an
-identifiable reviewer. Pseudonymised information is still treated as personal
-data while ICF retains a way to connect it to you or you remain reasonably
-identifiable from the circumstances.
+- an operational contact registry containing your name, email address,
+  optional affiliation, account information, and the identity-to-reviewer link;
+  and
+- a pseudonymous research dataset containing your annotations and the language,
+  expertise, and KG-familiarity information needed to interpret them.
+
+The public Musparql release has two data components: a concise benchmark file
+containing canonical question–SPARQL pairs and an alternatives/provenance file
+containing accepted formulations and methodological provenance. New releases
+using external reviewers will not publish their stable reviewer IDs,
+reviewer-level language, expertise or familiarity, or linked individual
+annotation histories.
+
+Public reporting about reviewer characteristics will use appropriate aggregate
+results and avoid singling out an identifiable reviewer. The private research
+dataset remains personal data even after the direct identity link is removed if
+a reviewer could still reasonably be identified from their contribution or
+combination of characteristics.
 
 ### Who can access the data and where it is stored
 
 Access to identifiable and confidential information is limited to the
 authorised Musparql researcher and authorised ICF administrators when access is
-necessary for continuity, security, recovery, or incident response.
+necessary for the research, continuity, security, recovery, or incident
+response.
 
 The application is hosted for ICF by Hetzner on a dedicated server in Germany.
 Encrypted backups are stored in ICF-controlled off-server storage and retained
@@ -213,6 +291,17 @@ to your personal mailbox.
 ODOMA does not receive Musparql reviewer personal data. Any future shared
 authentication, joint analysis, or sharing that changes this position would
 require a documented decision and an updated notice before it begins.
+
+Individual-level reviewer research data is not published or routinely shared.
+If another researcher asks for access in future, ICF will consider that request
+separately. No access will be provided merely because it was requested. Any
+approved access must have a defined purpose, appropriate safeguards and
+agreements, and any further notice or consent required at that time.
+
+If the Musparql researcher's relationship with ICF changes, the private data do
+not automatically transfer to the researcher or a new institution. ICF
+remains responsible for the data unless it formally approves and documents a
+lawful successor or continued-access arrangement.
 
 **[ICF to confirm the selected email provider's processing countries,
 subprocessors, and whether any additional international-transfer safeguards
@@ -234,24 +323,35 @@ affected participants when required.
 
 You may stop participating or withdraw your consent at any time by emailing
 `musparql@industrycommons.net`. We will stop assigning new work, disable your
-login, and revoke active sessions.
+login, revoke active sessions, and stop contacting you about further
+annotations.
 
-Unless you withdraw earlier, identity, contact, profile, expertise, and
-familiarity information is retained until two years after ICF formally records
-the end of the project. Expired login codes, sessions, delivery records, logs,
-temporary processing records, and administrative audit records have shorter
-operational retention periods.
+On withdrawal, the live operational contact registry containing your name,
+email address, optional affiliation, account data, and identity-to-reviewer link
+will be deleted within 30 days. Encrypted backup copies expire through the
+normal backup cycle within 90 days, and recorded deletions are reapplied if an
+older backup is restored.
 
-If you withdraw, your identity and profile information will be removed from the
-live system within 30 days. Encrypted backup copies expire through the normal
-backup cycle within 90 days, and recorded deletions are reapplied if an older
-backup is restored.
+Existing annotations and the language proficiency, expertise, and
+KG-familiarity information needed to analyse them will remain in the private
+pseudonymous research dataset. They will not be added to the two public
+benchmark files as reviewer-level data. **[ICF must insert the confirmed lawful
+basis or research provision for this retention and explain any applicable
+right to object or request erasure.]**
 
-**[ICF MUST REPLACE THIS PARAGRAPH after resolving the lawful basis: Review
-contributions already supplied may be retained with the research dataset under
-your pseudonymous reviewer identifier. Explain here whether they are
-irreversibly anonymised, retained under another identified lawful ground or
-research provision, or deleted following withdrawal.]**
+If you do not withdraw, operational identity/contact information is retained
+until no later than two years after formal project closure. The project lead
+recommends closure and ICF records the closure date when no reviewer
+recruitment, annotation rounds, or planned analyses requiring the private
+pseudonymous dataset remain active and no approved successor arrangement has
+been established. Project status will be reviewed periodically rather than
+left open indefinitely.
+
+Pseudonymous annotations and the minimum research variables needed to interpret
+them are retained for the documented lifetime of the Musparql research dataset,
+subject to ICF's confirmed lawful basis and storage-limitation review. Expired
+login codes, sessions, delivery records, logs, temporary processing records,
+and administrative audit records have shorter operational retention periods.
 
 ### Your data-protection rights
 
@@ -284,18 +384,18 @@ before the new processing begins.
 ## Proposed affirmative consent wording
 
 The following should appear beside an unticked, required checkbox after the
-participant has had an opportunity to read or download the complete notice:
+participant has seen the essential summary above and had an opportunity to read
+or download the complete notice:
 
 > I confirm that I am aged 18 or over, that I have read the Musparql participant
-> information and privacy notice, and that I voluntarily consent to Industry
-> Commons Foundation processing my personal data for the Musparql research and
-> service purposes described there. I understand that I may stop participating
-> and withdraw my consent at any time by contacting
-> musparql@industrycommons.net, without disadvantage.
+> information and privacy notice, and that I voluntarily agree to take part and
+> to Industry Commons Foundation using my personal data as described.
 
 Store the notice version, consent statement version, and consent timestamp. Do
 not preselect the checkbox. A separate invitation or assignment should not be
-treated as consent by itself.
+treated as consent by itself. The withdrawal consequences, including any
+approved retention of pseudonymous research data, must be stated immediately
+above the checkbox rather than compressed into its label.
 
 ## Drafting references
 

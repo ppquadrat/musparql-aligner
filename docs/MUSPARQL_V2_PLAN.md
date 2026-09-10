@@ -138,7 +138,9 @@ the trusted Musparql working copy and mediates every permitted operation.
 
 ### 6.1 First visit
 
-1. The invited reviewer opens an assignment URL.
+1. The invited reviewer opens an assignment URL. The invitation links to the
+   complete participant information and privacy notice, which is also available
+   from the login page.
 2. They enter their email address.
 3. The application sends a short-lived numeric code.
 4. They paste the code into the same browser.
@@ -147,9 +149,22 @@ the trusted Musparql working copy and mediates every permitted operation.
    > Keep me signed in for 30 days on this browser. Do not select this on a
    > shared computer.
 
-6. If their profile is incomplete, they complete onboarding.
-7. They answer the assignment-specific pre-review questions.
-8. The review workbench opens.
+6. Before any profile or research data are collected, a dedicated consent gate
+   presents the essential information in a short, readable summary, gives easy
+   access to the complete notice, and requires an unticked affirmative-consent
+   checkbox. Requesting a login code, verifying it, or continuing to the site
+   does not by itself constitute consent.
+7. The application records the notice version, consent-statement version, and
+   consent timestamp.
+8. If their profile is incomplete, they complete onboarding.
+9. They answer the assignment-specific pre-review questions.
+10. The review workbench opens.
+
+The consent gate and its concise copy are specified in
+[`MUSPARQL_PARTICIPANT_NOTICE_DRAFT.md`](MUSPARQL_PARTICIPANT_NOTICE_DRAFT.md).
+The full notice remains accessible from the profile or site footer. Returning
+reviewers are not repeatedly blocked by the gate unless a material change to
+the purposes or use of their data requires a revised notice and fresh consent.
 
 ### 6.2 Returning on a private browser
 
@@ -1432,9 +1447,15 @@ This implementation does not approve the draft notice or authorise real reviewer
 data. The ICF/controller response, Phase 2b recovery gate, selected email route,
 and deployment approvals remain prerequisites for real invitations.
 
+Production delta agreed in September 2026: the current acknowledgement inside
+the profile page is not the final participant journey. Before inviting real
+reviewers it must become a dedicated affirmative-consent gate after login and
+before profile collection, using the layered summary and complete notice in
+[`MUSPARQL_PARTICIPANT_NOTICE_DRAFT.md`](MUSPARQL_PARTICIPANT_NOTICE_DRAFT.md).
+
 Work:
 
-- privacy notice and acknowledgement;
+- participant-information presentation and versioned affirmative consent;
 - name, affiliation, technical experience, and languages;
 - multi-domain autocomplete with free-text fallback;
 - versioned local EuroSciVoc suggestion cache;
@@ -1444,6 +1465,9 @@ Work:
 Exit criteria:
 
 - a synthetic reviewer completes onboarding without repository access;
+- the consent gate prevents profile collection until an unticked checkbox is
+  affirmatively selected, and a material notice change can require fresh
+  consent;
 - free-text and vocabulary-backed domains coexist correctly;
 - profile changes preserve required provenance; and
 - onboarding can be completed quickly on desktop and mobile.
