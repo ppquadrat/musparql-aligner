@@ -105,6 +105,11 @@ def index():
         assignments = current_app.extensions["musparql_assignments"].list_for_reviewer(
             g.current_reviewer.id
         )
+        assignments.extend(
+            current_app.extensions[
+                "musparql_assignments"
+            ].list_group_assignments_for_reviewer(g.current_reviewer.id)
+        )
         workshop_available = current_app.extensions[
             "musparql_workshops"
         ].available(g.current_reviewer.id)
@@ -677,6 +682,8 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
         context = {
             "assignment_id": assignment_id,
             "reviewer_id": g.current_reviewer.id,
+            "draft_owner_id": payload.get("review_group_id")
+            or g.current_reviewer.id,
             "holdout_capability": False,
             "assignment_url": url_for(
                 "portal.assignment", assignment_id=assignment_id
@@ -685,10 +692,12 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
             "assignments_url": url_for("portal.index"),
             "logout_url": url_for("portal.logout"),
             "csrf_token": g.csrf_token,
-            "submission_url": url_for(
-                "portal.submit_assignment", assignment_id=assignment_id
-            ),
+            "read_only": "review_group_id" in payload,
         }
+        if "review_group_id" not in payload:
+            context["submission_url"] = url_for(
+                "portal.submit_assignment", assignment_id=assignment_id
+            )
         body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(
             context, ensure_ascii=True, separators=(",", ":")
         ) + ";\n"

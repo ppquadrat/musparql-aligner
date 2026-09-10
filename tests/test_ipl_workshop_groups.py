@@ -107,7 +107,7 @@ def _complete_profile(session, reviewer_id: str) -> None:
     )
 
 
-def _write_bundle(path: Path) -> str:
+def _write_bundle(path: Path, *, kg_id: str = "synthetic-kg") -> str:
     payload = {
         "schema": "musparql.review-bundle.v2",
         "mode": "initial",
@@ -118,7 +118,7 @@ def _write_bundle(path: Path) -> str:
         "records": [
             {
                 "review_id": "synthetic-kg::synthetic-query::one",
-                "kg_id": "synthetic-kg",
+                "kg_id": kg_id,
             }
         ],
     }
@@ -222,6 +222,7 @@ def workshop_app(tmp_path: Path):
             "CANDIDATE_ROOT": tmp_path / "candidates",
             "PRIVACY_NOTICE_VERSION": "synthetic-ipl-v1",
             "PRIVACY_NOTICE_BODY": "Synthetic notice. Do not enter real data.",
+            "CONSENT_STATEMENT_VERSION": "synthetic-consent-v1",
         }
     )
     yield app, sender, database_path, bundle_root
@@ -331,6 +332,17 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert second_bundle["reviewer_id"] == SECOND_ID
     assert first_bundle["review_group_id"] == group.id
     assert second_bundle["review_group_id"] == group.id
+    context = first.get(
+        f"/assignments/{assignment_id}/workbench/host_context.js"
+    ).data
+    assert f'"draft_owner_id":"{group.id}"'.encode() in context
+    assert b'"read_only":true' in context
+    assert b'"submission_url"' not in context
+    assert first.post(
+        f"/assignments/{assignment_id}/submissions",
+        json={},
+        headers={"X-CSRF-Token": _csrf(first)},
+    ).status_code == 403
 
     late_join = third.post(
         "/workshop/groups/join",
@@ -383,6 +395,161 @@ def test_workshop_routes_fail_closed_without_consent_or_complete_profile(
     assert client.post(
         "/workshop/groups", data={"csrf_token": _csrf(client)}
     ).status_code == 403
+
+
+@pytest.mark.parametrize("withdrawn", [False, True])
+def test_consent_change_revokes_a_claimed_group_assignment_immediately(
+    workshop_app, withdrawn: bool
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    service = app.extensions["musparql_workshops"]
+    group_id = service.create_group(FIRST_ID)
+    assignment_id = service.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    client = app.test_client()
+    _login(client, app, sender, "first@example.invalid")
+    assert client.get(f"/assignments/{assignment_id}").status_code == 200
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        reviewer = session.get(Reviewer, FIRST_ID)
+        assert reviewer is not None
+        reviewer.consent_statement_version = (
+            None if withdrawn else "synthetic-consent-obsolete"
+        )
+        reviewer.consented_at = None if withdrawn else timestamp(utc_now())
+    engine.dispose()
+
+    assert client.get("/workshop").status_code == 403
+    assert client.get(f"/assignments/{assignment_id}").status_code == 404
+    assert client.get(f"/assignments/{assignment_id}/bundle").status_code == 404
+    assert client.get(f"/assignments/{assignment_id}/workbench/").status_code == 404
+    assert client.get(
+        f"/assignments/{assignment_id}/workbench/app.js"
+    ).status_code == 404
+
+
+def test_round_closure_revokes_group_assignment_and_assessment_access(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    service = app.extensions["musparql_workshops"]
+    group_id = service.create_group(FIRST_ID)
+    assignment_id = service.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    client = app.test_client()
+    _login(client, app, sender, "first@example.invalid")
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        workshop_round = session.get(WorkshopRound, "workshop-ipl")
+        assert workshop_round is not None
+        workshop_round.status = "closed"
+    engine.dispose()
+
+    assert assignment_id.encode() not in client.get("/").data
+    assert client.get(f"/assignments/{assignment_id}").status_code == 404
+    assert client.post(
+        f"/assignments/{assignment_id}", data=_assessment_form(client)
+    ).status_code == 404
+    assert client.get(f"/assignments/{assignment_id}/bundle").status_code == 404
+
+
+def test_simultaneous_member_assessments_activate_without_sqlite_busy(
+    workshop_app,
+) -> None:
+    app, _sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    assignments = app.extensions["musparql_assignments"]
+    group_id = workshops.create_group(FIRST_ID)
+    code = workshops.dashboard(FIRST_ID).groups[0].join_code
+    workshops.join_group(SECOND_ID, code)
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    barrier = threading.Barrier(2)
+
+    def assess(reviewer_id: str) -> None:
+        barrier.wait()
+        assignments.assess(
+            assignment_id,
+            reviewer_id,
+            ["advanced"],
+            ["worked"],
+            confirmed=True,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        list(pool.map(assess, (FIRST_ID, SECOND_ID)))
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            assert assignment is not None
+            assert assignment.status == "active"
+    finally:
+        engine.dispose()
+
+
+def test_claim_rejects_package_without_any_frozen_assessment_prompts(
+    workshop_app,
+) -> None:
+    app, _sender, database_path, bundle_root = workshop_app
+    service = app.extensions["musparql_workshops"]
+    group_id = service.create_group(FIRST_ID)
+    empty_digest = _write_bundle(
+        bundle_root / "synthetic-empty-package.json", kg_id="synthetic-empty-kg"
+    )
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        session.add(
+            KgSeedSnapshot(
+                kg_id="synthetic-empty-kg",
+                seed_version="synthetic-empty-seed-v1",
+                seed_digest="sha256:" + "c" * 64,
+                previous_seed_digest=None,
+                seed_json={"name": "Synthetic empty graph"},
+            )
+        )
+        session.flush()
+        session.add(
+            WorkshopWorkPackage(
+                id="package-empty",
+                workshop_round_id="workshop-ipl",
+                kg_id="synthetic-empty-kg",
+                seed_version="synthetic-empty-seed-v1",
+                seed_digest="sha256:" + "c" * 64,
+                display_name="Synthetic Empty Knowledge Graph",
+                short_description="A fictional prompt-free package.",
+                display_order=2,
+                bundle_path="synthetic-empty-package.json",
+                bundle_digest=empty_digest,
+                processing_recipe="validate_initial_review",
+                enabled=True,
+                created_at=timestamp(utc_now()),
+            )
+        )
+    engine.dispose()
+
+    with pytest.raises(WorkshopAccessError, match="no frozen assessment prompts"):
+        service.claim_package(
+            reviewer_id=FIRST_ID,
+            group_id=group_id,
+            package_id="package-empty",
+        )
 
 
 def test_simultaneous_claims_create_only_one_active_assignment(workshop_app) -> None:

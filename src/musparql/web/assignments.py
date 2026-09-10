@@ -18,10 +18,12 @@ from musparql.database.models import (
     KgSeedReviewDomain,
     KgSeedSnapshot,
     ReviewAssignment,
+    ReviewGroup,
     ReviewGroupMember,
     Reviewer,
     ReviewerKgDomainAssessment,
     ReviewerResourceFamiliarityAssessment,
+    WorkshopRound,
 )
 from musparql.database.services import ProvenanceService
 from musparql.linguistic_dimensions import BUNDLE_SCHEMA, validate_bundle
@@ -44,6 +46,19 @@ _RECIPES = {
 }
 
 
+def has_current_consent(
+    reviewer: Reviewer | None, current_consent_version: str | None
+) -> bool:
+    """Fail closed unless an active reviewer accepted the configured statement."""
+    return bool(
+        reviewer is not None
+        and reviewer.status == "active"
+        and current_consent_version
+        and reviewer.consent_statement_version == current_consent_version
+        and reviewer.consented_at
+    )
+
+
 @dataclass(frozen=True)
 class Prompt:
     kg_id: str
@@ -64,10 +79,18 @@ class AssignmentView:
 
 
 class AssignmentService:
-    def __init__(self, sessions: sessionmaker[Session], bundle_root: Path) -> None:
+    def __init__(
+        self,
+        sessions: sessionmaker[Session],
+        bundle_root: Path,
+        current_consent_version: str | None = None,
+    ) -> None:
         self.sessions = sessions
         self.bundle_root = bundle_root.resolve()
-        self.provenance = ProvenanceService(sessions)
+        self.current_consent_version = current_consent_version
+        self.provenance = ProvenanceService(
+            sessions, current_consent_version=current_consent_version
+        )
 
     def owner_choices(self) -> tuple[list[Reviewer], list[KgSeedSnapshot]]:
         with self.sessions() as session:
@@ -111,7 +134,11 @@ class AssignmentService:
     def list_group_assignments_for_reviewer(
         self, reviewer_id: str
     ) -> list[ReviewAssignment]:
+        now = timestamp(utc_now())
         with self.sessions() as session:
+            reviewer = session.get(Reviewer, reviewer_id)
+            if not has_current_consent(reviewer, self.current_consent_version):
+                return []
             return list(
                 session.scalars(
                     select(ReviewAssignment)
@@ -119,9 +146,17 @@ class AssignmentService:
                         ReviewGroupMember,
                         ReviewGroupMember.group_id == ReviewAssignment.review_group_id,
                     )
+                    .join(ReviewGroup, ReviewGroup.id == ReviewAssignment.review_group_id)
+                    .join(
+                        WorkshopRound,
+                        WorkshopRound.id == ReviewGroup.workshop_round_id,
+                    )
                     .where(
                         ReviewGroupMember.reviewer_id == reviewer_id,
                         ReviewAssignment.status.in_(("ready", "active")),
+                        WorkshopRound.status == "open",
+                        WorkshopRound.opens_at <= now,
+                        WorkshopRound.closes_at > now,
                     )
                     .order_by(ReviewAssignment.created_at.desc())
                 )
@@ -321,8 +356,12 @@ class AssignmentService:
         """Return the frozen authoritative bundle for an attributable submission."""
         with self.sessions() as session:
             assignment = session.get(ReviewAssignment, assignment_id)
-            if assignment is None or assignment.reviewer_id != reviewer_id:
+            if assignment is None or not self._reviewer_can_access(
+                session, assignment, reviewer_id
+            ):
                 raise LookupError("Assignment is not available")
+            if assignment.reviewer_id is None:
+                raise PermissionError("Group submission is not available yet")
             if assignment.status not in {
                 "active", "submitted", "processing", "ready_for_owner_review", "approved", "failed"
             }:
@@ -525,17 +564,33 @@ class AssignmentService:
         )
         return domain_count == expected_domains and familiarity_count == expected_familiarities
 
-    @staticmethod
     def _reviewer_can_access(
-        session: Session, assignment: ReviewAssignment, reviewer_id: str
+        self, session: Session, assignment: ReviewAssignment, reviewer_id: str
     ) -> bool:
         if assignment.reviewer_id is not None:
             return assignment.reviewer_id == reviewer_id
         if assignment.review_group_id is None:
             return False
-        return (
-            session.get(ReviewGroupMember, (assignment.review_group_id, reviewer_id))
-            is not None
+        reviewer = session.get(Reviewer, reviewer_id)
+        if not has_current_consent(reviewer, self.current_consent_version):
+            return False
+        now = timestamp(utc_now())
+        return bool(
+            session.scalar(
+                select(ReviewGroupMember)
+                .join(ReviewGroup, ReviewGroup.id == ReviewGroupMember.group_id)
+                .join(
+                    WorkshopRound,
+                    WorkshopRound.id == ReviewGroup.workshop_round_id,
+                )
+                .where(
+                    ReviewGroupMember.group_id == assignment.review_group_id,
+                    ReviewGroupMember.reviewer_id == reviewer_id,
+                    WorkshopRound.status == "open",
+                    WorkshopRound.opens_at <= now,
+                    WorkshopRound.closes_at > now,
+                )
+            )
         )
 
     def _domain_head_id(

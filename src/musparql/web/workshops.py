@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from musparql.database.models import (
     AssignmentKgSeed,
+    KgSeedFamiliarityScope,
+    KgSeedReviewDomain,
     ReviewAssignment,
     ReviewGroup,
     ReviewGroupMember,
@@ -19,7 +21,7 @@ from musparql.database.models import (
     WorkshopWorkPackage,
 )
 
-from .assignments import AssignmentService
+from .assignments import AssignmentService, has_current_consent
 from .auth import timestamp, utc_now
 
 
@@ -69,10 +71,12 @@ class WorkshopService:
         sessions: sessionmaker[Session],
         assignments: AssignmentService,
         secret: bytes,
+        current_consent_version: str | None,
     ) -> None:
         self.sessions = sessions
         self.assignments = assignments
         self.secret = secret
+        self.current_consent_version = current_consent_version
 
     def available(self, reviewer_id: str) -> bool:
         """Return whether a consented reviewer has one currently open round."""
@@ -331,6 +335,32 @@ class WorkshopService:
             if existing and not workshop_round.allow_additional_assignments:
                 raise WorkshopAccessError("Additional assignments are not enabled")
 
+            prompt_count = int(
+                db_session.scalar(
+                    select(func.count())
+                    .select_from(KgSeedReviewDomain)
+                    .where(
+                        KgSeedReviewDomain.kg_id == package.kg_id,
+                        KgSeedReviewDomain.seed_version == package.seed_version,
+                    )
+                )
+                or 0
+            ) + int(
+                db_session.scalar(
+                    select(func.count())
+                    .select_from(KgSeedFamiliarityScope)
+                    .where(
+                        KgSeedFamiliarityScope.kg_id == package.kg_id,
+                        KgSeedFamiliarityScope.seed_version == package.seed_version,
+                    )
+                )
+                or 0
+            )
+            if prompt_count == 0:
+                raise WorkshopAccessError(
+                    "Work package has no frozen assessment prompts"
+                )
+
             assignment_id = "assignment-" + secrets.token_hex(12)
             assignment = ReviewAssignment(
                 id=assignment_id,
@@ -372,18 +402,13 @@ class WorkshopService:
         finally:
             db_session.close()
 
-    @staticmethod
-    def _eligible(reviewer: Reviewer | None) -> bool:
-        return bool(
-            reviewer is not None
-            and reviewer.status == "active"
-            and reviewer.consent_statement_version
-            and reviewer.consented_at
+    def _eligible(self, reviewer: Reviewer | None) -> bool:
+        return has_current_consent(
+            reviewer, self.current_consent_version
         )
 
-    @classmethod
-    def _require_eligible(cls, reviewer: Reviewer | None) -> None:
-        if not cls._eligible(reviewer):
+    def _require_eligible(self, reviewer: Reviewer | None) -> None:
+        if not self._eligible(reviewer):
             raise WorkshopAccessError("Current consent is required for workshop access")
 
     @staticmethod

@@ -65,8 +65,11 @@ sudo openssl rand -hex -out /etc/musparql/app-secret 32
 
 The initial configuration is explicitly synthetic. It must not receive real
 names, addresses, profiles, or reviews. Before real use, replace the synthetic
-notice switches with the approved notice file/version and configure the real
-email sender.
+notice switches with the approved notice file/version, set
+`MUSPARQL_CONSENT_STATEMENT_VERSION` to the exact approved statement version,
+and configure the real email sender. Workshop and group-assignment access fails
+closed when that value is absent or does not match a participant's recorded
+consent version.
 
 Create the database and the first owner. The prompts collect the owner's name
 and email directly in the terminal; do not paste either into an issue, log, or

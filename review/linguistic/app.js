@@ -19,7 +19,7 @@
   }
 
   function stateKey(bundle, context) {
-    return `musparql-linguistic:schema1:${bundle.dataset_id}:${context.reviewer_id}:${context.assignment_id}`;
+    return `musparql-linguistic:schema2:${bundle.dataset_id}:${context.draft_owner_id || context.reviewer_id}:${context.assignment_id}`;
   }
 
   function freshState(bundle) {
@@ -94,7 +94,10 @@
 
   const key = stateKey(data, hosted);
   let state;
-  try { state = JSON.parse(localStorage.getItem(key)) || freshState(data); } catch (_) { state = freshState(data); }
+  try {
+    const reviewerKey = `musparql-linguistic:schema1:${data.dataset_id}:${hosted.reviewer_id}:${hosted.assignment_id}`;
+    state = JSON.parse(localStorage.getItem(key) || localStorage.getItem(reviewerKey)) || freshState(data);
+  } catch (_) { state = freshState(data); }
   const records = new Map(data.records.map((item) => [item.trial_id, item]));
   state.queue = state.queue.filter((id) => records.has(id) && !state.completed[id]);
   for (const id of records.keys()) if (!state.completed[id] && !state.queue.includes(id)) state.queue.push(id);
@@ -212,6 +215,11 @@
   byId("cancelOutcomeBtn").addEventListener("click", () => { pendingOutcome = null; byId("outcomePanel").hidden = true; byId("ratingForm").hidden = false; });
   byId("confirmOutcomeBtn").addEventListener("click", () => { const extra = {reason: byId("reason").value, proposed_literal: byId("proposal").value.trim(), comment: byId("comment").value.trim()}; complete(pendingOutcome, extra); pendingOutcome = null; });
   byId("exportBtn").textContent = "Submit completed annotations";
+  if (hosted.read_only) {
+    byId("exportBtn").textContent = "Read-only — group submission coming soon";
+    byId("exportBtn").disabled = true;
+    byId("exportBtn").title = "Your group draft is saved in this browser, but group submission is not available yet.";
+  }
   byId("exportBtn").addEventListener("click", async () => {
     const payload = {schema: "musparql.linguistic-annotation-export.v1", assignment_id: hosted.assignment_id, dataset_id: data.dataset_id, reviewer_id: hosted.reviewer_id, task_design_version: "phase-6b-v1", exported_at: new Date().toISOString(), annotations: Object.values(state.completed)};
     const button = byId("exportBtn"); button.disabled = true;
