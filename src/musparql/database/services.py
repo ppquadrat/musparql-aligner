@@ -366,12 +366,61 @@ class ProvenanceService:
             for record in familiarity_records:
                 self._append_assessment(session, record, domain=False)
             if activate_assignment:
-                if assignment.status != "ready":
-                    raise ValueError("Only a ready assignment can be activated")
-                assignment.status = "active"
-                assignment.opened_at = str(records[0]["assessed_at"])
-                assignment.participant_status = "active"
-                assignment.claimed_at = str(records[0]["assessed_at"])
+                if assignment.review_group_id is None:
+                    if assignment.status != "ready":
+                        raise ValueError("Only a ready assignment can be activated")
+                    should_activate = True
+                else:
+                    if assignment.status not in {"ready", "active"}:
+                        raise ValueError("This group assignment is not open for assessment")
+                    session.flush()
+                    member_ids = list(
+                        session.scalars(
+                            select(ReviewGroupMember.reviewer_id).where(
+                                ReviewGroupMember.group_id
+                                == assignment.review_group_id
+                            )
+                        )
+                    )
+                    expected_domain_count = len(provided_domains)
+                    expected_familiarity_count = len(provided_familiarities)
+                    should_activate = assignment.status == "ready" and all(
+                        int(
+                            session.scalar(
+                                select(func.count())
+                                .select_from(ReviewerKgDomainAssessment)
+                                .where(
+                                    ReviewerKgDomainAssessment.assignment_id
+                                    == assignment.id,
+                                    ReviewerKgDomainAssessment.reviewer_id
+                                    == member_id,
+                                )
+                            )
+                            or 0
+                        )
+                        == expected_domain_count
+                        and int(
+                            session.scalar(
+                                select(func.count())
+                                .select_from(ReviewerResourceFamiliarityAssessment)
+                                .where(
+                                    ReviewerResourceFamiliarityAssessment.assignment_id
+                                    == assignment.id,
+                                    ReviewerResourceFamiliarityAssessment.reviewer_id
+                                    == member_id,
+                                )
+                            )
+                            or 0
+                        )
+                        == expected_familiarity_count
+                        for member_id in member_ids
+                    )
+                if should_activate:
+                    assignment.status = "active"
+                    assignment.opened_at = str(records[0]["assessed_at"])
+                    assignment.participant_status = "active"
+                    if assignment.claimed_at is None:
+                        assignment.claimed_at = str(records[0]["assessed_at"])
 
     def _append_assessment(
         self, session: Session, record: Mapping[str, Any], *, domain: bool

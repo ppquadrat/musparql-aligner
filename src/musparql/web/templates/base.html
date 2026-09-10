@@ -13,6 +13,7 @@
         <span>{{ current_reviewer.id }}</span>
         {% if current_reviewer.id != config.OWNER_REVIEWER_ID %}
           <a href="{{ url_for('portal.profile') }}">My profile</a>
+          {% if workshop_available %}<a href="{{ url_for('portal.workshop') }}">IPL workshop</a>{% endif %}
         {% else %}
           <a href="{{ url_for('portal.owner_assignments') }}">Assignments</a>
           <a href="{{ url_for('portal.owner_processing') }}">Processing</a>
