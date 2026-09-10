@@ -96,6 +96,7 @@ def main() -> None:
             path = "scik-2026-musparql-workflow.png"
             label, width = "fig:workflow", "95%"
         else:
+            path = "../scik-2026-musparql-review-ui-v3.png"
             label, width = "fig:review-ui", "100%"
         return f"![{caption}]({path}){{#{label} width={width}}}"
 
