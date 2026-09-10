@@ -24,6 +24,11 @@ from musparql.database.models import (
     ReviewerKgDomainAssessment,
     ReviewerResourceFamiliarityAssessment,
     ReviewAssignment,
+    ReviewGroup,
+    ReviewGroupMember,
+    WorkshopEntryCode,
+    WorkshopRound,
+    WorkshopWorkPackage,
 )
 from musparql.database.services import ProvenanceService, SeedSnapshotService
 from scripts.snapshot_kg_seeds import update_snapshot_archive
@@ -106,7 +111,7 @@ def _seed_database(sessions) -> None:
 
 def test_alembic_upgrade_creates_complete_schema_and_sqlite_safety(database) -> None:
     database_path, engine, _sessions = database
-    assert current_revision(database_path) == "20260820_06"
+    assert current_revision(database_path) == "20260910_07"
     assert database_path.stat().st_mode & 0o777 == 0o600
     tables = set(inspect(engine).get_table_names())
     assert {
@@ -115,6 +120,9 @@ def test_alembic_upgrade_creates_complete_schema_and_sqlite_safety(database) -> 
         "assignment_kg_seeds", "reviewer_kg_domain_assessments",
         "reviewer_resource_familiarity_assessments", "login_codes", "auth_sessions",
         "review_submissions", "processing_jobs",
+        "workshop_rounds", "workshop_entry_codes",
+        "workshop_entry_redemptions", "review_groups",
+        "review_group_members", "workshop_work_packages",
     } <= tables
     with engine.connect() as connection:
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
@@ -125,13 +133,160 @@ def test_alembic_upgrade_creates_complete_schema_and_sqlite_safety(database) -> 
         assert compare_metadata(context, Base.metadata) == []
 
 
+def test_workshop_groups_allow_one_or_more_members_and_cross_group_help(database) -> None:
+    _path, _engine, sessions = database
+    with sessions.begin() as session:
+        session.add_all([_reviewer(), _reviewer("reviewer-0043")])
+        session.add(
+            WorkshopRound(
+                id="workshop-synthetic",
+                name="Synthetic workshop",
+                status="open",
+                opens_at="2026-09-10T09:00:00Z",
+                closes_at="2026-09-10T17:00:00Z",
+                max_participants=20,
+                allow_additional_assignments=False,
+                created_at="2026-09-10T08:00:00Z",
+            )
+        )
+        session.flush()
+        session.add_all(
+            [
+                ReviewGroup(
+                    id="group-synthetic-1",
+                    workshop_round_id="workshop-synthetic",
+                    join_code_digest="digest-one",
+                    created_at="2026-09-10T10:00:00Z",
+                ),
+                ReviewGroup(
+                    id="group-synthetic-2",
+                    workshop_round_id="workshop-synthetic",
+                    join_code_digest="digest-two",
+                    created_at="2026-09-10T10:01:00Z",
+                ),
+            ]
+        )
+        session.flush()
+        session.add_all(
+            [
+                ReviewGroupMember(
+                    group_id="group-synthetic-1",
+                    reviewer_id="reviewer-0042",
+                    joined_at="2026-09-10T10:00:00Z",
+                ),
+                ReviewGroupMember(
+                    group_id="group-synthetic-2",
+                    reviewer_id="reviewer-0042",
+                    joined_at="2026-09-10T10:02:00Z",
+                ),
+                ReviewGroupMember(
+                    group_id="group-synthetic-2",
+                    reviewer_id="reviewer-0043",
+                    joined_at="2026-09-10T10:03:00Z",
+                ),
+            ]
+        )
+
+    with sessions() as session:
+        assert len(session.scalars(select(ReviewGroupMember)).all()) == 3
+        assert session.get(Reviewer, "reviewer-0042").registration_method == "email_invitation"
+
+
+def test_workshop_allows_only_one_unrevoked_shared_code_per_round(database) -> None:
+    _path, _engine, sessions = database
+    with sessions.begin() as session:
+        session.add(
+            WorkshopRound(
+                id="workshop-code-test",
+                name="Synthetic workshop",
+                status="open",
+                opens_at="2026-09-10T09:00:00Z",
+                closes_at="2026-09-10T17:00:00Z",
+                max_participants=20,
+                allow_additional_assignments=False,
+                created_at="2026-09-10T08:00:00Z",
+            )
+        )
+        session.flush()
+        session.add(
+            WorkshopEntryCode(
+                id="entry-code-1",
+                workshop_round_id="workshop-code-test",
+                code_digest="digest-one",
+                expires_at="2026-09-10T12:00:00Z",
+                max_redemptions=20,
+                redemption_count=0,
+                revoked_at=None,
+                created_at="2026-09-10T08:00:00Z",
+            )
+        )
+
+    with pytest.raises(IntegrityError):
+        with sessions.begin() as session:
+            session.add(
+                WorkshopEntryCode(
+                    id="entry-code-2",
+                    workshop_round_id="workshop-code-test",
+                    code_digest="digest-two",
+                    expires_at="2026-09-10T13:00:00Z",
+                    max_redemptions=20,
+                    redemption_count=0,
+                    revoked_at=None,
+                    created_at="2026-09-10T08:01:00Z",
+                )
+            )
+
+
+def test_workshop_package_is_bound_to_a_frozen_kg_seed(database) -> None:
+    _path, _engine, sessions = database
+    archive = _seed_archive()
+    assert SeedSnapshotService(sessions).import_archive(archive) == 1
+    snapshot = archive["snapshots"][0]
+    with sessions.begin() as session:
+        session.add(
+            WorkshopRound(
+                id="workshop-package-test",
+                name="Synthetic workshop",
+                status="draft",
+                opens_at="2026-09-10T09:00:00Z",
+                closes_at="2026-09-10T17:00:00Z",
+                max_participants=20,
+                allow_additional_assignments=False,
+                created_at="2026-09-10T08:00:00Z",
+            )
+        )
+        session.flush()
+        session.add(
+            WorkshopWorkPackage(
+                id="package-synthetic",
+                workshop_round_id="workshop-package-test",
+                kg_id=snapshot["kg_id"],
+                seed_version=snapshot["seed_version"],
+                seed_digest=snapshot["seed_digest"],
+                display_name="Synthetic KG",
+                short_description="Synthetic package",
+                display_order=1,
+                bundle_path="synthetic/bundle.js",
+                bundle_digest="sha256:" + "a" * 64,
+                processing_recipe="validate_initial_review",
+                enabled=True,
+                created_at="2026-09-10T08:00:00Z",
+            )
+        )
+
+    with sessions() as session:
+        package = session.get(WorkshopWorkPackage, "package-synthetic")
+        assert package is not None
+        assert package.seed_digest == snapshot["seed_digest"]
+
+
 def test_alembic_downgrade_and_reupgrade(tmp_path: Path) -> None:
     database_path = tmp_path / "migration-cycle.sqlite3"
     upgrade_database(database_path)
     command.downgrade(alembic_config(database_path), "base")
     assert current_revision(database_path) is None
     upgrade_database(database_path)
-    assert current_revision(database_path) == "20260820_06"
+    assert current_revision(database_path) == "20260910_07"
 
 
 def test_database_path_with_url_delimiters_is_not_reparsed(tmp_path: Path) -> None:
@@ -139,7 +294,7 @@ def test_database_path_with_url_delimiters_is_not_reparsed(tmp_path: Path) -> No
     upgrade_database(database_path)
     assert database_path.is_file()
     assert not (tmp_path / "musparql").exists()
-    assert current_revision(database_path) == "20260820_06"
+    assert current_revision(database_path) == "20260910_07"
     engine = create_database_engine(database_path)
     try:
         assert set(inspect(engine).get_table_names()) >= {"reviewers", "review_assignments"}
@@ -370,7 +525,7 @@ def test_schema_cli_diagnostics_do_not_print_profile_fields(tmp_path: Path, caps
     database_path = tmp_path / "diagnostic.sqlite3"
     assert main(["upgrade", "--database", str(database_path)]) == 0
     output = capsys.readouterr().out
-    assert output == "Database schema upgraded to 20260820_06.\n"
+    assert output == "Database schema upgraded to 20260910_07.\n"
     assert "Synthetic Reviewer" not in output
     assert "@example.invalid" not in output
     engine = create_database_engine(database_path)

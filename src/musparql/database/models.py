@@ -50,6 +50,10 @@ class Reviewer(Base):
     updated_at: Mapped[str] = mapped_column(String)
     privacy_notice_version: Mapped[str | None] = mapped_column(String, nullable=True)
     privacy_notice_acknowledged_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    registration_method: Mapped[str] = mapped_column(String, default="email_invitation")
+    email_verified_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    consent_statement_version: Mapped[str | None] = mapped_column(String, nullable=True)
+    consented_at: Mapped[str | None] = mapped_column(String, nullable=True)
     __table_args__ = (
         CheckConstraint(
             "length(id) >= 13 AND substr(id, 1, 9) = 'reviewer-' "
@@ -57,6 +61,103 @@ class Reviewer(Base):
             name="ck_reviewers_id",
         ),
         CheckConstraint("status IN ('invited','active','disabled','withdrawn')", name="ck_reviewers_status"),
+    )
+
+
+class WorkshopRound(Base):
+    __tablename__ = "workshop_rounds"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String)
+    opens_at: Mapped[str] = mapped_column(String)
+    closes_at: Mapped[str] = mapped_column(String)
+    max_participants: Mapped[int] = mapped_column(Integer)
+    allow_additional_assignments: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[str] = mapped_column(String)
+    __table_args__ = (
+        CheckConstraint("status IN ('draft','open','closed')", name="ck_workshop_rounds_status"),
+        CheckConstraint("max_participants > 0", name="ck_workshop_rounds_capacity"),
+        CheckConstraint("opens_at < closes_at", name="ck_workshop_rounds_window"),
+    )
+
+
+class WorkshopEntryCode(Base):
+    __tablename__ = "workshop_entry_codes"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workshop_round_id: Mapped[str] = mapped_column(ForeignKey("workshop_rounds.id"))
+    code_digest: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[str] = mapped_column(String)
+    max_redemptions: Mapped[int] = mapped_column(Integer)
+    redemption_count: Mapped[int] = mapped_column(Integer, default=0)
+    revoked_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[str] = mapped_column(String)
+    __table_args__ = (
+        CheckConstraint("max_redemptions > 0", name="ck_workshop_entry_codes_capacity"),
+        CheckConstraint(
+            "redemption_count >= 0 AND redemption_count <= max_redemptions",
+            name="ck_workshop_entry_codes_redemptions",
+        ),
+        Index(
+            "uq_workshop_entry_codes_unrevoked_round",
+            "workshop_round_id",
+            unique=True,
+            sqlite_where=text("revoked_at IS NULL"),
+        ),
+    )
+
+
+class WorkshopEntryRedemption(Base):
+    __tablename__ = "workshop_entry_redemptions"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    entry_code_id: Mapped[str] = mapped_column(ForeignKey("workshop_entry_codes.id"))
+    reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"), unique=True)
+    redeemed_at: Mapped[str] = mapped_column(String)
+
+
+class ReviewGroup(Base):
+    __tablename__ = "review_groups"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workshop_round_id: Mapped[str] = mapped_column(ForeignKey("workshop_rounds.id"))
+    join_code_digest: Mapped[str] = mapped_column(Text, unique=True)
+    created_at: Mapped[str] = mapped_column(String)
+
+
+class ReviewGroupMember(Base):
+    __tablename__ = "review_group_members"
+    group_id: Mapped[str] = mapped_column(ForeignKey("review_groups.id"), primary_key=True)
+    reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"), primary_key=True)
+    joined_at: Mapped[str] = mapped_column(String)
+
+
+class WorkshopWorkPackage(Base):
+    __tablename__ = "workshop_work_packages"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    workshop_round_id: Mapped[str] = mapped_column(ForeignKey("workshop_rounds.id"))
+    kg_id: Mapped[str] = mapped_column(String)
+    seed_version: Mapped[str] = mapped_column(String)
+    seed_digest: Mapped[str] = mapped_column(String)
+    display_name: Mapped[str] = mapped_column(Text)
+    short_description: Mapped[str] = mapped_column(Text, default="")
+    display_order: Mapped[int] = mapped_column(Integer)
+    bundle_path: Mapped[str] = mapped_column(Text)
+    bundle_digest: Mapped[str] = mapped_column(String)
+    processing_recipe: Mapped[str] = mapped_column(String)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[str] = mapped_column(String)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["kg_id", "seed_version", "seed_digest"],
+            ["kg_seed_snapshots.kg_id", "kg_seed_snapshots.seed_version", "kg_seed_snapshots.seed_digest"],
+            name="fk_workshop_package_seed",
+        ),
+        UniqueConstraint("workshop_round_id", "kg_id", name="uq_workshop_package_round_kg"),
+        UniqueConstraint("workshop_round_id", "display_order", name="uq_workshop_package_display_order"),
+        CheckConstraint("display_order > 0", name="ck_workshop_package_display_order"),
+        CheckConstraint("bundle_digest LIKE 'sha256:%'", name="ck_workshop_package_bundle_digest"),
+        CheckConstraint(
+            f"processing_recipe IN ({INITIAL_PROCESSING_RECIPES})",
+            name="ck_workshop_package_processing_recipe",
+        ),
     )
 
 
