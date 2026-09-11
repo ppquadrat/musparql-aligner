@@ -68,11 +68,12 @@ After the owner has approved the deduplicated selection, build the final set:
   --selection var/review/ipl-deduplicated-selection.json
 ```
 
-The command writes five canonical JSON bundles and `manifest.json`, then
-immediately validates them. Identical inputs produce identical package-set and
-bundle digests. The manifest pins the source bundle, selection file, seed
-version/digest, record count, package path, and package digest. Final packages
-are enabled; provisional packages never are.
+The command atomically replaces five canonical JSON bundles and `manifest.json`,
+then immediately validates them. Identical inputs produce identical package-set
+and bundle digests. The manifest embeds the canonical annotation-free selection
+pins and pins the source bundle, canonical selection digest, seed version/digest,
+record count, package path, and package digest. Final packages are enabled;
+provisional packages never are.
 
 Revalidate files after copying them to their operational location:
 
@@ -83,9 +84,10 @@ Revalidate files after copying them to their operational location:
 ```
 
 Validation requires exactly the five fixed packages in the fixed order, at
-least one item per package, one KG per bundle, unique query identities, current
-SPARQL pins, reviewer-neutral content, approved holdout handling, and matching
-file/provenance digests.
+least one item per package, one KG per bundle, canonical record and path order,
+unique query identities, exact agreement with the embedded SPARQL pins,
+reviewer-neutral content, approved holdout handling, and independently derived
+selection, package-set, file, and provenance digests.
 
 ## Register the final set
 
@@ -100,8 +102,9 @@ register the validated set against a migrated database:
   --seed-snapshots catalog/kg_seed_snapshots.yaml
 ```
 
-Registration imports missing immutable KG seed snapshots, is idempotent, and
-can insert or replace package metadata only while the round remains a draft.
+Registration imports missing immutable KG seed snapshots and package metadata in
+one transaction, is idempotent, and can insert or replace package metadata only
+while the round remains a draft.
 It refuses provisional sets, unexpected extra packages, missing seed snapshots,
 and replacement after a package has been claimed. Open the round only after
 recording and independently checking the five manifest digests.

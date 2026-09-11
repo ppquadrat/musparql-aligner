@@ -95,12 +95,13 @@ def main(argv: list[str] | None = None) -> int:
     engine = create_database_engine(args.database)
     sessions = session_factory(engine)
     try:
-        imported = SeedSnapshotService(sessions).import_archive(
-            _mapping(args.seed_snapshots, yaml_input=True)
-        )
-        inserted, updated = register_package_set(
-            manifest, sessions=sessions, bundle_root=args.bundle_root
-        )
+        with sessions.begin() as session:
+            imported = SeedSnapshotService.import_archive_in_session(
+                session, _mapping(args.seed_snapshots, yaml_input=True)
+            )
+            inserted, updated = register_package_set(
+                manifest, session=session, bundle_root=args.bundle_root
+            )
     finally:
         engine.dispose()
     print(

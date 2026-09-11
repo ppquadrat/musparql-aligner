@@ -30,7 +30,11 @@ non-testing process requires approved file-backed copy. The full notice and
 withdrawal route remain available throughout the site. Group review submissions
 currently require every assigned item;
 explicit partial and abandon outcomes remain Track A item 7. Group linguistic
-submission remains deferred.
+submission remains deferred. Item 6's five fixed reviewer-neutral KG packages
+use a v2 manifest with embedded canonical selection pins, independently derived
+selection and package-set digests, atomic file replacement, and transactional
+seed/package registration; the owner-approved final selection and operational
+freeze remain pending.
 
 ## How the system fits together
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 from pathlib import Path
 
@@ -9,11 +10,13 @@ from sqlalchemy import select
 
 from musparql.database.engine import create_database_engine, session_factory
 from musparql.database.migrations import upgrade_database
-from musparql.database.models import WorkshopRound, WorkshopWorkPackage
+from musparql.database.models import KgSeedSnapshot, WorkshopRound, WorkshopWorkPackage
 from musparql.database.services import SeedSnapshotService
 from musparql.workshop_packages import (
     IPL_PACKAGES,
     build_package_set,
+    canonical_json,
+    digest_bytes,
     register_package_set,
     validate_package_set,
 )
@@ -109,6 +112,7 @@ def test_final_selection_is_pinned_and_packages_are_enabled(tmp_path: Path) -> N
     )
 
     assert manifest["status"] == "frozen"
+    assert manifest["selection"]
     assert manifest["selection_digest"].startswith("sha256:")
     assert all(row["enabled"] is True for row in manifest["packages"])
 
@@ -179,6 +183,143 @@ def test_validation_rejects_manifest_bundle_path_escape(tmp_path: Path) -> None:
         validate_package_set(manifest, bundle_root=root)
 
 
+def test_validation_rejects_noncanonical_manifest_bundle_path(tmp_path: Path) -> None:
+    root = tmp_path / "bundles"
+    manifest = build_package_set(
+        source_bundle=_source_bundle(tmp_path / "source.json"),
+        seed_archive=_seed_archive(),
+        bundle_root=root,
+        output_dir=root / "final",
+        round_id="ipl-2026",
+        selection_path=_selection(tmp_path / "selection.json"),
+    )
+    manifest["packages"][0]["bundle_path"] = "final/../final/01-alyra.json"
+
+    with pytest.raises(ValueError, match="bundle path is not canonical"):
+        validate_package_set(manifest, bundle_root=root)
+
+
+def test_validation_derives_frozen_selection_digest_and_package_set_id(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "bundles"
+    provisional = build_package_set(
+        source_bundle=_source_bundle(tmp_path / "source.json"),
+        seed_archive=_seed_archive(),
+        bundle_root=root,
+        output_dir=root / "provisional",
+        round_id="ipl-2026",
+        selection_path=None,
+    )
+    forged = deepcopy(provisional)
+    forged["status"] = "frozen"
+    forged["selection_digest"] = f"sha256:{99:064x}"
+    forged["package_set_id"] = "a" * 16
+
+    with pytest.raises(ValueError, match="selection provenance"):
+        validate_package_set(forged, bundle_root=root)
+
+    manifest = build_package_set(
+        source_bundle=_source_bundle(tmp_path / "source-final.json"),
+        seed_archive=_seed_archive(),
+        bundle_root=root,
+        output_dir=root / "final",
+        round_id="ipl-2026",
+        selection_path=_selection(tmp_path / "selection.json"),
+    )
+    manifest["selection_digest"] = f"sha256:{98:064x}"
+    with pytest.raises(ValueError, match="selection digest mismatch"):
+        validate_package_set(manifest, bundle_root=root)
+
+    manifest = build_package_set(
+        source_bundle=tmp_path / "source-final.json",
+        seed_archive=_seed_archive(),
+        bundle_root=root,
+        output_dir=root / "final",
+        round_id="ipl-2026",
+        selection_path=tmp_path / "selection.json",
+    )
+    invented_id = "b" * 16
+    manifest["package_set_id"] = invented_id
+    for row in manifest["packages"]:
+        path = root / row["bundle_path"]
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["dataset_id"] = f"ipl-ipl-2026-{row['kg_id']}-{invented_id}"
+        payload["workshop_package"]["package_set_id"] = invented_id
+        raw = canonical_json(payload)
+        path.write_bytes(raw)
+        row["bundle_digest"] = digest_bytes(raw)
+    with pytest.raises(ValueError, match="package-set ID"):
+        validate_package_set(manifest, bundle_root=root)
+
+
+def test_validation_rejects_noncanonical_bundle_record_order(tmp_path: Path) -> None:
+    root = tmp_path / "bundles"
+    source_path = _source_bundle(tmp_path / "source.json")
+    source = json.loads(source_path.read_text(encoding="utf-8"))
+    extra = deepcopy(source["records"][0])
+    extra["query_id"] = "alyra__synthetic-0"
+    extra["review_id"] = "alyra::query-0::synthetic"
+    source["records"].append(extra)
+    source["record_count"] += 1
+    source_path.write_bytes(canonical_json(source))
+    selection_path = _selection(tmp_path / "selection.json")
+    selection = json.loads(selection_path.read_text(encoding="utf-8"))
+    selection.append(
+        {
+            "kg_id": "alyra",
+            "query_id": "alyra__synthetic-0",
+            "sparql_version": extra["input"]["sparql_version"],
+            "sparql_hash": extra["input"]["sparql_hash"],
+        }
+    )
+    selection_path.write_bytes(canonical_json(selection))
+    manifest = build_package_set(
+        source_bundle=source_path,
+        seed_archive=_seed_archive(),
+        bundle_root=root,
+        output_dir=root / "final",
+        round_id="ipl-2026",
+        selection_path=selection_path,
+    )
+    row = manifest["packages"][0]
+    path = root / row["bundle_path"]
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["records"].reverse()
+    raw = canonical_json(payload)
+    path.write_bytes(raw)
+    row["bundle_digest"] = digest_bytes(raw)
+
+    with pytest.raises(ValueError, match="records are not in canonical order"):
+        validate_package_set(manifest, bundle_root=root)
+
+
+def test_build_atomically_replaces_output_symlinks(tmp_path: Path) -> None:
+    root = tmp_path / "bundles"
+    destination = root / "final"
+    destination.mkdir(parents=True)
+    external_package = tmp_path / "external-package.json"
+    external_manifest = tmp_path / "external-manifest.json"
+    external_package.write_text("package sentinel", encoding="utf-8")
+    external_manifest.write_text("manifest sentinel", encoding="utf-8")
+    (destination / "01-alyra.json").symlink_to(external_package)
+    (destination / "manifest.json").symlink_to(external_manifest)
+
+    build_package_set(
+        source_bundle=_source_bundle(tmp_path / "source.json"),
+        seed_archive=_seed_archive(),
+        bundle_root=root,
+        output_dir=destination,
+        round_id="ipl-2026",
+        selection_path=_selection(tmp_path / "selection.json"),
+    )
+
+    assert external_package.read_text(encoding="utf-8") == "package sentinel"
+    assert external_manifest.read_text(encoding="utf-8") == "manifest sentinel"
+    assert not (destination / "01-alyra.json").is_symlink()
+    assert not (destination / "manifest.json").is_symlink()
+
+
 def test_frozen_package_set_registers_idempotently_on_draft_round(tmp_path: Path) -> None:
     root = tmp_path / "bundles"
     archive = _seed_archive()
@@ -212,6 +353,10 @@ def test_frozen_package_set_registers_idempotently_on_draft_round(tmp_path: Path
 
         assert register_package_set(manifest, sessions=sessions, bundle_root=root) == (5, 0)
         assert register_package_set(manifest, sessions=sessions, bundle_root=root) == (0, 0)
+        with sessions.begin() as session:
+            session.get(WorkshopRound, "ipl-2026").status = "open"
+        with pytest.raises(ValueError, match="only on a draft round"):
+            register_package_set(manifest, sessions=sessions, bundle_root=root)
         with sessions() as session:
             rows = list(
                 session.scalars(
@@ -220,6 +365,32 @@ def test_frozen_package_set_registers_idempotently_on_draft_round(tmp_path: Path
             )
             assert [row.kg_id for row in rows] == [package.kg_id for package in IPL_PACKAGES]
             assert all(row.enabled for row in rows)
+    finally:
+        engine.dispose()
+
+
+def test_seed_import_rolls_back_when_registration_fails(tmp_path: Path) -> None:
+    root = tmp_path / "bundles"
+    archive = _seed_archive()
+    manifest = build_package_set(
+        source_bundle=_source_bundle(tmp_path / "source.json"),
+        seed_archive=archive,
+        bundle_root=root,
+        output_dir=root / "final",
+        round_id="unknown-round",
+        selection_path=_selection(tmp_path / "selection.json"),
+    )
+    database = tmp_path / "musparql.sqlite3"
+    upgrade_database(database)
+    engine = create_database_engine(database)
+    sessions = session_factory(engine)
+    try:
+        with pytest.raises(ValueError, match="Unknown workshop round"):
+            with sessions.begin() as session:
+                SeedSnapshotService.import_archive_in_session(session, archive)
+                register_package_set(manifest, session=session, bundle_root=root)
+        with sessions() as session:
+            assert list(session.scalars(select(KgSeedSnapshot))) == []
     finally:
         engine.dispose()
 

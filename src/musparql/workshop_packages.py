@@ -1,12 +1,15 @@
 """Deterministic preparation and registration of the five IPL work packages."""
 from __future__ import annotations
 
+from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import dataclass
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import tempfile
 from typing import Any, Mapping, Sequence, cast
 
 from sqlalchemy import func, select
@@ -23,7 +26,7 @@ from musparql.web.assignments import load_neutral_bundle_file
 from musparql.web.auth import timestamp, utc_now
 
 
-MANIFEST_SCHEMA = "musparql.ipl-workshop-package-set.v1"
+MANIFEST_SCHEMA = "musparql.ipl-workshop-package-set.v2"
 SELECTION_FIELDS = frozenset({"kg_id", "query_id", "sparql_version", "sparql_hash"})
 SHA256_RE = re.compile(r"sha256:[0-9a-f]{64}")
 
@@ -73,6 +76,24 @@ def digest_bytes(value: bytes) -> str:
     return "sha256:" + hashlib.sha256(value).hexdigest()
 
 
+def _atomic_write(path: Path, value: bytes) -> None:
+    """Replace a directory entry without ever following an existing file symlink."""
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix=f".{path.name}.", delete=False
+        ) as output:
+            temporary_path = Path(output.name)
+            output.write(value)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary_path, path)
+        temporary_path = None
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 def _load_neutral_bundle(path: Path) -> tuple[dict[str, Any], str]:
     # Bundle validation is deliberately shared with the hosted assignment path.
     payload, _relative, digest = load_neutral_bundle_file(path.parent, path.name)
@@ -118,7 +139,7 @@ def _record_pin(record: Mapping[str, Any]) -> tuple[int, str]:
 
 def _selected_records(
     source_records: Sequence[Mapping[str, Any]], selection_path: Path | None
-) -> tuple[dict[str, list[dict[str, Any]]], str, str | None]:
+) -> tuple[dict[str, list[dict[str, Any]]], str, list[dict[str, Any]] | None, str | None]:
     index: dict[tuple[str, str], Mapping[str, Any]] = {}
     for record in source_records:
         kg_id = str(record.get("kg_id") or "")
@@ -134,9 +155,10 @@ def _selected_records(
     if selection_path is None:
         selected_keys = set(index)
         status = "provisional"
+        pinned_selection = None
         selection_digest = None
     else:
-        selections, raw = _load_json_records(selection_path)
+        selections, _raw = _load_json_records(selection_path)
         selected_keys: set[tuple[str, str]] = set()
         for selection in selections:
             if set(selection) != SELECTION_FIELDS:
@@ -160,7 +182,16 @@ def _selected_records(
                 raise ValueError(f"Stale package selection SPARQL pin: {kg_id}/{query_id}")
             selected_keys.add(key)
         status = "frozen"
-        selection_digest = digest_bytes(raw)
+        pinned_selection = [
+            {
+                "kg_id": kg_id,
+                "query_id": query_id,
+                "sparql_version": _record_pin(index[(kg_id, query_id)])[0],
+                "sparql_hash": _record_pin(index[(kg_id, query_id)])[1],
+            }
+            for kg_id, query_id in sorted(selected_keys)
+        ]
+        selection_digest = digest_bytes(canonical_json(pinned_selection))
 
     grouped = {kg_id: [] for kg_id in IPL_KG_IDS}
     for key in sorted(selected_keys):
@@ -168,7 +199,7 @@ def _selected_records(
     empty = sorted(kg_id for kg_id, records in grouped.items() if not records)
     if empty:
         raise ValueError("Every IPL package must contain at least one record: " + ", ".join(empty))
-    return grouped, status, selection_digest
+    return grouped, status, pinned_selection, selection_digest
 
 
 def _head_seeds(seed_archive: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
@@ -212,7 +243,9 @@ def build_package_set(
         raise ValueError("Package output directory must be inside the assignment bundle root") from exc
 
     source, source_digest = _load_neutral_bundle(source_bundle.resolve())
-    grouped, status, selection_digest = _selected_records(source["records"], selection_path)
+    grouped, status, pinned_selection, selection_digest = _selected_records(
+        source["records"], selection_path
+    )
     heads = _head_seeds(seed_archive)
     package_set_id = digest_bytes(
         canonical_json(
@@ -259,7 +292,7 @@ def build_package_set(
         raw = canonical_json(package_payload)
         filename = f"{order:02d}-{definition.kg_id}.json"
         path = destination / filename
-        path.write_bytes(raw)
+        _atomic_write(path, raw)
         snapshot = heads[definition.kg_id]
         package_rows.append(
             {
@@ -284,11 +317,12 @@ def build_package_set(
         "package_set_id": package_set_id,
         "status": status,
         "source_bundle_digest": source_digest,
+        "selection": pinned_selection,
         "selection_digest": selection_digest,
         "workshop_round_id": round_id,
         "packages": package_rows,
     }
-    (destination / "manifest.json").write_bytes(canonical_json(manifest))
+    _atomic_write(destination / "manifest.json", canonical_json(manifest))
     validate_package_set(manifest, bundle_root=root)
     return manifest
 
@@ -308,18 +342,63 @@ def validate_package_set(manifest: Mapping[str, Any], *, bundle_root: Path) -> N
     ) is None:
         raise ValueError("IPL package manifest has an invalid source-bundle digest")
     selection_digest = manifest.get("selection_digest")
-    if (status == "provisional" and selection_digest is not None) or (
+    selection = manifest.get("selection")
+    if (
+        status == "provisional"
+        and (selection is not None or selection_digest is not None)
+    ) or (
         status == "frozen"
         and (
-            not isinstance(selection_digest, str)
+            not isinstance(selection, list)
+            or not isinstance(selection_digest, str)
             or SHA256_RE.fullmatch(selection_digest) is None
         )
     ):
         raise ValueError("IPL package manifest selection provenance does not match its status")
+    selected_pins: dict[tuple[str, str], tuple[int, str]] = {}
+    if status == "frozen":
+        assert isinstance(selection, list)
+        for item in selection:
+            if not isinstance(item, Mapping) or set(item) != SELECTION_FIELDS:
+                raise ValueError("Frozen IPL selection contains invalid fields")
+            kg_id = item.get("kg_id")
+            query_id = item.get("query_id")
+            version = item.get("sparql_version")
+            digest = item.get("sparql_hash")
+            if (
+                not isinstance(kg_id, str)
+                or kg_id not in IPL_KG_IDS
+                or not isinstance(query_id, str)
+                or not query_id
+                or isinstance(version, bool)
+                or not isinstance(version, int)
+                or version < 0
+                or not isinstance(digest, str)
+                or SHA256_RE.fullmatch(digest) is None
+            ):
+                raise ValueError("Frozen IPL selection contains an invalid record pin")
+            key = (kg_id, query_id)
+            if key in selected_pins:
+                raise ValueError(f"Duplicate frozen package selection: {kg_id}/{query_id}")
+            selected_pins[key] = (version, digest)
+        canonical_selection = [
+            {
+                "kg_id": kg_id,
+                "query_id": query_id,
+                "sparql_version": selected_pins[(kg_id, query_id)][0],
+                "sparql_hash": selected_pins[(kg_id, query_id)][1],
+            }
+            for kg_id, query_id in sorted(selected_pins)
+        ]
+        if selection != canonical_selection:
+            raise ValueError("Frozen IPL selection is not in canonical record order")
+        if digest_bytes(canonical_json(canonical_selection)) != selection_digest:
+            raise ValueError("Frozen IPL selection digest mismatch")
     packages = manifest.get("packages")
     if not isinstance(packages, list) or len(packages) != len(IPL_PACKAGES):
         raise ValueError("IPL package manifest must contain exactly five packages")
     expected_round = manifest.get("workshop_round_id")
+    record_membership: dict[str, list[str]] = {}
     for order, (row, definition) in enumerate(zip(packages, IPL_PACKAGES), start=1):
         if not isinstance(row, Mapping):
             raise ValueError("IPL package manifest rows must be objects")
@@ -342,9 +421,11 @@ def validate_package_set(manifest: Mapping[str, Any], *, bundle_root: Path) -> N
             raise ValueError(f"IPL package has an invalid seed digest: {definition.kg_id}")
         if not isinstance(row.get("record_count"), int) or row["record_count"] <= 0:
             raise ValueError(f"IPL package is empty: {definition.kg_id}")
-        payload, _relative, digest = load_neutral_bundle_file(
+        payload, relative, digest = load_neutral_bundle_file(
             bundle_root, str(row.get("bundle_path") or "")
         )
+        if relative != row.get("bundle_path"):
+            raise ValueError(f"IPL package bundle path is not canonical: {definition.kg_id}")
         if digest != row.get("bundle_digest"):
             raise ValueError(f"IPL package digest mismatch: {definition.kg_id}")
         if payload.get("record_count") != row["record_count"]:
@@ -357,12 +438,25 @@ def validate_package_set(manifest: Mapping[str, Any], *, bundle_root: Path) -> N
         if kg_ids != {definition.kg_id}:
             raise ValueError(f"IPL package contains records from another KG: {definition.kg_id}")
         query_ids: set[str] = set()
+        ordered_query_ids: list[str] = []
         for record in payload["records"]:
             query_id = str(record.get("query_id") or "")
             if not query_id or query_id in query_ids:
                 raise ValueError(f"IPL package has duplicate or empty query IDs: {definition.kg_id}")
             query_ids.add(query_id)
-            _record_pin(record)
+            ordered_query_ids.append(query_id)
+            pin = _record_pin(record)
+            if (
+                status == "frozen"
+                and selected_pins.get((definition.kg_id, query_id)) != pin
+            ):
+                raise ValueError(
+                    "IPL package record is absent from its frozen selection: "
+                    f"{definition.kg_id}/{query_id}"
+                )
+        if ordered_query_ids != sorted(ordered_query_ids):
+            raise ValueError(f"IPL package records are not in canonical order: {definition.kg_id}")
+        record_membership[definition.kg_id] = ordered_query_ids
         metadata = payload.get("workshop_package")
         if not isinstance(metadata, Mapping) or (
             metadata.get("kg_id") != definition.kg_id
@@ -372,10 +466,34 @@ def validate_package_set(manifest: Mapping[str, Any], *, bundle_root: Path) -> N
             or metadata.get("selection_digest") != manifest.get("selection_digest")
         ):
             raise ValueError(f"IPL package provenance mismatch: {definition.kg_id}")
+    if status == "frozen" and set(selected_pins) != {
+        (kg_id, query_id)
+        for kg_id, query_ids in record_membership.items()
+        for query_id in query_ids
+    }:
+        raise ValueError("Frozen IPL selection membership does not match its packages")
+    expected_package_set_id = digest_bytes(
+        canonical_json(
+            {
+                "round_id": expected_round,
+                "source_bundle_digest": manifest["source_bundle_digest"],
+                "selection_digest": selection_digest,
+                "records": {
+                    kg_id: record_membership[kg_id] for kg_id in sorted(record_membership)
+                },
+            }
+        )
+    )[7:23]
+    if manifest.get("package_set_id") != expected_package_set_id:
+        raise ValueError("IPL package-set ID does not match its package membership")
 
 
 def register_package_set(
-    manifest: Mapping[str, Any], *, sessions: sessionmaker[Session], bundle_root: Path
+    manifest: Mapping[str, Any],
+    *,
+    bundle_root: Path,
+    sessions: sessionmaker[Session] | None = None,
+    session: Session | None = None,
 ) -> tuple[int, int]:
     """Register or safely replace an unclaimed package set for a draft round."""
     validate_package_set(manifest, bundle_root=bundle_root)
@@ -384,10 +502,16 @@ def register_package_set(
     rows = cast(list[Mapping[str, Any]], manifest["packages"])
     round_id = str(manifest["workshop_round_id"])
     inserted = updated = 0
-    with sessions.begin() as session:
+    if (sessions is None) == (session is None):
+        raise ValueError("Provide exactly one session or session factory")
+    transaction = sessions.begin() if sessions is not None else nullcontext(session)
+    with transaction as session:
+        assert session is not None
         workshop_round = session.get(WorkshopRound, round_id)
         if workshop_round is None:
             raise ValueError(f"Unknown workshop round: {round_id}")
+        if workshop_round.status != "draft":
+            raise ValueError("Workshop packages may be registered only on a draft round")
         existing_rows = list(
             session.scalars(
                 select(WorkshopWorkPackage).where(
@@ -417,8 +541,6 @@ def register_package_set(
             }
             existing = by_kg.get(str(values["kg_id"]))
             if existing is None:
-                if workshop_round.status != "draft":
-                    raise ValueError("New workshop packages may be registered only on a draft round")
                 session.add(WorkshopWorkPackage(**fields, created_at=timestamp(utc_now())))
                 inserted += 1
                 continue
@@ -433,7 +555,7 @@ def register_package_set(
                 )
                 or 0
             )
-            if workshop_round.status != "draft" or claims:
+            if claims:
                 raise ValueError("Claimed or non-draft workshop packages cannot be replaced")
             if existing.id != fields["id"]:
                 raise ValueError("Existing IPL package uses an unexpected stable ID")
