@@ -186,49 +186,54 @@ class SeedSnapshotService:
         self.sessions = sessions
 
     def import_archive(self, payload: Mapping[str, Any]) -> int:
+        with self.sessions.begin() as session:
+            return self.import_archive_in_session(session, payload)
+
+    @staticmethod
+    def import_archive_in_session(session: Session, payload: Mapping[str, Any]) -> int:
+        """Import an archive within a transaction owned by the caller."""
         snapshots = _ordered_seed_snapshots(validate_kg_seed_snapshots(payload))
         inserted = 0
-        with self.sessions.begin() as session:
-            repository = SeedRepository(session)
-            for record in snapshots:
-                kg_id = str(record["kg_id"])
-                seed_version = str(record["seed_version"])
-                if repository.get(kg_id, seed_version) is not None:
-                    existing = repository.get(kg_id, seed_version)
-                    if existing is None or existing.seed_digest != record["seed_digest"]:
-                        raise ValueError(f"Seed version was reused: {kg_id}/{seed_version}")
-                    continue
-                seed = record["seed"]
-                repository.add_snapshot(
-                    KgSeedSnapshot(
+        repository = SeedRepository(session)
+        for record in snapshots:
+            kg_id = str(record["kg_id"])
+            seed_version = str(record["seed_version"])
+            existing = repository.get(kg_id, seed_version)
+            if existing is not None:
+                if existing.seed_digest != record["seed_digest"]:
+                    raise ValueError(f"Seed version was reused: {kg_id}/{seed_version}")
+                continue
+            seed = record["seed"]
+            repository.add_snapshot(
+                KgSeedSnapshot(
+                    kg_id=kg_id,
+                    seed_version=seed_version,
+                    seed_digest=record["seed_digest"],
+                    previous_seed_digest=record["previous_seed_digest"],
+                    seed_json=dict(seed),
+                ),
+                (
+                    KgSeedReviewDomain(
                         kg_id=kg_id,
                         seed_version=seed_version,
-                        seed_digest=record["seed_digest"],
-                        previous_seed_digest=record["previous_seed_digest"],
-                        seed_json=dict(seed),
-                    ),
-                    (
-                        KgSeedReviewDomain(
-                            kg_id=kg_id,
-                            seed_version=seed_version,
-                            domain_id=domain["domain_id"],
-                            label=domain["label"],
-                            description=domain["description"],
-                        )
-                        for domain in seed["review_domains"]
-                    ),
-                    (
-                        KgSeedFamiliarityScope(
-                            kg_id=kg_id,
-                            seed_version=seed_version,
-                            scope_id=scope["scope_id"],
-                            label=scope["label"],
-                            description=scope.get("description"),
-                        )
-                        for scope in seed["familiarity_scopes"]
-                    ),
-                )
-                inserted += 1
+                        domain_id=domain["domain_id"],
+                        label=domain["label"],
+                        description=domain["description"],
+                    )
+                    for domain in seed["review_domains"]
+                ),
+                (
+                    KgSeedFamiliarityScope(
+                        kg_id=kg_id,
+                        seed_version=seed_version,
+                        scope_id=scope["scope_id"],
+                        label=scope["label"],
+                        description=scope.get("description"),
+                    )
+                    for scope in seed["familiarity_scopes"]
+                ),
+            )
+            inserted += 1
         return inserted
 
 

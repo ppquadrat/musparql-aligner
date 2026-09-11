@@ -412,46 +412,7 @@ class AssignmentService:
 
     def load_neutral_bundle(self, bundle_name: str) -> tuple[dict[str, Any], str, str]:
         """Validate and load one reviewer-neutral bundle under the configured root."""
-        if not bundle_name or Path(bundle_name).is_absolute():
-            raise ValueError("Bundle path must be relative to the configured root")
-        path = (self.bundle_root / bundle_name).resolve()
-        try:
-            relative = path.relative_to(self.bundle_root).as_posix()
-        except ValueError as exc:
-            raise ValueError("Bundle path escapes the configured root") from exc
-        if not path.is_file():
-            raise ValueError("Bundle does not exist")
-        raw = path.read_bytes()
-        try:
-            text = raw.decode("utf-8-sig")
-        except UnicodeDecodeError as exc:
-            raise ValueError("Bundle must be UTF-8 JSON or REVIEW_DATA JavaScript") from exc
-        if _BUNDLE_PREFIX.match(text):
-            text = _BUNDLE_PREFIX.sub("", text, count=1).strip()
-            if text.endswith(";"):
-                text = text[:-1]
-        try:
-            payload = json.loads(text)
-        except json.JSONDecodeError as exc:
-            raise ValueError("Bundle is not valid JSON data") from exc
-        if not isinstance(payload, dict):
-            raise ValueError("Bundle must be a JSON object")
-        if payload.get("schema") == BUNDLE_SCHEMA:
-            validate_bundle(payload)
-        elif payload.get("schema") != "musparql.review-bundle.v2":
-            raise ValueError("Bundle uses an unsupported assignment contract")
-        if self._contains_key(payload, "reviewer_id"):
-            raise ValueError("Hosted assignments require a reviewer-neutral bundle")
-        if payload.get("holdout_input_policy") not in _SAFE_HOLDOUT_POLICIES:
-            raise ValueError("Bundle lacks an approved holdout-exclusion policy")
-        if not isinstance(payload.get("records"), list) or not payload.get("dataset_id"):
-            raise ValueError("Bundle is missing its dataset or records")
-        if payload.get("record_count") != len(payload["records"]):
-            raise ValueError("Bundle record count does not match its records")
-        if self._contains_holdout_marker(payload["records"]):
-            raise ValueError("Bundle records contain a holdout marker")
-        digest = "sha256:" + hashlib.sha256(raw).hexdigest()
-        return payload, relative, digest
+        return load_neutral_bundle_file(self.bundle_root, bundle_name)
 
     @classmethod
     def _contains_holdout_marker(cls, value: Any) -> bool:
@@ -722,3 +683,50 @@ class AssignmentService:
         predecessors = {row.previous_assessment_id for row in rows}
         head = next(row for row in rows if row.id not in predecessors)
         return str(getattr(head, result_field))
+
+
+def load_neutral_bundle_file(
+    bundle_root: Path, bundle_name: str
+) -> tuple[dict[str, Any], str, str]:
+    """Validate a reviewer-neutral bundle without requiring a database session."""
+    root = bundle_root.resolve()
+    if not bundle_name or Path(bundle_name).is_absolute():
+        raise ValueError("Bundle path must be relative to the configured root")
+    path = (root / bundle_name).resolve()
+    try:
+        relative = path.relative_to(root).as_posix()
+    except ValueError as exc:
+        raise ValueError("Bundle path escapes the configured root") from exc
+    if not path.is_file():
+        raise ValueError("Bundle does not exist")
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ValueError("Bundle must be UTF-8 JSON or REVIEW_DATA JavaScript") from exc
+    if _BUNDLE_PREFIX.match(text):
+        text = _BUNDLE_PREFIX.sub("", text, count=1).strip()
+        if text.endswith(";"):
+            text = text[:-1]
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Bundle is not valid JSON data") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("Bundle must be a JSON object")
+    if payload.get("schema") == BUNDLE_SCHEMA:
+        validate_bundle(payload)
+    elif payload.get("schema") != "musparql.review-bundle.v2":
+        raise ValueError("Bundle uses an unsupported assignment contract")
+    if AssignmentService._contains_key(payload, "reviewer_id"):
+        raise ValueError("Hosted assignments require a reviewer-neutral bundle")
+    if payload.get("holdout_input_policy") not in _SAFE_HOLDOUT_POLICIES:
+        raise ValueError("Bundle lacks an approved holdout-exclusion policy")
+    if not isinstance(payload.get("records"), list) or not payload.get("dataset_id"):
+        raise ValueError("Bundle is missing its dataset or records")
+    if payload.get("record_count") != len(payload["records"]):
+        raise ValueError("Bundle record count does not match its records")
+    if AssignmentService._contains_holdout_marker(payload["records"]):
+        raise ValueError("Bundle records contain a holdout marker")
+    digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+    return payload, relative, digest

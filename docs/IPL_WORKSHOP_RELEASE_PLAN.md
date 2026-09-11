@@ -521,8 +521,16 @@ configuration and requires all three approved copy files.
 The complete notice is linked before login and throughout the site, together
 with the approved email-based withdrawal route.
 Group linguistic submission is kept unavailable as part of the explicit
-linguistic-mode deferral. Final package freezing, terminal lifecycle actions,
-ICF deployment, and rehearsal remain items 6–9.
+linguistic-mode deferral. The item 6 package tooling now builds and validates
+exactly the fixed five-KG set. Its v2 manifest embeds canonical annotation-free
+selection pins; validation independently derives selection membership, record
+order, the selection digest, and the package-set ID, and rejects noncanonical
+bundle paths. Package files are replaced atomically without following existing
+output symlinks, while seed import and draft-round package registration commit
+in one transaction. Provisional packages remain disabled and unregistrable. The
+actual workshop freeze remains pending only the owner-approved deduplicated
+selection; holdout pairs are explicitly excluded from every IPL package.
+Terminal lifecycle actions, ICF deployment, and rehearsal remain items 7–9.
 
 ### Track A — must work first
 

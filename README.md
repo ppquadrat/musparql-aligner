@@ -30,7 +30,11 @@ non-testing process requires approved file-backed copy. The full notice and
 withdrawal route remain available throughout the site. Group review submissions
 currently require every assigned item;
 explicit partial and abandon outcomes remain Track A item 7. Group linguistic
-submission remains deferred.
+submission remains deferred. Item 6's five fixed reviewer-neutral KG packages
+use a v2 manifest with embedded canonical selection pins, independently derived
+selection and package-set digests, atomic file replacement, and transactional
+seed/package registration; the owner-approved final selection and operational
+freeze remain pending.
 
 ## How the system fits together
 
@@ -131,6 +135,9 @@ the human verifies and places that file at the local path.
 - [`docs/IPL_WORKSHOP_RELEASE_PLAN.md`](docs/IPL_WORKSHOP_RELEASE_PLAN.md) —
   time-boxed plan and current implementation status for the IPL reviewing-group
   workshop release.
+- [`docs/IPL_WORKSHOP_PACKAGE_RUNBOOK.md`](docs/IPL_WORKSHOP_PACKAGE_RUNBOOK.md) —
+  deterministic preparation, validation, and registration of the five
+  reviewer-neutral IPL package files.
 - [`docs/PHASE_6B_LINGUISTIC_RUNBOOK.md`](docs/PHASE_6B_LINGUISTIC_RUNBOOK.md) —
   deterministic linguistic bundle construction and hosted rating workflow.
 - [`docs/PHASE_7_SUBMISSION_RUNBOOK.md`](docs/PHASE_7_SUBMISSION_RUNBOOK.md) —
