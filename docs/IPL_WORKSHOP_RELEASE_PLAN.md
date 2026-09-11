@@ -481,7 +481,7 @@ reconfigure ICF infrastructure.
 
 ## 11. Delivery order
 
-Implementation status (11 September 2026): items 1–4 are complete. The database
+Implementation status (11 September 2026): items 1–5 are complete. The database
 foundation and participant-facing journey cover reviewing-group creation,
 code-based self-join, reusable-package discovery, atomic package claims,
 per-member assessment gating, and assessment-gated workbench access during the
@@ -505,12 +505,15 @@ sessions and display a one-time recovery code; the reset is recorded in a
 dedicated update- and delete-protected append-only audit table. Recovery-code
 consumption and failed-attempt counting are serialized. Normal email login and
 the database both prevent a fallback synthetic address from becoming verified.
-All fallback routing compares the stored consent-statement version with the
-currently configured version, so obsolete consent stays behind the consent
-boundary.
+All participant routing compares the stored consent-statement version with the
+currently configured version, so absent or obsolete consent stays behind a
+dedicated unticked affirmative-consent screen before profile collection. One
+atomic acceptance records the notice version, statement version, and timestamp.
+The complete notice is linked before login and throughout the site, together
+with the approved email-based withdrawal route.
 Group linguistic submission is kept unavailable as part of the explicit
-linguistic-mode deferral. The dedicated consent page, final package freezing,
-terminal lifecycle actions, ICF deployment, and rehearsal remain items 5–9.
+linguistic-mode deferral. Final package freezing, terminal lifecycle actions,
+ICF deployment, and rehearsal remain items 6–9.
 
 ### Track A — must work first
 

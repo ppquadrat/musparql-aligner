@@ -2,6 +2,7 @@
 {% block title %}Sign in — Musparql review{% endblock %}
 {% block content %}
   <h1>{% if reauthenticate %}Confirm your identity{% else %}Sign in{% endif %}</h1>
+  {% if not reauthenticate %}<p>Please <a href="{{ url_for('portal.participant_notice') }}">read the participant information and privacy notice</a> before deciding whether to take part.</p>{% endif %}
   {% if reauthenticate %}
     <p>Owner account changes require a login completed within the last 15 minutes.</p>
   {% endif %}

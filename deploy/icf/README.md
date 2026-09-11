@@ -11,7 +11,9 @@ recovery, privacy-notice, and email gates have passed.
 - `/opt/musparql/venv`: production Python environment;
 - `/srv/musparql`: durable database, bundles, submissions, and candidates;
 - `/etc/musparql/musparql.env`: service configuration and application secret;
-- `/etc/musparql/participant-notice.txt`: final ICF-approved notice; and
+- `/etc/musparql/participant-notice.txt`: final ICF-approved notice;
+- `/etc/musparql/consent-summary.txt`: final ICF-approved consent summary;
+- `/etc/musparql/consent-statement.txt`: final ICF-approved checkbox wording; and
 - loopback port `8000`: Gunicorn, reachable publicly only through Caddy.
 
 The application and worker run as the unprivileged `musparql` system account.
@@ -67,9 +69,12 @@ The initial configuration is explicitly synthetic. It must not receive real
 names, addresses, profiles, or reviews. Before real use, replace the synthetic
 notice switches with the approved notice file/version, set
 `MUSPARQL_CONSENT_STATEMENT_VERSION` to the exact approved statement version,
-and configure the real email sender. Workshop and group-assignment access fails
-closed when that value is absent or does not match a participant's recorded
-consent version.
+set `MUSPARQL_PRIVACY_NOTICE_PATH`, `MUSPARQL_CONSENT_SUMMARY_PATH`, and
+`MUSPARQL_CONSENT_STATEMENT_PATH` to restricted files containing the exact
+approved text, and configure the real email sender. The application refuses to
+start in production unless the version and both consent texts are configured.
+Participant profile, workshop, assignment, workbench, and submission access
+fails closed when the recorded consent version is absent or obsolete.
 
 Create the database and the first owner. The prompts collect the owner's name
 and email directly in the terminal; do not paste either into an issue, log, or

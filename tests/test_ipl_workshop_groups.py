@@ -325,7 +325,9 @@ def test_shared_code_creates_distinct_accounts_and_sessions_then_routes_to_conse
         assert response.location == "/consent"
         assert code not in response.location
         consent = client.get(response.location)
-        assert b"Consent required" in consent.data
+        assert b"Before you take part" in consent.data
+        assert b'name="consent_affirmed" value="yes" required' in consent.data
+        assert b'name="consent_affirmed" value="yes" checked' not in consent.data
         assert client.get("/").location == "/consent"
         assert client.get("/profile").location == "/consent"
         assert client.post(
@@ -822,6 +824,84 @@ def test_stale_workshop_consent_stays_behind_consent_boundary(workshop_app) -> N
     assert response.location == "/consent"
 
 
+def test_affirmative_consent_records_both_versions_before_profile_collection(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    entry_code = _issue_workshop_entry_code(owner)
+    participant = app.test_client()
+    assert participant.post(
+        "/auth/workshop",
+        data={"csrf_token": _csrf(participant), "code": entry_code},
+    ).location == "/consent"
+
+    rejected = participant.post(
+        "/consent", data={"csrf_token": _csrf(participant)}
+    )
+    assert rejected.status_code == 200
+    assert b"must select the consent checkbox" in rejected.data
+    accepted = participant.post(
+        "/consent",
+        data={"csrf_token": _csrf(participant), "consent_affirmed": "yes"},
+    )
+    assert accepted.location == "/profile"
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        reviewer = session.scalar(
+            select(Reviewer).where(Reviewer.registration_method == "workshop_code")
+        )
+        assert reviewer is not None
+        assert reviewer.privacy_notice_version == "synthetic-ipl-v1"
+        assert reviewer.consent_statement_version == "synthetic-consent-v1"
+        assert reviewer.privacy_notice_acknowledged_at == reviewer.consented_at
+        assert reviewer.consented_at is not None
+    engine.dispose()
+
+    assert participant.get("/consent").location == "/"
+    profile = participant.get("/profile")
+    assert profile.status_code == 200
+    assert b"does not use a verified email address" in profile.data
+    assert b"@example.invalid" not in profile.data
+    notice = app.test_client().get("/participant-notice")
+    assert notice.status_code == 200
+    assert b"Synthetic notice" in notice.data
+    withdrawal = participant.get("/consent/withdrawal")
+    assert b"musparql@industrycommons.net" in withdrawal.data
+
+
+def test_email_login_with_missing_consent_routes_to_the_same_gate(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        reviewer = session.get(Reviewer, FIRST_ID)
+        assert reviewer is not None
+        reviewer.consent_statement_version = None
+        reviewer.consented_at = None
+    engine.dispose()
+
+    client = app.test_client()
+    position = sender.position()
+    client.post(
+        "/auth/login",
+        data={"csrf_token": _csrf(client), "email": "first@example.invalid"},
+    )
+    message = sender.wait_for(
+        "login_code", "first@example.invalid", after_index=position
+    )
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
+    verified = client.post(
+        "/auth/verify",
+        data={"csrf_token": _csrf(client), "code": message.value},
+    )
+    assert verified.location == "/consent"
+    assert client.get("/profile").location == "/consent"
+
+
 def test_reissued_entry_code_reports_round_wide_capacity(workshop_app) -> None:
     app, sender, database_path, _bundle_root = workshop_app
     engine = create_database_engine(database_path)
@@ -1171,10 +1251,10 @@ def test_workshop_routes_fail_closed_without_consent_or_complete_profile(
     client = app.test_client()
     _login(client, app, sender, "first@example.invalid")
     assert b"Open IPL workshop" not in client.get("/").data
-    assert client.get("/workshop").status_code == 403
+    assert client.get("/workshop").location == "/consent"
     assert client.post(
         "/workshop/groups", data={"csrf_token": _csrf(client)}
-    ).status_code == 403
+    ).location == "/consent"
 
 
 @pytest.mark.parametrize("withdrawn", [False, True])
@@ -1204,13 +1284,13 @@ def test_consent_change_revokes_a_claimed_group_assignment_immediately(
         reviewer.consented_at = None if withdrawn else timestamp(utc_now())
     engine.dispose()
 
-    assert client.get("/workshop").status_code == 403
-    assert client.get(f"/assignments/{assignment_id}").status_code == 404
-    assert client.get(f"/assignments/{assignment_id}/bundle").status_code == 404
-    assert client.get(f"/assignments/{assignment_id}/workbench/").status_code == 404
+    assert client.get("/workshop").location == "/consent"
+    assert client.get(f"/assignments/{assignment_id}").location == "/consent"
+    assert client.get(f"/assignments/{assignment_id}/bundle").location == "/consent"
+    assert client.get(f"/assignments/{assignment_id}/workbench/").location == "/consent"
     assert client.get(
         f"/assignments/{assignment_id}/workbench/app.js"
-    ).status_code == 404
+    ).location == "/consent"
 
 
 def test_round_closure_revokes_group_assignment_and_assessment_access(

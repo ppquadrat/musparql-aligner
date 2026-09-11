@@ -83,6 +83,14 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         CONSENT_STATEMENT_VERSION=os.environ.get(
             "MUSPARQL_CONSENT_STATEMENT_VERSION"
         ),
+        CONSENT_STATEMENT_BODY=os.environ.get("MUSPARQL_CONSENT_STATEMENT_BODY"),
+        CONSENT_STATEMENT_PATH=os.environ.get("MUSPARQL_CONSENT_STATEMENT_PATH"),
+        CONSENT_SUMMARY_BODY=os.environ.get("MUSPARQL_CONSENT_SUMMARY_BODY"),
+        CONSENT_SUMMARY_PATH=os.environ.get("MUSPARQL_CONSENT_SUMMARY_PATH"),
+        PARTICIPANT_CONTACT_EMAIL=os.environ.get(
+            "MUSPARQL_PARTICIPANT_CONTACT_EMAIL",
+            "musparql@industrycommons.net",
+        ),
         TRUSTED_HOSTS=_environment_list("MUSPARQL_TRUSTED_HOSTS"),
         BEHIND_SINGLE_PROXY=os.environ.get("MUSPARQL_BEHIND_SINGLE_PROXY") == "1",
         ALLOW_SYNTHETIC_PRIVACY_NOTICE=(
@@ -112,6 +120,19 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 f"The configured privacy notice cannot be read: {notice_path}"
             ) from exc
 
+    for body_key, path_key, label in (
+        ("CONSENT_SUMMARY_BODY", "CONSENT_SUMMARY_PATH", "consent summary"),
+        ("CONSENT_STATEMENT_BODY", "CONSENT_STATEMENT_PATH", "consent statement"),
+    ):
+        if not app.config.get(body_key) and app.config.get(path_key):
+            content_path = Path(app.config[path_key]).expanduser().resolve()
+            try:
+                app.config[body_key] = content_path.read_text(encoding="utf-8").strip()
+            except OSError as exc:
+                raise RuntimeError(
+                    f"The configured {label} cannot be read: {content_path}"
+                ) from exc
+
     if app.config["TESTING"] or app.config["ALLOW_SYNTHETIC_PRIVACY_NOTICE"]:
         app.config["PRIVACY_NOTICE_VERSION"] = app.config.get(
             "PRIVACY_NOTICE_VERSION"
@@ -120,6 +141,20 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             "Synthetic development notice. Do not enter real personal data. "
             "This notice is only for testing the Musparql onboarding workflow."
         )
+        if app.config.get("CONSENT_STATEMENT_VERSION"):
+            app.config["CONSENT_SUMMARY_BODY"] = app.config.get(
+                "CONSENT_SUMMARY_BODY"
+            ) or (
+                "Synthetic consent summary. Taking part is voluntary. "
+                "Do not enter real personal data in this test environment."
+            )
+            app.config["CONSENT_STATEMENT_BODY"] = app.config.get(
+                "CONSENT_STATEMENT_BODY"
+            ) or (
+                "I confirm that I am aged 18 or over, that I have read the "
+                "synthetic participant notice, and that I voluntarily agree "
+                "to take part in this test."
+            )
 
     if app.config["BEHIND_SINGLE_PROXY"]:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)  # type: ignore[method-assign]
@@ -167,6 +202,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         config=app.config,
     )
     from .profile import ProfileService
+    from .consent import ConsentService
     from .assignments import AssignmentService
     from .submissions import ProcessingService, SubmissionService
     from .workshops import WorkshopService
@@ -183,6 +219,12 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         suggestions_path=Path(app.config["EXPERTISE_SUGGESTIONS_PATH"]).expanduser().resolve(),
         language_options_path=Path(app.config["LANGUAGE_OPTIONS_PATH"]).expanduser().resolve(),
     )
+    if app.config["CONSENT_STATEMENT_VERSION"]:
+        app.extensions["musparql_consent"] = ConsentService(
+            sessions=sessions,
+            notice_version=app.config["PRIVACY_NOTICE_VERSION"],
+            statement_version=app.config["CONSENT_STATEMENT_VERSION"],
+        )
     app.extensions["musparql_assignments"] = AssignmentService(
         sessions=sessions,
         bundle_root=Path(app.config["ASSIGNMENT_BUNDLE_ROOT"]).expanduser().resolve(),
@@ -237,6 +279,17 @@ def _validate_config(app: Flask) -> None:
         and not (app.config["TESTING"] or app.config["ALLOW_SYNTHETIC_PRIVACY_NOTICE"])
     ):
         raise RuntimeError("A synthetic privacy notice is not allowed in this environment")
+    consent_values = (
+        app.config.get("CONSENT_STATEMENT_VERSION"),
+        app.config.get("CONSENT_STATEMENT_BODY"),
+        app.config.get("CONSENT_SUMMARY_BODY"),
+    )
+    if any(consent_values) and not all(consent_values):
+        raise RuntimeError(
+            "Consent statement version, statement body, and summary body must be configured together"
+        )
+    if not app.config["TESTING"] and not all(consent_values):
+        raise RuntimeError("A controller-approved consent statement must be configured")
     suggestions_path = Path(app.config["EXPERTISE_SUGGESTIONS_PATH"]).expanduser().resolve()
     if not suggestions_path.is_file():
         raise RuntimeError("The configured expertise suggestion snapshot does not exist")

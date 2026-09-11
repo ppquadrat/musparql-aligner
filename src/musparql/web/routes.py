@@ -53,6 +53,23 @@ def owner_required(view: View) -> View:
     return cast(View, wrapped)
 
 
+def consent_required(view: View) -> View:
+    """Keep participant data routes behind the configured consent version."""
+
+    @wraps(view)
+    @login_required
+    def wrapped(*args: Any, **kwargs: Any):
+        if (
+            g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"]
+            and current_app.config["CONSENT_STATEMENT_VERSION"]
+            and not _has_current_consent()
+        ):
+            return redirect(url_for("portal.consent_pending"))
+        return view(*args, **kwargs)
+
+    return cast(View, wrapped)
+
+
 def _request_context() -> str:
     # ProxyFix has already replaced this with the trusted client address when
     # the explicitly configured single reverse proxy is in use. Do not include
@@ -60,7 +77,7 @@ def _request_context() -> str:
     return request.remote_addr or "unknown"
 
 
-def _fallback_has_current_consent() -> bool:
+def _has_current_consent() -> bool:
     return has_current_consent(
         g.current_reviewer, current_app.config["CONSENT_STATEMENT_VERSION"]
     )
@@ -98,8 +115,9 @@ def _clear_auth_cookies(response: Response) -> None:
 def index():
     if (
         g.current_reviewer is not None
-        and g.current_reviewer.registration_method == "workshop_code"
-        and not _fallback_has_current_consent()
+        and g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"]
+        and current_app.config["CONSENT_STATEMENT_VERSION"]
+        and not _has_current_consent()
     ):
         return redirect(url_for("portal.consent_pending"))
     if (
@@ -136,7 +154,7 @@ def index():
 
 
 @portal.get("/workshop")
-@login_required
+@consent_required
 def workshop():
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
@@ -170,7 +188,7 @@ def workshop():
 
 
 @portal.post("/workshop/groups")
-@login_required
+@consent_required
 def create_workshop_group():
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
@@ -190,7 +208,7 @@ def create_workshop_group():
 
 
 @portal.post("/workshop/groups/join")
-@login_required
+@consent_required
 def join_workshop_group():
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
@@ -210,7 +228,7 @@ def join_workshop_group():
 
 
 @portal.post("/workshop/groups/<group_id>/packages/<package_id>/claim")
-@login_required
+@consent_required
 def claim_workshop_package(group_id: str, package_id: str):
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
@@ -237,13 +255,8 @@ def claim_workshop_package(group_id: str, package_id: str):
 
 
 @portal.route("/profile", methods=["GET", "POST"])
-@login_required
+@consent_required
 def profile():
-    if (
-        g.current_reviewer.registration_method == "workshop_code"
-        and not _fallback_has_current_consent()
-    ):
-        return redirect(url_for("portal.consent_pending"))
     service = current_app.extensions["musparql_profiles"]
     error = ""
     submitted = request.method == "POST"
@@ -430,14 +443,58 @@ def workshop_recover():
     return response
 
 
-@portal.get("/consent")
+@portal.route("/consent", methods=["GET", "POST"])
 @login_required
 def consent_pending():
-    if g.current_reviewer.registration_method != "workshop_code":
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         return redirect(url_for("portal.index"))
-    if _fallback_has_current_consent():
+    if not current_app.config["CONSENT_STATEMENT_VERSION"]:
         return redirect(url_for("portal.index"))
-    return render_template("consent_pending.html")
+    if _has_current_consent():
+        return redirect(url_for("portal.index"))
+    error = ""
+    if request.method == "POST":
+        try:
+            current_app.extensions["musparql_consent"].accept(
+                g.current_reviewer.id,
+                affirmed=request.form.get("consent_affirmed") == "yes",
+            )
+        except ValueError as exc:
+            error = str(exc)
+        except LookupError:
+            abort(403)
+        else:
+            return redirect(url_for("portal.profile"))
+    return render_template(
+        "consent_pending.html",
+        notice_version=current_app.config["PRIVACY_NOTICE_VERSION"],
+        statement_version=current_app.config["CONSENT_STATEMENT_VERSION"],
+        summary_body=current_app.config["CONSENT_SUMMARY_BODY"],
+        statement_body=current_app.config["CONSENT_STATEMENT_BODY"],
+        contact_email=current_app.config["PARTICIPANT_CONTACT_EMAIL"],
+        error=error,
+    )
+
+
+@portal.get("/participant-notice")
+def participant_notice():
+    return render_template(
+        "participant_notice.html",
+        notice_version=current_app.config["PRIVACY_NOTICE_VERSION"],
+        notice_body=current_app.config["PRIVACY_NOTICE_BODY"],
+        contact_email=current_app.config["PARTICIPANT_CONTACT_EMAIL"],
+    )
+
+
+@portal.get("/consent/withdrawal")
+@login_required
+def consent_withdrawal():
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        return redirect(url_for("portal.index"))
+    return render_template(
+        "consent_withdrawal.html",
+        contact_email=current_app.config["PARTICIPANT_CONTACT_EMAIL"],
+    )
 
 
 @portal.route("/auth/verify", methods=["GET", "POST"])
@@ -455,7 +512,17 @@ def verify():
     if result is None:
         return render_template("verify.html", invalid=True), 200
     token, reviewer = result
-    response = redirect(url_for("portal.index"))
+    response = redirect(
+        url_for("portal.consent_pending")
+        if (
+            reviewer.id != current_app.config["OWNER_REVIEWER_ID"]
+            and current_app.config["CONSENT_STATEMENT_VERSION"]
+            and not has_current_consent(
+                reviewer, current_app.config["CONSENT_STATEMENT_VERSION"]
+            )
+        )
+        else url_for("portal.index")
+    )
     _set_auth_cookie(
         response,
         token,
@@ -708,7 +775,7 @@ def create_assignment():
 
 
 @portal.route("/assignments/<assignment_id>", methods=["GET", "POST"])
-@login_required
+@consent_required
 def assignment(assignment_id: str):
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
@@ -747,7 +814,7 @@ def assignment(assignment_id: str):
 
 
 @portal.get("/assignments/<assignment_id>/bundle")
-@login_required
+@consent_required
 def assignment_bundle(assignment_id: str):
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
@@ -770,7 +837,7 @@ def assignment_bundle(assignment_id: str):
 
 
 @portal.post("/assignments/<assignment_id>/submissions")
-@login_required
+@consent_required
 def submit_assignment(assignment_id: str):
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
@@ -811,7 +878,7 @@ def _hosted_assignment_bundle(assignment_id: str) -> dict[str, Any]:
 
 
 @portal.get("/assignments/<assignment_id>/workbench/")
-@login_required
+@consent_required
 def assignment_workbench(assignment_id: str):
     payload = _hosted_assignment_bundle(assignment_id)
     root_key = (
@@ -826,7 +893,7 @@ def assignment_workbench(assignment_id: str):
 
 
 @portal.get("/assignments/<assignment_id>/workbench/<asset_name>")
-@login_required
+@consent_required
 def assignment_workbench_asset(assignment_id: str, asset_name: str):
     payload = _hosted_assignment_bundle(assignment_id)
     linguistic = payload.get("mode") == "linguistic"

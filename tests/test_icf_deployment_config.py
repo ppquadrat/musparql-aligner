@@ -104,6 +104,30 @@ def test_privacy_notice_can_be_loaded_from_a_restricted_file(tmp_path: Path) -> 
         app.extensions["musparql_engine"].dispose()
 
 
+def test_consent_copy_can_be_loaded_from_restricted_files(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    summary = tmp_path / "consent-summary.txt"
+    statement = tmp_path / "consent-statement.txt"
+    summary.write_text("Synthetic summary from a file.\n", encoding="utf-8")
+    statement.write_text("Synthetic affirmative statement.\n", encoding="utf-8")
+    config.update(
+        {
+            "CONSENT_STATEMENT_VERSION": "synthetic-consent-v1",
+            "CONSENT_SUMMARY_BODY": None,
+            "CONSENT_SUMMARY_PATH": summary,
+            "CONSENT_STATEMENT_BODY": None,
+            "CONSENT_STATEMENT_PATH": statement,
+        }
+    )
+    app = create_app(config)
+    try:
+        assert app.config["CONSENT_SUMMARY_BODY"] == "Synthetic summary from a file."
+        assert app.config["CONSENT_STATEMENT_BODY"] == "Synthetic affirmative statement."
+    finally:
+        app.extensions["musparql_email_dispatcher"].shutdown()
+        app.extensions["musparql_engine"].dispose()
+
+
 def test_application_secret_can_be_loaded_from_a_restricted_file(tmp_path: Path) -> None:
     config = _config(tmp_path)
     secret = tmp_path / "app-secret"

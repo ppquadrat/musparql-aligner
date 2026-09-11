@@ -12,7 +12,7 @@
       {% if current_reviewer %}
         <span>{{ current_reviewer.id }}</span>
         {% if current_reviewer.id != config.OWNER_REVIEWER_ID %}
-          {% if current_reviewer.registration_method != 'workshop_code' or current_reviewer.consented_at %}
+          {% if not config.CONSENT_STATEMENT_VERSION or (current_reviewer.consent_statement_version == config.CONSENT_STATEMENT_VERSION and current_reviewer.consented_at) %}
             <a href="{{ url_for('portal.profile') }}">My profile</a>
             {% if workshop_available %}<a href="{{ url_for('portal.workshop') }}">IPL workshop</a>{% endif %}
           {% endif %}
@@ -24,5 +24,11 @@
       {% endif %}
     </header>
     <main>{% block content %}{% endblock %}</main>
+    <footer>
+      <a href="{{ url_for('portal.participant_notice') }}">Participant information and privacy notice</a>
+      {% if current_reviewer and current_reviewer.id != config.OWNER_REVIEWER_ID %}
+        <a href="{{ url_for('portal.consent_withdrawal') }}">Withdraw from the study</a>
+      {% endif %}
+    </footer>
   </body>
 </html>

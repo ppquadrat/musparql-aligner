@@ -22,8 +22,11 @@ reusable KG packages, shared assignment drafts, server-derived joint
 submission provenance, and SMTP-first registration with a capped shared-code
 fallback. Shared-code admission is replay-safe, uses durable digest-only
 address throttling across application restarts, and has audited one-time
-facilitator recovery without treating fallback addresses as verified. Group
-review submissions currently require every assigned item;
+facilitator recovery without treating fallback addresses as verified. Workshop-
+code and email-invited participants pass through the same versioned affirmative-
+consent gate before profile collection; the full notice and withdrawal route
+remain available throughout the site. Group review submissions currently
+require every assigned item;
 explicit partial and abandon outcomes remain Track A item 7. Group linguistic
 submission remains deferred.
 

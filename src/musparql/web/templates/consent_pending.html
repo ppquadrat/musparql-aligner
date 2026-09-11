@@ -1,11 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Consent required — Musparql review{% endblock %}
+{% block title %}Consent to take part — Musparql review{% endblock %}
 {% block content %}
-  <h1>Consent required</h1>
-  <p>Your separate workshop account has been created.</p>
-  <p>The consent statement must be completed before profile collection or workshop access. The versioned consent form is the next IPL release item and is not enabled yet.</p>
+  <h1>Before you take part</h1>
+  <p class="metadata">Participant notice {{ notice_version }} · consent statement {{ statement_version }}</p>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  <section class="notice" aria-labelledby="consent-summary-heading">
+    <h2 id="consent-summary-heading">Essential information</h2>
+    <p class="preserve-lines">{{ summary_body }}</p>
+    <p><a href="{{ url_for('portal.participant_notice') }}" target="_blank" rel="noopener">Read the complete participant information and privacy notice</a></p>
+  </section>
+  <p>You may stop or withdraw at any time. <a href="{{ url_for('portal.consent_withdrawal') }}">How to withdraw and what happens next</a>.</p>
+  <form method="post" action="{{ url_for('portal.consent_pending') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="check">
+      <input type="checkbox" name="consent_affirmed" value="yes" required>
+      <span>{{ statement_body }}</span>
+    </label>
+    <button type="submit">I agree — continue to my profile</button>
+  </form>
   <form method="post" action="{{ url_for('portal.logout') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit">Sign out</button>
+    <button class="secondary" type="submit">Do not take part — sign out</button>
   </form>
 {% endblock %}
