@@ -131,6 +131,9 @@ the human verifies and places that file at the local path.
 - [`docs/IPL_WORKSHOP_RELEASE_PLAN.md`](docs/IPL_WORKSHOP_RELEASE_PLAN.md) —
   time-boxed plan and current implementation status for the IPL reviewing-group
   workshop release.
+- [`docs/IPL_WORKSHOP_PACKAGE_RUNBOOK.md`](docs/IPL_WORKSHOP_PACKAGE_RUNBOOK.md) —
+  deterministic preparation, validation, and registration of the five
+  reviewer-neutral IPL package files.
 - [`docs/PHASE_6B_LINGUISTIC_RUNBOOK.md`](docs/PHASE_6B_LINGUISTIC_RUNBOOK.md) —
   deterministic linguistic bundle construction and hosted rating workflow.
 - [`docs/PHASE_7_SUBMISSION_RUNBOOK.md`](docs/PHASE_7_SUBMISSION_RUNBOOK.md) —
