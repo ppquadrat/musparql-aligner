@@ -109,12 +109,14 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 f"The configured application secret cannot be read: {secret_path}"
             ) from exc
 
-    if not app.config.get("PRIVACY_NOTICE_BODY") and app.config.get(
-        "PRIVACY_NOTICE_PATH"
+    if app.config.get("PRIVACY_NOTICE_PATH") and (
+        not app.config.get("PRIVACY_NOTICE_BODY") or not app.config["TESTING"]
     ):
         notice_path = Path(app.config["PRIVACY_NOTICE_PATH"]).expanduser().resolve()
         try:
-            app.config["PRIVACY_NOTICE_BODY"] = notice_path.read_text(encoding="utf-8")
+            app.config["PRIVACY_NOTICE_BODY"] = notice_path.read_text(
+                encoding="utf-8"
+            ).strip()
         except OSError as exc:
             raise RuntimeError(
                 f"The configured privacy notice cannot be read: {notice_path}"
@@ -124,7 +126,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         ("CONSENT_SUMMARY_BODY", "CONSENT_SUMMARY_PATH", "consent summary"),
         ("CONSENT_STATEMENT_BODY", "CONSENT_STATEMENT_PATH", "consent statement"),
     ):
-        if not app.config.get(body_key) and app.config.get(path_key):
+        if app.config.get(path_key) and (
+            not app.config.get(body_key) or not app.config["TESTING"]
+        ):
             content_path = Path(app.config[path_key]).expanduser().resolve()
             try:
                 app.config[body_key] = content_path.read_text(encoding="utf-8").strip()
@@ -133,7 +137,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                     f"The configured {label} cannot be read: {content_path}"
                 ) from exc
 
-    if app.config["TESTING"] or app.config["ALLOW_SYNTHETIC_PRIVACY_NOTICE"]:
+    if app.config["TESTING"]:
         app.config["PRIVACY_NOTICE_VERSION"] = app.config.get(
             "PRIVACY_NOTICE_VERSION"
         ) or "synthetic-development-v1"
@@ -229,12 +233,14 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         sessions=sessions,
         bundle_root=Path(app.config["ASSIGNMENT_BUNDLE_ROOT"]).expanduser().resolve(),
         current_consent_version=app.config["CONSENT_STATEMENT_VERSION"],
+        current_notice_version=app.config["PRIVACY_NOTICE_VERSION"],
     )
     app.extensions["musparql_workshops"] = WorkshopService(
         sessions=sessions,
         assignments=app.extensions["musparql_assignments"],
         secret=app.config["APP_SECRET"].encode("utf-8"),
         current_consent_version=app.config["CONSENT_STATEMENT_VERSION"],
+        current_notice_version=app.config["PRIVACY_NOTICE_VERSION"],
     )
     app.extensions["musparql_submissions"] = SubmissionService(
         sessions=sessions,
@@ -276,9 +282,24 @@ def _validate_config(app: Flask) -> None:
         )
     if (
         str(app.config["PRIVACY_NOTICE_VERSION"]).startswith("synthetic-")
-        and not (app.config["TESTING"] or app.config["ALLOW_SYNTHETIC_PRIVACY_NOTICE"])
+        and not app.config["TESTING"]
     ):
         raise RuntimeError("A synthetic privacy notice is not allowed in this environment")
+    if not app.config["TESTING"] and app.config["ALLOW_SYNTHETIC_PRIVACY_NOTICE"]:
+        raise RuntimeError(
+            "ALLOW_SYNTHETIC_PRIVACY_NOTICE is restricted to the test environment"
+        )
+    if not app.config["TESTING"] and not all(
+        app.config.get(name)
+        for name in (
+            "PRIVACY_NOTICE_PATH",
+            "CONSENT_SUMMARY_PATH",
+            "CONSENT_STATEMENT_PATH",
+        )
+    ):
+        raise RuntimeError(
+            "Production privacy notice and consent copy must be loaded from restricted files"
+        )
     consent_values = (
         app.config.get("CONSENT_STATEMENT_VERSION"),
         app.config.get("CONSENT_STATEMENT_BODY"),
@@ -290,6 +311,11 @@ def _validate_config(app: Flask) -> None:
         )
     if not app.config["TESTING"] and not all(consent_values):
         raise RuntimeError("A controller-approved consent statement must be configured")
+    if (
+        str(app.config.get("CONSENT_STATEMENT_VERSION", "")).startswith("synthetic-")
+        and not app.config["TESTING"]
+    ):
+        raise RuntimeError("A synthetic consent statement is not allowed in this environment")
     suggestions_path = Path(app.config["EXPERTISE_SUGGESTIONS_PATH"]).expanduser().resolve()
     if not suggestions_path.is_file():
         raise RuntimeError("The configured expertise suggestion snapshot does not exist")

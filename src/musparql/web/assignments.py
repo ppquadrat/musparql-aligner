@@ -47,15 +47,20 @@ _RECIPES = {
 
 
 def has_current_consent(
-    reviewer: Reviewer | None, current_consent_version: str | None
+    reviewer: Reviewer | None,
+    current_consent_version: str | None,
+    current_notice_version: str | None,
 ) -> bool:
-    """Fail closed unless an active reviewer accepted the configured statement."""
+    """Fail closed unless an active reviewer accepted both configured texts."""
     return bool(
         reviewer is not None
         and reviewer.status == "active"
         and current_consent_version
+        and current_notice_version
         and reviewer.consent_statement_version == current_consent_version
         and reviewer.consented_at
+        and reviewer.privacy_notice_version == current_notice_version
+        and reviewer.privacy_notice_acknowledged_at
     )
 
 
@@ -84,12 +89,16 @@ class AssignmentService:
         sessions: sessionmaker[Session],
         bundle_root: Path,
         current_consent_version: str | None = None,
+        current_notice_version: str | None = None,
     ) -> None:
         self.sessions = sessions
         self.bundle_root = bundle_root.resolve()
         self.current_consent_version = current_consent_version
+        self.current_notice_version = current_notice_version
         self.provenance = ProvenanceService(
-            sessions, current_consent_version=current_consent_version
+            sessions,
+            current_consent_version=current_consent_version,
+            current_notice_version=current_notice_version,
         )
 
     def owner_choices(self) -> tuple[list[Reviewer], list[KgSeedSnapshot]]:
@@ -137,7 +146,11 @@ class AssignmentService:
         now = timestamp(utc_now())
         with self.sessions() as session:
             reviewer = session.get(Reviewer, reviewer_id)
-            if not has_current_consent(reviewer, self.current_consent_version):
+            if not has_current_consent(
+                reviewer,
+                self.current_consent_version,
+                self.current_notice_version,
+            ):
                 return []
             return list(
                 session.scalars(
@@ -592,12 +605,23 @@ class AssignmentService:
     def _reviewer_can_access(
         self, session: Session, assignment: ReviewAssignment, reviewer_id: str
     ) -> bool:
+        reviewer = session.get(Reviewer, reviewer_id)
         if assignment.reviewer_id is not None:
-            return assignment.reviewer_id == reviewer_id
+            return assignment.reviewer_id == reviewer_id and (
+                not self.current_consent_version
+                or has_current_consent(
+                    reviewer,
+                    self.current_consent_version,
+                    self.current_notice_version,
+                )
+            )
         if assignment.review_group_id is None:
             return False
-        reviewer = session.get(Reviewer, reviewer_id)
-        if not has_current_consent(reviewer, self.current_consent_version):
+        if not has_current_consent(
+            reviewer,
+            self.current_consent_version,
+            self.current_notice_version,
+        ):
             return False
         now = timestamp(utc_now())
         return bool(

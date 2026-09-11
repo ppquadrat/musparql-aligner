@@ -66,8 +66,8 @@ def _reviewer(
         status="active",
         created_at=now,
         updated_at=now,
-        privacy_notice_version="synthetic-ipl-v1",
-        privacy_notice_acknowledged_at=now,
+        privacy_notice_version="synthetic-ipl-v1" if consented else None,
+        privacy_notice_acknowledged_at=now if consented else None,
         registration_method="email_invitation",
         email_verified_at=now,
         consent_statement_version="synthetic-consent-v1" if consented else None,
@@ -148,6 +148,20 @@ def _write_bundle(path: Path, *, kg_id: str = "synthetic-kg") -> str:
 def workshop_app(tmp_path: Path):
     database_path = tmp_path / "workshop.sqlite3"
     bundle_root = tmp_path / "bundles"
+    notice_path = tmp_path / "participant-notice.txt"
+    summary_path = tmp_path / "consent-summary.txt"
+    statement_path = tmp_path / "consent-statement.txt"
+    notice_path.write_text(
+        "Synthetic notice from the configured file. Do not enter real data.",
+        encoding="utf-8",
+    )
+    summary_path.write_text(
+        "Synthetic consent summary from the configured file.", encoding="utf-8"
+    )
+    statement_path.write_text(
+        "Synthetic affirmative statement from the configured file.",
+        encoding="utf-8",
+    )
     bundle_digest = _write_bundle(bundle_root / "synthetic-package.json")
     upgrade_database(database_path)
     engine = create_database_engine(database_path)
@@ -237,8 +251,11 @@ def workshop_app(tmp_path: Path):
             "SUBMISSION_ROOT": tmp_path / "submissions",
             "CANDIDATE_ROOT": tmp_path / "candidates",
             "PRIVACY_NOTICE_VERSION": "synthetic-ipl-v1",
-            "PRIVACY_NOTICE_BODY": "Synthetic notice. Do not enter real data.",
+            "PRIVACY_NOTICE_BODY": None,
+            "PRIVACY_NOTICE_PATH": notice_path,
             "CONSENT_STATEMENT_VERSION": "synthetic-consent-v1",
+            "CONSENT_SUMMARY_PATH": summary_path,
+            "CONSENT_STATEMENT_PATH": statement_path,
         }
     )
     yield app, sender, database_path, bundle_root
@@ -837,6 +854,15 @@ def test_affirmative_consent_records_both_versions_before_profile_collection(
         data={"csrf_token": _csrf(participant), "code": entry_code},
     ).location == "/consent"
 
+    consent_page = participant.get("/consent")
+    assert (
+        b"Synthetic consent summary from the configured file." in consent_page.data
+    )
+    assert (
+        b"Synthetic affirmative statement from the configured file."
+        in consent_page.data
+    )
+
     rejected = participant.post(
         "/consent", data={"csrf_token": _csrf(participant)}
     )
@@ -868,7 +894,10 @@ def test_affirmative_consent_records_both_versions_before_profile_collection(
     assert b"@example.invalid" not in profile.data
     notice = app.test_client().get("/participant-notice")
     assert notice.status_code == 200
-    assert b"Synthetic notice" in notice.data
+    assert (
+        b"Synthetic notice from the configured file. Do not enter real data."
+        in notice.data
+    )
     withdrawal = participant.get("/consent/withdrawal")
     assert b"musparql@industrycommons.net" in withdrawal.data
 
@@ -900,6 +929,68 @@ def test_email_login_with_missing_consent_routes_to_the_same_gate(workshop_app) 
     )
     assert verified.location == "/consent"
     assert client.get("/profile").location == "/consent"
+    accepted = client.post(
+        "/consent",
+        data={"csrf_token": _csrf(client), "consent_affirmed": "yes"},
+    )
+    assert accepted.location == "/profile"
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        reviewer = session.get(Reviewer, FIRST_ID)
+        assert reviewer is not None
+        assert reviewer.privacy_notice_version == "synthetic-ipl-v1"
+        assert reviewer.consent_statement_version == "synthetic-consent-v1"
+    engine.dispose()
+
+
+def test_owner_access_does_not_require_a_consent_record(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        owner = session.get(Reviewer, OWNER_ID)
+        assert owner is not None
+        assert owner.consent_statement_version is None
+        assert owner.privacy_notice_version is None
+    engine.dispose()
+
+    client = app.test_client()
+    _login(client, app, sender, "owner@example.invalid")
+    assert client.get("/owner/reviewers").status_code == 200
+
+
+def test_notice_only_version_change_on_restart_revokes_consent(workshop_app) -> None:
+    app, _sender, database_path, bundle_root = workshop_app
+    restarted_sender = SyntheticEmailSender()
+    restarted = create_app(
+        {
+            "TESTING": True,
+            "DATABASE_PATH": database_path,
+            "APP_SECRET": SECRET,
+            "OWNER_REVIEWER_ID": OWNER_ID,
+            "COOKIE_SECURE": False,
+            "EMAIL_SENDER": restarted_sender,
+            "EXPERTISE_SUGGESTIONS_PATH": ROOT
+            / "catalog/expertise_domain_suggestions.yaml",
+            "ASSIGNMENT_BUNDLE_ROOT": bundle_root,
+            "SUBMISSION_ROOT": database_path.parent / "notice-restart-submissions",
+            "CANDIDATE_ROOT": database_path.parent / "notice-restart-candidates",
+            "PRIVACY_NOTICE_VERSION": "synthetic-ipl-v2",
+            "PRIVACY_NOTICE_PATH": app.config["PRIVACY_NOTICE_PATH"],
+            "CONSENT_STATEMENT_VERSION": "synthetic-consent-v1",
+            "CONSENT_SUMMARY_PATH": app.config["CONSENT_SUMMARY_PATH"],
+            "CONSENT_STATEMENT_PATH": app.config["CONSENT_STATEMENT_PATH"],
+        }
+    )
+    try:
+        client = restarted.test_client()
+        _login(client, restarted, restarted_sender, "first@example.invalid")
+        assert client.get("/").location == "/consent"
+        assert client.get("/workshop").location == "/consent"
+    finally:
+        restarted.extensions["musparql_email_dispatcher"].shutdown()
+        restarted.extensions["musparql_engine"].dispose()
 
 
 def test_reissued_entry_code_reports_round_wide_capacity(workshop_app) -> None:
@@ -1286,10 +1377,29 @@ def test_consent_change_revokes_a_claimed_group_assignment_immediately(
 
     assert client.get("/workshop").location == "/consent"
     assert client.get(f"/assignments/{assignment_id}").location == "/consent"
+    assert client.post(
+        f"/assignments/{assignment_id}", data=_assessment_form(client)
+    ).location == "/consent"
+    assert client.post(
+        "/workshop/groups", data={"csrf_token": _csrf(client)}
+    ).location == "/consent"
+    assert client.post(
+        "/workshop/groups/join",
+        data={"csrf_token": _csrf(client), "join_code": "AAAA-AAAAAA"},
+    ).location == "/consent"
+    assert client.post(
+        f"/workshop/groups/{group_id}/packages/package-synthetic/claim",
+        data={"csrf_token": _csrf(client)},
+    ).location == "/consent"
     assert client.get(f"/assignments/{assignment_id}/bundle").location == "/consent"
     assert client.get(f"/assignments/{assignment_id}/workbench/").location == "/consent"
     assert client.get(
         f"/assignments/{assignment_id}/workbench/app.js"
+    ).location == "/consent"
+    assert client.post(
+        f"/assignments/{assignment_id}/submissions",
+        json={},
+        headers={"X-CSRF-Token": _csrf(client)},
     ).location == "/consent"
 
 

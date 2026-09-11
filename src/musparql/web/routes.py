@@ -79,7 +79,9 @@ def _request_context() -> str:
 
 def _has_current_consent() -> bool:
     return has_current_consent(
-        g.current_reviewer, current_app.config["CONSENT_STATEMENT_VERSION"]
+        g.current_reviewer,
+        current_app.config["CONSENT_STATEMENT_VERSION"],
+        current_app.config["PRIVACY_NOTICE_VERSION"],
     )
 
 
@@ -434,7 +436,9 @@ def workshop_recover():
     response = redirect(
         url_for("portal.consent_pending")
         if not has_current_consent(
-            reviewer, current_app.config["CONSENT_STATEMENT_VERSION"]
+            reviewer,
+            current_app.config["CONSENT_STATEMENT_VERSION"],
+            current_app.config["PRIVACY_NOTICE_VERSION"],
         )
         else url_for("portal.index")
     )
@@ -518,7 +522,9 @@ def verify():
             reviewer.id != current_app.config["OWNER_REVIEWER_ID"]
             and current_app.config["CONSENT_STATEMENT_VERSION"]
             and not has_current_consent(
-                reviewer, current_app.config["CONSENT_STATEMENT_VERSION"]
+                reviewer,
+                current_app.config["CONSENT_STATEMENT_VERSION"],
+                current_app.config["PRIVACY_NOTICE_VERSION"],
             )
         )
         else url_for("portal.index")
