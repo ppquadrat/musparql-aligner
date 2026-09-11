@@ -80,6 +80,7 @@
     reusedPreviousReview,
     resetFormulationAttribution,
     editedFormulationAttribution,
+    reviewIdentityForEditor,
     parseHoldoutSelectors,
     validateHoldoutSelector,
     selectorForRecord,
@@ -453,6 +454,9 @@
     if (!reviewId) return;
     privateExportReady = false;
     const current = getReviewById(reviewId);
+    const ownershipChanged = Boolean(
+      current.reviewer_id && current.reviewer_id !== data.reviewer_id
+    );
     const nextStatus = Object.prototype.hasOwnProperty.call(options, "forcedStatus")
       ? options.forcedStatus
       : current.status;
@@ -464,7 +468,7 @@
     const selectorSelected = els.holdoutSplitInput.checked;
     const keepAnnotationPrivate = isHoldoutReview(current);
     reviews[reviewId] = {
-      review_id: current.review_id || `${reviewId}::${data.reviewer_id}`,
+      review_id: reviewIdentityForEditor(current, reviewId, data.reviewer_id),
       reviewer_id: data.reviewer_id || current.reviewer_id || "",
       status: nextStatus,
       preferred_question: els.preferredQuestionInput.value.trim(),
@@ -476,9 +480,12 @@
       holdout_selector_selected: selectorSelected,
       interpretive,
       reviewed_at: new Date().toISOString(),
-      prior_review_ids: Array.isArray(record?.prior_review_ids) ? record.prior_review_ids : [],
-      authored_formulation_ids: current.authored_formulation_ids,
-      approved_formulation_ids: current.approved_formulation_ids,
+      prior_review_ids: [...new Set([
+        ...(Array.isArray(record?.prior_review_ids) ? record.prior_review_ids : []),
+        ...(ownershipChanged && current.review_id ? [current.review_id] : []),
+      ])],
+      authored_formulation_ids: ownershipChanged ? [] : current.authored_formulation_ids,
+      approved_formulation_ids: ownershipChanged ? [] : current.approved_formulation_ids,
     };
     if (
       !reviews[reviewId].status &&
@@ -657,6 +664,16 @@
   }
 
   function validateReviewerImport(payload, currentData = data) {
+    if (payload.review_group_id) {
+      if (payload.review_group_id !== currentData?.review_group_id) {
+        throw new Error("This review export belongs to a different review group.");
+      }
+      if (!Array.isArray(payload.contributor_reviewer_ids)
+          || !payload.contributor_reviewer_ids.includes(currentData?.reviewer_id)) {
+        throw new Error("The current reviewer is not a contributor to this group export.");
+      }
+      return;
+    }
     if (payload.reviewer_id && payload.reviewer_id !== currentData?.reviewer_id) {
       throw new Error("This review export belongs to a different reviewer.");
     }
@@ -685,8 +702,9 @@
     // Pre-Phase-7 local exports reused the v2 name without assignment fields.
     // Preserve import compatibility; hosted canonical v2 is always strict.
     if (payload?.schema !== "musparql.review-export.v2" || !payload.assignment_id) return false;
-    const initialFields = new Set(["schema", "kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "run_id", "run_ids", "runs", "exported_at", "reviews"]);
-    const compareFields = new Set(["schema", "kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "mode", "previous_run", "current_run", "exported_at", "reviews"]);
+    const groupFields = ["review_group_id", "submitted_by_reviewer_id", "contributor_reviewer_ids"];
+    const initialFields = new Set(["schema", "kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "run_id", "run_ids", "runs", "exported_at", "reviews", ...groupFields]);
+    const compareFields = new Set(["schema", "kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "mode", "previous_run", "current_run", "exported_at", "reviews", ...groupFields]);
     const fields = payload.mode === "compare" ? compareFields : initialFields;
     const unknown = Object.keys(payload).filter((field) => !fields.has(field));
     if (unknown.length) throw new Error(`Review export contains undeclared fields: ${unknown.join(", ")}.`);
@@ -697,6 +715,18 @@
     if (!/^assignment-[0-9a-f]{24}$/.test(payload.assignment_id || "")) throw new Error("Invalid assignment identity.");
     if (!/^sha256:[0-9a-f]{64}$/.test(payload.bundle_digest || "")) throw new Error("Invalid bundle digest.");
     if (!/^reviewer-[0-9]{4,}$/.test(payload.reviewer_id || "")) throw new Error("Invalid reviewer identity.");
+    const suppliedGroupFields = groupFields.filter((field) => Object.hasOwn(payload, field));
+    if (suppliedGroupFields.length && suppliedGroupFields.length !== groupFields.length) throw new Error("Group attribution fields must be supplied together.");
+    if (suppliedGroupFields.length) {
+      if (!/^group-[0-9a-f]{24}$/.test(payload.review_group_id || "")) throw new Error("Invalid review group identity.");
+      if (payload.submitted_by_reviewer_id !== payload.reviewer_id) throw new Error("Group submitter does not match the export reviewer.");
+      if (!Array.isArray(payload.contributor_reviewer_ids) || !payload.contributor_reviewer_ids.length
+          || new Set(payload.contributor_reviewer_ids).size !== payload.contributor_reviewer_ids.length
+          || payload.contributor_reviewer_ids.some((value) => !/^reviewer-[0-9]{4,}$/.test(value))
+          || !payload.contributor_reviewer_ids.includes(payload.submitted_by_reviewer_id)) {
+        throw new Error("Invalid group contributor attribution.");
+      }
+    }
     if (!isRfc3339(payload.exported_at)) throw new Error("Invalid export timestamp.");
     if (payload.mode === "compare") {
       if (!payload.previous_run || !payload.current_run) throw new Error("Comparison export is missing run context.");
@@ -706,7 +736,7 @@
     return true;
   }
 
-  function validateImportedReviews(reviewMap, strictV2 = false) {
+  function validateImportedReviews(reviewMap, strictV2 = false, envelope = null) {
     if (!reviewMap || typeof reviewMap !== "object" || Array.isArray(reviewMap)) {
       throw new Error("Bad review file format.");
     }
@@ -746,6 +776,10 @@
       }
       if (review.reviewer_id && !/^reviewer-[0-9]{4,}$/.test(review.reviewer_id)) {
         throw new Error(`Review ${reviewId} has an invalid pseudonymous reviewer ID.`);
+      }
+      if (strictV2 && envelope?.review_group_id
+          && !envelope.contributor_reviewer_ids.includes(review.reviewer_id)) {
+        throw new Error(`Review ${reviewId} is attributed outside the review group.`);
       }
       for (const field of ["prior_review_ids", "authored_formulation_ids", "approved_formulation_ids"]) {
         if (field in review && (!Array.isArray(review[field]) || review[field].some((value) => typeof value !== "string" || !value))) {
@@ -981,6 +1015,12 @@
     };
   }
 
+  function reviewIdentityForEditor(review, reviewId, reviewerId) {
+    return review?.reviewer_id === reviewerId && review?.review_id
+      ? review.review_id
+      : `${reviewId}::${reviewerId}`;
+  }
+
   function scopeSummary(record) {
     if (getReviewScope(record) !== "previously_reviewed") return "";
     const previous = record.previous_review || {};
@@ -1105,7 +1145,7 @@
         if (!imported || typeof imported !== "object") {
           throw new Error("Bad review file format.");
         }
-        validateImportedReviews(imported, strictV2);
+        validateImportedReviews(imported, strictV2, payload);
         validateReviewerImport(payload);
         rejectPrivateImport(payload, imported);
         reviews = internalReviews(imported);
@@ -1910,16 +1950,25 @@
     function updateCompareReview(reviewId, patch, rerender = true) {
       privateCompareExportReady = false;
       const existing = compareReviews[reviewId] || { status: "", preferred_question: "", literal_wording: "", public_comment: "", internal_comment: "", split: "" };
+      const ownershipChanged = Boolean(
+        existing.reviewer_id && existing.reviewer_id !== data.reviewer_id
+      );
       const pair = data.records.find((item) => (item.current?.review_id || item.pair_id) === reviewId);
       const priorReviewIds = pair?.previous?.review_id ? [pair.previous.review_id] : [];
       compareReviews[reviewId] = {
         ...existing,
         ...patch,
-        review_id: existing.review_id || `${reviewId}::${data.reviewer_id}`,
+        review_id: reviewIdentityForEditor(existing, reviewId, data.reviewer_id),
         reviewer_id: data.reviewer_id,
         reviewed_at: new Date().toISOString(),
         prior_review_ids: patch.prior_review_ids
-          || (Array.isArray(existing.prior_review_ids) && existing.prior_review_ids.length ? existing.prior_review_ids : priorReviewIds),
+          || (ownershipChanged && existing.review_id
+            ? [...new Set([...priorReviewIds, existing.review_id])]
+            : (Array.isArray(existing.prior_review_ids) && existing.prior_review_ids.length ? existing.prior_review_ids : priorReviewIds)),
+        authored_formulation_ids: ownershipChanged ? [] : existing.authored_formulation_ids,
+        approved_formulation_ids: ownershipChanged ? [] : existing.approved_formulation_ids,
+        copied_from_review_id: ownershipChanged ? null : existing.copied_from_review_id,
+        copied_formulation_roles: ownershipChanged ? [] : existing.copied_formulation_roles,
       };
       cleanupEmptyCompareReview(reviewId);
       saveCompareReviews();
@@ -2042,7 +2091,7 @@
           validateReviewerImport(payload);
           const imported = payload.reviews;
           const strictV2 = validateV2Envelope(payload);
-          validateImportedReviews(imported, strictV2);
+          validateImportedReviews(imported, strictV2, payload);
           rejectPrivateImport(payload, imported);
           compareReviews = internalReviews(imported);
           privateCompareExportReady = false;

@@ -17,6 +17,12 @@ The current public benchmark is under [`benchmark/v10`](benchmark/v10). It
 contains 100 reviewed pairs from Musical Meetups, the Jazz Ontology, MusOW,
 Organs, and LinkedMusic.
 
+The in-progress IPL workshop release adds self-formed reviewing groups,
+reusable KG packages, shared assignment drafts, and server-derived joint
+submission provenance. Group review submissions currently require every
+assigned item; explicit partial and abandon outcomes remain Track A item 7.
+Group linguistic submission remains deferred.
+
 ## How the system fits together
 
 The workflow has four stages:
@@ -113,6 +119,9 @@ the human verifies and places that file at the local path.
 - [`docs/MUSPARQL_V2_PLAN.md`](docs/MUSPARQL_V2_PLAN.md) — phased plan for the
   remote reviewer portal, longitudinal expertise data, controlled processing,
   and isolated deployment, including the completed Phase 6b boundary.
+- [`docs/IPL_WORKSHOP_RELEASE_PLAN.md`](docs/IPL_WORKSHOP_RELEASE_PLAN.md) —
+  time-boxed plan and current implementation status for the IPL reviewing-group
+  workshop release.
 - [`docs/PHASE_6B_LINGUISTIC_RUNBOOK.md`](docs/PHASE_6B_LINGUISTIC_RUNBOOK.md) —
   deterministic linguistic bundle construction and hosted rating workflow.
 - [`docs/PHASE_7_SUBMISSION_RUNBOOK.md`](docs/PHASE_7_SUBMISSION_RUNBOOK.md) —

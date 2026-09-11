@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from datetime import timedelta
 import hashlib
 import json
@@ -116,12 +117,16 @@ def _write_bundle(path: Path, *, kg_id: str = "synthetic-kg") -> str:
         "dataset_id": "synthetic-ipl-package",
         "built_at": "2026-09-11T09:00:00Z",
         "holdout_input_policy": "no_holdout",
-        "record_count": 1,
+        "record_count": 2,
         "records": [
             {
                 "review_id": "synthetic-kg::synthetic-query::one",
                 "kg_id": kg_id,
-            }
+            },
+            {
+                "review_id": "synthetic-kg::synthetic-query::two",
+                "kg_id": kg_id,
+            },
         ],
     }
     raw = (json.dumps(payload, sort_keys=True) + "\n").encode()
@@ -269,8 +274,31 @@ def _review_payload(
     submitter_id: str,
     event_reviewer_id: str,
 ) -> dict:
-    record_id = "synthetic-kg::synthetic-query::one"
-    review_id = f"{record_id}::{event_reviewer_id}"
+    def review(record_id: str) -> dict:
+        review_id = f"{record_id}::{event_reviewer_id}"
+        return {
+            "review_id": review_id,
+            "reviewer_id": event_reviewer_id,
+            "reviewed_at": "2026-09-11T09:29:00Z",
+            "prior_review_ids": [],
+            "authored_formulation_ids": [],
+            "approved_formulation_ids": [
+                f"{review_id}::formulation::candidate"
+            ],
+            "benchmark_disposition": "included",
+            "pipeline_assessment": "accepted",
+            "preferred_question": "",
+            "literal_wording": "",
+            "public_comment": "",
+            "internal_comment": "",
+            "split": "",
+            "interpretive": {
+                "naturalness": None,
+                "pragmatism": None,
+                "room_for_interpretation": None,
+                "requires_graph_context_knowledge": False,
+            },
+        }
     return {
         "schema": "musparql.review-export.v2",
         "kind": "non_holdout_review_export",
@@ -283,29 +311,11 @@ def _review_payload(
         "runs": [],
         "exported_at": "2026-09-11T09:30:00Z",
         "reviews": {
-            record_id: {
-                "review_id": review_id,
-                "reviewer_id": event_reviewer_id,
-                "reviewed_at": "2026-09-11T09:29:00Z",
-                "prior_review_ids": [],
-                "authored_formulation_ids": [],
-                "approved_formulation_ids": [
-                    f"{review_id}::formulation::candidate"
-                ],
-                "benchmark_disposition": "included",
-                "pipeline_assessment": "accepted",
-                "preferred_question": "",
-                "literal_wording": "",
-                "public_comment": "",
-                "internal_comment": "",
-                "split": "",
-                "interpretive": {
-                    "naturalness": None,
-                    "pragmatism": None,
-                    "room_for_interpretation": None,
-                    "requires_graph_context_knowledge": False,
-                },
-            }
+            record_id: review(record_id)
+            for record_id in (
+                "synthetic-kg::synthetic-query::one",
+                "synthetic-kg::synthetic-query::two",
+            )
         },
     }
 
@@ -448,6 +458,28 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert rejected.status_code == 422
     assert b"Review attribution does not match" in rejected.data
 
+    partial = deepcopy(payload)
+    partial["reviews"].pop("synthetic-kg::synthetic-query::two")
+    rejected = first.post(
+        f"/assignments/{assignment_id}/submissions",
+        json=partial,
+        headers={"X-CSRF-Token": _csrf(first)},
+    )
+    assert rejected.status_code == 422
+    assert b"requires a review for every assigned item" in rejected.data
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            assert assignment is not None
+            assert assignment.status == "active"
+            assert assignment.participant_status == "active"
+            assert assignment.closed_contributor_ids is None
+            assert list(session.scalars(select(ReviewSubmission))) == []
+    finally:
+        engine.dispose()
+
     submissions = app.extensions["musparql_submissions"]
     with ThreadPoolExecutor(max_workers=2) as executor:
         concurrent = list(
@@ -459,16 +491,23 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert len({item.receipt_id for item in concurrent}) == 1
     assert {item.duplicate for item in concurrent} == {False, True}
     receipt = concurrent[0].as_dict()
-    retry = first.post(
+    browser_retry = deepcopy(payload)
+    browser_retry["reviewer_id"] = SECOND_ID
+    browser_retry["exported_at"] = "2026-09-11T09:31:00Z"
+    retry = second.post(
         f"/assignments/{assignment_id}/submissions",
-        json=payload,
-        headers={"X-CSRF-Token": _csrf(first)},
+        json=browser_retry,
+        headers={"X-CSRF-Token": _csrf(second)},
     )
     assert retry.status_code == 200
     assert retry.get_json()["receipt_id"] == receipt["receipt_id"]
     assert retry.get_json()["duplicate"] is True
     revised = dict(payload)
-    revised["exported_at"] = "2026-09-11T09:31:00Z"
+    revised["exported_at"] = "2026-09-11T09:32:00Z"
+    revised["reviews"] = deepcopy(payload["reviews"])
+    revised["reviews"]["synthetic-kg::synthetic-query::one"][
+        "public_comment"
+    ] = "A real content revision"
     assert first.post(
         f"/assignments/{assignment_id}/submissions",
         json=revised,

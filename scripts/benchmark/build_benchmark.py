@@ -260,11 +260,31 @@ def assert_non_holdout_export(payload: Dict[str, Any]) -> None:
         reviews = payload.get("reviews")
         if not isinstance(reviews, dict):
             raise ValueError("Review export missing reviews object")
+        group_fields = (
+            "review_group_id", "submitted_by_reviewer_id",
+            "contributor_reviewer_ids",
+        )
+        supplied_group_fields = [field for field in group_fields if field in payload]
+        if supplied_group_fields and len(supplied_group_fields) != len(group_fields):
+            raise ValueError("Group attribution fields must be supplied together")
+        contributors: set[str] | None = None
+        if supplied_group_fields:
+            if payload.get("submitted_by_reviewer_id") != reviewer_id:
+                raise ValueError("Group submitter does not match the export reviewer_id")
+            contributor_values = payload.get("contributor_reviewer_ids")
+            if not isinstance(contributor_values, list) or not contributor_values:
+                raise ValueError("Group export requires contributors")
+            validated = [validate_reviewer_id(value) for value in contributor_values]
+            if len(validated) != len(set(validated)) or reviewer_id not in validated:
+                raise ValueError("Group export has invalid contributors")
+            contributors = set(validated)
         for review in reviews.values():
             if not isinstance(review, dict):
                 raise ValueError("Every review must be an object")
             validate_review_provenance(review)
-            if review.get("reviewer_id") != reviewer_id:
+            if contributors is not None and review.get("reviewer_id") not in contributors:
+                raise ValueError("Review reviewer_id is not a group contributor")
+            if contributors is None and review.get("reviewer_id") != reviewer_id:
                 raise ValueError("Review reviewer_id does not match the export reviewer_id")
 
 
@@ -275,6 +295,13 @@ def assert_reviewer_assignment(bundle: Dict[str, Any], review_export: Dict[str, 
     if bundle.get("schema") == "musparql.review-bundle.v2":
         bundle_reviewer = validate_reviewer_id(bundle_reviewer)
         export_reviewer = validate_reviewer_id(export_reviewer)
+    contributors = review_export.get("contributor_reviewer_ids")
+    if review_export.get("review_group_id") is not None:
+        if bundle.get("review_group_id") not in (None, review_export["review_group_id"]):
+            raise ValueError("Review group mismatch between bundle and export")
+        if bundle_reviewer and bundle_reviewer not in (contributors or []):
+            raise ValueError("Bundle reviewer is not a contributor to the group export")
+        return
     if bundle_reviewer and export_reviewer and bundle_reviewer != export_reviewer:
         raise ValueError(
             f"Reviewer mismatch: bundle belongs to {bundle_reviewer}, "

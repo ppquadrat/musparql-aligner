@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 import subprocess
 import sys
@@ -701,6 +702,39 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
         }
         with self.assertRaisesRegex(ValueError, "Reviewer mismatch"):
             build_benchmark.assert_reviewer_assignment(bundle, export)
+
+    def test_group_export_accepts_member_authors_as_one_judgment(self) -> None:
+        review = {
+            "review_id": "event::reviewer-0002",
+            "reviewer_id": "reviewer-0002",
+            "reviewed_at": "2026-08-20T10:00:00Z",
+            "prior_review_ids": [],
+            "authored_formulation_ids": [],
+            "approved_formulation_ids": [],
+        }
+        export = {
+            "schema": "musparql.review-export.v2",
+            "kind": "non_holdout_review_export",
+            "reviewer_id": "reviewer-0001",
+            "review_group_id": "group-000000000000000000000001",
+            "submitted_by_reviewer_id": "reviewer-0001",
+            "contributor_reviewer_ids": ["reviewer-0001", "reviewer-0002"],
+            "reviews": {"record": review},
+        }
+        build_benchmark.assert_non_holdout_export(export)
+        build_benchmark.assert_reviewer_assignment(
+            {
+                "schema": "musparql.review-bundle.v2",
+                "reviewer_id": "reviewer-0002",
+                "review_group_id": "group-000000000000000000000001",
+            },
+            export,
+        )
+        outsider = deepcopy(export)
+        outsider["reviews"]["record"]["review_id"] = "event::reviewer-0003"
+        outsider["reviews"]["record"]["reviewer_id"] = "reviewer-0003"
+        with self.assertRaisesRegex(ValueError, "not a group contributor"):
+            build_benchmark.assert_non_holdout_export(outsider)
 
     def test_snapshot_audit_rejects_non_pseudonymous_reviewer_fields(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

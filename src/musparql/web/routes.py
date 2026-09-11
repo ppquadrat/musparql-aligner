@@ -692,8 +692,12 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
             "assignments_url": url_for("portal.index"),
             "logout_url": url_for("portal.logout"),
             "csrf_token": g.csrf_token,
-            "submission_url": url_for(
-                "portal.submit_assignment", assignment_id=assignment_id
+            "submission_url": (
+                None
+                if linguistic and payload.get("review_group_id")
+                else url_for(
+                    "portal.submit_assignment", assignment_id=assignment_id
+                )
             ),
         }
         body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(

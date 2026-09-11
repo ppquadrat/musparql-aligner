@@ -55,6 +55,16 @@ def _digest(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+def _retry_identity(payload: Mapping[str, Any]) -> bytes:
+    """Canonical review content, excluding browser/session retry metadata."""
+    comparable = dict(payload)
+    comparable.pop("exported_at", None)
+    if comparable.get("review_group_id") is not None:
+        comparable.pop("reviewer_id", None)
+        comparable.pop("submitted_by_reviewer_id", None)
+    return _canonical_bytes(comparable)
+
+
 def _atomic_write(root: Path, name: str, raw: bytes) -> Path:
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     path = root / name
@@ -127,6 +137,10 @@ class SubmissionService:
             contributor_ids = self.assignments.submission_contributor_ids(
                 session, persisted, reviewer_id
             )
+            if persisted.review_group_id is not None and persisted.mode == "linguistic":
+                raise PermissionError(
+                    "Group linguistic submission is not available yet"
+                )
             canonical_payload = dict(payload)
             if persisted.review_group_id is not None:
                 canonical_payload.update(
@@ -157,6 +171,32 @@ class SubmissionService:
                 if job is None:
                     raise RuntimeError("Accepted submission has no processing job")
                 return self._receipt(existing, job, duplicate=True)
+            retry_identity = _retry_identity(canonical_payload)
+            for candidate in session.scalars(
+                select(ReviewSubmission).where(
+                    ReviewSubmission.assignment_id == assignment_id
+                )
+            ):
+                candidate_path = (self.submission_root / candidate.export_path).resolve()
+                try:
+                    candidate_path.relative_to(self.submission_root)
+                    candidate_payload = json.loads(
+                        candidate_path.read_text(encoding="utf-8")
+                    )
+                except (OSError, ValueError, json.JSONDecodeError):
+                    continue
+                if isinstance(candidate_payload, dict) and _retry_identity(
+                    candidate_payload
+                ) == retry_identity:
+                    job = session.scalar(
+                        select(ProcessingJob).where(
+                            ProcessingJob.submission_id == candidate.id
+                        )
+                    )
+                    session.commit()
+                    if job is None:
+                        raise RuntimeError("Accepted submission has no processing job")
+                    return self._receipt(candidate, job, duplicate=True)
             if (
                 persisted.review_group_id is not None
                 and persisted.closed_contributor_ids is not None
@@ -262,6 +302,10 @@ class SubmissionService:
         if assignment.mode == "initial" and "mode" in payload:
             raise ValueError("Initial assignment must not declare compare mode")
         if assignment.review_group_id is not None:
+            if assignment.mode == "linguistic":
+                raise PermissionError(
+                    "Group linguistic submission is not available yet"
+                )
             for field, expected in (
                 ("review_group_id", assignment.review_group_id),
                 ("submitted_by_reviewer_id", submitting_reviewer_id),
@@ -291,6 +335,10 @@ class SubmissionService:
             reviews = payload.get("reviews", {})
             if not set(reviews).issubset(allowed):
                 raise ValueError("Reviews contain an identity outside the assigned bundle")
+            if assignment.review_group_id is not None and set(reviews) != allowed:
+                raise ValueError(
+                    "Group submission requires a review for every assigned item"
+                )
             if len({item["review_id"] for item in reviews.values()}) != len(reviews):
                 raise ValueError("Review event identities must be unique")
             if any(

@@ -22,10 +22,15 @@ revision, or job identifier.
   contributor set. Review events may identify only members of that frozen set.
 - Accepted JSON is canonicalized, hashed, written through a same-directory
   temporary file, fsynced, atomically renamed, and registered with a receipt.
-- An identical retry returns the existing receipt. Changed JSON is a numbered
-  revision for a legacy individual assignment. A closed group assignment and
-  an approved assignment accept identical retries but no new revisions; later
+- A retry with the same review content returns the existing receipt even when
+  the browser supplies a fresh export timestamp. Any frozen group contributor
+  can recover that receipt. Changed review content is a numbered revision for
+  a legacy individual assignment. A closed group assignment and an approved
+  assignment accept content-equivalent retries but no new revisions; later
   group work requires a new assignment so its frozen authorship cannot change.
+- Until the explicit partial/abandon lifecycle is implemented, group review
+  submission requires a decision for every assigned item and only then closes
+  the assignment as completed.
 - Each accepted revision gets one persistent processing job, so a group
   submission remains one judgment rather than being duplicated per
   contributor. Processing audits and owner-facing manifests retain the group,
