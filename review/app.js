@@ -717,7 +717,7 @@
     // Preserve import compatibility; hosted canonical v2 is always strict.
     if (payload?.schema !== "musparql.review-export.v2" || !payload.assignment_id) return false;
     const attributionFields = ["review_group_id", "submitted_by_reviewer_id", "contributor_reviewer_ids"];
-    const groupFields = [...attributionFields, "completion_type"];
+    const groupFields = [...attributionFields, "completion_type", "completion_item_count", "completion_total_count"];
     const initialFields = new Set(["schema", "kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "run_id", "run_ids", "runs", "exported_at", "reviews", ...groupFields]);
     const compareFields = new Set(["schema", "kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "mode", "previous_run", "current_run", "exported_at", "reviews", ...groupFields]);
     const fields = payload.mode === "compare" ? compareFields : initialFields;
@@ -733,10 +733,19 @@
     const suppliedAttributionFields = attributionFields.filter((field) => Object.hasOwn(payload, field));
     if (suppliedAttributionFields.length && suppliedAttributionFields.length !== attributionFields.length) throw new Error("Group attribution fields must be supplied together.");
     if (Object.hasOwn(payload, "completion_type") && !suppliedAttributionFields.length) throw new Error("Completion type requires group attribution.");
+    const suppliedCountFields = ["completion_item_count", "completion_total_count"].filter((field) => Object.hasOwn(payload, field));
+    if (suppliedCountFields.length === 1) throw new Error("Completion counts must be supplied together.");
+    if (suppliedCountFields.length && !suppliedAttributionFields.length) throw new Error("Completion counts require group attribution.");
     if (suppliedAttributionFields.length) {
       if (!/^group-[0-9a-f]{24}$/.test(payload.review_group_id || "")) throw new Error("Invalid review group identity.");
       if (payload.submitted_by_reviewer_id !== payload.reviewer_id) throw new Error("Group submitter does not match the export reviewer.");
       if (Object.hasOwn(payload, "completion_type") && !["completed", "partial"].includes(payload.completion_type)) throw new Error("Invalid completion type.");
+      if (suppliedCountFields.length && (!Number.isInteger(payload.completion_item_count)
+          || !Number.isInteger(payload.completion_total_count)
+          || payload.completion_item_count < 0
+          || payload.completion_item_count > payload.completion_total_count)) {
+        throw new Error("Invalid completion counts.");
+      }
       if (!Array.isArray(payload.contributor_reviewer_ids) || !payload.contributor_reviewer_ids.length
           || new Set(payload.contributor_reviewer_ids).size !== payload.contributor_reviewer_ids.length
           || payload.contributor_reviewer_ids.some((value) => !/^reviewer-[0-9]{4,}$/.test(value))
@@ -1241,8 +1250,12 @@
   }
 
   function showSubmissionSuccess(result, payload) {
-    const completed = Object.keys(payload.reviews || {}).length;
-    const total = Number(data.record_count) || data.records.length;
+    const completed = Number.isInteger(result.completion_item_count)
+      ? result.completion_item_count
+      : Object.keys(payload.reviews || {}).length;
+    const total = Number.isInteger(result.completion_total_count)
+      ? result.completion_total_count
+      : Number(data.record_count) || data.records.length;
     const percentage = total ? Math.round((completed / total) * 100) : 0;
     const partial = result.completion_type === "partial";
     els.submissionHeading.textContent = result.duplicate
@@ -1256,6 +1269,7 @@
     els.backToAssignmentsLink.classList.remove("hidden");
     els.exportReviewsBtn.classList.add("hidden");
     if (els.submitPartialBtn) els.submitPartialBtn.classList.add("hidden");
+    document.querySelectorAll(".hosted-terminal-control").forEach((control) => control.remove());
     els.submissionStatus.classList.remove("hidden");
     els.submissionStatus.scrollIntoView({behavior: "smooth", block: "start"});
   }
@@ -2161,6 +2175,7 @@
     const assignment = document.createElement("a");
     assignment.href = hosted.assignment_url;
     assignment.textContent = "Assignment";
+    assignment.classList.add("hosted-terminal-control");
     bar.appendChild(assignment);
     els.backToAssignmentsLink.href = hosted.assignments_url || "/";
     if (hosted.workshop_url) {
@@ -2176,6 +2191,7 @@
       const abandonForm = document.createElement("form");
       abandonForm.method = "post";
       abandonForm.action = hosted.abandon_url;
+      abandonForm.classList.add("hosted-terminal-control");
       abandonForm.addEventListener("submit", (event) => {
         if (!window.confirm("Abandon this assignment without submitting a review?")) {
           event.preventDefault();

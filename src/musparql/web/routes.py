@@ -814,6 +814,7 @@ def assignment(assignment_id: str):
     error = ""
     try:
         if request.method == "POST":
+            before = service.view(assignment_id, g.current_reviewer.id)
             service.assess(
                 assignment_id,
                 g.current_reviewer.id,
@@ -821,6 +822,8 @@ def assignment(assignment_id: str):
                 request.form.getlist("familiarity_level"),
                 confirmed=request.form.get("confirmed") == "yes",
             )
+            if before.assignment.review_group_id is not None:
+                return redirect(url_for("portal.workshop"))
             return redirect(url_for("portal.assignment", assignment_id=assignment_id))
         value = service.view(assignment_id, g.current_reviewer.id)
     except LookupError:

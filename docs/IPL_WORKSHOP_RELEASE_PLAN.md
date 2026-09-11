@@ -536,10 +536,14 @@ Complete, partial, and abandoned outcomes now close group membership, return to
 package choice, and expose another claim only when the round's
 `allow_additional_assignments` switch permits it. Submission outcomes preserve
 server-derived item counts and completion type in their immutable export and
-processing audit. A frozen contributor who still owes the KG-specific form sees
-a direct link after closure and can complete it without changing the terminal
-assignment. The owner-approved item 6 selection freeze, ICF deployment, and
-rehearsal remain operational work.
+processing audit. Pre-item-7 v2 group receipts without those additive fields
+remain schema-valid; a retry derives and persists the missing assignment counts
+before its queued job is processed. A frozen contributor who still owes the
+KG-specific form sees a direct link after closure and can complete it without
+changing the terminal assignment, including after the workshop round closes.
+Submission, abandonment, retry, and late-join terminal races are serialized and
+covered by regression tests. The owner-approved item 6 selection freeze, ICF
+deployment, and rehearsal remain operational work.
 
 ### Track A — must work first
 
@@ -612,6 +616,10 @@ Automated and synthetic rehearsal must prove:
   state;
 - submission attribution is server-derived and freezes the member set present
   when the assignment closes;
+- submission versus abandonment, retry versus abandonment, and late join versus
+  either terminal operation serialize to one consistent outcome;
+- legacy v2 group receipts validate, retry idempotently, backfill authoritative
+  counts, and produce a processing audit with a non-null total;
 - a group submission is processed as one judgment, not one per contributor;
 - leave, finish, partial, and abandon all return to a usable package page;
 - web and worker recover after restart, and durable receipts remain intact;

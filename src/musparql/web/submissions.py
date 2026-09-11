@@ -68,6 +68,8 @@ def _retry_identity(payload: Mapping[str, Any]) -> bytes:
     # Completion type was added after the first group receipts. Review content
     # still uniquely determines whether a group submission is complete or partial.
     comparable.pop("completion_type", None)
+    comparable.pop("completion_item_count", None)
+    comparable.pop("completion_total_count", None)
     if comparable.get("review_group_id") is not None:
         comparable.pop("reviewer_id", None)
         comparable.pop("submitted_by_reviewer_id", None)
@@ -132,6 +134,8 @@ class SubmissionService:
             "submitted_by_reviewer_id",
             "contributor_reviewer_ids",
             "completion_type",
+            "completion_item_count",
+            "completion_total_count",
         }
         if server_fields.intersection(payload):
             raise ValueError("Server-owned attribution fields must not be supplied")
@@ -178,6 +182,11 @@ class SubmissionService:
                 contributor_ids=contributor_ids,
                 completion_type=completion_type,
             )
+            if persisted.review_group_id is not None:
+                canonical_payload.update(
+                    completion_item_count=completion_item_count,
+                    completion_total_count=completion_total_count,
+                )
             raw = _canonical_bytes(canonical_payload)
             digest = _digest(raw)
             existing = session.scalar(
@@ -190,9 +199,13 @@ class SubmissionService:
                 job = session.scalar(
                     select(ProcessingJob).where(ProcessingJob.submission_id == existing.id)
                 )
-                session.commit()
                 if job is None:
                     raise RuntimeError("Accepted submission has no processing job")
+                self._backfill_completion(
+                    persisted, completion_type, completion_item_count,
+                    completion_total_count, contributor_ids,
+                )
+                session.commit()
                 return self._receipt(
                     existing,
                     job,
@@ -223,9 +236,13 @@ class SubmissionService:
                             ProcessingJob.submission_id == candidate.id
                         )
                     )
-                    session.commit()
                     if job is None:
                         raise RuntimeError("Accepted submission has no processing job")
+                    self._backfill_completion(
+                        persisted, completion_type, completion_item_count,
+                        completion_total_count, contributor_ids,
+                    )
+                    session.commit()
                     return self._receipt(
                         candidate,
                         job,
@@ -307,6 +324,24 @@ class SubmissionService:
             raise
         finally:
             session.close()
+
+    @staticmethod
+    def _backfill_completion(
+        assignment: ReviewAssignment,
+        completion_type: str,
+        item_count: int,
+        total_count: int,
+        contributor_ids: tuple[str, ...],
+    ) -> None:
+        """Fill issue-7 terminal metadata when retrying an older receipt."""
+        assignment.participant_status = completion_type
+        if assignment.status in {"ready", "active"}:
+            assignment.status = "submitted"
+        if assignment.completed_at is None:
+            assignment.completed_at = timestamp(utc_now())
+        assignment.completion_item_count = item_count
+        assignment.completion_total_count = total_count
+        assignment.closed_contributor_ids = list(contributor_ids)
 
     @staticmethod
     def _receipt(
@@ -536,8 +571,9 @@ class ProcessingService:
                 "recipe": job.recipe,
                 "source_digest": submission.export_digest,
                 "item_count": item_count,
-                "total_item_count": (
-                    assignment.completion_total_count if assignment is not None else None
+                "total_item_count": payload.get(
+                    "completion_total_count",
+                    assignment.completion_total_count if assignment is not None else None,
                 ),
                 "completion_type": payload.get("completion_type", "completed"),
                 "validated": True,

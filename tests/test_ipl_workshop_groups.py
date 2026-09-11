@@ -1316,6 +1316,9 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
                 SECOND_ID,
                 THIRD_ID,
             ]
+            assert stored["completion_type"] == "completed"
+            assert stored["completion_item_count"] == 2
+            assert stored["completion_total_count"] == 2
     finally:
         engine.dispose()
 
@@ -1330,6 +1333,144 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert audit["review_group_id"] == group.id
     assert audit["submitted_by_reviewer_id"] == FIRST_ID
     assert audit["contributor_reviewer_ids"] == [FIRST_ID, SECOND_ID, THIRD_ID]
+
+
+def test_submission_and_abandonment_are_serialized(workshop_app) -> None:
+    app, _sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    assignments = app.extensions["musparql_assignments"]
+    submissions = app.extensions["musparql_submissions"]
+    group_id = workshops.create_group(FIRST_ID)
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    assignments.assess(
+        assignment_id, FIRST_ID, ["advanced"], ["worked"], confirmed=True
+    )
+    bundle = assignments.attributed_bundle(assignment_id, FIRST_ID)
+    payload = _review_payload(
+        assignment_id,
+        bundle["bundle_digest"],
+        submitter_id=FIRST_ID,
+        event_reviewer_id=FIRST_ID,
+    )
+    barrier = threading.Barrier(2)
+
+    def submit() -> str:
+        barrier.wait()
+        try:
+            submissions.submit(assignment_id, FIRST_ID, payload)
+            return "submitted"
+        except PermissionError:
+            return "rejected"
+
+    def abandon() -> str:
+        barrier.wait()
+        try:
+            workshops.abandon_assignment(
+                reviewer_id=FIRST_ID, assignment_id=assignment_id
+            )
+            return "abandoned"
+        except WorkshopAccessError:
+            return "rejected"
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        submit_future = executor.submit(submit)
+        abandon_future = executor.submit(abandon)
+        outcomes = {submit_future.result(), abandon_future.result()}
+    assert outcomes in ({"submitted", "rejected"}, {"abandoned", "rejected"})
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            submission_count = int(
+                session.scalar(select(func.count()).select_from(ReviewSubmission)) or 0
+            )
+            job_count = int(
+                session.scalar(select(func.count()).select_from(ProcessingJob)) or 0
+            )
+            assert assignment is not None
+            if assignment.participant_status == "abandoned":
+                assert (submission_count, job_count) == (0, 0)
+            else:
+                assert assignment.participant_status == "completed"
+                assert (submission_count, job_count) == (1, 1)
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("closure", ["submit", "abandon"])
+def test_late_join_and_terminal_closure_freeze_one_membership_snapshot(
+    workshop_app, closure: str
+) -> None:
+    app, _sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    assignments = app.extensions["musparql_assignments"]
+    group_id = workshops.create_group(FIRST_ID)
+    code = workshops.dashboard(FIRST_ID).groups[0].join_code
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    assignments.assess(
+        assignment_id, FIRST_ID, ["advanced"], ["worked"], confirmed=True
+    )
+    bundle = assignments.attributed_bundle(assignment_id, FIRST_ID)
+    payload = _review_payload(
+        assignment_id,
+        bundle["bundle_digest"],
+        submitter_id=FIRST_ID,
+        event_reviewer_id=FIRST_ID,
+    )
+    barrier = threading.Barrier(2)
+
+    def join() -> bool:
+        barrier.wait()
+        try:
+            workshops.join_group(SECOND_ID, code)
+            return True
+        except WorkshopAccessError:
+            return False
+
+    def close() -> None:
+        barrier.wait()
+        if closure == "submit":
+            app.extensions["musparql_submissions"].submit(
+                assignment_id, FIRST_ID, payload
+            )
+        else:
+            workshops.abandon_assignment(
+                reviewer_id=FIRST_ID, assignment_id=assignment_id
+            )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        join_future = executor.submit(join)
+        close_future = executor.submit(close)
+        joined = join_future.result()
+        close_future.result()
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            members = set(
+                session.scalars(
+                    select(ReviewGroupMember.reviewer_id).where(
+                        ReviewGroupMember.group_id == group_id
+                    )
+                )
+            )
+            assert assignment is not None
+            assert set(assignment.closed_contributor_ids or ()) == members
+            assert (SECOND_ID in members) is joined
+    finally:
+        engine.dispose()
 
 
 def test_workshop_routes_fail_closed_without_consent_or_complete_profile(
@@ -1409,7 +1550,202 @@ def test_consent_change_revokes_a_claimed_group_assignment_immediately(
     ).location == "/consent"
 
 
-def test_round_closure_revokes_group_assignment_and_assessment_access(
+def test_pre_issue_7_group_receipt_retry_backfills_counts_and_processes(
+    workshop_app,
+) -> None:
+    app, _sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    assignments = app.extensions["musparql_assignments"]
+    submissions = app.extensions["musparql_submissions"]
+    group_id = workshops.create_group(FIRST_ID)
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    assignments.assess(
+        assignment_id, FIRST_ID, ["advanced"], ["worked"], confirmed=True
+    )
+    bundle = assignments.attributed_bundle(assignment_id, FIRST_ID)
+    payload = _review_payload(
+        assignment_id,
+        bundle["bundle_digest"],
+        submitter_id=FIRST_ID,
+        event_reviewer_id=FIRST_ID,
+    )
+    original = submissions.submit(assignment_id, FIRST_ID, payload)
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions.begin() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            submission = session.get(ReviewSubmission, original.receipt_id)
+            assert assignment is not None
+            assert submission is not None
+            stored_path = Path(app.config["SUBMISSION_ROOT"]) / submission.export_path
+            legacy = json.loads(stored_path.read_text(encoding="utf-8"))
+            legacy.pop("completion_type")
+            legacy.pop("completion_item_count")
+            legacy.pop("completion_total_count")
+            assert submissions.validators["initial"].is_valid(legacy)
+            raw = (
+                json.dumps(
+                    legacy,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            ).encode("utf-8")
+            stored_path.write_bytes(raw)
+            submission.export_digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+            assignment.completion_item_count = None
+            assignment.completion_total_count = None
+
+        retry_payload = deepcopy(payload)
+        retry_payload["exported_at"] = "2026-09-11T12:00:00Z"
+        retry = submissions.submit(assignment_id, FIRST_ID, retry_payload)
+        assert retry.duplicate is True
+        assert retry.receipt_id == original.receipt_id
+        assert retry.completion_item_count == 2
+        assert retry.completion_total_count == 2
+
+        with sessions() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            assert assignment is not None
+            assert assignment.completion_item_count == 2
+            assert assignment.completion_total_count == 2
+
+        assert app.extensions["musparql_processing"].process_next() == retry.job_id
+        audit = json.loads(
+            (
+                Path(app.config["CANDIDATE_ROOT"])
+                / retry.job_id
+                / "audit.json"
+            ).read_text(encoding="utf-8")
+        )
+        assert audit["item_count"] == 2
+        assert audit["total_item_count"] == 2
+        assert audit["completion_type"] == "completed"
+    finally:
+        engine.dispose()
+
+
+def test_legacy_retry_cannot_race_into_abandonment(workshop_app) -> None:
+    app, _sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    assignments = app.extensions["musparql_assignments"]
+    submissions = app.extensions["musparql_submissions"]
+    group_id = workshops.create_group(FIRST_ID)
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    assignments.assess(
+        assignment_id, FIRST_ID, ["advanced"], ["worked"], confirmed=True
+    )
+    bundle = assignments.attributed_bundle(assignment_id, FIRST_ID)
+    payload = _review_payload(
+        assignment_id,
+        bundle["bundle_digest"],
+        submitter_id=FIRST_ID,
+        event_reviewer_id=FIRST_ID,
+    )
+    legacy = dict(payload)
+    legacy.update(
+        review_group_id=group_id,
+        submitted_by_reviewer_id=FIRST_ID,
+        contributor_reviewer_ids=[FIRST_ID],
+    )
+    raw = (
+        json.dumps(
+            legacy, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+        + "\n"
+    ).encode("utf-8")
+    receipt_id = "receipt-" + "a" * 32
+    job_id = "job-" + "b" * 32
+    relative = f"{assignment_id}/{receipt_id}.json"
+    stored_path = Path(app.config["SUBMISSION_ROOT"]) / relative
+    stored_path.parent.mkdir(parents=True)
+    stored_path.write_bytes(raw)
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        now = timestamp(utc_now())
+        session.add(
+            ReviewSubmission(
+                id=receipt_id,
+                assignment_id=assignment_id,
+                reviewer_id=None,
+                review_group_id=group_id,
+                submitted_by_reviewer_id=FIRST_ID,
+                contributor_reviewer_ids=[FIRST_ID],
+                export_path=relative,
+                export_digest="sha256:" + hashlib.sha256(raw).hexdigest(),
+                submitted_at=now,
+                revision=1,
+                validation_status="schema_valid",
+                inclusion_status="pending",
+            )
+        )
+        session.flush()
+        session.add(
+            ProcessingJob(
+                id=job_id,
+                assignment_id=assignment_id,
+                submission_id=receipt_id,
+                recipe="validate_initial_review",
+                status="queued",
+                created_at=now,
+                job_kind="submission",
+                selected_submission_ids=None,
+                approval_status="pending",
+            )
+        )
+    engine.dispose()
+
+    barrier = threading.Barrier(2)
+
+    def retry() -> bool:
+        barrier.wait()
+        return submissions.submit(assignment_id, FIRST_ID, payload).duplicate
+
+    def abandon() -> bool:
+        barrier.wait()
+        try:
+            workshops.abandon_assignment(
+                reviewer_id=FIRST_ID, assignment_id=assignment_id
+            )
+            return True
+        except WorkshopAccessError:
+            return False
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        retry_future = executor.submit(retry)
+        abandon_future = executor.submit(abandon)
+        assert retry_future.result() is True
+        assert abandon_future.result() is False
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            assert assignment is not None
+            assert assignment.participant_status == "completed"
+            assert assignment.completion_total_count == 2
+            assert int(
+                session.scalar(select(func.count()).select_from(ProcessingJob)) or 0
+            ) == 1
+            assert session.get(ProcessingJob, job_id) is not None
+    finally:
+        engine.dispose()
+
+
+def test_round_closure_preserves_outstanding_terminal_assessment_access(
     workshop_app,
 ) -> None:
     app, sender, database_path, _bundle_root = workshop_app
@@ -1422,6 +1758,9 @@ def test_round_closure_revokes_group_assignment_and_assessment_access(
     )
     client = app.test_client()
     _login(client, app, sender, "first@example.invalid")
+    service.abandon_assignment(
+        reviewer_id=FIRST_ID, assignment_id=assignment_id
+    )
 
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
@@ -1431,12 +1770,17 @@ def test_round_closure_revokes_group_assignment_and_assessment_access(
         workshop_round.status = "closed"
     engine.dispose()
 
-    assert assignment_id.encode() not in client.get("/").data
-    assert client.get(f"/assignments/{assignment_id}").status_code == 404
-    assert client.post(
+    assert b"Open IPL workshop" in client.get("/").data
+    assert client.get("/workshop").status_code == 200
+    assert client.get(f"/assignments/{assignment_id}").status_code == 200
+    assert client.get(f"/assignments/{assignment_id}/bundle").status_code == 403
+    completed = client.post(
         f"/assignments/{assignment_id}", data=_assessment_form(client)
-    ).status_code == 404
-    assert client.get(f"/assignments/{assignment_id}/bundle").status_code == 404
+    )
+    assert completed.status_code == 302
+    assert completed.location == "/workshop"
+    assert client.get(completed.location).status_code == 200
+    assert client.get(f"/assignments/{assignment_id}").status_code == 404
 
 
 def test_simultaneous_member_assessments_activate_without_sqlite_busy(
@@ -1696,13 +2040,20 @@ def test_partial_submission_closes_assignment_and_preserves_outstanding_form(
     closed_view = assignments.view(assignment_id, THIRD_ID)
     assert closed_view.workbench_available is False
     assert closed_view.assessed is False
-    assignments.assess(
-        assignment_id,
-        THIRD_ID,
-        ["working"],
-        ["inspected"],
-        confirmed=True,
+    third = app.test_client()
+    _login(third, app, sender, "third@example.invalid")
+    assessment_response = third.post(
+        f"/assignments/{assignment_id}",
+        data={
+            "csrf_token": _csrf(third),
+            "domain_level": "working",
+            "familiarity_level": "inspected",
+            "confirmed": "yes",
+        },
     )
+    assert assessment_response.status_code == 302
+    assert assessment_response.location == "/workshop"
+    assert third.get(assessment_response.location).status_code == 200
     assert workshops.dashboard(THIRD_ID).groups[0].outstanding_assessments == ()
 
     engine = create_database_engine(database_path)
@@ -1722,6 +2073,8 @@ def test_partial_submission_closes_assignment_and_preserves_outstanding_form(
                 (Path(app.config["SUBMISSION_ROOT"]) / submission.export_path).read_text()
             )
             assert stored["completion_type"] == "partial"
+            assert stored["completion_item_count"] == 1
+            assert stored["completion_total_count"] == 2
             session.get(WorkshopRound, "workshop-ipl").allow_additional_assignments = True
         assert app.extensions["musparql_processing"].process_next() == job_id
         audit = json.loads(
@@ -1781,6 +2134,7 @@ def test_leave_is_non_mutating_and_abandon_closes_without_submission(
             assert assignment.completed_at is not None
             assert assignment.closed_contributor_ids == [FIRST_ID]
             assert list(session.scalars(select(ReviewSubmission))) == []
+            assert list(session.scalars(select(ProcessingJob))) == []
     finally:
         engine.dispose()
     assert workshops.dashboard(FIRST_ID).groups[0].can_claim is False
@@ -1788,3 +2142,15 @@ def test_leave_is_non_mutating_and_abandon_closes_without_submission(
         item.assignment_id
         for item in workshops.dashboard(FIRST_ID).groups[0].outstanding_assessments
     ] == [assignment_id]
+
+    outsider = app.test_client()
+    _login(outsider, app, sender, "third@example.invalid")
+    assert outsider.post(
+        f"/assignments/{assignment_id}/abandon",
+        data={"csrf_token": _csrf(outsider)},
+    ).status_code == 403
+    assert client.post(f"/assignments/{assignment_id}/abandon").status_code == 400
+    assert client.post(
+        f"/assignments/{assignment_id}/abandon",
+        data={"csrf_token": _csrf(client)},
+    ).status_code == 403

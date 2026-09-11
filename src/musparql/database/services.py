@@ -381,6 +381,19 @@ class ProvenanceService:
                         select(Reviewer).where(Reviewer.id.in_(reviewer_ids))
                     )
                 )
+                open_round = bool(
+                    workshop_round is not None
+                    and workshop_round.status == "open"
+                    and workshop_round.opens_at <= now
+                    and workshop_round.closes_at > now
+                )
+                terminal_assessment = bool(
+                    assignment.participant_status
+                    in {"completed", "partial", "abandoned"}
+                    and reviewer_ids.issubset(
+                        set(assignment.closed_contributor_ids or ())
+                    )
+                )
                 if self.current_consent_version and (
                     len(reviewers) != len(reviewer_ids)
                     or any(
@@ -393,13 +406,10 @@ class ProvenanceService:
                         or not reviewer.privacy_notice_acknowledged_at
                         for reviewer in reviewers
                     )
-                    or workshop_round is None
-                    or workshop_round.status != "open"
-                    or workshop_round.opens_at > now
-                    or workshop_round.closes_at <= now
+                    or not (open_round or terminal_assessment)
                 ):
                     raise ValueError(
-                        "Current consent and an open workshop round are required"
+                        "Current consent and workshop assessment access are required"
                     )
                 member_ids = set(
                     session.scalars(

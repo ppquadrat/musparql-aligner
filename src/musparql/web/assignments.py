@@ -258,9 +258,15 @@ class AssignmentService:
     def view(self, assignment_id: str, reviewer_id: str) -> AssignmentView:
         with self.sessions() as session:
             assignment = session.get(ReviewAssignment, assignment_id)
-            if assignment is None or not self._reviewer_can_access(
+            if assignment is None:
+                raise LookupError("Assignment is not available")
+            ordinary_access = self._reviewer_can_access(
                 session, assignment, reviewer_id
-            ):
+            )
+            terminal_access = self._reviewer_can_complete_terminal_assessment(
+                session, assignment, reviewer_id
+            )
+            if not ordinary_access and not terminal_access:
                 raise LookupError("Assignment is not available")
             domains = self._domain_prompts(session, assignment, reviewer_id)
             familiarities = self._familiarity_prompts(
@@ -270,10 +276,7 @@ class AssignmentService:
                 session, assignment, reviewer_id
             )
             terminal_assessment = (
-                assignment.review_group_id is not None
-                and assignment.participant_status
-                in {"completed", "partial", "abandoned"}
-                and reviewer_id in (assignment.closed_contributor_ids or ())
+                terminal_access
                 and not assessed
             )
             if assignment.status not in {"ready", "active"} and not terminal_assessment:
@@ -629,6 +632,27 @@ class AssignmentService:
                 )
             )
         )
+
+    def _reviewer_can_complete_terminal_assessment(
+        self, session: Session, assignment: ReviewAssignment, reviewer_id: str
+    ) -> bool:
+        """Allow a frozen contributor to finish the form after round closure."""
+        if (
+            assignment.review_group_id is None
+            or assignment.participant_status not in {"completed", "partial", "abandoned"}
+            or reviewer_id not in (assignment.closed_contributor_ids or ())
+        ):
+            return False
+        reviewer = session.get(Reviewer, reviewer_id)
+        if not has_current_consent(
+            reviewer,
+            self.current_consent_version,
+            self.current_notice_version,
+        ):
+            return False
+        return session.get(
+            ReviewGroupMember, (assignment.review_group_id, reviewer_id)
+        ) is not None
 
     def _domain_head_id(
         self, reviewer_id: str, kg_id: str, subject_id: str
