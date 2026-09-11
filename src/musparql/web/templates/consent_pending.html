@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Consent required — Musparql review{% endblock %}
+{% block content %}
+  <h1>Consent required</h1>
+  <p>Your separate workshop account has been created.</p>
+  <p>The consent statement must be completed before profile collection or workshop access. The versioned consent form is the next IPL release item and is not enabled yet.</p>
+  <form method="post" action="{{ url_for('portal.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit">Sign out</button>
+  </form>
+{% endblock %}

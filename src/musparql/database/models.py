@@ -338,6 +338,16 @@ class OwnerAuditEvent(Base):
     )
 
 
+class WorkshopSessionReset(Base):
+    """Append-only evidence of facilitator-assisted fallback recovery."""
+
+    __tablename__ = "workshop_session_resets"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    actor_reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"))
+    target_reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"))
+    created_at: Mapped[str] = mapped_column(String)
+
+
 class ReviewAssignment(Base):
     __tablename__ = "review_assignments"
     id: Mapped[str] = mapped_column(String, primary_key=True)

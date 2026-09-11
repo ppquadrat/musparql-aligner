@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Workshop entry — Musparql review{% endblock %}
+{% block content %}
+  <h1>Workshop shared-code entry</h1>
+  <p>Email sign-in remains the preferred route. Issue a shared code only when the fallback is needed.</p>
+  {% if error %}<p class="error" role="alert">The workshop entry action could not be completed.</p>{% endif %}
+  {% if plaintext_code %}
+    <section class="notice" role="status">
+      <h2>Display this new code</h2>
+      <p class="join-code">{{ plaintext_code }}</p>
+      <p>This is the only time the plaintext code is available. Reissuing a code immediately revokes the previous one.</p>
+    </section>
+  {% endif %}
+  {% if recovery_code %}
+    <section class="notice" role="status">
+      <h2>One-time recovery for {{ recovery_reviewer_id }}</h2>
+      <p class="join-code">{{ recovery_code }}</p>
+      <p>The participant enters their ID and this code on the sign-in page. Their earlier sessions have been revoked. This code is shown only once.</p>
+    </section>
+  {% endif %}
+  {% for round in rounds %}
+    <section>
+      <h2>{{ round.round_name }}</h2>
+      <p>Status: {{ round.round_status }}. Window: {{ round.opens_at }} to {{ round.closes_at }}. Capacity: {{ round.max_participants }}.</p>
+      {% if round.code_id %}
+        <p>{{ round.redemption_count }} redemptions. {% if round.active %}Entry is open.{% else %}Entry is not currently available.{% endif %}</p>
+        <div class="actions">
+          <form method="post" action="{{ url_for('portal.owner_revoke_workshop_entry', code_id=round.code_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Close shared entry</button>
+          </form>
+          <form method="post" action="{{ url_for('portal.owner_issue_workshop_entry', round_id=round.round_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Reissue code</button>
+          </form>
+        </div>
+      {% else %}
+        <form method="post" action="{{ url_for('portal.owner_issue_workshop_entry', round_id=round.round_id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit">Issue shared code</button>
+        </form>
+      {% endif %}
+    </section>
+  {% else %}
+    <p>No workshop rounds are configured.</p>
+  {% endfor %}
+  {% if workshop_reviewers %}
+    <section>
+      <h2>Fallback participants</h2>
+      <p>Use session reset only when a participant has genuinely lost access.</p>
+      <ul>
+      {% for reviewer in workshop_reviewers %}
+        <li>
+          {{ reviewer.id }} ({{ reviewer.status }})
+          {% if reviewer.status == 'active' %}
+            <form class="inline" method="post" action="{{ url_for('portal.owner_reset_workshop_session', reviewer_id=reviewer.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit">Reset session</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+{% endblock %}

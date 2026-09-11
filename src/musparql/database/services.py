@@ -94,54 +94,13 @@ class WorkshopAdmissionService:
             # round-wide count, reviewer insert, redemption, and counter update a
             # single serialized admission decision, including after code reissue.
             session.execute(text("BEGIN IMMEDIATE"))
-            entry_code = session.get(WorkshopEntryCode, entry_code_id)
-            if entry_code is None or not hmac.compare_digest(
-                entry_code.code_digest, presented_code_digest
-            ):
-                raise WorkshopAdmissionError("Workshop entry code is invalid")
-            workshop_round = session.get(WorkshopRound, entry_code.workshop_round_id)
-            if (
-                workshop_round is None
-                or workshop_round.status != "open"
-                or redeemed_at < workshop_round.opens_at
-                or redeemed_at >= workshop_round.closes_at
-                or entry_code.revoked_at is not None
-                or redeemed_at >= entry_code.expires_at
-            ):
-                raise WorkshopAdmissionError("Workshop entry code is not active")
-            if entry_code.redemption_count >= entry_code.max_redemptions:
-                raise WorkshopAdmissionError("Workshop entry code is fully redeemed")
-            round_redemptions = int(
-                session.scalar(
-                    select(func.count())
-                    .select_from(WorkshopEntryRedemption)
-                    .join(
-                        WorkshopEntryCode,
-                        WorkshopEntryCode.id == WorkshopEntryRedemption.entry_code_id,
-                    )
-                    .where(
-                        WorkshopEntryCode.workshop_round_id == workshop_round.id
-                    )
-                )
-                or 0
+            redemption_id = self.redeem_in_session(
+                session,
+                entry_code_id=entry_code_id,
+                presented_code_digest=presented_code_digest,
+                reviewer=reviewer,
+                redeemed_at=redeemed_at,
             )
-            if round_redemptions >= workshop_round.max_participants:
-                raise WorkshopAdmissionError("Workshop round is at participant capacity")
-            if session.get(Reviewer, reviewer.id) is not None:
-                raise WorkshopAdmissionError("Reviewer already exists")
-
-            redemption_id = "redemption-" + uuid.uuid4().hex
-            session.add(reviewer)
-            session.flush()
-            session.add(
-                WorkshopEntryRedemption(
-                    id=redemption_id,
-                    entry_code_id=entry_code.id,
-                    reviewer_id=reviewer.id,
-                    redeemed_at=redeemed_at,
-                )
-            )
-            entry_code.redemption_count += 1
             session.commit()
             return redemption_id
         except Exception:
@@ -149,6 +108,77 @@ class WorkshopAdmissionService:
             raise
         finally:
             session.close()
+
+    @staticmethod
+    def redeem_in_session(
+        session: Session,
+        *,
+        entry_code_id: str,
+        presented_code_digest: str,
+        reviewer: Reviewer,
+        redeemed_at: str,
+    ) -> str:
+        """Apply the admission invariant inside a caller-owned write transaction."""
+
+        if reviewer.registration_method != "workshop_code":
+            raise WorkshopAdmissionError(
+                "Shared-code registrations must identify their registration method"
+            )
+        if reviewer.email_verified_at is not None:
+            raise WorkshopAdmissionError(
+                "A shared-code registration cannot label its email as verified"
+            )
+        if reviewer.consent_statement_version is not None or reviewer.consented_at is not None:
+            raise WorkshopAdmissionError(
+                "Shared-code admission must route to consent before recording consent"
+            )
+        entry_code = session.get(WorkshopEntryCode, entry_code_id)
+        if entry_code is None or not hmac.compare_digest(
+            entry_code.code_digest, presented_code_digest
+        ):
+            raise WorkshopAdmissionError("Workshop entry code is invalid")
+        workshop_round = session.get(WorkshopRound, entry_code.workshop_round_id)
+        if (
+            workshop_round is None
+            or workshop_round.status != "open"
+            or redeemed_at < workshop_round.opens_at
+            or redeemed_at >= workshop_round.closes_at
+            or entry_code.revoked_at is not None
+            or redeemed_at >= entry_code.expires_at
+        ):
+            raise WorkshopAdmissionError("Workshop entry code is not active")
+        if entry_code.redemption_count >= entry_code.max_redemptions:
+            raise WorkshopAdmissionError("Workshop entry code is fully redeemed")
+        round_redemptions = int(
+            session.scalar(
+                select(func.count())
+                .select_from(WorkshopEntryRedemption)
+                .join(
+                    WorkshopEntryCode,
+                    WorkshopEntryCode.id == WorkshopEntryRedemption.entry_code_id,
+                )
+                .where(WorkshopEntryCode.workshop_round_id == workshop_round.id)
+            )
+            or 0
+        )
+        if round_redemptions >= workshop_round.max_participants:
+            raise WorkshopAdmissionError("Workshop round is at participant capacity")
+        if session.get(Reviewer, reviewer.id) is not None:
+            raise WorkshopAdmissionError("Reviewer already exists")
+
+        redemption_id = "redemption-" + uuid.uuid4().hex
+        session.add(reviewer)
+        session.flush()
+        session.add(
+            WorkshopEntryRedemption(
+                id=redemption_id,
+                entry_code_id=entry_code.id,
+                reviewer_id=reviewer.id,
+                redeemed_at=redeemed_at,
+            )
+        )
+        entry_code.redemption_count += 1
+        return redemption_id
 
 
 class SeedSnapshotService:

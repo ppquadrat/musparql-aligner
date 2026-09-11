@@ -461,7 +461,7 @@ reconfigure ICF infrastructure.
 
 ## 11. Delivery order
 
-Implementation status (11 September 2026): items 1–3 are complete. The database
+Implementation status (11 September 2026): items 1–4 are complete. The database
 foundation and participant-facing journey cover reviewing-group creation,
 code-based self-join, reusable-package discovery, atomic package claims,
 per-member assessment gating, and assessment-gated workbench access during the
@@ -472,10 +472,16 @@ export and receipt, and preserves that attribution through isolated processing
 and owner review. Browser recovery treats a fresh export timestamp—and a retry
 by another frozen contributor—as the same submission when the review content is
 unchanged. Canonical group exports round-trip through the importer and enter the
-benchmark builder as one rater judgment. Group linguistic submission is kept
-unavailable as part of the explicit linguistic-mode deferral. Shared-code
-admission, the dedicated consent page, final package freezing, terminal
-lifecycle actions, ICF deployment, and rehearsal remain items 4–9.
+benchmark builder as one rater judgment. SMTP remains the preferred sign-in
+path; the owner can issue or immediately revoke one digest-only shared entry
+code, and a throttled redemption atomically creates a distinct pseudonymous
+reviewer, cap record, and secure session before routing to the consent boundary.
+For a genuinely lost fallback session, the owner can revoke the participant's
+sessions and display a one-time recovery code; the reset is recorded in a
+dedicated append-only audit table and never verifies the synthetic address.
+Group linguistic submission is kept unavailable as part of the explicit
+linguistic-mode deferral. The dedicated consent page, final package freezing,
+terminal lifecycle actions, ICF deployment, and rehearsal remain items 5–9.
 
 ### Track A — must work first
 

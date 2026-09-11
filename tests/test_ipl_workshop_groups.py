@@ -6,6 +6,7 @@ from datetime import timedelta
 import hashlib
 import json
 from pathlib import Path
+import re
 import threading
 
 import pytest
@@ -15,6 +16,7 @@ from musparql.database import create_database_engine, session_factory
 from musparql.database.migrations import upgrade_database
 from musparql.database.models import (
     AssignmentKgSeed,
+    AuthSession,
     ExpertiseDomain,
     KgSeedFamiliarityScope,
     KgSeedReviewDomain,
@@ -27,7 +29,10 @@ from musparql.database.models import (
     ReviewGroupMember,
     ReviewSubmission,
     ProcessingJob,
+    WorkshopEntryCode,
+    WorkshopEntryRedemption,
     WorkshopRound,
+    WorkshopSessionReset,
     WorkshopWorkPackage,
 )
 from musparql.web import create_app
@@ -256,6 +261,265 @@ def _login(client, app, sender, email: str) -> None:
     assert client.post(
         "/auth/verify", data={"csrf_token": _csrf(client), "code": message.value}
     ).status_code == 302
+
+
+def _issue_workshop_entry_code(client) -> str:
+    response = client.post(
+        "/owner/workshop-entry/workshop-ipl/issue",
+        data={"csrf_token": _csrf(client)},
+    )
+    assert response.status_code == 200
+    match = re.search(rb"[A-Z2-9]{4}-[A-Z2-9]{4}", response.data)
+    assert match is not None
+    return match.group().decode("ascii")
+
+
+def test_owner_issues_and_revokes_digest_only_workshop_entry_code(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+
+    code = _issue_workshop_entry_code(owner)
+    status_page = owner.get("/owner/workshop-entry")
+    assert code.encode() not in status_page.data
+    assert status_page.location is None
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        stored = session.scalar(select(WorkshopEntryCode))
+        assert stored is not None
+        assert stored.code_digest != code.replace("-", "")
+        code_id = stored.id
+    engine.dispose()
+
+    login_page = app.test_client().get("/auth/login")
+    assert b"IPL workshop entry" in login_page.data
+    revoked = owner.post(
+        f"/owner/workshop-entry/{code_id}/revoke",
+        data={"csrf_token": _csrf(owner)},
+    )
+    assert revoked.status_code == 302
+    assert b"IPL workshop entry" not in app.test_client().get("/auth/login").data
+
+
+def test_shared_code_creates_distinct_accounts_and_sessions_then_routes_to_consent(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    code = _issue_workshop_entry_code(owner)
+
+    clients = [app.test_client(), app.test_client()]
+    for client in clients:
+        response = client.post(
+            "/auth/workshop",
+            data={"csrf_token": _csrf(client), "code": code},
+        )
+        assert response.status_code == 302
+        assert response.location == "/consent"
+        assert code not in response.location
+        consent = client.get(response.location)
+        assert b"Consent required" in consent.data
+        assert client.get("/").location == "/consent"
+        assert client.get("/profile").location == "/consent"
+        assert client.post(
+            "/profile", data={"csrf_token": _csrf(client), "name": "Must not save"}
+        ).location == "/consent"
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        reviewers = list(
+            session.scalars(
+                select(Reviewer).where(Reviewer.registration_method == "workshop_code")
+            )
+        )
+        assert len(reviewers) == 2
+        assert len({reviewer.id for reviewer in reviewers}) == 2
+        assert all(reviewer.email_verified_at is None for reviewer in reviewers)
+        assert all(reviewer.consented_at is None for reviewer in reviewers)
+        assert all(reviewer.email_normalized.endswith("@example.invalid") for reviewer in reviewers)
+        assert session.scalar(select(func.count()).select_from(WorkshopEntryRedemption)) == 2
+        assert session.scalar(
+            select(func.count())
+            .select_from(AuthSession)
+            .where(AuthSession.reviewer_id.in_([item.id for item in reviewers]))
+        ) == 2
+        stored = session.scalar(select(WorkshopEntryCode))
+        assert stored is not None and stored.redemption_count == 2
+    engine.dispose()
+
+
+def test_invalid_shared_code_does_not_create_identity_or_session(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    _issue_workshop_entry_code(owner)
+    participant = app.test_client()
+
+    response = participant.post(
+        "/auth/workshop",
+        data={"csrf_token": _csrf(participant), "code": "AAAA-AAAA"},
+    )
+    assert response.status_code == 200
+    assert b"not available" in response.data
+    assert participant.get_cookie("musparql_session") is None
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        assert session.scalar(
+            select(func.count())
+            .select_from(Reviewer)
+            .where(Reviewer.registration_method == "workshop_code")
+        ) == 0
+        assert session.scalar(select(func.count()).select_from(WorkshopEntryRedemption)) == 0
+    engine.dispose()
+
+
+def test_concurrent_shared_code_redemption_cannot_exceed_round_cap(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        session.get(WorkshopRound, "workshop-ipl").max_participants = 1
+    engine.dispose()
+
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    code = _issue_workshop_entry_code(owner)
+    auth = app.extensions["musparql_auth"]
+
+    def redeem(index: int):
+        return auth.redeem_workshop_code(
+            code,
+            f"192.0.2.{index}\0synthetic-agent",
+            current_token=None,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(redeem, (10, 11)))
+    assert sum(result is not None for result in results) == 1
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        assert session.scalar(select(func.count()).select_from(WorkshopEntryRedemption)) == 1
+        workshop_reviewers = list(
+            session.scalars(
+                select(Reviewer.id).where(Reviewer.registration_method == "workshop_code")
+            )
+        )
+        assert len(workshop_reviewers) == 1
+        assert session.scalar(
+            select(func.count())
+            .select_from(AuthSession)
+            .where(AuthSession.reviewer_id == workshop_reviewers[0])
+        ) == 1
+    engine.dispose()
+
+
+def test_shared_code_attempts_are_throttled_by_request_context(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    code = _issue_workshop_entry_code(owner)
+    auth = app.extensions["musparql_auth"]
+    auth.workshop_limiter.context_limit = 2
+    context = "192.0.2.50\0synthetic-agent"
+
+    assert auth.redeem_workshop_code("AAAA-AAAA", context, current_token=None) is None
+    assert auth.redeem_workshop_code("BBBB-BBBB", context, current_token=None) is None
+    assert auth.redeem_workshop_code(code, context, current_token=None) is None
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        assert session.scalar(select(func.count()).select_from(WorkshopEntryRedemption)) == 0
+        assert session.scalar(
+            select(func.count())
+            .select_from(Reviewer)
+            .where(Reviewer.registration_method == "workshop_code")
+        ) == 0
+    engine.dispose()
+
+
+def test_owner_can_issue_one_time_audited_workshop_session_recovery(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    entry_code = _issue_workshop_entry_code(owner)
+    participant = app.test_client()
+    admitted = participant.post(
+        "/auth/workshop",
+        data={"csrf_token": _csrf(participant), "code": entry_code},
+    )
+    assert admitted.location == "/consent"
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        reviewer = session.scalar(
+            select(Reviewer).where(Reviewer.registration_method == "workshop_code")
+        )
+        assert reviewer is not None
+        reviewer_id = reviewer.id
+    engine.dispose()
+
+    reset = owner.post(
+        f"/owner/workshop-entry/reviewers/{reviewer_id}/reset",
+        data={"csrf_token": _csrf(owner)},
+    )
+    assert reset.status_code == 200
+    match = re.search(rb'<p class="join-code">([0-9]{6})</p>', reset.data)
+    assert match is not None
+    recovery_code = match.group(1).decode("ascii")
+    assert recovery_code.encode() not in owner.get("/owner/workshop-entry").data
+    assert participant.get("/consent").location == "/auth/login"
+
+    recovered = app.test_client()
+    response = recovered.post(
+        "/auth/workshop/recover",
+        data={
+            "csrf_token": _csrf(recovered),
+            "reviewer_id": reviewer_id,
+            "code": recovery_code,
+        },
+    )
+    assert response.status_code == 302
+    assert response.location == "/consent"
+    assert recovered.get("/consent").status_code == 200
+
+    replay = app.test_client()
+    replay_response = replay.post(
+        "/auth/workshop/recover",
+        data={
+            "csrf_token": _csrf(replay),
+            "reviewer_id": reviewer_id,
+            "code": recovery_code,
+        },
+    )
+    assert replay_response.status_code == 200
+    assert replay.get_cookie("musparql_session") is None
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        reviewer = session.get(Reviewer, reviewer_id)
+        assert reviewer is not None and reviewer.email_verified_at is None
+        assert session.scalar(select(func.count()).select_from(WorkshopSessionReset)) == 1
+        active_sessions = session.scalar(
+            select(func.count())
+            .select_from(AuthSession)
+            .where(
+                AuthSession.reviewer_id == reviewer_id,
+                AuthSession.revoked_at.is_(None),
+            )
+        )
+        assert active_sessions == 1
+    engine.dispose()
 
 
 def _assessment_form(client) -> dict[str, str]:

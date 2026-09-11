@@ -90,6 +90,12 @@ def _clear_auth_cookies(response: Response) -> None:
 def index():
     if (
         g.current_reviewer is not None
+        and g.current_reviewer.registration_method == "workshop_code"
+        and g.current_reviewer.consented_at is None
+    ):
+        return redirect(url_for("portal.consent_pending"))
+    if (
+        g.current_reviewer is not None
         and g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"]
         and not current_app.extensions["musparql_profiles"].is_complete(
             g.current_reviewer.id
@@ -225,6 +231,11 @@ def claim_workshop_package(group_id: str, package_id: str):
 @portal.route("/profile", methods=["GET", "POST"])
 @login_required
 def profile():
+    if (
+        g.current_reviewer.registration_method == "workshop_code"
+        and g.current_reviewer.consented_at is None
+    ):
+        return redirect(url_for("portal.consent_pending"))
     service = current_app.extensions["musparql_profiles"]
     error = ""
     submitted = request.method == "POST"
@@ -325,7 +336,13 @@ def profile():
 @portal.route("/auth/login", methods=["GET", "POST"])
 def login():
     if request.method == "GET":
-        return render_template("login.html", reauthenticate=False)
+        return render_template(
+            "login.html",
+            reauthenticate=False,
+            workshop_code_available=current_app.extensions[
+                "musparql_workshop_admission"
+            ].available(),
+        )
     auth = current_app.extensions["musparql_auth"]
     try:
         challenge_id = auth.request_login_code(
@@ -345,6 +362,71 @@ def login():
         path="/auth",
     )
     return response
+
+
+@portal.post("/auth/workshop")
+def workshop_login():
+    try:
+        result = current_app.extensions["musparql_auth"].redeem_workshop_code(
+            request.form.get("code", "")[:32],
+            _request_context(),
+            current_token=request.cookies.get(current_app.config["AUTH_COOKIE_NAME"]),
+        )
+    except Exception:
+        current_app.logger.error("Workshop admission failed")
+        result = None
+    if result is None:
+        return render_template(
+            "login.html",
+            reauthenticate=False,
+            workshop_code_available=current_app.extensions[
+                "musparql_workshop_admission"
+            ].available(),
+            workshop_code_invalid=True,
+        ), 200
+    token, _reviewer = result
+    response = redirect(url_for("portal.consent_pending"))
+    _set_auth_cookie(response, token, remembered=False)
+    g.rotate_csrf = True
+    return response
+
+
+@portal.post("/auth/workshop/recover")
+def workshop_recover():
+    result = current_app.extensions["musparql_auth"].recover_workshop_session(
+        request.form.get("reviewer_id", "")[:64],
+        request.form.get("code", "")[:32],
+        _request_context(),
+        current_token=request.cookies.get(current_app.config["AUTH_COOKIE_NAME"]),
+    )
+    if result is None:
+        return render_template(
+            "login.html",
+            reauthenticate=False,
+            workshop_code_available=current_app.extensions[
+                "musparql_workshop_admission"
+            ].available(),
+            workshop_recovery_invalid=True,
+        ), 200
+    token, reviewer = result
+    response = redirect(
+        url_for("portal.consent_pending")
+        if reviewer.consented_at is None
+        else url_for("portal.index")
+    )
+    _set_auth_cookie(response, token, remembered=False)
+    g.rotate_csrf = True
+    return response
+
+
+@portal.get("/consent")
+@login_required
+def consent_pending():
+    if g.current_reviewer.registration_method != "workshop_code":
+        return redirect(url_for("portal.index"))
+    if g.current_reviewer.consented_at is not None:
+        return redirect(url_for("portal.index"))
+    return render_template("consent_pending.html")
 
 
 @portal.route("/auth/verify", methods=["GET", "POST"])
@@ -414,6 +496,70 @@ def owner_reviewers():
         result=request.args.get("result", ""),
         error=request.args.get("error", ""),
     )
+
+
+@portal.get("/owner/workshop-entry")
+@login_required
+def owner_workshop_entry():
+    if g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"]:
+        abort(403)
+    return render_template(
+        "owner_workshop_entry.html",
+        rounds=current_app.extensions["musparql_workshop_admission"].list_rounds(),
+        workshop_reviewers=current_app.extensions[
+            "musparql_auth"
+        ].list_workshop_reviewers(),
+        error=request.args.get("error", ""),
+    )
+
+
+@portal.post("/owner/workshop-entry/<round_id>/issue")
+@owner_required
+def owner_issue_workshop_entry(round_id: str):
+    try:
+        plaintext_code = current_app.extensions[
+            "musparql_workshop_admission"
+        ].issue(round_id)
+    except ValueError:
+        return redirect(url_for("portal.owner_workshop_entry", error="issue-failed"))
+    return render_template(
+        "owner_workshop_entry.html",
+        rounds=current_app.extensions["musparql_workshop_admission"].list_rounds(),
+        workshop_reviewers=current_app.extensions[
+            "musparql_auth"
+        ].list_workshop_reviewers(),
+        plaintext_code=plaintext_code,
+    )
+
+
+@portal.post("/owner/workshop-entry/reviewers/<reviewer_id>/reset")
+@owner_required
+def owner_reset_workshop_session(reviewer_id: str):
+    try:
+        recovery_code = current_app.extensions[
+            "musparql_auth"
+        ].issue_workshop_recovery_code(g.current_reviewer.id, reviewer_id)
+    except ValueError:
+        return redirect(url_for("portal.owner_workshop_entry", error="reset-failed"))
+    return render_template(
+        "owner_workshop_entry.html",
+        rounds=current_app.extensions["musparql_workshop_admission"].list_rounds(),
+        workshop_reviewers=current_app.extensions[
+            "musparql_auth"
+        ].list_workshop_reviewers(),
+        recovery_code=recovery_code,
+        recovery_reviewer_id=reviewer_id,
+    )
+
+
+@portal.post("/owner/workshop-entry/<code_id>/revoke")
+@owner_required
+def owner_revoke_workshop_entry(code_id: str):
+    try:
+        current_app.extensions["musparql_workshop_admission"].revoke(code_id)
+    except ValueError:
+        return redirect(url_for("portal.owner_workshop_entry", error="revoke-failed"))
+    return redirect(url_for("portal.owner_workshop_entry"))
 
 
 @portal.post("/owner/invitations")

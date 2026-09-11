@@ -12,9 +12,12 @@
       {% if current_reviewer %}
         <span>{{ current_reviewer.id }}</span>
         {% if current_reviewer.id != config.OWNER_REVIEWER_ID %}
-          <a href="{{ url_for('portal.profile') }}">My profile</a>
-          {% if workshop_available %}<a href="{{ url_for('portal.workshop') }}">IPL workshop</a>{% endif %}
+          {% if current_reviewer.registration_method != 'workshop_code' or current_reviewer.consented_at %}
+            <a href="{{ url_for('portal.profile') }}">My profile</a>
+            {% if workshop_available %}<a href="{{ url_for('portal.workshop') }}">IPL workshop</a>{% endif %}
+          {% endif %}
         {% else %}
+          <a href="{{ url_for('portal.owner_workshop_entry') }}">Workshop entry</a>
           <a href="{{ url_for('portal.owner_assignments') }}">Assignments</a>
           <a href="{{ url_for('portal.owner_processing') }}">Processing</a>
         {% endif %}

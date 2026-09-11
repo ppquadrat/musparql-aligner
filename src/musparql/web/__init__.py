@@ -36,6 +36,11 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         LOGIN_LIMITER_MAX_ADDRESS_KEYS=4096,
         LOGIN_LIMITER_MAX_CONTEXT_KEYS=4096,
         LOGIN_DELIVERY_MAX_PENDING=256,
+        WORKSHOP_CODE_ATTEMPT_WINDOW_SECONDS=15 * 60,
+        WORKSHOP_CODE_ATTEMPTS_PER_CODE=100,
+        WORKSHOP_CODE_ATTEMPTS_PER_CONTEXT=10,
+        WORKSHOP_CODE_LIMITER_MAX_CODE_KEYS=1024,
+        WORKSHOP_CODE_LIMITER_MAX_CONTEXT_KEYS=4096,
         REVIEWER_IDLE_SECONDS=2 * 60 * 60,
         REVIEWER_ABSOLUTE_SECONDS=24 * 60 * 60,
         REMEMBERED_IDLE_SECONDS=7 * 24 * 60 * 60,
@@ -151,6 +156,14 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         max_address_keys=app.config["LOGIN_LIMITER_MAX_ADDRESS_KEYS"],
         max_context_keys=app.config["LOGIN_LIMITER_MAX_CONTEXT_KEYS"],
     )
+    workshop_limiter = DigestRateLimiter(
+        secret=app.config["APP_SECRET"].encode("utf-8"),
+        window_seconds=app.config["WORKSHOP_CODE_ATTEMPT_WINDOW_SECONDS"],
+        address_limit=app.config["WORKSHOP_CODE_ATTEMPTS_PER_CODE"],
+        context_limit=app.config["WORKSHOP_CODE_ATTEMPTS_PER_CONTEXT"],
+        max_address_keys=app.config["WORKSHOP_CODE_LIMITER_MAX_CODE_KEYS"],
+        max_context_keys=app.config["WORKSHOP_CODE_LIMITER_MAX_CONTEXT_KEYS"],
+    )
     dispatcher = AsyncEmailDispatcher(max_pending=app.config["LOGIN_DELIVERY_MAX_PENDING"])
     app.extensions["musparql_engine"] = engine
     app.extensions["musparql_sessions"] = sessions
@@ -161,12 +174,19 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         sender=sender,
         dispatcher=dispatcher,
         limiter=limiter,
+        workshop_limiter=workshop_limiter,
         config=app.config,
     )
     from .profile import ProfileService
     from .assignments import AssignmentService
     from .submissions import ProcessingService, SubmissionService
     from .workshops import WorkshopService
+    from .workshop_admission import WorkshopEntryCodeService
+
+    app.extensions["musparql_workshop_admission"] = WorkshopEntryCodeService(
+        sessions=sessions,
+        secret=app.config["APP_SECRET"].encode("utf-8"),
+    )
 
     app.extensions["musparql_profiles"] = ProfileService(
         sessions=sessions,

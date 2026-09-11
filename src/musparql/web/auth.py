@@ -12,7 +12,7 @@ import unicodedata
 import uuid
 
 from flask.config import Config
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from musparql.database.models import (
@@ -24,8 +24,15 @@ from musparql.database.models import (
     ReviewerDomainExpertise,
     ReviewerExperience,
     ReviewerLanguage,
+    WorkshopEntryCode,
+    WorkshopEntryRedemption,
+    WorkshopSessionReset,
 )
-from musparql.database.services import normalize_email
+from musparql.database.services import (
+    WorkshopAdmissionError,
+    WorkshopAdmissionService,
+    normalize_email,
+)
 from .email import AsyncEmailDispatcher, EmailSender
 
 
@@ -144,6 +151,7 @@ class AuthService:
         sender: EmailSender,
         dispatcher: AsyncEmailDispatcher,
         limiter: DigestRateLimiter,
+        workshop_limiter: DigestRateLimiter,
         config: Config,
         clock: Callable[[], datetime] = utc_now,
     ) -> None:
@@ -151,6 +159,7 @@ class AuthService:
         self.sender = sender
         self.dispatcher = dispatcher
         self.limiter = limiter
+        self.workshop_limiter = workshop_limiter
         self.config = config
         self.clock = clock
         self.secret = config["APP_SECRET"].encode("utf-8")
@@ -339,6 +348,251 @@ class AuthService:
                 )
             )
             return raw_token, reviewer
+
+    def redeem_workshop_code(
+        self, code: str, request_context: str, *, current_token: str | None
+    ) -> tuple[str, Reviewer] | None:
+        """Atomically redeem a shared code into a distinct identity and session."""
+
+        from .workshop_admission import normalize_entry_code
+
+        now = self.clock()
+        try:
+            normalized = normalize_entry_code(code)
+        except ValueError:
+            normalized = "INVALID0"
+        allowed, _context_digest = self.workshop_limiter.allow(
+            normalized, request_context, now
+        )
+        if not allowed:
+            self._digest("dummy-workshop-code", normalized)
+            return None
+        try:
+            normalized = normalize_entry_code(code)
+        except ValueError:
+            self._digest("dummy-workshop-code", normalized)
+            return None
+
+        from .workshop_admission import WorkshopEntryCodeService
+
+        now_text = timestamp(now)
+        expected = WorkshopEntryCodeService(
+            sessions=self.sessions, secret=self.secret
+        ).digest(normalized)
+        session = self.sessions()
+        try:
+            session.execute(text("BEGIN IMMEDIATE"))
+            entry_code = session.scalar(
+                select(WorkshopEntryCode).where(
+                    WorkshopEntryCode.code_digest == expected,
+                    WorkshopEntryCode.revoked_at.is_(None),
+                )
+            )
+            if entry_code is None or not hmac.compare_digest(entry_code.code_digest, expected):
+                session.rollback()
+                return None
+            reviewer_id = self._allocate_reviewer_id(session)
+            mailbox = uuid.uuid4().hex
+            reviewer = Reviewer(
+                id=reviewer_id,
+                name=reviewer_id,
+                affiliation="",
+                email_display=f"workshop-{mailbox}@example.invalid",
+                email_normalized=f"workshop-{mailbox}@example.invalid",
+                status="active",
+                created_at=now_text,
+                updated_at=now_text,
+                privacy_notice_version=None,
+                privacy_notice_acknowledged_at=None,
+                registration_method="workshop_code",
+                email_verified_at=None,
+                consent_statement_version=None,
+                consented_at=None,
+            )
+            WorkshopAdmissionService.redeem_in_session(
+                session,
+                entry_code_id=entry_code.id,
+                presented_code_digest=expected,
+                reviewer=reviewer,
+                redeemed_at=now_text,
+            )
+            if current_token:
+                self._revoke_token(session, current_token, now)
+            raw_token = secrets.token_urlsafe(32)
+            session.add(
+                AuthSession(
+                    id=str(uuid.uuid4()),
+                    reviewer_id=reviewer_id,
+                    token_hash=self._digest("session", raw_token),
+                    created_at=now_text,
+                    last_used_at=now_text,
+                    expires_at=timestamp(
+                        now + timedelta(seconds=self.config["REVIEWER_ABSOLUTE_SECONDS"])
+                    ),
+                    revoked_at=None,
+                    remembered=False,
+                )
+            )
+            session.commit()
+            session.expunge(reviewer)
+            return raw_token, reviewer
+        except WorkshopAdmissionError:
+            session.rollback()
+            return None
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def issue_workshop_recovery_code(self, actor_id: str, reviewer_id: str) -> str:
+        """Revoke a fallback participant's sessions and issue one assisted reset code."""
+
+        now = self.clock()
+        now_text = timestamp(now)
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        challenge_id = "workshop-recovery-" + secrets.token_urlsafe(24)
+        with self.sessions.begin() as session:
+            reviewer = session.get(Reviewer, reviewer_id)
+            admitted = session.scalar(
+                select(WorkshopEntryRedemption.id).where(
+                    WorkshopEntryRedemption.reviewer_id == reviewer_id
+                )
+            )
+            if (
+                reviewer is None
+                or reviewer.status != "active"
+                or reviewer.registration_method != "workshop_code"
+                or admitted is None
+            ):
+                raise ValueError("Reviewer is not eligible for workshop recovery")
+            self._revoke_reviewer_sessions(session, reviewer_id, now)
+            session.execute(
+                update(LoginCode)
+                .where(
+                    LoginCode.email_normalized == reviewer.email_normalized,
+                    LoginCode.consumed_at.is_(None),
+                )
+                .values(consumed_at=now_text)
+            )
+            session.add(
+                LoginCode(
+                    id=challenge_id,
+                    email_normalized=reviewer.email_normalized,
+                    code_hash=self._digest("login-code", f"{challenge_id}\0{code}"),
+                    requested_at=now_text,
+                    expires_at=timestamp(
+                        now + timedelta(seconds=self.config["LOGIN_CODE_TTL_SECONDS"])
+                    ),
+                    consumed_at=None,
+                    failed_attempt_count=0,
+                    request_context_digest=self._digest(
+                        "workshop-recovery", reviewer_id
+                    ),
+                )
+            )
+            session.add(
+                WorkshopSessionReset(
+                    id="workshop-reset-" + uuid.uuid4().hex,
+                    actor_reviewer_id=actor_id,
+                    target_reviewer_id=reviewer_id,
+                    created_at=now_text,
+                )
+            )
+        return code
+
+    def recover_workshop_session(
+        self,
+        reviewer_id: str,
+        code: str,
+        request_context: str,
+        *,
+        current_token: str | None,
+    ) -> tuple[str, Reviewer] | None:
+        """Consume an owner-issued reset code without verifying a fallback address."""
+
+        now = self.clock()
+        allowed, _context_digest = self.workshop_limiter.allow(
+            f"recovery:{reviewer_id}", request_context, now
+        )
+        valid_shape = (
+            reviewer_id.startswith("reviewer-")
+            and reviewer_id[9:].isascii()
+            and reviewer_id[9:].isdigit()
+            and len(code) == 6
+            and code.isascii()
+            and code.isdigit()
+        )
+        if not allowed or not valid_shape:
+            self._digest("dummy-workshop-recovery", f"{reviewer_id[:64]}\0{code[:32]}")
+            return None
+        with self.sessions.begin() as session:
+            reviewer = session.get(Reviewer, reviewer_id)
+            if (
+                reviewer is None
+                or reviewer.status != "active"
+                or reviewer.registration_method != "workshop_code"
+            ):
+                self._digest("dummy-workshop-recovery", f"{reviewer_id}\0{code}")
+                return None
+            challenge = session.scalar(
+                select(LoginCode)
+                .where(
+                    LoginCode.email_normalized == reviewer.email_normalized,
+                    LoginCode.request_context_digest
+                    == self._digest("workshop-recovery", reviewer_id),
+                    LoginCode.consumed_at.is_(None),
+                )
+                .order_by(LoginCode.requested_at.desc())
+            )
+            if (
+                challenge is None
+                or parse_timestamp(challenge.expires_at) <= now
+                or challenge.failed_attempt_count >= self.config["LOGIN_CODE_MAX_ATTEMPTS"]
+            ):
+                if challenge is not None:
+                    challenge.consumed_at = timestamp(now)
+                return None
+            expected = self._digest("login-code", f"{challenge.id}\0{code}")
+            if not hmac.compare_digest(challenge.code_hash, expected):
+                challenge.failed_attempt_count += 1
+                if challenge.failed_attempt_count >= self.config["LOGIN_CODE_MAX_ATTEMPTS"]:
+                    challenge.consumed_at = timestamp(now)
+                return None
+            challenge.consumed_at = timestamp(now)
+            if current_token:
+                self._revoke_token(session, current_token, now)
+            raw_token = secrets.token_urlsafe(32)
+            session.add(
+                AuthSession(
+                    id=str(uuid.uuid4()),
+                    reviewer_id=reviewer_id,
+                    token_hash=self._digest("session", raw_token),
+                    created_at=timestamp(now),
+                    last_used_at=timestamp(now),
+                    expires_at=timestamp(
+                        now + timedelta(seconds=self.config["REVIEWER_ABSOLUTE_SECONDS"])
+                    ),
+                    revoked_at=None,
+                    remembered=False,
+                )
+            )
+            session.flush()
+            session.expunge(reviewer)
+            return raw_token, reviewer
+
+    def list_workshop_reviewers(self) -> list[Reviewer]:
+        with self.sessions() as session:
+            reviewers = list(
+                session.scalars(
+                    select(Reviewer)
+                    .where(Reviewer.registration_method == "workshop_code")
+                    .order_by(Reviewer.id)
+                )
+            )
+            for reviewer in reviewers:
+                session.expunge(reviewer)
+            return reviewers
 
     def authenticate(self, raw_token: str | None) -> tuple[Reviewer, AuthSession] | None:
         if not raw_token or len(raw_token) > 256:
