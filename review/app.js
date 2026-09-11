@@ -100,11 +100,7 @@
     && data.holdout_input_policy !== "identity_private_filtered_upstream";
   els.exportHoldoutSelectorsBtn.classList.toggle("hidden", !selectorExportAllowed);
   if (hostedNoHoldout) hideHostedHoldoutControls();
-  if (hosted?.read_only) {
-    els.exportReviewsBtn.textContent = "Read-only — group submission coming soon";
-    els.exportReviewsBtn.disabled = true;
-    els.exportReviewsBtn.title = "Your group draft is saved in this browser, but group submission is not available yet.";
-  } else if (hosted) {
+  if (hosted) {
     els.exportReviewsBtn.textContent = "Submit review";
   }
   els.continueReviewBtn.addEventListener("click", () => {

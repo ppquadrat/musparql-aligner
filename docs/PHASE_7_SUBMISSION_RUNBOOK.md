@@ -13,16 +13,24 @@ revision, or job identifier.
   `schemas/linguistic_annotation_export.schema.json`.
 - Both contracts reject undeclared properties and unknown enum values at the
   envelope and review/annotation levels.
-- The server re-derives reviewer identity, assignment identity, dataset,
-  bundle digest, mode, recipe, and permitted record/trial identities from the
-  authenticated assignment.
+- The server re-derives reviewer or reviewing-group identity, assignment
+  identity, dataset, bundle digest, mode, recipe, and permitted record/trial
+  identities from the authenticated assignment.
+- For a reviewing-group assignment, the browser cannot supply group
+  attribution. While holding the SQLite write reservation, the server resolves
+  and freezes the group ID, authenticated submitter, and complete current
+  contributor set. Review events may identify only members of that frozen set.
 - Accepted JSON is canonicalized, hashed, written through a same-directory
   temporary file, fsynced, atomically renamed, and registered with a receipt.
 - An identical retry returns the existing receipt. Changed JSON is a numbered
-  revision. An approved assignment accepts identical retries but no new
-  revisions.
-- Each accepted revision gets one persistent processing job. Processing writes
-  only beneath its server-derived job directory and never mutates a benchmark.
+  revision for a legacy individual assignment. A closed group assignment and
+  an approved assignment accept identical retries but no new revisions; later
+  group work requires a new assignment so its frozen authorship cannot change.
+- Each accepted revision gets one persistent processing job, so a group
+  submission remains one judgment rather than being duplicated per
+  contributor. Processing audits and owner-facing manifests retain the group,
+  submitter, and contributor IDs. Processing writes only beneath its
+  server-derived job directory and never mutates a benchmark.
 
 Configure separate private operational roots:
 
@@ -89,8 +97,9 @@ Final Git operations, push, and publication remain manual.
 .venv/bin/pip check
 ```
 
-The focused suite covers ten simultaneous synthetic reviewers, unique durable
-receipts, idempotent retries, numbered revisions, strict-schema failures,
+The focused suites cover ten simultaneous synthetic reviewers, concurrent
+idempotent group submission, server-owned contributor attribution, attribution
+tampering, unique durable receipts, numbered revisions, strict-schema failures,
 restart recovery, isolated processing, append-only owner gates, and failure
 preservation. Phase 8 remains responsible for measured workshop latency and a
 full restart/load exercise in the deployment-shaped environment.

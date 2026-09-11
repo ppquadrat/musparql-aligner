@@ -447,15 +447,17 @@ reconfigure ICF infrastructure.
 
 ## 11. Delivery order
 
-Implementation status (11 September 2026): item 1 is complete. The database
-foundation and participant-facing journey for item 2 now cover reviewing-group
-creation, code-based self-join, reusable-package discovery, atomic package
-claims, per-member assessment gating, and assessment-gated workbench access
-during the open round. Browser-local group drafts are shared by assignment on
-the same device, but the workbench is explicitly read-only until
-group-attributed submission/processing lands in item 3; shared-code
-admission, the dedicated consent page, final package freezing, terminal
-lifecycle actions, ICF deployment, and rehearsal remain items 4–9.
+Implementation status (11 September 2026): items 1–3 are complete. The database
+foundation and participant-facing journey cover reviewing-group creation,
+code-based self-join, reusable-package discovery, atomic package claims,
+per-member assessment gating, and assessment-gated workbench access during the
+open round. Browser-local group drafts are shared by assignment on the same
+device. Any eligible group member can submit; the server freezes the current
+contributor set, authenticated submitter, and group identity into the immutable
+export and receipt, and preserves that attribution through isolated processing
+and owner review. Shared-code admission, the dedicated consent page, final
+package freezing, terminal lifecycle actions, ICF deployment, and rehearsal
+remain items 4–9.
 
 ### Track A — must work first
 

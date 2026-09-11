@@ -24,6 +24,8 @@ from musparql.database.models import (
     ReviewerLanguage,
     ReviewAssignment,
     ReviewGroupMember,
+    ReviewSubmission,
+    ProcessingJob,
     WorkshopRound,
     WorkshopWorkPackage,
 )
@@ -260,6 +262,54 @@ def _assessment_form(client) -> dict[str, str]:
     }
 
 
+def _review_payload(
+    assignment_id: str,
+    bundle_digest: str,
+    *,
+    submitter_id: str,
+    event_reviewer_id: str,
+) -> dict:
+    record_id = "synthetic-kg::synthetic-query::one"
+    review_id = f"{record_id}::{event_reviewer_id}"
+    return {
+        "schema": "musparql.review-export.v2",
+        "kind": "non_holdout_review_export",
+        "assignment_id": assignment_id,
+        "bundle_digest": bundle_digest,
+        "reviewer_id": submitter_id,
+        "dataset_id": "synthetic-ipl-package",
+        "run_id": "synthetic-run",
+        "run_ids": ["synthetic-run"],
+        "runs": [],
+        "exported_at": "2026-09-11T09:30:00Z",
+        "reviews": {
+            record_id: {
+                "review_id": review_id,
+                "reviewer_id": event_reviewer_id,
+                "reviewed_at": "2026-09-11T09:29:00Z",
+                "prior_review_ids": [],
+                "authored_formulation_ids": [],
+                "approved_formulation_ids": [
+                    f"{review_id}::formulation::candidate"
+                ],
+                "benchmark_disposition": "included",
+                "pipeline_assessment": "accepted",
+                "preferred_question": "",
+                "literal_wording": "",
+                "public_comment": "",
+                "internal_comment": "",
+                "split": "",
+                "interpretive": {
+                    "naturalness": None,
+                    "pragmatism": None,
+                    "room_for_interpretation": None,
+                    "requires_graph_context_knowledge": False,
+                },
+            }
+        },
+    }
+
+
 def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     workshop_app,
 ) -> None:
@@ -336,13 +386,7 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
         f"/assignments/{assignment_id}/workbench/host_context.js"
     ).data
     assert f'"draft_owner_id":"{group.id}"'.encode() in context
-    assert b'"read_only":true' in context
-    assert b'"submission_url"' not in context
-    assert first.post(
-        f"/assignments/{assignment_id}/submissions",
-        json={},
-        headers={"X-CSRF-Token": _csrf(first)},
-    ).status_code == 403
+    assert b'"submission_url"' in context
 
     late_join = third.post(
         "/workshop/groups/join",
@@ -373,6 +417,111 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
             assert seed.seed_digest == "sha256:" + "a" * 64
     finally:
         engine.dispose()
+
+    payload = _review_payload(
+        assignment_id,
+        first_bundle["bundle_digest"],
+        submitter_id=FIRST_ID,
+        event_reviewer_id=SECOND_ID,
+    )
+    forged = dict(payload)
+    forged["review_group_id"] = "group-" + "f" * 24
+    rejected = first.post(
+        f"/assignments/{assignment_id}/submissions",
+        json=forged,
+        headers={"X-CSRF-Token": _csrf(first)},
+    )
+    assert rejected.status_code == 422
+    assert b"Server-owned attribution" in rejected.data
+
+    outsider = _review_payload(
+        assignment_id,
+        first_bundle["bundle_digest"],
+        submitter_id=FIRST_ID,
+        event_reviewer_id=OWNER_ID,
+    )
+    rejected = first.post(
+        f"/assignments/{assignment_id}/submissions",
+        json=outsider,
+        headers={"X-CSRF-Token": _csrf(first)},
+    )
+    assert rejected.status_code == 422
+    assert b"Review attribution does not match" in rejected.data
+
+    submissions = app.extensions["musparql_submissions"]
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        concurrent = list(
+            executor.map(
+                lambda _index: submissions.submit(assignment_id, FIRST_ID, payload),
+                range(2),
+            )
+        )
+    assert len({item.receipt_id for item in concurrent}) == 1
+    assert {item.duplicate for item in concurrent} == {False, True}
+    receipt = concurrent[0].as_dict()
+    retry = first.post(
+        f"/assignments/{assignment_id}/submissions",
+        json=payload,
+        headers={"X-CSRF-Token": _csrf(first)},
+    )
+    assert retry.status_code == 200
+    assert retry.get_json()["receipt_id"] == receipt["receipt_id"]
+    assert retry.get_json()["duplicate"] is True
+    revised = dict(payload)
+    revised["exported_at"] = "2026-09-11T09:31:00Z"
+    assert first.post(
+        f"/assignments/{assignment_id}/submissions",
+        json=revised,
+        headers={"X-CSRF-Token": _csrf(first)},
+    ).status_code == 403
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            submission = session.get(ReviewSubmission, receipt["receipt_id"])
+            assignment = session.get(ReviewAssignment, assignment_id)
+            jobs = list(session.scalars(select(ProcessingJob)))
+            assert submission is not None
+            assert submission.reviewer_id is None
+            assert submission.review_group_id == group.id
+            assert submission.submitted_by_reviewer_id == FIRST_ID
+            assert submission.contributor_reviewer_ids == [
+                FIRST_ID,
+                SECOND_ID,
+                THIRD_ID,
+            ]
+            assert assignment is not None
+            assert assignment.closed_contributor_ids == [
+                FIRST_ID,
+                SECOND_ID,
+                THIRD_ID,
+            ]
+            assert len(jobs) == 1
+            stored = json.loads(
+                (Path(app.config["SUBMISSION_ROOT"]) / submission.export_path).read_text()
+            )
+            assert stored["review_group_id"] == group.id
+            assert stored["submitted_by_reviewer_id"] == FIRST_ID
+            assert stored["contributor_reviewer_ids"] == [
+                FIRST_ID,
+                SECOND_ID,
+                THIRD_ID,
+            ]
+    finally:
+        engine.dispose()
+
+    assert app.extensions["musparql_processing"].process_next() == receipt["job_id"]
+    audit = json.loads(
+        (
+            Path(app.config["CANDIDATE_ROOT"])
+            / receipt["job_id"]
+            / "audit.json"
+        ).read_text()
+    )
+    assert audit["review_group_id"] == group.id
+    assert audit["submitted_by_reviewer_id"] == FIRST_ID
+    assert audit["contributor_reviewer_ids"] == [FIRST_ID, SECOND_ID, THIRD_ID]
 
 
 def test_workshop_routes_fail_closed_without_consent_or_complete_profile(

@@ -692,12 +692,10 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
             "assignments_url": url_for("portal.index"),
             "logout_url": url_for("portal.logout"),
             "csrf_token": g.csrf_token,
-            "read_only": "review_group_id" in payload,
-        }
-        if "review_group_id" not in payload:
-            context["submission_url"] = url_for(
+            "submission_url": url_for(
                 "portal.submit_assignment", assignment_id=assignment_id
-            )
+            ),
+        }
         body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(
             context, ensure_ascii=True, separators=(",", ":")
         ) + ";\n"

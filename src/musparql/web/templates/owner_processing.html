@@ -22,7 +22,7 @@
       {% for submission, job, assignment in rows %}
       <tr>
         <td>{{ submission.id }}<br><span class="metadata">{{ submission.export_digest }}</span></td>
-        <td>{{ assignment.id }}<br>{{ assignment.mode }}</td>
+        <td>{{ assignment.id }}<br>{{ assignment.mode }}{% if submission.review_group_id %}<br><span class="metadata">Group {{ submission.review_group_id }}<br>Submitted by {{ submission.submitted_by_reviewer_id }}<br>Contributors: {{ submission.contributor_reviewer_ids|join(', ') }}</span>{% endif %}</td>
         <td>{{ submission.revision }}</td><td>{{ job.status }}</td>
         <td>{{ submission.inclusion_status }}{% if submission.inclusion_reason %}<br>{{ submission.inclusion_reason }}{% endif %}</td>
         <td>{{ job.approval_status }}{% if job.candidate_output_path %}<br><span class="metadata">{{ job.candidate_output_path }}</span>{% endif %}</td>

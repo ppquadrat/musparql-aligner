@@ -246,6 +246,16 @@ question, literal wording, public and internal comments, and copied-review
 provenance. Historical interpretive fields remain readable but are not collected
 by the current UI.
 
+For a reviewing-group assignment, the canonical server-stored export also
+contains `review_group_id`, `submitted_by_reviewer_id`, and the sorted,
+duplicate-free `contributor_reviewer_ids`. These are server-owned fields: the
+submission endpoint rejects browser-supplied values and derives them from the
+authenticated assignment and current membership while holding the database
+write reservation. A group export and its processing job represent one rater
+judgment, irrespective of the number of contributors. The same frozen
+attribution is carried into the isolated processing audit and owner promotion
+manifests.
+
 The planned linguistic-dimensions workbench uses a separate versioned stimulus
 and annotation contract. It must not reuse the historical single-review
 `interpretive` object: one linguistic trial contains a validated literal anchor,

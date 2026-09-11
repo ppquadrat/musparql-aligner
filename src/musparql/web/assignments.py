@@ -360,8 +360,6 @@ class AssignmentService:
                 session, assignment, reviewer_id
             ):
                 raise LookupError("Assignment is not available")
-            if assignment.reviewer_id is None:
-                raise PermissionError("Group submission is not available yet")
             if assignment.status not in {
                 "active", "submitted", "processing", "ready_for_owner_review", "approved", "failed"
             }:
@@ -371,6 +369,33 @@ class AssignmentService:
         if digest != assignment.bundle_digest:
             raise ValueError("Assignment bundle digest has changed")
         return assignment, payload
+
+    def submission_contributor_ids(
+        self,
+        session: Session,
+        assignment: ReviewAssignment,
+        reviewer_id: str,
+    ) -> tuple[str, ...]:
+        """Resolve server-owned attribution while the caller holds a write lock."""
+        if not self._reviewer_can_access(session, assignment, reviewer_id):
+            raise LookupError("Assignment is not available")
+        if assignment.reviewer_id is not None:
+            return (assignment.reviewer_id,)
+        if assignment.review_group_id is None:
+            raise LookupError("Assignment is not available")
+        contributor_ids = tuple(
+            sorted(
+                assignment.closed_contributor_ids
+                or session.scalars(
+                    select(ReviewGroupMember.reviewer_id).where(
+                        ReviewGroupMember.group_id == assignment.review_group_id
+                    )
+                ).all()
+            )
+        )
+        if not contributor_ids or reviewer_id not in contributor_ids:
+            raise LookupError("Assignment is not available")
+        return contributor_ids
 
     def load_neutral_bundle(self, bundle_name: str) -> tuple[dict[str, Any], str, str]:
         """Validate and load one reviewer-neutral bundle under the configured root."""
