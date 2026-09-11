@@ -81,16 +81,10 @@ Language names default to `catalog/language_options.json`, generated from
 Unicode CLDR 48.2.0. An alternate snapshot can be selected with
 `MUSPARQL_LANGUAGE_OPTIONS_PATH`.
 
-For synthetic local development only, the application can install its explicit
-test notice with:
-
-```bash
-export MUSPARQL_ALLOW_SYNTHETIC_PRIVACY_NOTICE=1
-```
-
-That switch and the synthetic notice must never be used for real people. It is
-independent of `MUSPARQL_ALLOW_SYNTHETIC_EMAIL`; enabling one does not authorise
-the other.
+Synthetic consent copy is available only to automated tests and the
+loopback-only synthetic pilot, both of which set Flask's test configuration
+directly. A normal Flask or Gunicorn process requires file-backed approved copy;
+`MUSPARQL_ALLOW_SYNTHETIC_PRIVACY_NOTICE=1` is rejected outside test mode.
 
 ## Verification
 

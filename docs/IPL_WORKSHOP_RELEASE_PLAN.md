@@ -351,10 +351,16 @@ The consent page must:
 - appear before any profile form;
 - show or link the approved notice;
 - use an unticked affirmative checkbox;
-- store notice/statement version and timestamp;
+- store the notice and statement versions with their acknowledgement
+  timestamps;
 - enforce consent server-side on profile, group, package, assignment, and
   submission routes; and
 - provide the withdrawal route described by the approved notice.
+
+Non-testing startup must reject missing, inline-only, empty, unreadable, or
+synthetic notice/consent configuration. Approved production copy is loaded from
+the three restricted files, while synthetic copy is confined to automated test
+mode and the loopback-only synthetic pilot.
 
 The notice should mention that participants may work alone or in a group and
 that a joint submission is attributed to the group's pseudonymous members.
@@ -481,7 +487,7 @@ reconfigure ICF infrastructure.
 
 ## 11. Delivery order
 
-Implementation status (11 September 2026): items 1–4 are complete. The database
+Implementation status (11 September 2026): items 1–5 are complete. The database
 foundation and participant-facing journey cover reviewing-group creation,
 code-based self-join, reusable-package discovery, atomic package claims,
 per-member assessment gating, and assessment-gated workbench access during the
@@ -505,12 +511,18 @@ sessions and display a one-time recovery code; the reset is recorded in a
 dedicated update- and delete-protected append-only audit table. Recovery-code
 consumption and failed-attempt counting are serialized. Normal email login and
 the database both prevent a fallback synthetic address from becoming verified.
-All fallback routing compares the stored consent-statement version with the
-currently configured version, so obsolete consent stays behind the consent
-boundary.
+All participant routing compares the stored privacy-notice and consent-statement
+versions with both currently configured versions and requires both recorded
+timestamps. Missing or obsolete consent therefore stays behind a dedicated
+unticked affirmative-consent screen before profile collection, including after
+a notice-only version change and application restart. One atomic acceptance
+records both versions and timestamps. Non-testing startup rejects synthetic
+configuration and requires all three approved copy files.
+The complete notice is linked before login and throughout the site, together
+with the approved email-based withdrawal route.
 Group linguistic submission is kept unavailable as part of the explicit
-linguistic-mode deferral. The dedicated consent page, final package freezing,
-terminal lifecycle actions, ICF deployment, and rehearsal remain items 5–9.
+linguistic-mode deferral. Final package freezing, terminal lifecycle actions,
+ICF deployment, and rehearsal remain items 6–9.
 
 ### Track A — must work first
 
@@ -564,8 +576,12 @@ Automated and synthetic rehearsal must prove:
   and consumption are serialized, and recovery audit rows cannot be updated or
   deleted;
 - no protected route works before current consent and profile completion;
-- non-null consent for an obsolete statement version still routes to the
-  consent boundary;
+- non-null consent for an obsolete statement or notice version still routes to
+  the consent boundary, including after application restart;
+- non-testing startup rejects missing, synthetic, empty, unreadable, or
+  inline-only consent copy, while complete approved file-backed copy renders;
+- email and shared-code admission both record the same current consent, while
+  owner access remains independent of participant consent;
 - a one-member group and a multi-member group can each complete the journey;
 - a participant may join a second group without losing access to their first;
 - a consented/profile-complete participant can join before or during active

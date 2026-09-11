@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Withdraw from Musparql{% endblock %}
+{% block content %}
+  <h1>Stop taking part or withdraw consent</h1>
+  <p>You may stop participating or withdraw consent at any time by emailing <a href="mailto:{{ contact_email }}?subject=Musparql%20withdrawal">{{ contact_email }}</a>.</p>
+  <p>The project team will stop assigning new work, disable your login, revoke active sessions, and handle your data according to the participant notice. Email is required because the team may need to verify your identity and explain what can be deleted or retained.</p>
+  <p><a href="{{ url_for('portal.participant_notice') }}">Read the complete participant notice</a></p>
+{% endblock %}

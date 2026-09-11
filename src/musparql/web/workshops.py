@@ -72,11 +72,13 @@ class WorkshopService:
         assignments: AssignmentService,
         secret: bytes,
         current_consent_version: str | None,
+        current_notice_version: str | None,
     ) -> None:
         self.sessions = sessions
         self.assignments = assignments
         self.secret = secret
         self.current_consent_version = current_consent_version
+        self.current_notice_version = current_notice_version
 
     def available(self, reviewer_id: str) -> bool:
         """Return whether a consented reviewer has one currently open round."""
@@ -404,7 +406,9 @@ class WorkshopService:
 
     def _eligible(self, reviewer: Reviewer | None) -> bool:
         return has_current_consent(
-            reviewer, self.current_consent_version
+            reviewer,
+            self.current_consent_version,
+            self.current_notice_version,
         )
 
     def _require_eligible(self, reviewer: Reviewer | None) -> None:

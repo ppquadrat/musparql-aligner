@@ -266,9 +266,11 @@ class ProvenanceService:
         self,
         sessions: sessionmaker[Session],
         current_consent_version: str | None = None,
+        current_notice_version: str | None = None,
     ) -> None:
         self.sessions = sessions
         self.current_consent_version = current_consent_version
+        self.current_notice_version = current_notice_version
 
     def append_domain_expertise(self, record: Mapping[str, Any]) -> None:
         reviewer_id = validate_reviewer_id(record.get("reviewer_id"))
@@ -381,6 +383,9 @@ class ProvenanceService:
                         or reviewer.consent_statement_version
                         != self.current_consent_version
                         or not reviewer.consented_at
+                        or reviewer.privacy_notice_version
+                        != self.current_notice_version
+                        or not reviewer.privacy_notice_acknowledged_at
                         for reviewer in reviewers
                     )
                     or workshop_round is None

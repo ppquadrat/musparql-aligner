@@ -1,9 +1,11 @@
 # ICF production deployment
 
 This runbook applies only to the dedicated ICF-owned server documented in
-[`docs/ICF_HOSTING_BOUNDARY.md`](../../docs/ICF_HOSTING_BOUNDARY.md). It starts
-with synthetic data and keeps the application private until the service,
-recovery, privacy-notice, and email gates have passed.
+[`docs/ICF_HOSTING_BOUNDARY.md`](../../docs/ICF_HOSTING_BOUNDARY.md). Initial
+account and workflow checks use synthetic data, but the service will not start
+until approved file-backed notice and consent copy is installed. Keep the
+application private until the service, recovery, privacy-notice, and email gates
+have passed.
 
 ## Layout
 
@@ -11,7 +13,9 @@ recovery, privacy-notice, and email gates have passed.
 - `/opt/musparql/venv`: production Python environment;
 - `/srv/musparql`: durable database, bundles, submissions, and candidates;
 - `/etc/musparql/musparql.env`: service configuration and application secret;
-- `/etc/musparql/participant-notice.txt`: final ICF-approved notice; and
+- `/etc/musparql/participant-notice.txt`: final ICF-approved notice;
+- `/etc/musparql/consent-summary.txt`: final ICF-approved consent summary;
+- `/etc/musparql/consent-statement.txt`: final ICF-approved checkbox wording; and
 - loopback port `8000`: Gunicorn, reachable publicly only through Caddy.
 
 The application and worker run as the unprivileged `musparql` system account.
@@ -63,13 +67,15 @@ sudo install -o root -g musparql -m 0640 /dev/null /etc/musparql/app-secret
 sudo openssl rand -hex -out /etc/musparql/app-secret 32
 ```
 
-The initial configuration is explicitly synthetic. It must not receive real
-names, addresses, profiles, or reviews. Before real use, replace the synthetic
-notice switches with the approved notice file/version, set
-`MUSPARQL_CONSENT_STATEMENT_VERSION` to the exact approved statement version,
-and configure the real email sender. Workshop and group-assignment access fails
-closed when that value is absent or does not match a participant's recorded
-consent version.
+Before starting the service, set both blank version values to the exact
+approved versions, install the three restricted text files, and configure the
+real email sender. Synthetic notice generation is restricted to automated test
+mode and is rejected by every non-testing process. The application refuses to
+start in production unless both versions and all three approved texts are
+configured.
+Participant profile, workshop, assignment, workbench, and submission access
+fails closed when either recorded version or acknowledgement timestamp is
+absent or obsolete.
 
 Create the database and the first owner. The prompts collect the owner's name
 and email directly in the terminal; do not paste either into an issue, log, or
@@ -108,7 +114,8 @@ sudo systemctl status caddy --no-pager
 Do not invite or enrol a real participant until every item in section 6 of
 `docs/ICF_HOSTING_BOUNDARY.md` passes. In particular:
 
-- replace the synthetic notice flags with the exact ICF-approved notice;
+- verify the installed file-backed notice and consent versions match the exact
+  ICF-approved copy;
 - configure and test the production email sender or an approved alternative;
 - validate an isolated coherent restore of SQLite and linked files;
 - configure owner-visible service and backup failure alerts;

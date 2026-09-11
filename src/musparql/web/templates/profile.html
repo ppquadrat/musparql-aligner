@@ -2,7 +2,11 @@
 {% block title %}My profile — Musparql review{% endblock %}
 {% block content %}
   <h1>{% if profile_complete %}My profile{% else %}Complete your profile{% endif %}</h1>
-  <p>Your email address is verified as <strong>{{ profile.email }}</strong>. Contact the project owner if it needs to change.</p>
+  {% if current_reviewer.registration_method == 'workshop_code' %}
+    <p>Your workshop participant account is <strong>{{ current_reviewer.id }}</strong>. It does not use a verified email address.</p>
+  {% else %}
+    <p>Your email address is verified as <strong>{{ profile.email }}</strong>. Contact the project owner if it needs to change.</p>
+  {% endif %}
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
   <form method="post" action="{{ url_for('portal.profile') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

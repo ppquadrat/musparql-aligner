@@ -66,21 +66,29 @@ not appear in the process list or command history:
   --reviewer-id reviewer-0001
 ```
 
-Set configuration only for the current synthetic shell. Use a newly generated
-secret of at least 32 bytes and do not commit it:
+The application no longer permits a non-testing process to synthesize consent
+copy. Use the automated test suite or the loopback-only Phase 9 synthetic pilot
+for development workflows. Do not start the ordinary Flask entry point with
+synthetic notice or consent settings.
+
+For an approved-copy local check, use a newly generated secret of at least 32
+bytes, configure all three file-backed consent paths, and do not commit it:
 
 ```bash
 export MUSPARQL_DATABASE_PATH="$PWD/var/phase3-synthetic.sqlite3"
 export MUSPARQL_OWNER_REVIEWER_ID="reviewer-0001"
 export MUSPARQL_APP_SECRET="replace-with-a-new-random-development-secret-of-32-bytes-or-more"
+export MUSPARQL_PRIVACY_NOTICE_VERSION="replace-with-approved-notice-version"
+export MUSPARQL_CONSENT_STATEMENT_VERSION="replace-with-approved-statement-version"
+export MUSPARQL_PRIVACY_NOTICE_PATH="/path/to/approved-participant-notice.txt"
+export MUSPARQL_CONSENT_SUMMARY_PATH="/path/to/approved-consent-summary.txt"
+export MUSPARQL_CONSENT_STATEMENT_PATH="/path/to/approved-consent-statement.txt"
 export MUSPARQL_ALLOW_SYNTHETIC_EMAIL="1"
-export MUSPARQL_ALLOW_SYNTHETIC_PRIVACY_NOTICE="1"
 .venv/bin/flask --app musparql.web:create_app run
 ```
 
-The synthetic privacy switch installs the Phase 4 development notice and is as
-strictly local-only as the synthetic email switch. Neither authorises real
-reviewer data.
+`MUSPARQL_ALLOW_SYNTHETIC_EMAIL` does not authorise synthetic consent copy or
+real reviewer data.
 
 This development server does not display the synthetic outbox, so normal manual
 email-code login is intentionally unavailable from a separate browser process.
