@@ -1160,6 +1160,9 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     ).data
     assert f'"draft_owner_id":"{group.id}"'.encode() in context
     assert b'"submission_url"' in context
+    assert b'"partial_submission_url"' in context
+    assert b'"workshop_url":"/workshop"' in context
+    assert b'"abandon_url"' in context
 
     late_join = third.post(
         "/workshop/groups/join",
@@ -1299,6 +1302,9 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
                 SECOND_ID,
                 THIRD_ID,
             ]
+            assert assignment.participant_status == "completed"
+            assert assignment.completion_item_count == 2
+            assert assignment.completion_total_count == 2
             assert len(jobs) == 1
             stored = json.loads(
                 (Path(app.config["SUBMISSION_ROOT"]) / submission.export_path).read_text()
@@ -1628,3 +1634,157 @@ def test_joining_is_idempotent_but_closed_groups_reject_new_members(
             assert session.get(ReviewGroupMember, (group_id, THIRD_ID)) is None
     finally:
         check_engine.dispose()
+
+
+def test_partial_submission_closes_assignment_and_preserves_outstanding_form(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    client = app.test_client()
+    _login(client, app, sender, "first@example.invalid")
+    workshops = app.extensions["musparql_workshops"]
+    assignments = app.extensions["musparql_assignments"]
+    submissions = app.extensions["musparql_submissions"]
+    group_id = workshops.create_group(FIRST_ID)
+    code = workshops.dashboard(FIRST_ID).groups[0].join_code
+    workshops.join_group(SECOND_ID, code)
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    for reviewer_id in (FIRST_ID, SECOND_ID):
+        assignments.assess(
+            assignment_id,
+            reviewer_id,
+            ["advanced"],
+            ["worked"],
+            confirmed=True,
+        )
+    workshops.join_group(THIRD_ID, code)
+    bundle = assignments.attributed_bundle(assignment_id, FIRST_ID)
+    payload = _review_payload(
+        assignment_id,
+        bundle["bundle_digest"],
+        submitter_id=FIRST_ID,
+        event_reviewer_id=FIRST_ID,
+    )
+    payload["reviews"].pop("synthetic-kg::synthetic-query::two")
+
+    response = client.post(
+        f"/assignments/{assignment_id}/submissions?completion=partial",
+        json=payload,
+        headers={"X-CSRF-Token": _csrf(client)},
+    )
+    assert response.status_code == 202
+    receipt_payload = response.get_json()
+    assert receipt_payload["completion_type"] == "partial"
+    assert receipt_payload["completion_item_count"] == 1
+    assert receipt_payload["completion_total_count"] == 2
+    receipt_id = receipt_payload["receipt_id"]
+    job_id = receipt_payload["job_id"]
+    assert submissions.submit(
+        assignment_id,
+        FIRST_ID,
+        payload,
+        completion_type="partial",
+    ).duplicate is True
+    assert workshops.dashboard(FIRST_ID).groups[0].can_claim is False
+    outstanding = workshops.dashboard(THIRD_ID).groups[0].outstanding_assessments
+    assert [item.assignment_id for item in outstanding] == [assignment_id]
+
+    closed_view = assignments.view(assignment_id, THIRD_ID)
+    assert closed_view.workbench_available is False
+    assert closed_view.assessed is False
+    assignments.assess(
+        assignment_id,
+        THIRD_ID,
+        ["working"],
+        ["inspected"],
+        confirmed=True,
+    )
+    assert workshops.dashboard(THIRD_ID).groups[0].outstanding_assessments == ()
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions.begin() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            submission = session.get(ReviewSubmission, receipt_id)
+            assert assignment is not None
+            assert assignment.participant_status == "partial"
+            assert assignment.status == "submitted"
+            assert assignment.completion_item_count == 1
+            assert assignment.completion_total_count == 2
+            assert assignment.closed_contributor_ids == [FIRST_ID, SECOND_ID, THIRD_ID]
+            assert submission is not None
+            stored = json.loads(
+                (Path(app.config["SUBMISSION_ROOT"]) / submission.export_path).read_text()
+            )
+            assert stored["completion_type"] == "partial"
+            session.get(WorkshopRound, "workshop-ipl").allow_additional_assignments = True
+        assert app.extensions["musparql_processing"].process_next() == job_id
+        audit = json.loads(
+            (
+                Path(app.config["CANDIDATE_ROOT"])
+                / job_id
+                / "audit.json"
+            ).read_text()
+        )
+        assert audit["completion_type"] == "partial"
+        assert audit["item_count"] == 1
+        assert audit["total_item_count"] == 2
+        assert workshops.dashboard(FIRST_ID).groups[0].can_claim is True
+        next_assignment_id = workshops.claim_package(
+            reviewer_id=FIRST_ID,
+            group_id=group_id,
+            package_id="package-synthetic",
+        )
+        assert next_assignment_id != assignment_id
+    finally:
+        engine.dispose()
+
+
+def test_leave_is_non_mutating_and_abandon_closes_without_submission(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    client = app.test_client()
+    _login(client, app, sender, "first@example.invalid")
+    workshops = app.extensions["musparql_workshops"]
+    group_id = workshops.create_group(FIRST_ID)
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+
+    assignment_page = client.get(f"/assignments/{assignment_id}")
+    assert b"Leave for now" in assignment_page.data
+    assert b"Abandon assignment" in assignment_page.data
+    assert client.get("/workshop").status_code == 200
+
+    response = client.post(
+        f"/assignments/{assignment_id}/abandon",
+        data={"csrf_token": _csrf(client)},
+    )
+    assert response.status_code == 302
+    assert "result=assignment-abandoned" in response.location
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            assert assignment is not None
+            assert assignment.participant_status == "abandoned"
+            assert assignment.completed_at is not None
+            assert assignment.closed_contributor_ids == [FIRST_ID]
+            assert list(session.scalars(select(ReviewSubmission))) == []
+    finally:
+        engine.dispose()
+    assert workshops.dashboard(FIRST_ID).groups[0].can_claim is False
+    assert [
+        item.assignment_id
+        for item in workshops.dashboard(FIRST_ID).groups[0].outstanding_assessments
+    ] == [assignment_id]

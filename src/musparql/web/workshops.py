@@ -53,6 +53,13 @@ class ReviewGroupView:
     active_assignment_id: str | None
     active_package_name: str | None
     can_claim: bool
+    outstanding_assessments: tuple["OutstandingAssessmentView", ...]
+
+
+@dataclass(frozen=True)
+class OutstandingAssessmentView:
+    assignment_id: str
+    package_name: str
 
 
 @dataclass(frozen=True)
@@ -137,6 +144,20 @@ class WorkshopService:
                     )
                     or 0
                 )
+                outstanding_assessments = tuple(
+                    OutstandingAssessmentView(
+                        assignment_id=item.id,
+                        package_name=package_names.get(
+                            item.work_package_id, "Completed package"
+                        ),
+                    )
+                    for item in assignments
+                    if item.participant_status in {"completed", "partial", "abandoned"}
+                    and reviewer_id in (item.closed_contributor_ids or ())
+                    and not self.assignments.assessment_is_complete(
+                        session, item, reviewer_id
+                    )
+                )
                 group_views.append(
                     ReviewGroupView(
                         id=group.id,
@@ -151,6 +172,7 @@ class WorkshopService:
                             not assignments
                             or workshop_round.allow_additional_assignments
                         ),
+                        outstanding_assessments=outstanding_assessments,
                     )
                 )
             packages = tuple(
@@ -239,8 +261,8 @@ class WorkshopService:
                     )
                 )
             )
-            if assignments and not any(
-                item.participant_status in _ACTIVE_PARTICIPANT_STATUSES
+            if any(
+                item.participant_status in {"completed", "partial", "abandoned"}
                 for item in assignments
             ):
                 raise WorkshopAccessError("This reviewing group is closed to new members")
@@ -403,6 +425,54 @@ class WorkshopService:
             raise
         finally:
             db_session.close()
+
+    def abandon_assignment(self, *, reviewer_id: str, assignment_id: str) -> None:
+        """Atomically close a workshop assignment without creating a submission."""
+        now = timestamp(utc_now())
+        session = self.sessions()
+        try:
+            session.execute(text("BEGIN IMMEDIATE"))
+            reviewer = session.get(Reviewer, reviewer_id)
+            self._require_eligible(reviewer)
+            workshop_round = self._open_round(session, now)
+            assignment = session.get(ReviewAssignment, assignment_id)
+            if (
+                assignment is None
+                or assignment.review_group_id is None
+                or assignment.status not in {"ready", "active"}
+                or assignment.participant_status not in _ACTIVE_PARTICIPANT_STATUSES
+            ):
+                raise WorkshopAccessError("Assignment is not open for abandonment")
+            group = session.get(ReviewGroup, assignment.review_group_id)
+            member = session.get(
+                ReviewGroupMember, (assignment.review_group_id, reviewer_id)
+            )
+            if (
+                group is None
+                or member is None
+                or group.workshop_round_id != workshop_round.id
+            ):
+                raise WorkshopAccessError("Assignment is not open for abandonment")
+            contributor_ids = tuple(
+                sorted(
+                    session.scalars(
+                        select(ReviewGroupMember.reviewer_id).where(
+                            ReviewGroupMember.group_id == assignment.review_group_id
+                        )
+                    ).all()
+                )
+            )
+            if not contributor_ids:
+                raise WorkshopAccessError("Assignment has no contributors")
+            assignment.participant_status = "abandoned"
+            assignment.completed_at = now
+            assignment.closed_contributor_ids = list(contributor_ids)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     def _eligible(self, reviewer: Reviewer | None) -> bool:
         return has_current_consent(

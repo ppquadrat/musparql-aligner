@@ -23,6 +23,8 @@
     prevBtn: document.getElementById("prevBtn"),
     nextBtn: document.getElementById("nextBtn"),
     exportReviewsBtn: document.getElementById("exportReviewsBtn"),
+    submitPartialBtn: document.getElementById("submitPartialBtn"),
+    leaveAssignmentLink: document.getElementById("leaveAssignmentLink"),
     exportPrivateReviewsBtn: document.getElementById("exportPrivateReviewsBtn"),
     exportHoldoutSelectorsBtn: document.getElementById("exportHoldoutSelectorsBtn"),
     holdoutSelectorsInput: document.getElementById("holdoutSelectorsInput"),
@@ -102,7 +104,19 @@
   els.exportHoldoutSelectorsBtn.classList.toggle("hidden", !selectorExportAllowed);
   if (hostedNoHoldout) hideHostedHoldoutControls();
   if (hosted) {
-    els.exportReviewsBtn.textContent = "Submit review";
+    els.exportReviewsBtn.textContent = "Finish and submit";
+    if (hosted.partial_submission_url) {
+      els.submitPartialBtn.classList.remove("hidden");
+      els.submitPartialBtn.addEventListener("click", () => {
+        if (window.confirm("Submit the work completed so far and close this assignment?")) {
+          exportReviews("partial");
+        }
+      });
+    }
+    if (hosted.workshop_url) {
+      els.leaveAssignmentLink.href = hosted.workshop_url;
+      els.leaveAssignmentLink.classList.remove("hidden");
+    }
   }
   els.continueReviewBtn.addEventListener("click", () => {
     els.submissionStatus.classList.add("hidden");
@@ -241,7 +255,7 @@
         updateCurrentReview({ forcedStatus: btn.dataset.status || "", rerender: true });
       });
     });
-    els.exportReviewsBtn.addEventListener("click", exportReviews);
+    els.exportReviewsBtn.addEventListener("click", () => exportReviews("completed"));
     els.exportPrivateReviewsBtn.addEventListener("click", exportPrivateReviews);
     bindHoldoutSelectorExport(() => selectorUpdatesForInitialReview());
     els.clearPrivateStateBtn.addEventListener("click", clearPrivateState);
@@ -702,7 +716,8 @@
     // Pre-Phase-7 local exports reused the v2 name without assignment fields.
     // Preserve import compatibility; hosted canonical v2 is always strict.
     if (payload?.schema !== "musparql.review-export.v2" || !payload.assignment_id) return false;
-    const groupFields = ["review_group_id", "submitted_by_reviewer_id", "contributor_reviewer_ids"];
+    const attributionFields = ["review_group_id", "submitted_by_reviewer_id", "contributor_reviewer_ids"];
+    const groupFields = [...attributionFields, "completion_type"];
     const initialFields = new Set(["schema", "kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "run_id", "run_ids", "runs", "exported_at", "reviews", ...groupFields]);
     const compareFields = new Set(["schema", "kind", "assignment_id", "bundle_digest", "reviewer_id", "dataset_id", "mode", "previous_run", "current_run", "exported_at", "reviews", ...groupFields]);
     const fields = payload.mode === "compare" ? compareFields : initialFields;
@@ -715,11 +730,13 @@
     if (!/^assignment-[0-9a-f]{24}$/.test(payload.assignment_id || "")) throw new Error("Invalid assignment identity.");
     if (!/^sha256:[0-9a-f]{64}$/.test(payload.bundle_digest || "")) throw new Error("Invalid bundle digest.");
     if (!/^reviewer-[0-9]{4,}$/.test(payload.reviewer_id || "")) throw new Error("Invalid reviewer identity.");
-    const suppliedGroupFields = groupFields.filter((field) => Object.hasOwn(payload, field));
-    if (suppliedGroupFields.length && suppliedGroupFields.length !== groupFields.length) throw new Error("Group attribution fields must be supplied together.");
-    if (suppliedGroupFields.length) {
+    const suppliedAttributionFields = attributionFields.filter((field) => Object.hasOwn(payload, field));
+    if (suppliedAttributionFields.length && suppliedAttributionFields.length !== attributionFields.length) throw new Error("Group attribution fields must be supplied together.");
+    if (Object.hasOwn(payload, "completion_type") && !suppliedAttributionFields.length) throw new Error("Completion type requires group attribution.");
+    if (suppliedAttributionFields.length) {
       if (!/^group-[0-9a-f]{24}$/.test(payload.review_group_id || "")) throw new Error("Invalid review group identity.");
       if (payload.submitted_by_reviewer_id !== payload.reviewer_id) throw new Error("Group submitter does not match the export reviewer.");
+      if (Object.hasOwn(payload, "completion_type") && !["completed", "partial"].includes(payload.completion_type)) throw new Error("Invalid completion type.");
       if (!Array.isArray(payload.contributor_reviewer_ids) || !payload.contributor_reviewer_ids.length
           || new Set(payload.contributor_reviewer_ids).size !== payload.contributor_reviewer_ids.length
           || payload.contributor_reviewer_ids.some((value) => !/^reviewer-[0-9]{4,}$/.test(value))
@@ -1035,7 +1052,7 @@
     return `${origin.mode || "unknown"} · evidence ${evidenceIds}`;
   }
 
-  async function exportReviews() {
+  async function exportReviews(completionType = "completed") {
     const { publicReviews } = partitionReviewMap(reviews);
     const payload = {
       schema: "musparql.review-export.v2",
@@ -1050,7 +1067,10 @@
       reviews: publicReviews,
     };
     if (hosted) {
-      await submitHostedPayload(payload);
+      const submissionUrl = completionType === "partial"
+        ? hosted.partial_submission_url
+        : hosted.submission_url;
+      await submitHostedPayload(payload, submissionUrl);
     } else {
       const timestamp = timestampForFilename(new Date());
       downloadJson(payload, `musparql-review-non-holdout-${data.dataset_id}-${timestamp}.json`);
@@ -1195,11 +1215,12 @@
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  async function submitHostedPayload(payload) {
-    if (!hosted?.submission_url) throw new Error("Hosted submission is unavailable.");
+  async function submitHostedPayload(payload, submissionUrl = hosted?.submission_url) {
+    if (!submissionUrl) throw new Error("Hosted submission is unavailable.");
     els.exportReviewsBtn.disabled = true;
+    if (els.submitPartialBtn) els.submitPartialBtn.disabled = true;
     try {
-      const response = await fetch(hosted.submission_url, {
+      const response = await fetch(submissionUrl, {
         method: "POST",
         credentials: "same-origin",
         headers: {"Content-Type": "application/json", "X-CSRF-Token": hosted.csrf_token},
@@ -1215,6 +1236,7 @@
       window.alert(error.message || "Submission was not accepted.");
     } finally {
       els.exportReviewsBtn.disabled = false;
+      if (els.submitPartialBtn) els.submitPartialBtn.disabled = false;
     }
   }
 
@@ -1222,14 +1244,18 @@
     const completed = Object.keys(payload.reviews || {}).length;
     const total = Number(data.record_count) || data.records.length;
     const percentage = total ? Math.round((completed / total) * 100) : 0;
+    const partial = result.completion_type === "partial";
     els.submissionHeading.textContent = result.duplicate
       ? "Thank you — this review was already safely submitted."
-      : "Thank you — your review was submitted.";
+      : partial
+        ? "Thank you — your partial review was submitted."
+        : "Thank you — your review was submitted.";
     els.submissionProgress.textContent = `You completed ${percentage}% of this assignment (${completed} of ${total} items).`;
     els.submissionReceipt.textContent = `Receipt recorded · revision ${result.revision}.`;
-    const complete = completed >= total;
-    els.continueReviewBtn.classList.toggle("hidden", complete);
-    els.backToAssignmentsLink.classList.toggle("hidden", !complete);
+    els.continueReviewBtn.classList.add("hidden");
+    els.backToAssignmentsLink.classList.remove("hidden");
+    els.exportReviewsBtn.classList.add("hidden");
+    if (els.submitPartialBtn) els.submitPartialBtn.classList.add("hidden");
     els.submissionStatus.classList.remove("hidden");
     els.submissionStatus.scrollIntoView({behavior: "smooth", block: "start"});
   }
@@ -2137,11 +2163,35 @@
     assignment.textContent = "Assignment";
     bar.appendChild(assignment);
     els.backToAssignmentsLink.href = hosted.assignments_url || "/";
+    if (hosted.workshop_url) {
+      els.backToAssignmentsLink.textContent = "Back to package choice";
+    }
 
     const profile = document.createElement("a");
     profile.href = hosted.profile_url;
     profile.textContent = "My profile";
     bar.appendChild(profile);
+
+    if (hosted.abandon_url) {
+      const abandonForm = document.createElement("form");
+      abandonForm.method = "post";
+      abandonForm.action = hosted.abandon_url;
+      abandonForm.addEventListener("submit", (event) => {
+        if (!window.confirm("Abandon this assignment without submitting a review?")) {
+          event.preventDefault();
+        }
+      });
+      const abandonCsrf = document.createElement("input");
+      abandonCsrf.type = "hidden";
+      abandonCsrf.name = "csrf_token";
+      abandonCsrf.value = hosted.csrf_token;
+      const abandonButton = document.createElement("button");
+      abandonButton.type = "submit";
+      abandonButton.className = "btn small";
+      abandonButton.textContent = "Abandon";
+      abandonForm.append(abandonCsrf, abandonButton);
+      bar.appendChild(abandonForm);
+    }
 
     const form = document.createElement("form");
     form.method = "post";

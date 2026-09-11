@@ -167,6 +167,9 @@ class AssignmentService:
                     .where(
                         ReviewGroupMember.reviewer_id == reviewer_id,
                         ReviewAssignment.status.in_(("ready", "active")),
+                        ReviewAssignment.participant_status.in_(
+                            ("not_started", "active")
+                        ),
                         WorkshopRound.status == "open",
                         WorkshopRound.opens_at <= now,
                         WorkshopRound.closes_at > now,
@@ -259,8 +262,6 @@ class AssignmentService:
                 session, assignment, reviewer_id
             ):
                 raise LookupError("Assignment is not available")
-            if assignment.status not in {"ready", "active"}:
-                raise LookupError("Assignment is not available")
             domains = self._domain_prompts(session, assignment, reviewer_id)
             familiarities = self._familiarity_prompts(
                 session, assignment, reviewer_id
@@ -268,12 +269,28 @@ class AssignmentService:
             assessed = self._assessment_is_complete(
                 session, assignment, reviewer_id
             )
+            terminal_assessment = (
+                assignment.review_group_id is not None
+                and assignment.participant_status
+                in {"completed", "partial", "abandoned"}
+                and reviewer_id in (assignment.closed_contributor_ids or ())
+                and not assessed
+            )
+            if assignment.status not in {"ready", "active"} and not terminal_assessment:
+                raise LookupError("Assignment is not available")
+            if (
+                assignment.participant_status
+                in {"completed", "partial", "abandoned"}
+                and not terminal_assessment
+            ):
+                raise LookupError("Assignment is not available")
             return AssignmentView(
                 assignment,
                 domains,
                 familiarities,
                 assessed,
-                assignment.status == "active"
+                assignment.participant_status == "active"
+                and assignment.status == "active"
                 and (assignment.review_group_id is not None or assessed),
             )
 
@@ -337,7 +354,10 @@ class AssignmentService:
             )
         ]
         self.provenance.append_pre_review_assessments(
-            domain_records, familiarity_records, activate_assignment=True
+            domain_records,
+            familiarity_records,
+            activate_assignment=view.assignment.participant_status
+            in {"not_started", "active"},
         )
 
     def attributed_bundle(self, assignment_id: str, reviewer_id: str) -> dict[str, Any]:
@@ -562,6 +582,13 @@ class AssignmentService:
             ).all()
         )
         return domain_count == expected_domains and familiarity_count == expected_familiarities
+
+    @classmethod
+    def assessment_is_complete(
+        cls, session: Session, assignment: ReviewAssignment, reviewer_id: str
+    ) -> bool:
+        """Expose the frozen-assessment check to the workshop dashboard."""
+        return cls._assessment_is_complete(session, assignment, reviewer_id)
 
     def _reviewer_can_access(
         self, session: Session, assignment: ReviewAssignment, reviewer_id: str

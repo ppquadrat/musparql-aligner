@@ -176,6 +176,7 @@ def workshop():
         "group-created": "Your reviewing group is ready.",
         "group-joined": "You joined the reviewing group.",
         "package-claimed": "The package is assigned to your group.",
+        "assignment-abandoned": "The assignment was closed without a submission.",
     }
     errors = {
         "invalid-group-code": "That reviewing-group code is not available.",
@@ -254,6 +255,27 @@ def claim_workshop_package(group_id: str, package_id: str):
     return redirect(
         url_for("portal.assignment", assignment_id=assignment_id)
     )
+
+
+@portal.post("/assignments/<assignment_id>/abandon")
+@consent_required
+def abandon_workshop_assignment(assignment_id: str):
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    if not current_app.extensions["musparql_profiles"].is_complete(
+        g.current_reviewer.id
+    ):
+        abort(403)
+    try:
+        current_app.extensions["musparql_workshops"].abandon_assignment(
+            reviewer_id=g.current_reviewer.id,
+            assignment_id=assignment_id,
+        )
+    except WorkshopAccessError:
+        abort(403)
+    except WorkshopUnavailable:
+        abort(404)
+    return redirect(url_for("portal.workshop", result="assignment-abandoned"))
 
 
 @portal.route("/profile", methods=["GET", "POST"])
@@ -851,8 +873,12 @@ def submit_assignment(assignment_id: str):
     if not isinstance(payload, dict):
         return jsonify({"error": "A JSON object is required."}), 400
     try:
+        requested_completion = request.args.get("completion", "completed")
         receipt = current_app.extensions["musparql_submissions"].submit(
-            assignment_id, g.current_reviewer.id, payload
+            assignment_id,
+            g.current_reviewer.id,
+            payload,
+            completion_type=requested_completion,
         )
     except LookupError:
         abort(404)
@@ -930,6 +956,20 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
                 )
             ),
         }
+        if payload.get("review_group_id"):
+            context.update(
+                assignments_url=url_for("portal.workshop"),
+                partial_submission_url=url_for(
+                    "portal.submit_assignment",
+                    assignment_id=assignment_id,
+                    completion="partial",
+                ),
+                workshop_url=url_for("portal.workshop"),
+                abandon_url=url_for(
+                    "portal.abandon_workshop_assignment",
+                    assignment_id=assignment_id,
+                ),
+            )
         body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(
             context, ensure_ascii=True, separators=(",", ":")
         ) + ";\n"
