@@ -377,21 +377,27 @@ Package choice is intentionally simple:
 - a group has at most one active assignment at a time; and
 - package and seed digests are checked when claimed, opened, and submitted.
 
-Assignment outcomes are:
+The workbench exposes two actions:
 
-- **Leave for now:** keep the assignment active and preserve the browser-local
-  draft on that device;
-- **Finish:** submit a complete durable result;
-- **Submit partial:** submit the work completed so far and its item counts; or
-- **Abandon:** close the assignment without a submission.
+- **Submit current work:** create a durable receipt for the current state. The
+  client selects complete submission when every item has a decision and partial
+  submission otherwise, so the reviewer cannot choose an incompatible action;
+  either accepted submission closes the assignment under the current lifecycle.
+- **Back to assignment:** submit nothing, keep the assignment active, and
+  preserve the assignment-scoped browser-local draft on that device.
+
+The assignment page separately exposes **Close without submitting**. This is a
+deliberate terminal action with confirmation, replacing workbench-level
+“Abandon” wording. It exists to release an unwanted active assignment; it is
+not part of the normal review path.
 
 The list above is the Track A item 7 contract. The route and service
 implementation now distinguishes complete and partial submissions, derives and
 stores their item counts server-side, freezes the current contributor set, and
 creates the same durable receipt and processing job for either submission type.
-Abandonment atomically freezes the contributor set without creating a receipt.
-Leaving is a non-mutating return to package choice, so the assignment and its
-assignment-namespaced browser-local draft remain active.
+Closing without submission atomically freezes the contributor set without
+creating a receipt. Returning to the assignment page is non-mutating, so the
+assignment and its assignment-namespaced browser-local draft remain active.
 
 Every terminal outcome returns to package choice. Additional claims are allowed
 only when the round's `allow_additional_assignments` switch is on. That switch

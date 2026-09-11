@@ -1162,7 +1162,7 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert b'"submission_url"' in context
     assert b'"partial_submission_url"' in context
     assert b'"workshop_url":"/workshop"' in context
-    assert b'"abandon_url"' in context
+    assert b'"abandon_url"' not in context
 
     late_join = third.post(
         "/workshop/groups/join",
@@ -2113,8 +2113,8 @@ def test_leave_is_non_mutating_and_abandon_closes_without_submission(
     )
 
     assignment_page = client.get(f"/assignments/{assignment_id}")
-    assert b"Leave for now" in assignment_page.data
-    assert b"Abandon assignment" in assignment_page.data
+    assert b"Back to package choice" in assignment_page.data
+    assert b"Close without submitting" in assignment_page.data
     assert client.get("/workshop").status_code == 200
 
     response = client.post(

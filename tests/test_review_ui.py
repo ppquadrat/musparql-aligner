@@ -22,6 +22,10 @@ def test_hosted_review_state_is_scoped_to_assignment_and_keeps_local_keys() -> N
     assert "hideHostedHoldoutControls()" in app
     assert "Signed in as ${hosted.reviewer_id}" in app
     assert "Thank you — your review was submitted." in app
+    assert 'els.exportReviewsBtn.textContent = "Submit current work"' in app
+    assert 'els.leaveAssignmentLink.href = hosted.assignment_url' in app
+    assert "submitPartialBtn" not in app
+    assert 'id="submitPartialBtn"' not in html
     assert "You completed ${percentage}% of this assignment" in app
     assert "result.completion_item_count" in app
     assert "result.completion_total_count" in app

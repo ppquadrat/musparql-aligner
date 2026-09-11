@@ -968,10 +968,6 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
                     completion="partial",
                 ),
                 workshop_url=url_for("portal.workshop"),
-                abandon_url=url_for(
-                    "portal.abandon_workshop_assignment",
-                    assignment_id=assignment_id,
-                ),
             )
         body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(
             context, ensure_ascii=True, separators=(",", ":")

@@ -23,7 +23,6 @@
     prevBtn: document.getElementById("prevBtn"),
     nextBtn: document.getElementById("nextBtn"),
     exportReviewsBtn: document.getElementById("exportReviewsBtn"),
-    submitPartialBtn: document.getElementById("submitPartialBtn"),
     leaveAssignmentLink: document.getElementById("leaveAssignmentLink"),
     exportPrivateReviewsBtn: document.getElementById("exportPrivateReviewsBtn"),
     exportHoldoutSelectorsBtn: document.getElementById("exportHoldoutSelectorsBtn"),
@@ -104,19 +103,9 @@
   els.exportHoldoutSelectorsBtn.classList.toggle("hidden", !selectorExportAllowed);
   if (hostedNoHoldout) hideHostedHoldoutControls();
   if (hosted) {
-    els.exportReviewsBtn.textContent = "Finish and submit";
-    if (hosted.partial_submission_url) {
-      els.submitPartialBtn.classList.remove("hidden");
-      els.submitPartialBtn.addEventListener("click", () => {
-        if (window.confirm("Submit the work completed so far and close this assignment?")) {
-          exportReviews("partial");
-        }
-      });
-    }
-    if (hosted.workshop_url) {
-      els.leaveAssignmentLink.href = hosted.workshop_url;
-      els.leaveAssignmentLink.classList.remove("hidden");
-    }
+    els.exportReviewsBtn.textContent = "Submit current work";
+    els.leaveAssignmentLink.href = hosted.assignment_url;
+    els.leaveAssignmentLink.classList.remove("hidden");
   }
   els.continueReviewBtn.addEventListener("click", () => {
     els.submissionStatus.classList.add("hidden");
@@ -255,7 +244,7 @@
         updateCurrentReview({ forcedStatus: btn.dataset.status || "", rerender: true });
       });
     });
-    els.exportReviewsBtn.addEventListener("click", () => exportReviews("completed"));
+    els.exportReviewsBtn.addEventListener("click", () => exportReviews("auto"));
     els.exportPrivateReviewsBtn.addEventListener("click", exportPrivateReviews);
     bindHoldoutSelectorExport(() => selectorUpdatesForInitialReview());
     els.clearPrivateStateBtn.addEventListener("click", clearPrivateState);
@@ -1076,9 +1065,25 @@
       reviews: publicReviews,
     };
     if (hosted) {
-      const submissionUrl = completionType === "partial"
+      const reviewed = reviewDecisionCount(publicReviews);
+      const total = Number(data.record_count) || data.records.length;
+      if (reviewed === 0) {
+        window.alert("Review at least one item before submitting current work.");
+        return;
+      }
+      const resolvedType = completionType === "auto"
+        ? (reviewed === total ? "completed" : "partial")
+        : completionType;
+      const submissionUrl = resolvedType === "partial"
         ? hosted.partial_submission_url
         : hosted.submission_url;
+      if (!submissionUrl) {
+        window.alert("This assignment cannot accept the current review state.");
+        return;
+      }
+      if (!window.confirm(`Submit the current ${reviewed} of ${total} reviewed items and close this assignment?`)) {
+        return;
+      }
       await submitHostedPayload(payload, submissionUrl);
     } else {
       const timestamp = timestampForFilename(new Date());
@@ -1227,7 +1232,6 @@
   async function submitHostedPayload(payload, submissionUrl = hosted?.submission_url) {
     if (!submissionUrl) throw new Error("Hosted submission is unavailable.");
     els.exportReviewsBtn.disabled = true;
-    if (els.submitPartialBtn) els.submitPartialBtn.disabled = true;
     try {
       const response = await fetch(submissionUrl, {
         method: "POST",
@@ -1245,7 +1249,6 @@
       window.alert(error.message || "Submission was not accepted.");
     } finally {
       els.exportReviewsBtn.disabled = false;
-      if (els.submitPartialBtn) els.submitPartialBtn.disabled = false;
     }
   }
 
@@ -1268,7 +1271,6 @@
     els.continueReviewBtn.classList.add("hidden");
     els.backToAssignmentsLink.classList.remove("hidden");
     els.exportReviewsBtn.classList.add("hidden");
-    if (els.submitPartialBtn) els.submitPartialBtn.classList.add("hidden");
     document.querySelectorAll(".hosted-terminal-control").forEach((control) => control.remove());
     els.submissionStatus.classList.remove("hidden");
     els.submissionStatus.scrollIntoView({behavior: "smooth", block: "start"});
@@ -2053,7 +2055,23 @@
         reviews: publicReviews,
       };
       if (hosted) {
-        await submitHostedPayload(payload);
+        const reviewed = reviewDecisionCount(publicReviews);
+        const total = Number(data.record_count) || data.records.length;
+        if (reviewed === 0) {
+          window.alert("Review at least one item before submitting current work.");
+          return;
+        }
+        const submissionUrl = reviewed === total
+          ? hosted.submission_url
+          : hosted.partial_submission_url;
+        if (!submissionUrl) {
+          window.alert("This assignment cannot accept the current review state.");
+          return;
+        }
+        if (!window.confirm(`Submit the current ${reviewed} of ${total} reviewed items and close this assignment?`)) {
+          return;
+        }
+        await submitHostedPayload(payload, submissionUrl);
       } else {
         const timestamp = timestampForFilename(new Date());
         downloadJson(payload, `musparql-review-non-holdout-compare-${data.dataset_id}-${timestamp}.json`);
@@ -2174,7 +2192,7 @@
 
     const assignment = document.createElement("a");
     assignment.href = hosted.assignment_url;
-    assignment.textContent = "Assignment";
+    assignment.textContent = "Assignment details";
     assignment.classList.add("hosted-terminal-control");
     bar.appendChild(assignment);
     els.backToAssignmentsLink.href = hosted.assignments_url || "/";
@@ -2186,28 +2204,6 @@
     profile.href = hosted.profile_url;
     profile.textContent = "My profile";
     bar.appendChild(profile);
-
-    if (hosted.abandon_url) {
-      const abandonForm = document.createElement("form");
-      abandonForm.method = "post";
-      abandonForm.action = hosted.abandon_url;
-      abandonForm.classList.add("hosted-terminal-control");
-      abandonForm.addEventListener("submit", (event) => {
-        if (!window.confirm("Abandon this assignment without submitting a review?")) {
-          event.preventDefault();
-        }
-      });
-      const abandonCsrf = document.createElement("input");
-      abandonCsrf.type = "hidden";
-      abandonCsrf.name = "csrf_token";
-      abandonCsrf.value = hosted.csrf_token;
-      const abandonButton = document.createElement("button");
-      abandonButton.type = "submit";
-      abandonButton.className = "btn small";
-      abandonButton.textContent = "Abandon";
-      abandonForm.append(abandonCsrf, abandonButton);
-      bar.appendChild(abandonForm);
-    }
 
     const form = document.createElement("form");
     form.method = "post";
