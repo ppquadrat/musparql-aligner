@@ -55,6 +55,16 @@ def _digest(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+def _retry_identity(payload: Mapping[str, Any]) -> bytes:
+    """Canonical review content, excluding browser/session retry metadata."""
+    comparable = dict(payload)
+    comparable.pop("exported_at", None)
+    if comparable.get("review_group_id") is not None:
+        comparable.pop("reviewer_id", None)
+        comparable.pop("submitted_by_reviewer_id", None)
+    return _canonical_bytes(comparable)
+
+
 def _atomic_write(root: Path, name: str, raw: bytes) -> Path:
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     path = root / name
@@ -103,14 +113,50 @@ class SubmissionService:
     def submit(
         self, assignment_id: str, reviewer_id: str, payload: Mapping[str, Any]
     ) -> Receipt:
-        assignment, bundle = self.assignments.submission_bundle(assignment_id, reviewer_id)
-        self._validate(assignment, bundle, payload)
-        raw = _canonical_bytes(payload)
-        digest = _digest(raw)
+        server_fields = {
+            "review_group_id",
+            "submitted_by_reviewer_id",
+            "contributor_reviewer_ids",
+        }
+        if server_fields.intersection(payload):
+            raise ValueError("Server-owned attribution fields must not be supplied")
+        _assignment, bundle = self.assignments.submission_bundle(
+            assignment_id, reviewer_id
+        )
         session = self.sessions()
         stored_path: Path | None = None
         try:
             session.execute(text("BEGIN IMMEDIATE"))
+            persisted = session.get(ReviewAssignment, assignment_id)
+            if persisted is None:
+                raise RuntimeError("Assignment disappeared during submission")
+            if persisted.status not in {
+                "active", "submitted", "processing", "ready_for_owner_review", "approved", "failed"
+            }:
+                raise PermissionError("Assignment is not open for submission")
+            contributor_ids = self.assignments.submission_contributor_ids(
+                session, persisted, reviewer_id
+            )
+            if persisted.review_group_id is not None and persisted.mode == "linguistic":
+                raise PermissionError(
+                    "Group linguistic submission is not available yet"
+                )
+            canonical_payload = dict(payload)
+            if persisted.review_group_id is not None:
+                canonical_payload.update(
+                    review_group_id=persisted.review_group_id,
+                    submitted_by_reviewer_id=reviewer_id,
+                    contributor_reviewer_ids=list(contributor_ids),
+                )
+            self._validate(
+                persisted,
+                bundle,
+                canonical_payload,
+                submitting_reviewer_id=reviewer_id,
+                contributor_ids=contributor_ids,
+            )
+            raw = _canonical_bytes(canonical_payload)
+            digest = _digest(raw)
             existing = session.scalar(
                 select(ReviewSubmission).where(
                     ReviewSubmission.assignment_id == assignment_id,
@@ -125,7 +171,40 @@ class SubmissionService:
                 if job is None:
                     raise RuntimeError("Accepted submission has no processing job")
                 return self._receipt(existing, job, duplicate=True)
-            if assignment.status == "approved":
+            retry_identity = _retry_identity(canonical_payload)
+            for candidate in session.scalars(
+                select(ReviewSubmission).where(
+                    ReviewSubmission.assignment_id == assignment_id
+                )
+            ):
+                candidate_path = (self.submission_root / candidate.export_path).resolve()
+                try:
+                    candidate_path.relative_to(self.submission_root)
+                    candidate_payload = json.loads(
+                        candidate_path.read_text(encoding="utf-8")
+                    )
+                except (OSError, ValueError, json.JSONDecodeError):
+                    continue
+                if isinstance(candidate_payload, dict) and _retry_identity(
+                    candidate_payload
+                ) == retry_identity:
+                    job = session.scalar(
+                        select(ProcessingJob).where(
+                            ProcessingJob.submission_id == candidate.id
+                        )
+                    )
+                    session.commit()
+                    if job is None:
+                        raise RuntimeError("Accepted submission has no processing job")
+                    return self._receipt(candidate, job, duplicate=True)
+            if (
+                persisted.review_group_id is not None
+                and persisted.closed_contributor_ids is not None
+            ):
+                raise PermissionError(
+                    "Closed group assignments accept retries but not new revisions"
+                )
+            if persisted.status == "approved":
                 raise PermissionError("Approved assignments accept retries but not new revisions")
             revision = int(
                 session.scalar(
@@ -143,10 +222,10 @@ class SubmissionService:
             submission = ReviewSubmission(
                 id=receipt_id,
                 assignment_id=assignment_id,
-                reviewer_id=reviewer_id,
-                review_group_id=None,
+                reviewer_id=persisted.reviewer_id,
+                review_group_id=persisted.review_group_id,
                 submitted_by_reviewer_id=reviewer_id,
-                contributor_reviewer_ids=[reviewer_id],
+                contributor_reviewer_ids=list(contributor_ids),
                 export_path=relative,
                 export_digest=digest,
                 submitted_at=now,
@@ -154,16 +233,13 @@ class SubmissionService:
                 validation_status="schema_valid",
                 inclusion_status="pending",
             )
-            persisted = session.get(ReviewAssignment, assignment_id)
-            if persisted is None:
-                raise RuntimeError("Assignment disappeared during submission")
             session.add(submission)
             session.flush()
             job = ProcessingJob(
                 id=job_id,
                 assignment_id=assignment_id,
                 submission_id=receipt_id,
-                recipe=assignment.processing_recipe,
+                recipe=persisted.processing_recipe,
                 status="queued",
                 created_at=now,
                 job_kind="submission",
@@ -175,7 +251,7 @@ class SubmissionService:
             persisted.submitted_at = now
             persisted.participant_status = "completed"
             persisted.completed_at = now
-            persisted.closed_contributor_ids = [reviewer_id]
+            persisted.closed_contributor_ids = list(contributor_ids)
             session.commit()
             return self._receipt(submission, job, duplicate=False)
         except Exception:
@@ -198,6 +274,9 @@ class SubmissionService:
         assignment: ReviewAssignment,
         bundle: Mapping[str, Any],
         payload: Mapping[str, Any],
+        *,
+        submitting_reviewer_id: str,
+        contributor_ids: tuple[str, ...],
     ) -> None:
         errors = sorted(self.validators[assignment.mode].iter_errors(payload), key=lambda item: list(item.path))
         if errors:
@@ -211,7 +290,7 @@ class SubmissionService:
             raise ValueError("Export schema does not match assignment mode")
         for field, expected in (
             ("assignment_id", assignment.id),
-            ("reviewer_id", assignment.reviewer_id),
+            ("reviewer_id", submitting_reviewer_id),
             ("dataset_id", bundle.get("dataset_id")),
         ):
             if payload.get(field) != expected:
@@ -222,6 +301,18 @@ class SubmissionService:
             raise ValueError("Comparative assignment requires compare mode")
         if assignment.mode == "initial" and "mode" in payload:
             raise ValueError("Initial assignment must not declare compare mode")
+        if assignment.review_group_id is not None:
+            if assignment.mode == "linguistic":
+                raise PermissionError(
+                    "Group linguistic submission is not available yet"
+                )
+            for field, expected in (
+                ("review_group_id", assignment.review_group_id),
+                ("submitted_by_reviewer_id", submitting_reviewer_id),
+                ("contributor_reviewer_ids", list(contributor_ids)),
+            ):
+                if payload.get(field) != expected:
+                    raise ValueError(f"Export {field} does not match the assignment")
         records = bundle.get("records", [])
         if assignment.mode == "linguistic":
             annotations = payload.get("annotations", [])
@@ -244,9 +335,16 @@ class SubmissionService:
             reviews = payload.get("reviews", {})
             if not set(reviews).issubset(allowed):
                 raise ValueError("Reviews contain an identity outside the assigned bundle")
+            if assignment.review_group_id is not None and set(reviews) != allowed:
+                raise ValueError(
+                    "Group submission requires a review for every assigned item"
+                )
             if len({item["review_id"] for item in reviews.values()}) != len(reviews):
                 raise ValueError("Review event identities must be unique")
-            if any(item["reviewer_id"] != assignment.reviewer_id for item in reviews.values()):
+            if any(
+                item["reviewer_id"] not in contributor_ids
+                for item in reviews.values()
+            ):
                 raise ValueError("Review attribution does not match the assignment")
             for item in reviews.values():
                 validate_review_provenance(item)
@@ -362,6 +460,10 @@ class ProcessingService:
                 "job_id": job.id,
                 "receipt_id": submission.id,
                 "assignment_id": submission.assignment_id,
+                "reviewer_id": submission.reviewer_id,
+                "review_group_id": submission.review_group_id,
+                "submitted_by_reviewer_id": submission.submitted_by_reviewer_id,
+                "contributor_reviewer_ids": submission.contributor_reviewer_ids,
                 "revision": submission.revision,
                 "recipe": job.recipe,
                 "source_digest": submission.export_digest,
@@ -404,6 +506,10 @@ class ProcessingService:
                 records.append({
                     "receipt_id": submission.id,
                     "assignment_id": submission.assignment_id,
+                    "reviewer_id": submission.reviewer_id,
+                    "review_group_id": submission.review_group_id,
+                    "submitted_by_reviewer_id": submission.submitted_by_reviewer_id,
+                    "contributor_reviewer_ids": submission.contributor_reviewer_ids,
                     "revision": submission.revision,
                     "digest": submission.export_digest,
                 })
@@ -610,6 +716,10 @@ class ProcessingService:
                     "selected_submissions": [{
                         "receipt_id": item.id,
                         "assignment_id": item.assignment_id,
+                        "reviewer_id": item.reviewer_id,
+                        "review_group_id": item.review_group_id,
+                        "submitted_by_reviewer_id": item.submitted_by_reviewer_id,
+                        "contributor_reviewer_ids": item.contributor_reviewer_ids,
                         "revision": item.revision,
                         "digest": item.export_digest,
                     } for item in concrete],

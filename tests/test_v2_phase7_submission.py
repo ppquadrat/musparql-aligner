@@ -187,6 +187,14 @@ def test_retry_is_idempotent_changed_payload_is_revision_and_schema_is_strict(ph
     assert retry.receipt_id == first.receipt_id
     assert retry.revision == 1 and retry.duplicate
 
+    browser_retry = deepcopy(payload)
+    browser_retry["exported_at"] = "2026-08-20T10:05:30Z"
+    retry = submissions.submit(
+        assignment_id, f"reviewer-{index:04d}", browser_retry
+    )
+    assert retry.receipt_id == first.receipt_id
+    assert retry.revision == 1 and retry.duplicate
+
     revised = deepcopy(payload)
     revised["exported_at"] = "2026-08-20T10:06:00Z"
     revised["reviews"][record_id]["public_comment"] = "Synthetic revision"

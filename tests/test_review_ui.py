@@ -54,6 +54,42 @@ validate({}, {reviewer_id:"reviewer-0001"});
     subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
 
 
+def test_group_import_accepts_contributors_and_rejects_outsiders() -> None:
+    script = r'''
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, querySelectorAll:()=>[]}};
+vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
+const schema = sandbox.window.MUSPARQL_REVIEW_SCHEMA;
+const group = "group-000000000000000000000001";
+const review = {review_id:"event::reviewer-0042", reviewer_id:"reviewer-0042", reviewed_at:"2026-08-20T10:00:00Z", prior_review_ids:[], authored_formulation_ids:[], approved_formulation_ids:["event::reviewer-0042::formulation::candidate"], benchmark_disposition:"included", pipeline_assessment:"accepted", preferred_question:"", literal_wording:"", public_comment:"", internal_comment:"", split:"", interpretive:{naturalness:null, pragmatism:null, room_for_interpretation:null, requires_graph_context_knowledge:false}};
+const payload = {schema:"musparql.review-export.v2", kind:"non_holdout_review_export", assignment_id:"assignment-000000000000000000000001", bundle_digest:`sha256:${"a".repeat(64)}`, reviewer_id:"reviewer-0042", review_group_id:group, submitted_by_reviewer_id:"reviewer-0042", contributor_reviewer_ids:["reviewer-0042", "reviewer-0043"], dataset_id:"synthetic", run_id:"run", run_ids:["run"], runs:[], exported_at:"2026-08-20T10:01:00Z", reviews:{record:review}};
+assert.equal(schema.validateV2Envelope(payload), true);
+schema.validateReviewerImport(payload, {reviewer_id:"reviewer-0043", review_group_id:group});
+schema.validateImportedReviews(payload.reviews, true, payload);
+assert.throws(() => schema.validateReviewerImport(payload, {reviewer_id:"reviewer-0044", review_group_id:group}), /not a contributor/);
+assert.throws(() => schema.validateImportedReviews({record:{...review, review_id:"event::reviewer-0044", reviewer_id:"reviewer-0044"}}, true, payload), /outside the review group/);
+assert.throws(() => schema.validateV2Envelope({...payload, contributor_reviewer_ids:undefined}), /Invalid group contributor/);
+'''
+    subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
+
+
+def test_cross_member_edits_receive_a_new_provenance_identity() -> None:
+    script = r'''
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, querySelectorAll:()=>[]}};
+vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
+const identity = sandbox.window.MUSPARQL_REVIEW_SCHEMA.reviewIdentityForEditor;
+const prior = {review_id:"record::reviewer-0042", reviewer_id:"reviewer-0042"};
+assert.equal(identity(prior, "record", "reviewer-0043"), "record::reviewer-0043");
+assert.equal(identity(prior, "record", "reviewer-0042"), prior.review_id);
+'''
+    subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
+
+
 def test_hosted_v2_import_contract_rejects_unknown_envelope_and_review_fields() -> None:
     script = r'''
 const assert = require("node:assert/strict");

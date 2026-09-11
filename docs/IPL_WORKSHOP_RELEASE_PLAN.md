@@ -289,6 +289,13 @@ The export contract must similarly record the group ID, contributor IDs, and
 authenticated submitter. The pipeline counts the group submission as one
 judgment. It must not duplicate that judgment once per member.
 
+Current compatibility boundary: group exports may contain review events by any
+frozen contributor, while the envelope reviewer remains the authenticated
+submitter. The browser importer and benchmark builder validate that distinction
+without expanding contributors into separate judgments. Content-equivalent
+HTTP retries recover the original receipt despite a fresh browser export
+timestamp or a different frozen member acting as submitter.
+
 ## 6. Authentication and consent
 
 ### 6.1 SMTP-first, shared-code fallback
@@ -352,6 +359,13 @@ Assignment outcomes are:
 - **Finish:** submit a complete durable result;
 - **Submit partial:** submit the work completed so far and its item counts; or
 - **Abandon:** close the assignment without a submission.
+
+The list above is the Track A item 7 target. Until that item lands, the server
+accepts a group submission only when every assigned item has a review and then
+closes it as completed. It rejects partial group exports without creating a
+receipt, processing job, or terminal assignment state. This temporary boundary
+keeps “Continue review” usable instead of trapping an incomplete group behind
+a closed assignment.
 
 Every terminal outcome returns to package choice. Additional claims are allowed
 only when the round's `allow_additional_assignments` switch is on. That switch
@@ -447,13 +461,19 @@ reconfigure ICF infrastructure.
 
 ## 11. Delivery order
 
-Implementation status (11 September 2026): item 1 is complete. The database
-foundation and participant-facing journey for item 2 now cover reviewing-group
-creation, code-based self-join, reusable-package discovery, atomic package
-claims, per-member assessment gating, and assessment-gated workbench access
-during the open round. Browser-local group drafts are shared by assignment on
-the same device, but the workbench is explicitly read-only until
-group-attributed submission/processing lands in item 3; shared-code
+Implementation status (11 September 2026): items 1–3 are complete. The database
+foundation and participant-facing journey cover reviewing-group creation,
+code-based self-join, reusable-package discovery, atomic package claims,
+per-member assessment gating, and assessment-gated workbench access during the
+open round. Browser-local group drafts are shared by assignment on the same
+device. Any eligible group member can submit; the server freezes the current
+contributor set, authenticated submitter, and group identity into the immutable
+export and receipt, and preserves that attribution through isolated processing
+and owner review. Browser recovery treats a fresh export timestamp—and a retry
+by another frozen contributor—as the same submission when the review content is
+unchanged. Canonical group exports round-trip through the importer and enter the
+benchmark builder as one rater judgment. Group linguistic submission is kept
+unavailable as part of the explicit linguistic-mode deferral. Shared-code
 admission, the dedicated consent page, final package freezing, terminal
 lifecycle actions, ICF deployment, and rehearsal remain items 4–9.
 

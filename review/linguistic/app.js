@@ -215,10 +215,9 @@
   byId("cancelOutcomeBtn").addEventListener("click", () => { pendingOutcome = null; byId("outcomePanel").hidden = true; byId("ratingForm").hidden = false; });
   byId("confirmOutcomeBtn").addEventListener("click", () => { const extra = {reason: byId("reason").value, proposed_literal: byId("proposal").value.trim(), comment: byId("comment").value.trim()}; complete(pendingOutcome, extra); pendingOutcome = null; });
   byId("exportBtn").textContent = "Submit completed annotations";
-  if (hosted.read_only) {
-    byId("exportBtn").textContent = "Read-only — group submission coming soon";
+  if (!hosted.submission_url) {
+    byId("exportBtn").textContent = "Group submission not yet available";
     byId("exportBtn").disabled = true;
-    byId("exportBtn").title = "Your group draft is saved in this browser, but group submission is not available yet.";
   }
   byId("exportBtn").addEventListener("click", async () => {
     const payload = {schema: "musparql.linguistic-annotation-export.v1", assignment_id: hosted.assignment_id, dataset_id: data.dataset_id, reviewer_id: hosted.reviewer_id, task_design_version: "phase-6b-v1", exported_at: new Date().toISOString(), annotations: Object.values(state.completed)};
