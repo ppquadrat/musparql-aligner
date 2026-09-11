@@ -20,18 +20,21 @@ from musparql.database.models import (
 from .auth import timestamp, utc_now
 
 
-ENTRY_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+ENTRY_CODE_ALPHABET = "0123456789"
+ENTRY_CODE_LENGTH = 6
 
 
 def normalize_entry_code(value: str) -> str:
     normalized = value.strip().upper().replace("-", "").replace(" ", "")
-    if len(normalized) != 8 or any(char not in ENTRY_CODE_ALPHABET for char in normalized):
+    if len(normalized) != ENTRY_CODE_LENGTH or any(
+        char not in ENTRY_CODE_ALPHABET for char in normalized
+    ):
         raise ValueError("Workshop entry code is invalid")
     return normalized
 
 
 def display_entry_code(value: str) -> str:
-    return f"{value[:4]}-{value[4:]}"
+    return f"{value[:3]}-{value[3:]}"
 
 
 @dataclass(frozen=True)
@@ -132,7 +135,9 @@ class WorkshopEntryCodeService:
             if existing is not None:
                 existing.revoked_at = now_text
                 session.flush()
-            normalized = "".join(secrets.choice(ENTRY_CODE_ALPHABET) for _ in range(8))
+            normalized = "".join(
+                secrets.choice(ENTRY_CODE_ALPHABET) for _ in range(ENTRY_CODE_LENGTH)
+            )
             session.add(
                 WorkshopEntryCode(
                     id="entry-code-" + uuid.uuid4().hex,

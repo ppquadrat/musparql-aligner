@@ -18,7 +18,7 @@
     <form method="post" action="{{ url_for('portal.join_workshop_group') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label class="field">Reviewing-group code
-        <input name="join_code" inputmode="text" autocomplete="off" maxlength="12" required>
+        <input name="join_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 -]{6,7}" maxlength="7" placeholder="123 456" required>
       </label>
       <button type="submit">Join group</button>
     </form>
@@ -32,7 +32,7 @@
     <section class="notice">
       <h3>Reviewing group {{ loop.index }}</h3>
       <p>{{ group.member_count }} participant{% if group.member_count != 1 %}s{% endif %}</p>
-      {% if value.is_open %}<p>Join code: <strong class="join-code">{{ group.join_code[:5] }} {{ group.join_code[5:] }}</strong></p>{% endif %}
+      {% if value.is_open %}<p>Join code: <strong class="join-code">{{ group.join_code[:3] }} {{ group.join_code[3:] }}</strong></p>{% endif %}
       {% for outstanding in group.outstanding_assessments %}
         <p class="error">Outstanding KG-specific form for {{ outstanding.package_name }}: <a href="{{ url_for('portal.assignment', assignment_id=outstanding.assignment_id) }}">complete it now</a>.</p>
       {% endfor %}

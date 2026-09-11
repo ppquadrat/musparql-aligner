@@ -290,7 +290,7 @@ def _issue_workshop_entry_code(client) -> str:
         data={"csrf_token": _csrf(client)},
     )
     assert response.status_code == 200
-    match = re.search(rb"[A-Z2-9]{4}-[A-Z2-9]{4}", response.data)
+    match = re.search(rb"[0-9]{3}-[0-9]{3}", response.data)
     assert match is not None
     return match.group().decode("ascii")
 
@@ -437,7 +437,7 @@ def test_invalid_shared_code_does_not_create_identity_or_session(workshop_app) -
 
     response = participant.post(
         "/auth/workshop",
-        data={"csrf_token": _csrf(participant), "code": "AAAA-AAAA"},
+        data={"csrf_token": _csrf(participant), "code": "000-000"},
     )
     assert response.status_code == 200
     assert b"not available" in response.data
@@ -507,8 +507,8 @@ def test_shared_code_attempts_are_throttled_by_request_context(workshop_app) -> 
     participant = app.test_client()
     csrf = _csrf(participant)
     for candidate, user_agent in (
-        ("AAAA-AAAA", "synthetic-agent-a"),
-        ("BBBB-BBBB", "synthetic-agent-b"),
+        ("000-000", "synthetic-agent-a"),
+        ("111-111", "synthetic-agent-b"),
         (code, "synthetic-agent-c"),
     ):
         response = participant.post(
@@ -541,7 +541,7 @@ def test_workshop_throttle_ignores_user_agent_and_survives_app_restart(
     app.config["WORKSHOP_CODE_ATTEMPTS_PER_CONTEXT"] = 2
     auth = app.extensions["musparql_auth"]
     assert auth.redeem_workshop_code(
-        "AAAA-AAAA",
+        "000-000",
         "192.0.2.77",
         current_token=None,
         admission_nonce="restart-a",
@@ -569,7 +569,7 @@ def test_workshop_throttle_ignores_user_agent_and_survives_app_restart(
     try:
         restarted_auth = restarted.extensions["musparql_auth"]
         assert restarted_auth.redeem_workshop_code(
-            "BBBB-BBBB",
+            "111-111",
             "192.0.2.77",
             current_token=None,
             admission_nonce="restart-b",
@@ -1110,7 +1110,7 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
         data={
             "csrf_token": _csrf(second),
             "join_code": (
-                group.join_code[:5].lower() + " " + group.join_code[5:].lower()
+                group.join_code[:3] + " " + group.join_code[3:]
             ),
         },
     )
@@ -1532,7 +1532,7 @@ def test_consent_change_revokes_a_claimed_group_assignment_immediately(
     ).location == "/consent"
     assert client.post(
         "/workshop/groups/join",
-        data={"csrf_token": _csrf(client), "join_code": "AAAA-AAAAAA"},
+        data={"csrf_token": _csrf(client), "join_code": "000-000"},
     ).location == "/consent"
     assert client.post(
         f"/workshop/groups/{group_id}/packages/package-synthetic/claim",

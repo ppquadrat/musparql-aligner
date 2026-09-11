@@ -103,6 +103,28 @@ The stale agent-metadata defect described there is fixed: changing an agent
 proposal now clears the suggestion, edit type, rationale, and evidence IDs and
 requires the human to enter fresh edit metadata.
 
+## NL provenance and query-comment handling
+
+### Authored NL can be mislabelled as generated when it is embedded in SPARQL
+
+The IPL rehearsal exposed a concrete case in `nfdi4culture-0006`. Its curated
+source record has an authored `prompt`, and the same question appears verbatim
+as a leading comment inside the SPARQL. The working query catalogue retains
+both the curated `nl_question` and a `curated_query` evidence item. However,
+`build_llm_inputs.py` excludes SPARQL-block evidence by default and does not
+pass the catalogue's structured `nl_question` to generation. The 2026-08-23
+model therefore received an empty evidence list, copied the query comment word
+for word, and correctly described its output under the current contract as
+`generated` with no evidence IDs. The downstream Quagga candidate and workshop
+package faithfully preserved that misleading provenance.
+
+Repair the boundary rather than this one output: structured authored questions
+from curated sources must be retained as NL evidence before generation, and
+query comments that contain an apparent question should be extracted or
+cross-checked so an exact copy cannot be labelled as unsupported generated NL.
+Audit the affected run for other exact or near-exact comment copies, then
+rebuild any corrected candidate/package artifacts with new immutable digests.
+
 ## Dependency maintenance
 
 The test suite currently emits deprecation warnings from `rdflib` using legacy

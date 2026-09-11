@@ -27,7 +27,6 @@ from .auth import timestamp, utc_now
 
 
 _ACTIVE_PARTICIPANT_STATUSES = ("not_started", "active")
-_JOIN_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 
 
 class WorkshopUnavailable(ValueError):
@@ -231,8 +230,17 @@ class WorkshopService:
             reviewer = session.get(Reviewer, reviewer_id)
             self._require_eligible(reviewer)
             workshop_round = self._open_round(session, now)
-            group_id = "group-" + secrets.token_hex(12)
-            join_code = self._join_code(group_id)
+            for _attempt in range(20):
+                group_id = "group-" + secrets.token_hex(12)
+                join_code = self._join_code(group_id)
+                if session.scalar(
+                    select(ReviewGroup.id).where(
+                        ReviewGroup.join_code_digest == self._join_digest(join_code)
+                    )
+                ) is None:
+                    break
+            else:
+                raise RuntimeError("Could not allocate a unique reviewing-group code")
             session.add(
                 ReviewGroup(
                     id=group_id,
@@ -257,7 +265,7 @@ class WorkshopService:
 
     def join_group(self, reviewer_id: str, presented_code: str) -> str:
         normalized = self._normalize_join_code(presented_code)
-        if len(normalized) != 10:
+        if len(normalized) != 6:
             raise WorkshopAccessError("Reviewing-group code is invalid")
         now = timestamp(utc_now())
         session = self.sessions()
@@ -553,12 +561,7 @@ class WorkshopService:
         raw = hmac.digest(
             self.secret, b"review-group-join-code\0" + group_id.encode(), "sha256"
         )
-        value = int.from_bytes(raw[:8], "big")
-        characters: list[str] = []
-        for _ in range(10):
-            value, index = divmod(value, len(_JOIN_CODE_ALPHABET))
-            characters.append(_JOIN_CODE_ALPHABET[index])
-        return "".join(characters)
+        return f"{int.from_bytes(raw[:8], 'big') % 1_000_000:06d}"
 
     def _join_digest(self, code: str) -> str:
         return "sha256:" + hmac.new(
@@ -569,4 +572,4 @@ class WorkshopService:
 
     @staticmethod
     def _normalize_join_code(code: str) -> str:
-        return "".join(character for character in code.upper() if character.isalnum())
+        return "".join(character for character in code if character.isdigit())
