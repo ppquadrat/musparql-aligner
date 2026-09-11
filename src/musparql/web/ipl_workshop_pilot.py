@@ -102,7 +102,7 @@ def prepare_workspace(
                     name="Synthetic rehearsal — IPL workshop 16 September 2026",
                     status="draft",
                     opens_at=timestamp(now - timedelta(minutes=5)),
-                    closes_at=timestamp(now + timedelta(hours=6)),
+                    closes_at=timestamp(now + timedelta(days=7)),
                     max_participants=10,
                     allow_additional_assignments=False,
                     created_at=now_text,

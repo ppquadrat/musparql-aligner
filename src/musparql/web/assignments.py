@@ -657,24 +657,12 @@ class AssignmentService:
             self.current_notice_version,
         ):
             return False
-        now = timestamp(utc_now())
-        return bool(
-            session.scalar(
-                select(ReviewGroupMember)
-                .join(ReviewGroup, ReviewGroup.id == ReviewGroupMember.group_id)
-                .join(
-                    WorkshopRound,
-                    WorkshopRound.id == ReviewGroup.workshop_round_id,
-                )
-                .where(
-                    ReviewGroupMember.group_id == assignment.review_group_id,
-                    ReviewGroupMember.reviewer_id == reviewer_id,
-                    WorkshopRound.status == "open",
-                    WorkshopRound.opens_at <= now,
-                    WorkshopRound.closes_at > now,
-                )
-            )
-        )
+        # The workshop window controls admission, group changes, and new package
+        # claims. It must not strand a participant who already has an active
+        # assignment when the scheduled session ends.
+        return session.get(
+            ReviewGroupMember, (assignment.review_group_id, reviewer_id)
+        ) is not None
 
     def _reviewer_can_complete_terminal_assessment(
         self, session: Session, assignment: ReviewAssignment, reviewer_id: str

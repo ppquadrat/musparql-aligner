@@ -399,6 +399,12 @@ creates the same durable receipt and processing job for either submission type.
 Returning to the assignment page is non-mutating, so the assignment and its
 assignment-namespaced browser-local draft remain active.
 
+The round's closing time stops shared-code admission, group changes, and new
+package claims. It does not revoke an assignment that was already claimed:
+existing contributors may still reopen and submit that assignment after the
+scheduled workshop window. This prevents the timetable boundary from turning a
+valid submit or reload into an unexplained 404.
+
 Every terminal outcome returns to package choice. Additional claims are allowed
 only when the round's `allow_additional_assignments` switch is on. That switch
 is enough for spare capacity; no separate “old pairs” feature is required.

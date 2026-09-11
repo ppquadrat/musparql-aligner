@@ -1783,6 +1783,48 @@ def test_round_closure_preserves_outstanding_terminal_assessment_access(
     assert client.get(f"/assignments/{assignment_id}").status_code == 404
 
 
+def test_round_closure_does_not_strand_an_active_assignment(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    service = app.extensions["musparql_workshops"]
+    group_id = service.create_group(FIRST_ID)
+    assignment_id = service.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    client = app.test_client()
+    _login(client, app, sender, "first@example.invalid")
+    assert client.post(
+        f"/assignments/{assignment_id}", data=_assessment_form(client)
+    ).status_code == 302
+    bundle = client.get(f"/assignments/{assignment_id}/bundle").get_json()
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        workshop_round = session.get(WorkshopRound, "workshop-ipl")
+        assert workshop_round is not None
+        workshop_round.status = "closed"
+    engine.dispose()
+
+    assert client.get(f"/assignments/{assignment_id}").status_code == 200
+    assert client.get(f"/assignments/{assignment_id}/bundle").status_code == 200
+    assert client.get(
+        f"/assignments/{assignment_id}/workbench/"
+    ).status_code == 200
+    submitted = client.post(
+        f"/assignments/{assignment_id}/submissions",
+        json=_review_payload(
+            assignment_id,
+            bundle["bundle_digest"],
+            submitter_id=FIRST_ID,
+            event_reviewer_id=FIRST_ID,
+        ),
+        headers={"X-CSRF-Token": _csrf(client)},
+    )
+    assert submitted.status_code == 202
+
+
 def test_simultaneous_member_assessments_activate_without_sqlite_busy(
     workshop_app,
 ) -> None:
