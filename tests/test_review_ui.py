@@ -16,8 +16,8 @@ def test_hosted_review_state_is_scoped_to_assignment_and_keeps_local_keys() -> N
     app = (ROOT / "review" / "app.js").read_text(encoding="utf-8")
     html = (ROOT / "review" / "index.html").read_text(encoding="utf-8")
 
-    assert "musparql-review:schema5:${data.dataset_id}:${data.reviewer_id}:${hosted.assignment_id}" in app
-    assert "musparql-review-compare:schema5:${data.dataset_id}:${data.reviewer_id}:${hosted.assignment_id}" in app
+    assert "musparql-review:schema6:${data.dataset_id}:${hosted.draft_owner_id || data.reviewer_id}:${hosted.assignment_id}" in app
+    assert "musparql-review-compare:schema6:${data.dataset_id}:${hosted.draft_owner_id || data.reviewer_id}:${hosted.assignment_id}" in app
     assert "!hosted && data.reviewer_id" in app
     assert "hideHostedHoldoutControls()" in app
     assert "Signed in as ${hosted.reviewer_id}" in app

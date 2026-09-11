@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ value.round_name }} — Musparql review{% endblock %}
+{% block content %}
+  <h1>{{ value.round_name }}</h1>
+  <p>Create a reviewing group if you are working alone or starting a group. To work with someone else, enter the code shown on their screen.</p>
+  {% if result %}<p class="success" role="status">{{ result }}</p>{% endif %}
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+  <div class="actions">
+    <form method="post" action="{{ url_for('portal.create_workshop_group') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit">Create a reviewing group</button>
+    </form>
+    <form method="post" action="{{ url_for('portal.join_workshop_group') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="field">Reviewing-group code
+        <input name="join_code" inputmode="text" autocomplete="off" maxlength="12" required>
+      </label>
+      <button type="submit">Join group</button>
+    </form>
+  </div>
+
+  <h2>Your reviewing groups</h2>
+  {% if not value.groups %}
+    <p>You are not in a reviewing group yet.</p>
+  {% endif %}
+  {% for group in value.groups %}
+    <section class="notice">
+      <h3>Reviewing group {{ loop.index }}</h3>
+      <p>{{ group.member_count }} participant{% if group.member_count != 1 %}s{% endif %}</p>
+      <p>Join code: <strong class="join-code">{{ group.join_code[:5] }} {{ group.join_code[5:] }}</strong></p>
+      {% if group.active_assignment_id %}
+        <p>Current package: {{ group.active_package_name }}</p>
+        <p><a class="button" href="{{ url_for('portal.assignment', assignment_id=group.active_assignment_id) }}">Continue assignment</a></p>
+      {% elif group.can_claim %}
+        <h4>Choose a package</h4>
+        {% if value.packages %}
+          <div class="package-list">
+            {% for package in value.packages %}
+              <article class="package">
+                <h5>{{ package.display_name }}</h5>
+                {% if package.short_description %}<p>{{ package.short_description }}</p>{% endif %}
+                <form method="post" action="{{ url_for('portal.claim_workshop_package', group_id=group.id, package_id=package.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit">Choose this package</button>
+                </form>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p>No packages are currently available.</p>
+        {% endif %}
+      {% elif not value.allow_additional_assignments %}
+        <p>This group has finished its available assignment.</p>
+      {% endif %}
+    </section>
+  {% endfor %}
+{% endblock %}

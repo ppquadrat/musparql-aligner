@@ -21,6 +21,8 @@ from flask import (
     url_for,
 )
 
+from .workshops import WorkshopAccessError, WorkshopUnavailable
+
 
 portal = Blueprint("portal", __name__)
 View = TypeVar("View", bound=Callable[..., Any])
@@ -95,6 +97,7 @@ def index():
     ):
         return redirect(url_for("portal.profile"))
     assignments = []
+    workshop_available = False
     if (
         g.current_reviewer is not None
         and g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"]
@@ -102,10 +105,120 @@ def index():
         assignments = current_app.extensions["musparql_assignments"].list_for_reviewer(
             g.current_reviewer.id
         )
+        assignments.extend(
+            current_app.extensions[
+                "musparql_assignments"
+            ].list_group_assignments_for_reviewer(g.current_reviewer.id)
+        )
+        workshop_available = current_app.extensions[
+            "musparql_workshops"
+        ].available(g.current_reviewer.id)
     return render_template(
         "index.html",
         assignments=assignments,
+        workshop_available=workshop_available,
         profile_saved=request.args.get("profile_saved") == "yes",
+    )
+
+
+@portal.get("/workshop")
+@login_required
+def workshop():
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    if not current_app.extensions["musparql_profiles"].is_complete(
+        g.current_reviewer.id
+    ):
+        return redirect(url_for("portal.profile"))
+    try:
+        value = current_app.extensions["musparql_workshops"].dashboard(
+            g.current_reviewer.id
+        )
+    except WorkshopAccessError:
+        abort(403)
+    except WorkshopUnavailable:
+        abort(404)
+    messages = {
+        "group-created": "Your reviewing group is ready.",
+        "group-joined": "You joined the reviewing group.",
+        "package-claimed": "The package is assigned to your group.",
+    }
+    errors = {
+        "invalid-group-code": "That reviewing-group code is not available.",
+        "claim-unavailable": "That package could not be assigned to this group.",
+    }
+    return render_template(
+        "workshop.html",
+        value=value,
+        result=messages.get(request.args.get("result", ""), ""),
+        error=errors.get(request.args.get("error", ""), ""),
+    )
+
+
+@portal.post("/workshop/groups")
+@login_required
+def create_workshop_group():
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    if not current_app.extensions["musparql_profiles"].is_complete(
+        g.current_reviewer.id
+    ):
+        abort(403)
+    try:
+        current_app.extensions["musparql_workshops"].create_group(
+            g.current_reviewer.id
+        )
+    except WorkshopAccessError:
+        abort(403)
+    except WorkshopUnavailable:
+        abort(404)
+    return redirect(url_for("portal.workshop", result="group-created"))
+
+
+@portal.post("/workshop/groups/join")
+@login_required
+def join_workshop_group():
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    if not current_app.extensions["musparql_profiles"].is_complete(
+        g.current_reviewer.id
+    ):
+        abort(403)
+    try:
+        current_app.extensions["musparql_workshops"].join_group(
+            g.current_reviewer.id, request.form.get("join_code", "")
+        )
+    except WorkshopAccessError:
+        return redirect(url_for("portal.workshop", error="invalid-group-code"))
+    except WorkshopUnavailable:
+        abort(404)
+    return redirect(url_for("portal.workshop", result="group-joined"))
+
+
+@portal.post("/workshop/groups/<group_id>/packages/<package_id>/claim")
+@login_required
+def claim_workshop_package(group_id: str, package_id: str):
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    if not current_app.extensions["musparql_profiles"].is_complete(
+        g.current_reviewer.id
+    ):
+        abort(403)
+    try:
+        assignment_id = current_app.extensions["musparql_workshops"].claim_package(
+            reviewer_id=g.current_reviewer.id,
+            group_id=group_id,
+            package_id=package_id,
+        )
+    except WorkshopAccessError:
+        return redirect(url_for("portal.workshop", error="claim-unavailable"))
+    except WorkshopUnavailable:
+        abort(404)
+    except ValueError:
+        current_app.logger.error("Workshop package failed integrity validation")
+        return redirect(url_for("portal.workshop", error="claim-unavailable"))
+    return redirect(
+        url_for("portal.assignment", assignment_id=assignment_id)
     )
 
 
@@ -569,6 +682,8 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
         context = {
             "assignment_id": assignment_id,
             "reviewer_id": g.current_reviewer.id,
+            "draft_owner_id": payload.get("review_group_id")
+            or g.current_reviewer.id,
             "holdout_capability": False,
             "assignment_url": url_for(
                 "portal.assignment", assignment_id=assignment_id
@@ -577,10 +692,12 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
             "assignments_url": url_for("portal.index"),
             "logout_url": url_for("portal.logout"),
             "csrf_token": g.csrf_token,
-            "submission_url": url_for(
-                "portal.submit_assignment", assignment_id=assignment_id
-            ),
+            "read_only": "review_group_id" in payload,
         }
+        if "review_group_id" not in payload:
+            context["submission_url"] = url_for(
+                "portal.submit_assignment", assignment_id=assignment_id
+            )
         body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(
             context, ensure_ascii=True, separators=(",", ":")
         ) + ";\n"

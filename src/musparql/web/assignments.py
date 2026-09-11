@@ -18,9 +18,12 @@ from musparql.database.models import (
     KgSeedReviewDomain,
     KgSeedSnapshot,
     ReviewAssignment,
+    ReviewGroup,
+    ReviewGroupMember,
     Reviewer,
     ReviewerKgDomainAssessment,
     ReviewerResourceFamiliarityAssessment,
+    WorkshopRound,
 )
 from musparql.database.services import ProvenanceService
 from musparql.linguistic_dimensions import BUNDLE_SCHEMA, validate_bundle
@@ -43,6 +46,19 @@ _RECIPES = {
 }
 
 
+def has_current_consent(
+    reviewer: Reviewer | None, current_consent_version: str | None
+) -> bool:
+    """Fail closed unless an active reviewer accepted the configured statement."""
+    return bool(
+        reviewer is not None
+        and reviewer.status == "active"
+        and current_consent_version
+        and reviewer.consent_statement_version == current_consent_version
+        and reviewer.consented_at
+    )
+
+
 @dataclass(frozen=True)
 class Prompt:
     kg_id: str
@@ -59,13 +75,22 @@ class AssignmentView:
     domain_prompts: tuple[Prompt, ...]
     familiarity_prompts: tuple[Prompt, ...]
     assessed: bool
+    workbench_available: bool
 
 
 class AssignmentService:
-    def __init__(self, sessions: sessionmaker[Session], bundle_root: Path) -> None:
+    def __init__(
+        self,
+        sessions: sessionmaker[Session],
+        bundle_root: Path,
+        current_consent_version: str | None = None,
+    ) -> None:
         self.sessions = sessions
         self.bundle_root = bundle_root.resolve()
-        self.provenance = ProvenanceService(sessions)
+        self.current_consent_version = current_consent_version
+        self.provenance = ProvenanceService(
+            sessions, current_consent_version=current_consent_version
+        )
 
     def owner_choices(self) -> tuple[list[Reviewer], list[KgSeedSnapshot]]:
         with self.sessions() as session:
@@ -106,6 +131,37 @@ class AssignmentService:
                 )
             )
 
+    def list_group_assignments_for_reviewer(
+        self, reviewer_id: str
+    ) -> list[ReviewAssignment]:
+        now = timestamp(utc_now())
+        with self.sessions() as session:
+            reviewer = session.get(Reviewer, reviewer_id)
+            if not has_current_consent(reviewer, self.current_consent_version):
+                return []
+            return list(
+                session.scalars(
+                    select(ReviewAssignment)
+                    .join(
+                        ReviewGroupMember,
+                        ReviewGroupMember.group_id == ReviewAssignment.review_group_id,
+                    )
+                    .join(ReviewGroup, ReviewGroup.id == ReviewAssignment.review_group_id)
+                    .join(
+                        WorkshopRound,
+                        WorkshopRound.id == ReviewGroup.workshop_round_id,
+                    )
+                    .where(
+                        ReviewGroupMember.reviewer_id == reviewer_id,
+                        ReviewAssignment.status.in_(("ready", "active")),
+                        WorkshopRound.status == "open",
+                        WorkshopRound.opens_at <= now,
+                        WorkshopRound.closes_at > now,
+                    )
+                    .order_by(ReviewAssignment.created_at.desc())
+                )
+            )
+
     def create(
         self,
         *,
@@ -118,7 +174,7 @@ class AssignmentService:
     ) -> str:
         if mode not in _RECIPES or processing_recipe not in _RECIPES[mode]:
             raise ValueError("Mode and processing recipe do not match")
-        payload, relative_path, digest = self._load_neutral_bundle(bundle_name)
+        payload, relative_path, digest = self.load_neutral_bundle(bundle_name)
         bundle_mode = str(payload.get("mode") or "initial")
         if bundle_mode != mode:
             raise ValueError("Bundle mode does not match the assignment")
@@ -186,14 +242,27 @@ class AssignmentService:
     def view(self, assignment_id: str, reviewer_id: str) -> AssignmentView:
         with self.sessions() as session:
             assignment = session.get(ReviewAssignment, assignment_id)
-            if assignment is None or assignment.reviewer_id != reviewer_id:
+            if assignment is None or not self._reviewer_can_access(
+                session, assignment, reviewer_id
+            ):
                 raise LookupError("Assignment is not available")
             if assignment.status not in {"ready", "active"}:
                 raise LookupError("Assignment is not available")
-            domains = self._domain_prompts(session, assignment)
-            familiarities = self._familiarity_prompts(session, assignment)
-            assessed = self._assessment_is_complete(session, assignment)
-            return AssignmentView(assignment, domains, familiarities, assessed)
+            domains = self._domain_prompts(session, assignment, reviewer_id)
+            familiarities = self._familiarity_prompts(
+                session, assignment, reviewer_id
+            )
+            assessed = self._assessment_is_complete(
+                session, assignment, reviewer_id
+            )
+            return AssignmentView(
+                assignment,
+                domains,
+                familiarities,
+                assessed,
+                assignment.status == "active"
+                and (assignment.review_group_id is not None or assessed),
+            )
 
     def assess(
         self,
@@ -260,9 +329,9 @@ class AssignmentService:
 
     def attributed_bundle(self, assignment_id: str, reviewer_id: str) -> dict[str, Any]:
         view = self.view(assignment_id, reviewer_id)
-        if not view.assessed or view.assignment.status != "active":
+        if not view.workbench_available:
             raise PermissionError("Pre-review assessment is required")
-        payload, _path, digest = self._load_neutral_bundle(view.assignment.bundle_path)
+        payload, _path, digest = self.load_neutral_bundle(view.assignment.bundle_path)
         if digest != view.assignment.bundle_digest:
             raise ValueError("Assignment bundle digest has changed")
         attributed = dict(payload)
@@ -277,6 +346,8 @@ class AssignmentService:
         attributed["reviewer_id"] = reviewer_id
         attributed["assignment_id"] = assignment_id
         attributed["bundle_digest"] = digest
+        if view.assignment.review_group_id is not None:
+            attributed["review_group_id"] = view.assignment.review_group_id
         return attributed
 
     def submission_bundle(
@@ -285,19 +356,24 @@ class AssignmentService:
         """Return the frozen authoritative bundle for an attributable submission."""
         with self.sessions() as session:
             assignment = session.get(ReviewAssignment, assignment_id)
-            if assignment is None or assignment.reviewer_id != reviewer_id:
+            if assignment is None or not self._reviewer_can_access(
+                session, assignment, reviewer_id
+            ):
                 raise LookupError("Assignment is not available")
+            if assignment.reviewer_id is None:
+                raise PermissionError("Group submission is not available yet")
             if assignment.status not in {
                 "active", "submitted", "processing", "ready_for_owner_review", "approved", "failed"
             }:
                 raise PermissionError("Assignment is not open for submission")
             session.expunge(assignment)
-        payload, _path, digest = self._load_neutral_bundle(assignment.bundle_path)
+        payload, _path, digest = self.load_neutral_bundle(assignment.bundle_path)
         if digest != assignment.bundle_digest:
             raise ValueError("Assignment bundle digest has changed")
         return assignment, payload
 
-    def _load_neutral_bundle(self, bundle_name: str) -> tuple[dict[str, Any], str, str]:
+    def load_neutral_bundle(self, bundle_name: str) -> tuple[dict[str, Any], str, str]:
+        """Validate and load one reviewer-neutral bundle under the configured root."""
         if not bundle_name or Path(bundle_name).is_absolute():
             raise ValueError("Bundle path must be relative to the configured root")
         path = (self.bundle_root / bundle_name).resolve()
@@ -386,7 +462,7 @@ class AssignmentService:
         return result
 
     def _domain_prompts(
-        self, session: Session, assignment: ReviewAssignment
+        self, session: Session, assignment: ReviewAssignment, reviewer_id: str
     ) -> tuple[Prompt, ...]:
         rows = session.execute(
             select(KgSeedReviewDomain)
@@ -406,14 +482,14 @@ class AssignmentService:
                 row.label,
                 row.description,
                 self._domain_head_value(
-                    session, assignment.reviewer_id, row.kg_id, row.domain_id
+                    session, reviewer_id, row.kg_id, row.domain_id
                 ),
             )
             for row in rows
         )
 
     def _familiarity_prompts(
-        self, session: Session, assignment: ReviewAssignment
+        self, session: Session, assignment: ReviewAssignment, reviewer_id: str
     ) -> tuple[Prompt, ...]:
         rows = session.execute(
             select(KgSeedFamiliarityScope)
@@ -436,7 +512,7 @@ class AssignmentService:
                 row.label,
                 row.description,
                 self._familiarity_head_value(
-                    session, assignment.reviewer_id, row.kg_id, row.scope_id
+                    session, reviewer_id, row.kg_id, row.scope_id
                 ),
             )
             for row in rows
@@ -444,13 +520,13 @@ class AssignmentService:
 
     @staticmethod
     def _assessment_is_complete(
-        session: Session, assignment: ReviewAssignment
+        session: Session, assignment: ReviewAssignment, reviewer_id: str
     ) -> bool:
         domain_count = len(
             session.scalars(
                 select(ReviewerKgDomainAssessment).where(
                     ReviewerKgDomainAssessment.assignment_id == assignment.id,
-                    ReviewerKgDomainAssessment.reviewer_id == assignment.reviewer_id,
+                    ReviewerKgDomainAssessment.reviewer_id == reviewer_id,
                 )
             ).all()
         )
@@ -458,8 +534,7 @@ class AssignmentService:
             session.scalars(
                 select(ReviewerResourceFamiliarityAssessment).where(
                     ReviewerResourceFamiliarityAssessment.assignment_id == assignment.id,
-                    ReviewerResourceFamiliarityAssessment.reviewer_id
-                    == assignment.reviewer_id,
+                    ReviewerResourceFamiliarityAssessment.reviewer_id == reviewer_id,
                 )
             ).all()
         )
@@ -488,6 +563,35 @@ class AssignmentService:
             ).all()
         )
         return domain_count == expected_domains and familiarity_count == expected_familiarities
+
+    def _reviewer_can_access(
+        self, session: Session, assignment: ReviewAssignment, reviewer_id: str
+    ) -> bool:
+        if assignment.reviewer_id is not None:
+            return assignment.reviewer_id == reviewer_id
+        if assignment.review_group_id is None:
+            return False
+        reviewer = session.get(Reviewer, reviewer_id)
+        if not has_current_consent(reviewer, self.current_consent_version):
+            return False
+        now = timestamp(utc_now())
+        return bool(
+            session.scalar(
+                select(ReviewGroupMember)
+                .join(ReviewGroup, ReviewGroup.id == ReviewGroupMember.group_id)
+                .join(
+                    WorkshopRound,
+                    WorkshopRound.id == ReviewGroup.workshop_round_id,
+                )
+                .where(
+                    ReviewGroupMember.group_id == assignment.review_group_id,
+                    ReviewGroupMember.reviewer_id == reviewer_id,
+                    WorkshopRound.status == "open",
+                    WorkshopRound.opens_at <= now,
+                    WorkshopRound.closes_at > now,
+                )
+            )
+        )
 
     def _domain_head_id(
         self, reviewer_id: str, kg_id: str, subject_id: str

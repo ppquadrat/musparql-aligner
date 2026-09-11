@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 import hmac
 from typing import Any
 import unicodedata
@@ -27,6 +28,7 @@ from .models import (
     ReviewerKgDomainAssessment,
     ReviewerResourceFamiliarityAssessment,
     Reviewer,
+    ReviewGroup,
     ReviewGroupMember,
     WorkshopEntryCode,
     WorkshopEntryRedemption,
@@ -230,8 +232,13 @@ def _assert_head(records: Sequence[Any], predecessor_id: str | None, subject: st
 
 
 class ProvenanceService:
-    def __init__(self, sessions: sessionmaker[Session]) -> None:
+    def __init__(
+        self,
+        sessions: sessionmaker[Session],
+        current_consent_version: str | None = None,
+    ) -> None:
         self.sessions = sessions
+        self.current_consent_version = current_consent_version
 
     def append_domain_expertise(self, record: Mapping[str, Any]) -> None:
         reviewer_id = validate_reviewer_id(record.get("reviewer_id"))
@@ -307,7 +314,11 @@ class ProvenanceService:
             raise ValueError("Pre-review assessment batch requires pre_review context")
         assignment_id = str(next(iter(assignment_ids)))
 
-        with self.sessions.begin() as session:
+        with self.sessions() as session:
+            # SQLite has no row locks. Acquire the write reservation before any
+            # reads so simultaneous group-member assessments cannot fail while
+            # upgrading a stale WAL snapshot to a writer.
+            session.execute(text("BEGIN IMMEDIATE"))
             assignments = AssignmentRepository(session)
             assignment = assignments.get(assignment_id)
             if assignment is None:
@@ -319,6 +330,37 @@ class ProvenanceService:
                         "Pre-review assessments must belong to the assigned reviewer"
                     )
             elif assignment.review_group_id is not None:
+                now = datetime.now(timezone.utc).isoformat(
+                    timespec="microseconds"
+                ).replace("+00:00", "Z")
+                group = session.get(ReviewGroup, assignment.review_group_id)
+                workshop_round = (
+                    session.get(WorkshopRound, group.workshop_round_id)
+                    if group is not None
+                    else None
+                )
+                reviewers = list(
+                    session.scalars(
+                        select(Reviewer).where(Reviewer.id.in_(reviewer_ids))
+                    )
+                )
+                if self.current_consent_version and (
+                    len(reviewers) != len(reviewer_ids)
+                    or any(
+                        reviewer.status != "active"
+                        or reviewer.consent_statement_version
+                        != self.current_consent_version
+                        or not reviewer.consented_at
+                        for reviewer in reviewers
+                    )
+                    or workshop_round is None
+                    or workshop_round.status != "open"
+                    or workshop_round.opens_at > now
+                    or workshop_round.closes_at <= now
+                ):
+                    raise ValueError(
+                        "Current consent and an open workshop round are required"
+                    )
                 member_ids = set(
                     session.scalars(
                         select(ReviewGroupMember.reviewer_id).where(
@@ -366,12 +408,62 @@ class ProvenanceService:
             for record in familiarity_records:
                 self._append_assessment(session, record, domain=False)
             if activate_assignment:
-                if assignment.status != "ready":
-                    raise ValueError("Only a ready assignment can be activated")
-                assignment.status = "active"
-                assignment.opened_at = str(records[0]["assessed_at"])
-                assignment.participant_status = "active"
-                assignment.claimed_at = str(records[0]["assessed_at"])
+                if assignment.review_group_id is None:
+                    if assignment.status != "ready":
+                        raise ValueError("Only a ready assignment can be activated")
+                    should_activate = True
+                else:
+                    if assignment.status not in {"ready", "active"}:
+                        raise ValueError("This group assignment is not open for assessment")
+                    session.flush()
+                    member_ids = list(
+                        session.scalars(
+                            select(ReviewGroupMember.reviewer_id).where(
+                                ReviewGroupMember.group_id
+                                == assignment.review_group_id
+                            )
+                        )
+                    )
+                    expected_domain_count = len(provided_domains)
+                    expected_familiarity_count = len(provided_familiarities)
+                    should_activate = assignment.status == "ready" and all(
+                        int(
+                            session.scalar(
+                                select(func.count())
+                                .select_from(ReviewerKgDomainAssessment)
+                                .where(
+                                    ReviewerKgDomainAssessment.assignment_id
+                                    == assignment.id,
+                                    ReviewerKgDomainAssessment.reviewer_id
+                                    == member_id,
+                                )
+                            )
+                            or 0
+                        )
+                        == expected_domain_count
+                        and int(
+                            session.scalar(
+                                select(func.count())
+                                .select_from(ReviewerResourceFamiliarityAssessment)
+                                .where(
+                                    ReviewerResourceFamiliarityAssessment.assignment_id
+                                    == assignment.id,
+                                    ReviewerResourceFamiliarityAssessment.reviewer_id
+                                    == member_id,
+                                )
+                            )
+                            or 0
+                        )
+                        == expected_familiarity_count
+                        for member_id in member_ids
+                    )
+                if should_activate:
+                    assignment.status = "active"
+                    assignment.opened_at = str(records[0]["assessed_at"])
+                    assignment.participant_status = "active"
+                    if assignment.claimed_at is None:
+                        assignment.claimed_at = str(records[0]["assessed_at"])
+            session.commit()
 
     def _append_assessment(
         self, session: Session, record: Mapping[str, Any], *, domain: bool

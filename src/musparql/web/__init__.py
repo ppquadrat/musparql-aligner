@@ -77,6 +77,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         PRIVACY_NOTICE_VERSION=os.environ.get("MUSPARQL_PRIVACY_NOTICE_VERSION"),
         PRIVACY_NOTICE_BODY=os.environ.get("MUSPARQL_PRIVACY_NOTICE_BODY"),
         PRIVACY_NOTICE_PATH=os.environ.get("MUSPARQL_PRIVACY_NOTICE_PATH"),
+        CONSENT_STATEMENT_VERSION=os.environ.get(
+            "MUSPARQL_CONSENT_STATEMENT_VERSION"
+        ),
         TRUSTED_HOSTS=_environment_list("MUSPARQL_TRUSTED_HOSTS"),
         BEHIND_SINGLE_PROXY=os.environ.get("MUSPARQL_BEHIND_SINGLE_PROXY") == "1",
         ALLOW_SYNTHETIC_PRIVACY_NOTICE=(
@@ -163,6 +166,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     from .profile import ProfileService
     from .assignments import AssignmentService
     from .submissions import ProcessingService, SubmissionService
+    from .workshops import WorkshopService
 
     app.extensions["musparql_profiles"] = ProfileService(
         sessions=sessions,
@@ -173,6 +177,13 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     app.extensions["musparql_assignments"] = AssignmentService(
         sessions=sessions,
         bundle_root=Path(app.config["ASSIGNMENT_BUNDLE_ROOT"]).expanduser().resolve(),
+        current_consent_version=app.config["CONSENT_STATEMENT_VERSION"],
+    )
+    app.extensions["musparql_workshops"] = WorkshopService(
+        sessions=sessions,
+        assignments=app.extensions["musparql_assignments"],
+        secret=app.config["APP_SECRET"].encode("utf-8"),
+        current_consent_version=app.config["CONSENT_STATEMENT_VERSION"],
     )
     app.extensions["musparql_submissions"] = SubmissionService(
         sessions=sessions,

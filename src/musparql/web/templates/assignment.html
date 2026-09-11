@@ -5,10 +5,17 @@
   {% if profile_saved %}<p class="success" role="status">Your profile is saved. Your assignment is ready below.</p>{% endif %}
   <p class="metadata">{{ value.assignment.id }} · {{ value.assignment.mode }} · {{ value.assignment.status }}</p>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
-  {% if value.assessed %}
-    <p>Your pre-review assessment has been recorded. The workbench is attributed from your authenticated assignment; browser-supplied identity is not used.</p>
+  {% if value.workbench_available %}
+    {% if value.assessed %}
+      <p>Your pre-review assessment has been recorded. The workbench is attributed from your authenticated assignment; browser-supplied identity is not used.</p>
+    {% else %}
+      <p>This group assignment is already active. You may contribute now; your individual KG-specific questions remain available below and do not block the group.</p>
+    {% endif %}
     <p><a class="button" href="{{ url_for('portal.assignment_workbench', assignment_id=value.assignment.id) }}">Open {% if value.assignment.mode == 'linguistic' %}linguistic rating{% else %}review{% endif %} workbench</a></p>
-  {% else %}
+  {% elif value.assessed %}
+    <p>Your pre-review assessment has been recorded. The assignment will open when every current group member has completed their questions.</p>
+  {% endif %}
+  {% if not value.assessed %}
     <p>Before review items become available, confirm or update your current expertise and familiarity for every frozen prompt below. Your previous value is selected where one exists.</p>
     <form method="post" action="{{ url_for('portal.assignment', assignment_id=value.assignment.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -37,7 +44,7 @@
         {% endfor %}
       </section>
       <label class="check"><input type="checkbox" name="confirmed" value="yes" required> <span>I confirm these are my current answers for this review round.</span></label>
-      <button type="submit">Record assessment and open assignment</button>
+      <button type="submit">Record assessment</button>
     </form>
   {% endif %}
 {% endblock %}

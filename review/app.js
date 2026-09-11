@@ -100,7 +100,13 @@
     && data.holdout_input_policy !== "identity_private_filtered_upstream";
   els.exportHoldoutSelectorsBtn.classList.toggle("hidden", !selectorExportAllowed);
   if (hostedNoHoldout) hideHostedHoldoutControls();
-  if (hosted) els.exportReviewsBtn.textContent = "Submit review";
+  if (hosted?.read_only) {
+    els.exportReviewsBtn.textContent = "Read-only — group submission coming soon";
+    els.exportReviewsBtn.disabled = true;
+    els.exportReviewsBtn.title = "Your group draft is saved in this browser, but group submission is not available yet.";
+  } else if (hosted) {
+    els.exportReviewsBtn.textContent = "Submit review";
+  }
   els.continueReviewBtn.addEventListener("click", () => {
     els.submissionStatus.classList.add("hidden");
     if (continueAfterSubmission) continueAfterSubmission();
@@ -112,7 +118,7 @@
   }
 
   const reviewStorageKey = hosted
-    ? `musparql-review:schema5:${data.dataset_id}:${data.reviewer_id}:${hosted.assignment_id}`
+    ? `musparql-review:schema6:${data.dataset_id}:${hosted.draft_owner_id || data.reviewer_id}:${hosted.assignment_id}`
     : `musparql-review:schema4:${data.dataset_id}:${data.reviewer_id}`;
   let reviews = loadReviews();
   let privateExportReady = false;
@@ -146,11 +152,14 @@
 
   function loadReviews() {
     try {
-      const legacyRaw = !hosted && data.reviewer_id === "reviewer-0001"
+      const hostedReviewerRaw = hosted?.draft_owner_id && hosted.draft_owner_id !== data.reviewer_id
+        ? window.localStorage.getItem(`musparql-review:schema5:${data.dataset_id}:${data.reviewer_id}:${hosted.assignment_id}`)
+        : null;
+      const legacyRaw = hostedReviewerRaw || (!hosted && data.reviewer_id === "reviewer-0001"
         ? window.localStorage.getItem(`musparql-review:schema3:${data.dataset_id}`)
           || window.localStorage.getItem(`musparql-review:schema2:${data.dataset_id}`)
           || window.localStorage.getItem(`musparql-review:${data.dataset_id}`)
-        : null;
+        : null);
       const raw = window.localStorage.getItem(reviewStorageKey) || legacyRaw;
       if (!raw) return {};
       const parsed = JSON.parse(raw);
@@ -1160,7 +1169,10 @@
         headers: {"Content-Type": "application/json", "X-CSRF-Token": hosted.csrf_token},
         body: JSON.stringify(payload),
       });
-      const result = await response.json();
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json")
+        ? await response.json()
+        : {error: "Submission was not accepted."};
       if (!response.ok) throw new Error(result.error || "Submission was not accepted.");
       showSubmissionSuccess(result, payload);
     } catch (error) {
@@ -1382,7 +1394,7 @@
 
   function initCompareMode() {
     const compareStorageKey = hosted
-      ? `musparql-review-compare:schema5:${data.dataset_id}:${data.reviewer_id}:${hosted.assignment_id}`
+      ? `musparql-review-compare:schema6:${data.dataset_id}:${hosted.draft_owner_id || data.reviewer_id}:${hosted.assignment_id}`
       : `musparql-review-compare:schema4:${data.dataset_id}:${data.reviewer_id}`;
     let compareReviews = loadCompareReviews();
     let privateCompareExportReady = false;
@@ -1470,11 +1482,14 @@
 
     function loadCompareReviews() {
       try {
-        const legacyRaw = !hosted && data.reviewer_id === "reviewer-0001"
+        const hostedReviewerRaw = hosted?.draft_owner_id && hosted.draft_owner_id !== data.reviewer_id
+          ? window.localStorage.getItem(`musparql-review-compare:schema5:${data.dataset_id}:${data.reviewer_id}:${hosted.assignment_id}`)
+          : null;
+        const legacyRaw = hostedReviewerRaw || (!hosted && data.reviewer_id === "reviewer-0001"
           ? window.localStorage.getItem(`musparql-review-compare:schema3:${data.dataset_id}`)
             || window.localStorage.getItem(`musparql-review-compare:schema2:${data.dataset_id}`)
             || window.localStorage.getItem(`musparql-review-compare:${data.dataset_id}`)
-          : null;
+          : null);
         const raw = window.localStorage.getItem(compareStorageKey) || legacyRaw;
         if (!raw) return {};
         const parsed = JSON.parse(raw);
