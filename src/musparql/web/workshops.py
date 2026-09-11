@@ -16,6 +16,7 @@ from musparql.database.models import (
     ReviewAssignment,
     ReviewGroup,
     ReviewGroupMember,
+    ReviewSubmission,
     Reviewer,
     WorkshopRound,
     WorkshopWorkPackage,
@@ -53,12 +54,20 @@ class ReviewGroupView:
     active_assignment_id: str | None
     active_package_name: str | None
     can_claim: bool
+    outstanding_assessments: tuple["OutstandingAssessmentView", ...]
+
+
+@dataclass(frozen=True)
+class OutstandingAssessmentView:
+    assignment_id: str
+    package_name: str
 
 
 @dataclass(frozen=True)
 class WorkshopView:
     round_id: str
     round_name: str
+    is_open: bool
     allow_additional_assignments: bool
     groups: tuple[ReviewGroupView, ...]
     packages: tuple[WorkPackageView, ...]
@@ -81,18 +90,32 @@ class WorkshopService:
         self.current_notice_version = current_notice_version
 
     def available(self, reviewer_id: str) -> bool:
-        """Return whether a consented reviewer has one currently open round."""
+        """Return whether a reviewer has an open or previously joined round."""
         now = timestamp(utc_now())
         with self.sessions() as session:
             reviewer = session.get(Reviewer, reviewer_id)
-            return self._eligible(reviewer) and len(self._open_rounds(session, now)) == 1
+            if not self._eligible(reviewer):
+                return False
+            if len(self._open_rounds(session, now)) == 1:
+                return True
+            return self._latest_joined_round(session, reviewer_id) is not None
 
     def dashboard(self, reviewer_id: str) -> WorkshopView:
         now = timestamp(utc_now())
         with self.sessions() as session:
             reviewer = session.get(Reviewer, reviewer_id)
             self._require_eligible(reviewer)
-            workshop_round = self._open_round(session, now)
+            open_rounds = self._open_rounds(session, now)
+            if len(open_rounds) > 1:
+                raise WorkshopUnavailable("Exactly one workshop round must be open")
+            workshop_round = (
+                open_rounds[0]
+                if open_rounds
+                else self._latest_joined_round(session, reviewer_id)
+            )
+            if workshop_round is None:
+                raise WorkshopUnavailable("No workshop round is available")
+            round_is_open = bool(open_rounds)
             groups = list(
                 session.scalars(
                     select(ReviewGroup)
@@ -137,6 +160,20 @@ class WorkshopService:
                     )
                     or 0
                 )
+                outstanding_assessments = tuple(
+                    OutstandingAssessmentView(
+                        assignment_id=item.id,
+                        package_name=package_names.get(
+                            item.work_package_id, "Completed package"
+                        ),
+                    )
+                    for item in assignments
+                    if item.participant_status in {"completed", "partial", "abandoned"}
+                    and reviewer_id in (item.closed_contributor_ids or ())
+                    and not self.assignments.assessment_is_complete(
+                        session, item, reviewer_id
+                    )
+                )
                 group_views.append(
                     ReviewGroupView(
                         id=group.id,
@@ -146,11 +183,13 @@ class WorkshopService:
                         active_package_name=(
                             package_names.get(active.work_package_id) if active else None
                         ),
-                        can_claim=active is None
+                        can_claim=round_is_open
+                        and active is None
                         and (
                             not assignments
                             or workshop_round.allow_additional_assignments
                         ),
+                        outstanding_assessments=outstanding_assessments,
                     )
                 )
             packages = tuple(
@@ -172,6 +211,7 @@ class WorkshopService:
             return WorkshopView(
                 round_id=workshop_round.id,
                 round_name=workshop_round.name,
+                is_open=round_is_open,
                 allow_additional_assignments=workshop_round.allow_additional_assignments,
                 groups=tuple(group_views),
                 packages=packages,
@@ -239,8 +279,8 @@ class WorkshopService:
                     )
                 )
             )
-            if assignments and not any(
-                item.participant_status in _ACTIVE_PARTICIPANT_STATUSES
+            if any(
+                item.participant_status in {"completed", "partial", "abandoned"}
                 for item in assignments
             ):
                 raise WorkshopAccessError("This reviewing group is closed to new members")
@@ -404,6 +444,60 @@ class WorkshopService:
         finally:
             db_session.close()
 
+    def abandon_assignment(self, *, reviewer_id: str, assignment_id: str) -> None:
+        """Atomically close a workshop assignment without creating a submission."""
+        now = timestamp(utc_now())
+        session = self.sessions()
+        try:
+            session.execute(text("BEGIN IMMEDIATE"))
+            reviewer = session.get(Reviewer, reviewer_id)
+            self._require_eligible(reviewer)
+            workshop_round = self._open_round(session, now)
+            assignment = session.get(ReviewAssignment, assignment_id)
+            if (
+                assignment is None
+                or assignment.review_group_id is None
+                or assignment.status not in {"ready", "active"}
+                or assignment.participant_status not in _ACTIVE_PARTICIPANT_STATUSES
+            ):
+                raise WorkshopAccessError("Assignment is not open for abandonment")
+            if session.scalar(
+                select(ReviewSubmission.id)
+                .where(ReviewSubmission.assignment_id == assignment_id)
+                .limit(1)
+            ) is not None:
+                raise WorkshopAccessError("A submitted assignment cannot be abandoned")
+            group = session.get(ReviewGroup, assignment.review_group_id)
+            member = session.get(
+                ReviewGroupMember, (assignment.review_group_id, reviewer_id)
+            )
+            if (
+                group is None
+                or member is None
+                or group.workshop_round_id != workshop_round.id
+            ):
+                raise WorkshopAccessError("Assignment is not open for abandonment")
+            contributor_ids = tuple(
+                sorted(
+                    session.scalars(
+                        select(ReviewGroupMember.reviewer_id).where(
+                            ReviewGroupMember.group_id == assignment.review_group_id
+                        )
+                    ).all()
+                )
+            )
+            if not contributor_ids:
+                raise WorkshopAccessError("Assignment has no contributors")
+            assignment.participant_status = "abandoned"
+            assignment.completed_at = now
+            assignment.closed_contributor_ids = list(contributor_ids)
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     def _eligible(self, reviewer: Reviewer | None) -> bool:
         return has_current_consent(
             reviewer,
@@ -427,6 +521,19 @@ class WorkshopService:
                 )
                 .order_by(WorkshopRound.opens_at, WorkshopRound.id)
             )
+        )
+
+    @staticmethod
+    def _latest_joined_round(
+        session: Session, reviewer_id: str
+    ) -> WorkshopRound | None:
+        return session.scalar(
+            select(WorkshopRound)
+            .join(ReviewGroup, ReviewGroup.workshop_round_id == WorkshopRound.id)
+            .join(ReviewGroupMember, ReviewGroupMember.group_id == ReviewGroup.id)
+            .where(ReviewGroupMember.reviewer_id == reviewer_id)
+            .order_by(WorkshopRound.created_at.desc(), WorkshopRound.id.desc())
+            .limit(1)
         )
 
     @classmethod

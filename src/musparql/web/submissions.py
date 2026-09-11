@@ -33,6 +33,9 @@ class Receipt:
     submitted_at: str
     duplicate: bool
     job_id: str
+    completion_type: str
+    completion_item_count: int
+    completion_total_count: int
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -44,6 +47,9 @@ class Receipt:
             "duplicate": self.duplicate,
             "job_id": self.job_id,
             "status": "accepted",
+            "completion_type": self.completion_type,
+            "completion_item_count": self.completion_item_count,
+            "completion_total_count": self.completion_total_count,
         }
 
 
@@ -59,6 +65,11 @@ def _retry_identity(payload: Mapping[str, Any]) -> bytes:
     """Canonical review content, excluding browser/session retry metadata."""
     comparable = dict(payload)
     comparable.pop("exported_at", None)
+    # Completion type was added after the first group receipts. Review content
+    # still uniquely determines whether a group submission is complete or partial.
+    comparable.pop("completion_type", None)
+    comparable.pop("completion_item_count", None)
+    comparable.pop("completion_total_count", None)
     if comparable.get("review_group_id") is not None:
         comparable.pop("reviewer_id", None)
         comparable.pop("submitted_by_reviewer_id", None)
@@ -111,12 +122,20 @@ class SubmissionService:
         return Draft202012Validator(schema, format_checker=FormatChecker())
 
     def submit(
-        self, assignment_id: str, reviewer_id: str, payload: Mapping[str, Any]
+        self,
+        assignment_id: str,
+        reviewer_id: str,
+        payload: Mapping[str, Any],
+        *,
+        completion_type: str = "completed",
     ) -> Receipt:
         server_fields = {
             "review_group_id",
             "submitted_by_reviewer_id",
             "contributor_reviewer_ids",
+            "completion_type",
+            "completion_item_count",
+            "completion_total_count",
         }
         if server_fields.intersection(payload):
             raise ValueError("Server-owned attribution fields must not be supplied")
@@ -134,6 +153,12 @@ class SubmissionService:
                 "active", "submitted", "processing", "ready_for_owner_review", "approved", "failed"
             }:
                 raise PermissionError("Assignment is not open for submission")
+            if persisted.participant_status == "abandoned":
+                raise PermissionError("Abandoned assignments cannot be submitted")
+            if completion_type not in {"completed", "partial"}:
+                raise ValueError("Completion type must be completed or partial")
+            if persisted.review_group_id is None and completion_type != "completed":
+                raise ValueError("Partial submission is available for group assignments only")
             contributor_ids = self.assignments.submission_contributor_ids(
                 session, persisted, reviewer_id
             )
@@ -147,14 +172,21 @@ class SubmissionService:
                     review_group_id=persisted.review_group_id,
                     submitted_by_reviewer_id=reviewer_id,
                     contributor_reviewer_ids=list(contributor_ids),
+                    completion_type=completion_type,
                 )
-            self._validate(
+            completion_item_count, completion_total_count = self._validate(
                 persisted,
                 bundle,
                 canonical_payload,
                 submitting_reviewer_id=reviewer_id,
                 contributor_ids=contributor_ids,
+                completion_type=completion_type,
             )
+            if persisted.review_group_id is not None:
+                canonical_payload.update(
+                    completion_item_count=completion_item_count,
+                    completion_total_count=completion_total_count,
+                )
             raw = _canonical_bytes(canonical_payload)
             digest = _digest(raw)
             existing = session.scalar(
@@ -167,10 +199,21 @@ class SubmissionService:
                 job = session.scalar(
                     select(ProcessingJob).where(ProcessingJob.submission_id == existing.id)
                 )
-                session.commit()
                 if job is None:
                     raise RuntimeError("Accepted submission has no processing job")
-                return self._receipt(existing, job, duplicate=True)
+                self._backfill_completion(
+                    persisted, completion_type, completion_item_count,
+                    completion_total_count, contributor_ids,
+                )
+                session.commit()
+                return self._receipt(
+                    existing,
+                    job,
+                    duplicate=True,
+                    completion_type=completion_type,
+                    item_count=completion_item_count,
+                    total_count=completion_total_count,
+                )
             retry_identity = _retry_identity(canonical_payload)
             for candidate in session.scalars(
                 select(ReviewSubmission).where(
@@ -193,10 +236,21 @@ class SubmissionService:
                             ProcessingJob.submission_id == candidate.id
                         )
                     )
-                    session.commit()
                     if job is None:
                         raise RuntimeError("Accepted submission has no processing job")
-                    return self._receipt(candidate, job, duplicate=True)
+                    self._backfill_completion(
+                        persisted, completion_type, completion_item_count,
+                        completion_total_count, contributor_ids,
+                    )
+                    session.commit()
+                    return self._receipt(
+                        candidate,
+                        job,
+                        duplicate=True,
+                        completion_type=completion_type,
+                        item_count=completion_item_count,
+                        total_count=completion_total_count,
+                    )
             if (
                 persisted.review_group_id is not None
                 and persisted.closed_contributor_ids is not None
@@ -249,11 +303,20 @@ class SubmissionService:
             session.add(job)
             persisted.status = "submitted"
             persisted.submitted_at = now
-            persisted.participant_status = "completed"
+            persisted.participant_status = completion_type
             persisted.completed_at = now
+            persisted.completion_item_count = completion_item_count
+            persisted.completion_total_count = completion_total_count
             persisted.closed_contributor_ids = list(contributor_ids)
             session.commit()
-            return self._receipt(submission, job, duplicate=False)
+            return self._receipt(
+                submission,
+                job,
+                duplicate=False,
+                completion_type=completion_type,
+                item_count=completion_item_count,
+                total_count=completion_total_count,
+            )
         except Exception:
             session.rollback()
             if stored_path is not None:
@@ -263,10 +326,37 @@ class SubmissionService:
             session.close()
 
     @staticmethod
-    def _receipt(submission: ReviewSubmission, job: ProcessingJob, *, duplicate: bool) -> Receipt:
+    def _backfill_completion(
+        assignment: ReviewAssignment,
+        completion_type: str,
+        item_count: int,
+        total_count: int,
+        contributor_ids: tuple[str, ...],
+    ) -> None:
+        """Fill issue-7 terminal metadata when retrying an older receipt."""
+        assignment.participant_status = completion_type
+        if assignment.status in {"ready", "active"}:
+            assignment.status = "submitted"
+        if assignment.completed_at is None:
+            assignment.completed_at = timestamp(utc_now())
+        assignment.completion_item_count = item_count
+        assignment.completion_total_count = total_count
+        assignment.closed_contributor_ids = list(contributor_ids)
+
+    @staticmethod
+    def _receipt(
+        submission: ReviewSubmission,
+        job: ProcessingJob,
+        *,
+        duplicate: bool,
+        completion_type: str,
+        item_count: int,
+        total_count: int,
+    ) -> Receipt:
         return Receipt(
             submission.id, submission.assignment_id, submission.revision,
             submission.export_digest, submission.submitted_at, duplicate, job.id,
+            completion_type, item_count, total_count,
         )
 
     def _validate(
@@ -277,7 +367,8 @@ class SubmissionService:
         *,
         submitting_reviewer_id: str,
         contributor_ids: tuple[str, ...],
-    ) -> None:
+        completion_type: str,
+    ) -> tuple[int, int]:
         errors = sorted(self.validators[assignment.mode].iter_errors(payload), key=lambda item: list(item.path))
         if errors:
             location = ".".join(str(part) for part in errors[0].absolute_path) or "export"
@@ -335,10 +426,19 @@ class SubmissionService:
             reviews = payload.get("reviews", {})
             if not set(reviews).issubset(allowed):
                 raise ValueError("Reviews contain an identity outside the assigned bundle")
-            if assignment.review_group_id is not None and set(reviews) != allowed:
-                raise ValueError(
-                    "Group submission requires a review for every assigned item"
-                )
+            if assignment.review_group_id is not None:
+                if payload.get("completion_type") != completion_type:
+                    raise ValueError("Export completion_type does not match the request")
+                if completion_type == "completed" and set(reviews) != allowed:
+                    raise ValueError(
+                        "Group submission requires a review for every assigned item"
+                    )
+                if completion_type == "partial" and not (
+                    0 < len(reviews) < len(allowed)
+                ):
+                    raise ValueError(
+                        "Partial submission requires some but not all assigned items"
+                    )
             if len({item["review_id"] for item in reviews.values()}) != len(reviews):
                 raise ValueError("Review event identities must be unique")
             if any(
@@ -348,6 +448,8 @@ class SubmissionService:
                 raise ValueError("Review attribution does not match the assignment")
             for item in reviews.values():
                 validate_review_provenance(item)
+            return len(reviews), len(allowed)
+        return len(payload.get("annotations", [])), len(records)
 
     @staticmethod
     def _validate_linguistic_stimulus(
@@ -453,6 +555,7 @@ class ProcessingService:
             if _digest(raw) != submission.export_digest:
                 raise ValueError("Stored submission digest mismatch")
             payload = json.loads(raw)
+            assignment = session.get(ReviewAssignment, submission.assignment_id)
             item_field = "annotations" if "annotations" in payload else "reviews"
             item_count = len(payload[item_field])
             audit = {
@@ -468,6 +571,11 @@ class ProcessingService:
                 "recipe": job.recipe,
                 "source_digest": submission.export_digest,
                 "item_count": item_count,
+                "total_item_count": payload.get(
+                    "completion_total_count",
+                    assignment.completion_total_count if assignment is not None else None,
+                ),
+                "completion_type": payload.get("completion_type", "completed"),
                 "validated": True,
                 "created_at": timestamp(utc_now()),
             }

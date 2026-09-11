@@ -23,6 +23,9 @@ def test_hosted_review_state_is_scoped_to_assignment_and_keeps_local_keys() -> N
     assert "Signed in as ${hosted.reviewer_id}" in app
     assert "Thank you — your review was submitted." in app
     assert "You completed ${percentage}% of this assignment" in app
+    assert "result.completion_item_count" in app
+    assert "result.completion_total_count" in app
+    assert 'querySelectorAll(".hosted-terminal-control")' in app
     assert 'id="continueReviewBtn"' in html
     assert 'id="backToAssignmentsLink"' in html
     assert '<script src="host_context.js?' in html
@@ -66,6 +69,9 @@ const group = "group-000000000000000000000001";
 const review = {review_id:"event::reviewer-0042", reviewer_id:"reviewer-0042", reviewed_at:"2026-08-20T10:00:00Z", prior_review_ids:[], authored_formulation_ids:[], approved_formulation_ids:["event::reviewer-0042::formulation::candidate"], benchmark_disposition:"included", pipeline_assessment:"accepted", preferred_question:"", literal_wording:"", public_comment:"", internal_comment:"", split:"", interpretive:{naturalness:null, pragmatism:null, room_for_interpretation:null, requires_graph_context_knowledge:false}};
 const payload = {schema:"musparql.review-export.v2", kind:"non_holdout_review_export", assignment_id:"assignment-000000000000000000000001", bundle_digest:`sha256:${"a".repeat(64)}`, reviewer_id:"reviewer-0042", review_group_id:group, submitted_by_reviewer_id:"reviewer-0042", contributor_reviewer_ids:["reviewer-0042", "reviewer-0043"], dataset_id:"synthetic", run_id:"run", run_ids:["run"], runs:[], exported_at:"2026-08-20T10:01:00Z", reviews:{record:review}};
 assert.equal(schema.validateV2Envelope(payload), true);
+assert.equal(schema.validateV2Envelope({...payload, completion_type:"completed", completion_item_count:1, completion_total_count:1}), true);
+assert.throws(() => schema.validateV2Envelope({...payload, completion_item_count:1}), /supplied together/);
+assert.throws(() => schema.validateV2Envelope({...payload, completion_item_count:2, completion_total_count:1}), /Invalid completion counts/);
 schema.validateReviewerImport(payload, {reviewer_id:"reviewer-0043", review_group_id:group});
 schema.validateImportedReviews(payload.reviews, true, payload);
 assert.throws(() => schema.validateReviewerImport(payload, {reviewer_id:"reviewer-0044", review_group_id:group}), /not a contributor/);

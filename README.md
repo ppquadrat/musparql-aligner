@@ -28,9 +28,16 @@ gate before profile collection. Access fails closed unless both the recorded
 privacy-notice and consent-statement versions and timestamps are current, and a
 non-testing process requires approved file-backed copy. The full notice and
 withdrawal route remain available throughout the site. Group review submissions
-currently require every assigned item;
-explicit partial and abandon outcomes remain Track A item 7. Group linguistic
-submission remains deferred. Item 6's five fixed reviewer-neutral KG packages
+now support complete and explicit partial outcomes with server-derived item
+counts preserved in both immutable exports and processing audits; legacy v2
+group receipts remain valid and acquire missing counts when retried;
+groups can also leave an active browser-local draft for later or abandon an
+assignment without creating a submission. Terminal outcomes return to package
+choice, where another claim is available only when the round permits it, and
+late contributors can finish an outstanding KG-specific form after assignment
+or round closure without reopening the assignment. Group linguistic submission
+remains deferred. Item 6's five
+fixed reviewer-neutral KG packages
 use a v2 manifest with embedded canonical selection pins, independently derived
 selection and package-set digests, atomic file replacement, and transactional
 seed/package registration; the owner-approved final selection and operational

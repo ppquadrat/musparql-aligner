@@ -386,12 +386,13 @@ Assignment outcomes are:
 - **Submit partial:** submit the work completed so far and its item counts; or
 - **Abandon:** close the assignment without a submission.
 
-The list above is the Track A item 7 target. Until that item lands, the server
-accepts a group submission only when every assigned item has a review and then
-closes it as completed. It rejects partial group exports without creating a
-receipt, processing job, or terminal assignment state. This temporary boundary
-keeps “Continue review” usable instead of trapping an incomplete group behind
-a closed assignment.
+The list above is the Track A item 7 contract. The route and service
+implementation now distinguishes complete and partial submissions, derives and
+stores their item counts server-side, freezes the current contributor set, and
+creates the same durable receipt and processing job for either submission type.
+Abandonment atomically freezes the contributor set without creating a receipt.
+Leaving is a non-mutating return to package choice, so the assignment and its
+assignment-namespaced browser-local draft remain active.
 
 Every terminal outcome returns to package choice. Additional claims are allowed
 only when the round's `allow_additional_assignments` switch is on. That switch
@@ -487,7 +488,8 @@ reconfigure ICF infrastructure.
 
 ## 11. Delivery order
 
-Implementation status (11 September 2026): items 1–5 are complete. The database
+Implementation status (11 September 2026): route and service implementation
+through item 7 is complete. The database
 foundation and participant-facing journey cover reviewing-group creation,
 code-based self-join, reusable-package discovery, atomic package claims,
 per-member assessment gating, and assessment-gated workbench access during the
@@ -530,7 +532,18 @@ output symlinks, while seed import and draft-round package registration commit
 in one transaction. Provisional packages remain disabled and unregistrable. The
 actual workshop freeze remains pending only the owner-approved deduplicated
 selection; holdout pairs are explicitly excluded from every IPL package.
-Terminal lifecycle actions, ICF deployment, and rehearsal remain items 7–9.
+Complete, partial, and abandoned outcomes now close group membership, return to
+package choice, and expose another claim only when the round's
+`allow_additional_assignments` switch permits it. Submission outcomes preserve
+server-derived item counts and completion type in their immutable export and
+processing audit. Pre-item-7 v2 group receipts without those additive fields
+remain schema-valid; a retry derives and persists the missing assignment counts
+before its queued job is processed. A frozen contributor who still owes the
+KG-specific form sees a direct link after closure and can complete it without
+changing the terminal assignment, including after the workshop round closes.
+Submission, abandonment, retry, and late-join terminal races are serialized and
+covered by regression tests. The owner-approved item 6 selection freeze, ICF
+deployment, and rehearsal remain operational work.
 
 ### Track A — must work first
 
@@ -603,6 +616,10 @@ Automated and synthetic rehearsal must prove:
   state;
 - submission attribution is server-derived and freezes the member set present
   when the assignment closes;
+- submission versus abandonment, retry versus abandonment, and late join versus
+  either terminal operation serialize to one consistent outcome;
+- legacy v2 group receipts validate, retry idempotently, backfill authoritative
+  counts, and produce a processing audit with a non-null total;
 - a group submission is processed as one judgment, not one per contributor;
 - leave, finish, partial, and abandon all return to a usable package page;
 - web and worker recover after restart, and durable receipts remain intact;

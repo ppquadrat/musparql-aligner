@@ -2,11 +2,15 @@
 {% block title %}{{ value.round_name }} — Musparql review{% endblock %}
 {% block content %}
   <h1>{{ value.round_name }}</h1>
-  <p>Create a reviewing group if you are working alone or starting a group. To work with someone else, enter the code shown on their screen.</p>
+  {% if value.is_open %}
+    <p>Create a reviewing group if you are working alone or starting a group. To work with someone else, enter the code shown on their screen.</p>
+  {% else %}
+    <p>This workshop round is closed. Any outstanding KG-specific forms remain available below.</p>
+  {% endif %}
   {% if result %}<p class="success" role="status">{{ result }}</p>{% endif %}
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 
-  <div class="actions">
+  {% if value.is_open %}<div class="actions">
     <form method="post" action="{{ url_for('portal.create_workshop_group') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit">Create a reviewing group</button>
@@ -18,7 +22,7 @@
       </label>
       <button type="submit">Join group</button>
     </form>
-  </div>
+  </div>{% endif %}
 
   <h2>Your reviewing groups</h2>
   {% if not value.groups %}
@@ -28,7 +32,10 @@
     <section class="notice">
       <h3>Reviewing group {{ loop.index }}</h3>
       <p>{{ group.member_count }} participant{% if group.member_count != 1 %}s{% endif %}</p>
-      <p>Join code: <strong class="join-code">{{ group.join_code[:5] }} {{ group.join_code[5:] }}</strong></p>
+      {% if value.is_open %}<p>Join code: <strong class="join-code">{{ group.join_code[:5] }} {{ group.join_code[5:] }}</strong></p>{% endif %}
+      {% for outstanding in group.outstanding_assessments %}
+        <p class="error">Outstanding KG-specific form for {{ outstanding.package_name }}: <a href="{{ url_for('portal.assignment', assignment_id=outstanding.assignment_id) }}">complete it now</a>.</p>
+      {% endfor %}
       {% if group.active_assignment_id %}
         <p>Current package: {{ group.active_package_name }}</p>
         <p><a class="button" href="{{ url_for('portal.assignment', assignment_id=group.active_assignment_id) }}">Continue assignment</a></p>

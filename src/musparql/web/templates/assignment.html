@@ -15,7 +15,19 @@
   {% elif value.assessed %}
     <p>Your pre-review assessment has been recorded. The assignment will open when every current group member has completed their questions.</p>
   {% endif %}
+  {% if value.assignment.review_group_id and value.assignment.participant_status in ('not_started', 'active') %}
+    <div class="actions">
+      <a class="button secondary" href="{{ url_for('portal.workshop') }}">Leave for now</a>
+      <form method="post" action="{{ url_for('portal.abandon_workshop_assignment', assignment_id=value.assignment.id) }}" onsubmit="return confirm('Abandon this assignment without submitting a review?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="danger">Abandon assignment</button>
+      </form>
+    </div>
+  {% endif %}
   {% if not value.assessed %}
+    {% if value.assignment.participant_status in ('completed', 'partial', 'abandoned') %}
+      <p>This assignment is closed, but your outstanding KG-specific form can still be completed. It will not reopen or change the assignment.</p>
+    {% endif %}
     <p>Before review items become available, confirm or update your current expertise and familiarity for every frozen prompt below. Your previous value is selected where one exists.</p>
     <form method="post" action="{{ url_for('portal.assignment', assignment_id=value.assignment.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
