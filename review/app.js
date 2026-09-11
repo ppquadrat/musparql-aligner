@@ -2190,11 +2190,6 @@
     identity.textContent = `Signed in as ${hosted.reviewer_id}`;
     bar.appendChild(identity);
 
-    const assignment = document.createElement("a");
-    assignment.href = hosted.assignment_url;
-    assignment.textContent = "Assignment details";
-    assignment.classList.add("hosted-terminal-control");
-    bar.appendChild(assignment);
     els.backToAssignmentsLink.href = hosted.assignments_url || "/";
     if (hosted.workshop_url) {
       els.backToAssignmentsLink.textContent = "Back to package choice";
