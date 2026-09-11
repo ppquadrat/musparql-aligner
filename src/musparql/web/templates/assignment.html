@@ -18,10 +18,6 @@
   {% if value.assignment.review_group_id and value.assignment.participant_status in ('not_started', 'active') %}
     <div class="actions">
       <a class="button secondary" href="{{ url_for('portal.workshop') }}">Back to package choice</a>
-      <form method="post" action="{{ url_for('portal.abandon_workshop_assignment', assignment_id=value.assignment.id) }}" onsubmit="return confirm('Close this assignment without submitting any review?');">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="danger">Close without submitting</button>
-      </form>
     </div>
   {% endif %}
   {% if not value.assessed %}

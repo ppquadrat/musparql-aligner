@@ -2114,7 +2114,7 @@ def test_leave_is_non_mutating_and_abandon_closes_without_submission(
 
     assignment_page = client.get(f"/assignments/{assignment_id}")
     assert b"Back to package choice" in assignment_page.data
-    assert b"Close without submitting" in assignment_page.data
+    assert b"Close without submitting" not in assignment_page.data
     assert client.get("/workshop").status_code == 200
 
     response = client.post(
