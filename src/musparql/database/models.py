@@ -70,6 +70,10 @@ class Reviewer(Base):
             "(consent_statement_version IS NOT NULL AND consented_at IS NOT NULL)",
             name="ck_reviewers_consent_pair",
         ),
+        CheckConstraint(
+            "registration_method <> 'workshop_code' OR email_verified_at IS NULL",
+            name="ck_reviewers_workshop_email_unverified",
+        ),
     )
 
 
@@ -121,6 +125,25 @@ class WorkshopEntryRedemption(Base):
     entry_code_id: Mapped[str] = mapped_column(ForeignKey("workshop_entry_codes.id"))
     reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"), unique=True)
     redeemed_at: Mapped[str] = mapped_column(String)
+
+
+class WorkshopAdmissionNonce(Base):
+    """One-time browser-bound evidence preventing duplicate shared-code admission."""
+
+    __tablename__ = "workshop_admission_nonces"
+    nonce_digest: Mapped[str] = mapped_column(Text, primary_key=True)
+    reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"), unique=True)
+    created_at: Mapped[str] = mapped_column(String)
+
+
+class WorkshopAdmissionAttempt(Base):
+    """Durable, digest-only throttling evidence for admission and recovery."""
+
+    __tablename__ = "workshop_admission_attempts"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    candidate_digest: Mapped[str] = mapped_column(Text, index=True)
+    context_digest: Mapped[str] = mapped_column(Text, index=True)
+    requested_at: Mapped[str] = mapped_column(String, index=True)
 
 
 class ReviewGroup(Base):

@@ -8,10 +8,14 @@ import hmac
 import secrets
 import uuid
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from musparql.database.models import WorkshopEntryCode, WorkshopRound
+from musparql.database.models import (
+    WorkshopEntryCode,
+    WorkshopEntryRedemption,
+    WorkshopRound,
+)
 
 from .auth import timestamp, utc_now
 
@@ -70,12 +74,22 @@ class WorkshopEntryCodeService:
                         WorkshopEntryCode.revoked_at.is_(None),
                     )
                 )
+                total_redemptions = session.scalar(
+                    select(func.count())
+                    .select_from(WorkshopEntryRedemption)
+                    .join(
+                        WorkshopEntryCode,
+                        WorkshopEntryCode.id == WorkshopEntryRedemption.entry_code_id,
+                    )
+                    .where(WorkshopEntryCode.workshop_round_id == workshop_round.id)
+                ) or 0
                 active = bool(
                     code is not None
                     and workshop_round.status == "open"
                     and workshop_round.opens_at <= current < workshop_round.closes_at
                     and current < code.expires_at
-                    and code.redemption_count < code.max_redemptions
+                    and total_redemptions < workshop_round.max_participants
+                    and total_redemptions < code.max_redemptions
                 )
                 result.append(
                     WorkshopEntryCodeStatus(
@@ -86,7 +100,7 @@ class WorkshopEntryCodeService:
                         closes_at=workshop_round.closes_at,
                         max_participants=workshop_round.max_participants,
                         code_id=code.id if code else None,
-                        redemption_count=code.redemption_count if code else 0,
+                        redemption_count=total_redemptions,
                         code_expires_at=code.expires_at if code else None,
                         active=active,
                     )

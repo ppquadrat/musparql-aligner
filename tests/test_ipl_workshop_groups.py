@@ -11,6 +11,7 @@ import threading
 
 import pytest
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 from musparql.database import create_database_engine, session_factory
 from musparql.database.migrations import upgrade_database
@@ -21,6 +22,7 @@ from musparql.database.models import (
     KgSeedFamiliarityScope,
     KgSeedReviewDomain,
     KgSeedSnapshot,
+    LoginCode,
     Reviewer,
     ReviewerDomainExpertise,
     ReviewerExperience,
@@ -31,6 +33,8 @@ from musparql.database.models import (
     ProcessingJob,
     WorkshopEntryCode,
     WorkshopEntryRedemption,
+    WorkshopAdmissionAttempt,
+    WorkshopAdmissionNonce,
     WorkshopRound,
     WorkshopSessionReset,
     WorkshopWorkPackage,
@@ -352,6 +356,59 @@ def test_shared_code_creates_distinct_accounts_and_sessions_then_routes_to_conse
     engine.dispose()
 
 
+def test_shared_code_replay_from_active_browser_does_not_consume_another_seat(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    code = _issue_workshop_entry_code(owner)
+    participant = app.test_client()
+
+    first = participant.post(
+        "/auth/workshop", data={"csrf_token": _csrf(participant), "code": code}
+    )
+    assert first.location == "/consent"
+    replay = participant.post(
+        "/auth/workshop", data={"csrf_token": _csrf(participant), "code": code}
+    )
+    assert replay.status_code == 200
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        assert session.scalar(select(func.count()).select_from(WorkshopEntryRedemption)) == 1
+        assert session.scalar(select(func.count()).select_from(WorkshopAdmissionNonce)) == 1
+    engine.dispose()
+
+
+def test_parallel_shared_code_posts_with_same_nonce_are_idempotent(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    code = _issue_workshop_entry_code(owner)
+    auth = app.extensions["musparql_auth"]
+
+    def redeem(index: int):
+        return auth.redeem_workshop_code(
+            code,
+            f"192.0.2.{index}",
+            current_token=None,
+            admission_nonce="same-browser-form",
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(redeem, (60, 60)))
+    assert sum(result is not None for result in results) == 1
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        assert session.scalar(select(func.count()).select_from(WorkshopEntryRedemption)) == 1
+        assert session.scalar(select(func.count()).select_from(WorkshopAdmissionNonce)) == 1
+    engine.dispose()
+
+
 def test_invalid_shared_code_does_not_create_identity_or_session(workshop_app) -> None:
     app, sender, database_path, _bundle_root = workshop_app
     owner = app.test_client()
@@ -395,8 +452,9 @@ def test_concurrent_shared_code_redemption_cannot_exceed_round_cap(workshop_app)
     def redeem(index: int):
         return auth.redeem_workshop_code(
             code,
-            f"192.0.2.{index}\0synthetic-agent",
+            f"192.0.2.{index}",
             current_token=None,
+            admission_nonce=f"synthetic-nonce-{index}",
         )
 
     with ThreadPoolExecutor(max_workers=2) as executor:
@@ -426,13 +484,21 @@ def test_shared_code_attempts_are_throttled_by_request_context(workshop_app) -> 
     owner = app.test_client()
     _login(owner, app, sender, "owner@example.invalid")
     code = _issue_workshop_entry_code(owner)
-    auth = app.extensions["musparql_auth"]
-    auth.workshop_limiter.context_limit = 2
-    context = "192.0.2.50\0synthetic-agent"
-
-    assert auth.redeem_workshop_code("AAAA-AAAA", context, current_token=None) is None
-    assert auth.redeem_workshop_code("BBBB-BBBB", context, current_token=None) is None
-    assert auth.redeem_workshop_code(code, context, current_token=None) is None
+    app.config["WORKSHOP_CODE_ATTEMPTS_PER_CONTEXT"] = 2
+    participant = app.test_client()
+    csrf = _csrf(participant)
+    for candidate, user_agent in (
+        ("AAAA-AAAA", "synthetic-agent-a"),
+        ("BBBB-BBBB", "synthetic-agent-b"),
+        (code, "synthetic-agent-c"),
+    ):
+        response = participant.post(
+            "/auth/workshop",
+            data={"csrf_token": csrf, "code": candidate},
+            headers={"User-Agent": user_agent},
+            environ_overrides={"REMOTE_ADDR": "192.0.2.50"},
+        )
+        assert response.status_code == 200
 
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
@@ -443,6 +509,67 @@ def test_shared_code_attempts_are_throttled_by_request_context(workshop_app) -> 
             .select_from(Reviewer)
             .where(Reviewer.registration_method == "workshop_code")
         ) == 0
+    engine.dispose()
+
+
+def test_workshop_throttle_ignores_user_agent_and_survives_app_restart(
+    workshop_app,
+) -> None:
+    app, sender, database_path, bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    code = _issue_workshop_entry_code(owner)
+    app.config["WORKSHOP_CODE_ATTEMPTS_PER_CONTEXT"] = 2
+    auth = app.extensions["musparql_auth"]
+    assert auth.redeem_workshop_code(
+        "AAAA-AAAA",
+        "192.0.2.77",
+        current_token=None,
+        admission_nonce="restart-a",
+    ) is None
+
+    restarted = create_app(
+        {
+            "TESTING": True,
+            "DATABASE_PATH": database_path,
+            "APP_SECRET": SECRET,
+            "OWNER_REVIEWER_ID": OWNER_ID,
+            "COOKIE_SECURE": False,
+            "EMAIL_SENDER": SyntheticEmailSender(),
+            "EXPERTISE_SUGGESTIONS_PATH": ROOT
+            / "catalog/expertise_domain_suggestions.yaml",
+            "ASSIGNMENT_BUNDLE_ROOT": bundle_root,
+            "SUBMISSION_ROOT": database_path.parent / "restarted-submissions",
+            "CANDIDATE_ROOT": database_path.parent / "restarted-candidates",
+            "PRIVACY_NOTICE_VERSION": "synthetic-ipl-v1",
+            "PRIVACY_NOTICE_BODY": "Synthetic notice. Do not enter real data.",
+            "CONSENT_STATEMENT_VERSION": "synthetic-consent-v1",
+            "WORKSHOP_CODE_ATTEMPTS_PER_CONTEXT": 2,
+        }
+    )
+    try:
+        restarted_auth = restarted.extensions["musparql_auth"]
+        assert restarted_auth.redeem_workshop_code(
+            "BBBB-BBBB",
+            "192.0.2.77",
+            current_token=None,
+            admission_nonce="restart-b",
+        ) is None
+        assert restarted_auth.redeem_workshop_code(
+            code,
+            "192.0.2.77",
+            current_token=None,
+            admission_nonce="restart-c",
+        ) is None
+    finally:
+        restarted.extensions["musparql_email_dispatcher"].shutdown()
+        restarted.extensions["musparql_engine"].dispose()
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        assert session.scalar(select(func.count()).select_from(WorkshopAdmissionAttempt)) == 2
+        assert session.scalar(select(func.count()).select_from(WorkshopEntryRedemption)) == 0
     engine.dispose()
 
 
@@ -520,6 +647,207 @@ def test_owner_can_issue_one_time_audited_workshop_session_recovery(workshop_app
         )
         assert active_sessions == 1
     engine.dispose()
+
+
+def test_workshop_recovery_is_serialized_for_successes_and_wrong_codes(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    entry_code = _issue_workshop_entry_code(owner)
+    participant = app.test_client()
+    assert participant.post(
+        "/auth/workshop",
+        data={"csrf_token": _csrf(participant), "code": entry_code},
+    ).location == "/consent"
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        reviewer_id = session.scalar(
+            select(Reviewer.id).where(Reviewer.registration_method == "workshop_code")
+        )
+    engine.dispose()
+    assert reviewer_id is not None
+    auth = app.extensions["musparql_auth"]
+
+    wrong_code = auth.issue_workshop_recovery_code(OWNER_ID, reviewer_id)
+
+    def wrong(index: int):
+        return auth.recover_workshop_session(
+            reviewer_id,
+            "999999" if wrong_code != "999999" else "888888",
+            f"192.0.2.{80 + index}",
+            current_token=None,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        assert list(executor.map(wrong, (0, 1))) == [None, None]
+
+    recovery_code = auth.issue_workshop_recovery_code(OWNER_ID, reviewer_id)
+
+    def recover(index: int):
+        return auth.recover_workshop_session(
+            reviewer_id,
+            recovery_code,
+            f"192.0.2.{90 + index}",
+            current_token=None,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(recover, (0, 1)))
+    assert sum(result is not None for result in results) == 1
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        challenges = list(
+            session.scalars(
+                select(LoginCode)
+                .where(LoginCode.email_normalized.like("workshop-%"))
+                .order_by(LoginCode.requested_at)
+            )
+        )
+        assert challenges[0].failed_attempt_count == 2
+        assert challenges[-1].consumed_at is not None
+    engine.dispose()
+
+
+def test_workshop_reset_audit_is_immutable_for_update_and_delete(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    entry_code = _issue_workshop_entry_code(owner)
+    participant = app.test_client()
+    participant.post(
+        "/auth/workshop",
+        data={"csrf_token": _csrf(participant), "code": entry_code},
+    )
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        reviewer_id = session.scalar(
+            select(Reviewer.id).where(Reviewer.registration_method == "workshop_code")
+        )
+    assert reviewer_id is not None
+    app.extensions["musparql_auth"].issue_workshop_recovery_code(OWNER_ID, reviewer_id)
+
+    with pytest.raises(IntegrityError, match="append-only"):
+        with sessions.begin() as session:
+            reset = session.scalar(select(WorkshopSessionReset))
+            assert reset is not None
+            reset.created_at = "2099-01-01T00:00:00Z"
+    with pytest.raises(IntegrityError, match="append-only"):
+        with sessions.begin() as session:
+            reset = session.scalar(select(WorkshopSessionReset))
+            assert reset is not None
+            session.delete(reset)
+    engine.dispose()
+
+
+def test_workshop_accounts_cannot_use_email_login_or_be_marked_verified(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    entry_code = _issue_workshop_entry_code(owner)
+    participant = app.test_client()
+    participant.post(
+        "/auth/workshop",
+        data={"csrf_token": _csrf(participant), "code": entry_code},
+    )
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        reviewer = session.scalar(
+            select(Reviewer).where(Reviewer.registration_method == "workshop_code")
+        )
+        assert reviewer is not None
+        reviewer_id = reviewer.id
+        email = reviewer.email_normalized
+    before = sender.position()
+    app.extensions["musparql_auth"].request_login_code(email, "192.0.2.100")
+    app.extensions["musparql_email_dispatcher"].wait_for_idle()
+    assert sender.position() == before
+
+    with pytest.raises(
+        IntegrityError, match="ck_reviewers_workshop_email_unverified"
+    ):
+        with sessions.begin() as session:
+            session.get(Reviewer, reviewer_id).email_verified_at = timestamp(utc_now())
+    engine.dispose()
+
+
+def test_stale_workshop_consent_stays_behind_consent_boundary(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    entry_code = _issue_workshop_entry_code(owner)
+    participant = app.test_client()
+    assert participant.post(
+        "/auth/workshop",
+        data={"csrf_token": _csrf(participant), "code": entry_code},
+    ).location == "/consent"
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        reviewer = session.scalar(
+            select(Reviewer).where(Reviewer.registration_method == "workshop_code")
+        )
+        reviewer.consent_statement_version = "obsolete-consent-v0"
+        reviewer.consented_at = timestamp(utc_now())
+        reviewer_id = reviewer.id
+    engine.dispose()
+
+    assert participant.get("/").location == "/consent"
+    assert participant.get("/profile").location == "/consent"
+    assert participant.get("/consent").status_code == 200
+
+    recovery_code = app.extensions["musparql_auth"].issue_workshop_recovery_code(
+        OWNER_ID, reviewer_id
+    )
+    recovered = app.test_client()
+    response = recovered.post(
+        "/auth/workshop/recover",
+        data={
+            "csrf_token": _csrf(recovered),
+            "reviewer_id": reviewer_id,
+            "code": recovery_code,
+        },
+    )
+    assert response.location == "/consent"
+
+
+def test_reissued_entry_code_reports_round_wide_capacity(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        session.get(WorkshopRound, "workshop-ipl").max_participants = 2
+    engine.dispose()
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    first_code = _issue_workshop_entry_code(owner)
+    first = app.test_client()
+    first.post(
+        "/auth/workshop", data={"csrf_token": _csrf(first), "code": first_code}
+    )
+    second_code = _issue_workshop_entry_code(owner)
+    status = app.extensions["musparql_workshop_admission"].list_rounds()[0]
+    assert status.redemption_count == 1
+    assert status.active is True
+    second = app.test_client()
+    second.post(
+        "/auth/workshop", data={"csrf_token": _csrf(second), "code": second_code}
+    )
+    status = app.extensions["musparql_workshop_admission"].list_rounds()[0]
+    assert status.redemption_count == 2
+    assert status.active is False
+    assert app.extensions["musparql_workshop_admission"].available() is False
 
 
 def _assessment_form(client) -> dict[str, str]:

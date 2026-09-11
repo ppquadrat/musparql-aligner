@@ -20,7 +20,10 @@ Organs, and LinkedMusic.
 The in-progress IPL workshop release adds self-formed reviewing groups,
 reusable KG packages, shared assignment drafts, server-derived joint
 submission provenance, and SMTP-first registration with a capped shared-code
-fallback. Group review submissions currently require every assigned item;
+fallback. Shared-code admission is replay-safe, uses durable digest-only
+address throttling across application restarts, and has audited one-time
+facilitator recovery without treating fallback addresses as verified. Group
+review submissions currently require every assigned item;
 explicit partial and abandon outcomes remain Track A item 7. Group linguistic
 submission remains deferred.
 

@@ -22,6 +22,7 @@ from flask import (
 )
 
 from .workshops import WorkshopAccessError, WorkshopUnavailable
+from .assignments import has_current_consent
 
 
 portal = Blueprint("portal", __name__)
@@ -53,9 +54,16 @@ def owner_required(view: View) -> View:
 
 
 def _request_context() -> str:
-    remote = request.remote_addr or "unknown"
-    user_agent = request.user_agent.string[:512]
-    return f"{remote}\0{user_agent}"
+    # ProxyFix has already replaced this with the trusted client address when
+    # the explicitly configured single reverse proxy is in use. Do not include
+    # client-controlled headers such as User-Agent in a security bucket key.
+    return request.remote_addr or "unknown"
+
+
+def _fallback_has_current_consent() -> bool:
+    return has_current_consent(
+        g.current_reviewer, current_app.config["CONSENT_STATEMENT_VERSION"]
+    )
 
 
 def _set_auth_cookie(response: Response, token: str, remembered: bool) -> None:
@@ -91,7 +99,7 @@ def index():
     if (
         g.current_reviewer is not None
         and g.current_reviewer.registration_method == "workshop_code"
-        and g.current_reviewer.consented_at is None
+        and not _fallback_has_current_consent()
     ):
         return redirect(url_for("portal.consent_pending"))
     if (
@@ -233,7 +241,7 @@ def claim_workshop_package(group_id: str, package_id: str):
 def profile():
     if (
         g.current_reviewer.registration_method == "workshop_code"
-        and g.current_reviewer.consented_at is None
+        and not _fallback_has_current_consent()
     ):
         return redirect(url_for("portal.consent_pending"))
     service = current_app.extensions["musparql_profiles"]
@@ -371,6 +379,7 @@ def workshop_login():
             request.form.get("code", "")[:32],
             _request_context(),
             current_token=request.cookies.get(current_app.config["AUTH_COOKIE_NAME"]),
+            admission_nonce=request.form.get("csrf_token", "")[:256],
         )
     except Exception:
         current_app.logger.error("Workshop admission failed")
@@ -411,7 +420,9 @@ def workshop_recover():
     token, reviewer = result
     response = redirect(
         url_for("portal.consent_pending")
-        if reviewer.consented_at is None
+        if not has_current_consent(
+            reviewer, current_app.config["CONSENT_STATEMENT_VERSION"]
+        )
         else url_for("portal.index")
     )
     _set_auth_cookie(response, token, remembered=False)
@@ -424,7 +435,7 @@ def workshop_recover():
 def consent_pending():
     if g.current_reviewer.registration_method != "workshop_code":
         return redirect(url_for("portal.index"))
-    if g.current_reviewer.consented_at is not None:
+    if _fallback_has_current_consent():
         return redirect(url_for("portal.index"))
     return render_template("consent_pending.html")
 

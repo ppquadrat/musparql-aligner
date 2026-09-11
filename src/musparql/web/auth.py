@@ -24,6 +24,8 @@ from musparql.database.models import (
     ReviewerDomainExpertise,
     ReviewerExperience,
     ReviewerLanguage,
+    WorkshopAdmissionAttempt,
+    WorkshopAdmissionNonce,
     WorkshopEntryCode,
     WorkshopEntryRedemption,
     WorkshopSessionReset,
@@ -151,7 +153,6 @@ class AuthService:
         sender: EmailSender,
         dispatcher: AsyncEmailDispatcher,
         limiter: DigestRateLimiter,
-        workshop_limiter: DigestRateLimiter,
         config: Config,
         clock: Callable[[], datetime] = utc_now,
     ) -> None:
@@ -159,7 +160,6 @@ class AuthService:
         self.sender = sender
         self.dispatcher = dispatcher
         self.limiter = limiter
-        self.workshop_limiter = workshop_limiter
         self.config = config
         self.clock = clock
         self.secret = config["APP_SECRET"].encode("utf-8")
@@ -208,7 +208,11 @@ class AuthService:
             reviewer = session.scalar(
                 select(Reviewer).where(Reviewer.email_normalized == normalized)
             )
-            if reviewer is None or reviewer.status not in {"invited", "active"}:
+            if (
+                reviewer is None
+                or reviewer.status not in {"invited", "active"}
+                or reviewer.registration_method == "workshop_code"
+            ):
                 self._digest("dummy-code", code)
                 return
             cutoff = timestamp(
@@ -314,7 +318,11 @@ class AuthService:
             reviewer = session.scalar(
                 select(Reviewer).where(Reviewer.email_normalized == login_code.email_normalized)
             )
-            if reviewer is None or reviewer.status not in {"invited", "active"}:
+            if (
+                reviewer is None
+                or reviewer.status not in {"invited", "active"}
+                or reviewer.registration_method == "workshop_code"
+            ):
                 login_code.consumed_at = timestamp(now)
                 return None
             login_code.consumed_at = timestamp(now)
@@ -350,7 +358,12 @@ class AuthService:
             return raw_token, reviewer
 
     def redeem_workshop_code(
-        self, code: str, request_context: str, *, current_token: str | None
+        self,
+        code: str,
+        request_context: str,
+        *,
+        current_token: str | None,
+        admission_nonce: str,
     ) -> tuple[str, Reviewer] | None:
         """Atomically redeem a shared code into a distinct identity and session."""
 
@@ -361,10 +374,7 @@ class AuthService:
             normalized = normalize_entry_code(code)
         except ValueError:
             normalized = "INVALID0"
-        allowed, _context_digest = self.workshop_limiter.allow(
-            normalized, request_context, now
-        )
-        if not allowed:
+        if not self._record_workshop_attempt(normalized, request_context, now):
             self._digest("dummy-workshop-code", normalized)
             return None
         try:
@@ -376,12 +386,24 @@ class AuthService:
         from .workshop_admission import WorkshopEntryCodeService
 
         now_text = timestamp(now)
+        if not admission_nonce or len(admission_nonce) > 256:
+            self._digest("dummy-workshop-nonce", admission_nonce[:256])
+            return None
+        nonce_digest = self._digest("workshop-admission-nonce", admission_nonce)
         expected = WorkshopEntryCodeService(
             sessions=self.sessions, secret=self.secret
         ).digest(normalized)
         session = self.sessions()
         try:
             session.execute(text("BEGIN IMMEDIATE"))
+            if current_token and self._token_authenticates_active_reviewer(
+                session, current_token, now
+            ):
+                session.rollback()
+                return None
+            if session.get(WorkshopAdmissionNonce, nonce_digest) is not None:
+                session.rollback()
+                return None
             entry_code = session.scalar(
                 select(WorkshopEntryCode).where(
                     WorkshopEntryCode.code_digest == expected,
@@ -416,8 +438,13 @@ class AuthService:
                 reviewer=reviewer,
                 redeemed_at=now_text,
             )
-            if current_token:
-                self._revoke_token(session, current_token, now)
+            session.add(
+                WorkshopAdmissionNonce(
+                    nonce_digest=nonce_digest,
+                    reviewer_id=reviewer_id,
+                    created_at=now_text,
+                )
+            )
             raw_token = secrets.token_urlsafe(32)
             session.add(
                 AuthSession(
@@ -512,7 +539,7 @@ class AuthService:
         """Consume an owner-issued reset code without verifying a fallback address."""
 
         now = self.clock()
-        allowed, _context_digest = self.workshop_limiter.allow(
+        allowed = self._record_workshop_attempt(
             f"recovery:{reviewer_id}", request_context, now
         )
         valid_shape = (
@@ -526,7 +553,9 @@ class AuthService:
         if not allowed or not valid_shape:
             self._digest("dummy-workshop-recovery", f"{reviewer_id[:64]}\0{code[:32]}")
             return None
-        with self.sessions.begin() as session:
+        session = self.sessions()
+        try:
+            session.execute(text("BEGIN IMMEDIATE"))
             reviewer = session.get(Reviewer, reviewer_id)
             if (
                 reviewer is None
@@ -534,6 +563,7 @@ class AuthService:
                 or reviewer.registration_method != "workshop_code"
             ):
                 self._digest("dummy-workshop-recovery", f"{reviewer_id}\0{code}")
+                session.rollback()
                 return None
             challenge = session.scalar(
                 select(LoginCode)
@@ -552,12 +582,16 @@ class AuthService:
             ):
                 if challenge is not None:
                     challenge.consumed_at = timestamp(now)
+                    session.commit()
+                else:
+                    session.rollback()
                 return None
             expected = self._digest("login-code", f"{challenge.id}\0{code}")
             if not hmac.compare_digest(challenge.code_hash, expected):
                 challenge.failed_attempt_count += 1
                 if challenge.failed_attempt_count >= self.config["LOGIN_CODE_MAX_ATTEMPTS"]:
                     challenge.consumed_at = timestamp(now)
+                session.commit()
                 return None
             challenge.consumed_at = timestamp(now)
             if current_token:
@@ -579,7 +613,90 @@ class AuthService:
             )
             session.flush()
             session.expunge(reviewer)
+            session.commit()
             return raw_token, reviewer
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def _record_workshop_attempt(
+        self, candidate: str, request_context: str, now: datetime
+    ) -> bool:
+        """Atomically apply the cross-process, cross-restart workshop throttle."""
+
+        candidate_digest = self._digest("workshop-attempt-candidate", candidate)
+        context_digest = self._digest("workshop-attempt-context", request_context)
+        cutoff = timestamp(
+            now
+            - timedelta(
+                seconds=self.config["WORKSHOP_CODE_ATTEMPT_WINDOW_SECONDS"]
+            )
+        )
+        session = self.sessions()
+        try:
+            session.execute(text("BEGIN IMMEDIATE"))
+            session.execute(
+                delete(WorkshopAdmissionAttempt).where(
+                    WorkshopAdmissionAttempt.requested_at < cutoff
+                )
+            )
+            candidate_count = session.scalar(
+                select(func.count())
+                .select_from(WorkshopAdmissionAttempt)
+                .where(WorkshopAdmissionAttempt.candidate_digest == candidate_digest)
+            ) or 0
+            context_count = session.scalar(
+                select(func.count())
+                .select_from(WorkshopAdmissionAttempt)
+                .where(WorkshopAdmissionAttempt.context_digest == context_digest)
+            ) or 0
+            allowed = (
+                candidate_count < self.config["WORKSHOP_CODE_ATTEMPTS_PER_CODE"]
+                and context_count < self.config["WORKSHOP_CODE_ATTEMPTS_PER_CONTEXT"]
+            )
+            if allowed:
+                session.add(
+                    WorkshopAdmissionAttempt(
+                        id="workshop-attempt-" + uuid.uuid4().hex,
+                        candidate_digest=candidate_digest,
+                        context_digest=context_digest,
+                        requested_at=timestamp(now),
+                    )
+                )
+            session.commit()
+            return allowed
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def _token_authenticates_active_reviewer(
+        self, session: Session, raw_token: str, now: datetime
+    ) -> bool:
+        auth_session = session.scalar(
+            select(AuthSession).where(
+                AuthSession.token_hash == self._digest("session", raw_token),
+                AuthSession.revoked_at.is_(None),
+            )
+        )
+        if auth_session is None or parse_timestamp(auth_session.expires_at) <= now:
+            return False
+        reviewer = session.get(Reviewer, auth_session.reviewer_id)
+        if reviewer is None or reviewer.status != "active":
+            return False
+        idle_seconds = self.config[
+            "OWNER_IDLE_SECONDS"
+            if reviewer.id == self.config["OWNER_REVIEWER_ID"]
+            else "REMEMBERED_IDLE_SECONDS"
+            if auth_session.remembered
+            else "REVIEWER_IDLE_SECONDS"
+        ]
+        return parse_timestamp(auth_session.last_used_at) + timedelta(
+            seconds=idle_seconds
+        ) > now
 
     def list_workshop_reviewers(self) -> list[Reviewer]:
         with self.sessions() as session:
