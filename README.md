@@ -36,12 +36,12 @@ assignment without creating a submission. Terminal outcomes return to package
 choice, where another claim is available only when the round permits it, and
 late contributors can finish an outstanding KG-specific form after assignment
 or round closure without reopening the assignment. Group linguistic submission
-remains deferred. Item 6's five
-fixed reviewer-neutral KG packages
+remains deferred. Item 6's four core/specialist reviewer-neutral KG packages
 use a v2 manifest with embedded canonical selection pins, independently derived
 selection and package-set digests, atomic file replacement, and transactional
-seed/package registration; the owner-approved final selection and operational
-freeze remain pending.
+seed/package registration. Their two-pass bundles present deduplicated records
+first and remaining all-pairs records second, with assignment-specific
+randomisation inside each pass; the operational freeze remains pending.
 
 ## How the system fits together
 
@@ -143,7 +143,7 @@ the human verifies and places that file at the local path.
   time-boxed plan and current implementation status for the IPL reviewing-group
   workshop release.
 - [`docs/IPL_WORKSHOP_PACKAGE_RUNBOOK.md`](docs/IPL_WORKSHOP_PACKAGE_RUNBOOK.md) —
-  deterministic preparation, validation, and registration of the five
+  deterministic preparation, validation, and registration of the four
   reviewer-neutral IPL package files.
 - [`docs/PHASE_6B_LINGUISTIC_RUNBOOK.md`](docs/PHASE_6B_LINGUISTIC_RUNBOOK.md) —
   deterministic linguistic bundle construction and hosted rating workflow.

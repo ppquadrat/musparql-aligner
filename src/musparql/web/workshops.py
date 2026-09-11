@@ -44,6 +44,7 @@ class WorkPackageView:
     display_name: str
     short_description: str
     kg_id: str
+    priority_tier: str
 
 
 @dataclass(frozen=True)
@@ -198,6 +199,11 @@ class WorkshopService:
                     display_name=package.display_name,
                     short_description=package.short_description,
                     kg_id=package.kg_id,
+                    priority_tier=(
+                        "core"
+                        if package.kg_id in {"europeana", "nfdi4culture"}
+                        else "specialist"
+                    ),
                 )
                 for package in session.scalars(
                     select(WorkshopWorkPackage)

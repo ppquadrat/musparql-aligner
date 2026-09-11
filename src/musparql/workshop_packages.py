@@ -1,4 +1,4 @@
-"""Deterministic preparation and registration of the five IPL work packages."""
+"""Deterministic preparation and registration of the four IPL work packages."""
 from __future__ import annotations
 
 from contextlib import nullcontext
@@ -36,36 +36,199 @@ class PackageDefinition:
     kg_id: str
     display_name: str
     short_description: str
+    priority_tier: str
 
 
 IPL_PACKAGES = (
     PackageDefinition(
-        "alyra",
-        "Archaic Lyric Poetry Ontology (ALyrA)",
-        "Questions about archaic Greek lyric poetry, people, works, places, and terminology.",
-    ),
-    PackageDefinition(
-        "camera-dei-deputati",
-        "Camera dei Deputati Knowledge Graph",
-        "Questions about the Italian Chamber of Deputies and its parliamentary record.",
-    ),
-    PackageDefinition(
         "europeana",
         "Europeana Knowledge Graph",
-        "Questions about cultural-heritage objects and their Europeana metadata.",
+        "Core workshop work on cultural-heritage objects and their Europeana metadata.",
+        "core",
     ),
     PackageDefinition(
         "nfdi4culture",
         "NFDI4Culture Culture Knowledge Graph (CKG)",
-        "Questions about cultural research data, resources, organisations, and standards.",
+        "Core workshop work on cultural research data, resources, organisations, and standards.",
+        "core",
+    ),
+    PackageDefinition(
+        "camera-dei-deputati",
+        "Camera dei Deputati Knowledge Graph",
+        "Specialist work on the Italian Chamber of Deputies and its parliamentary record.",
+        "specialist",
     ),
     PackageDefinition(
         "cdec",
         "CDEC Knowledge Graph",
-        "Questions about CDEC's linked documentary record of Jews in twentieth-century Italy.",
+        "Specialist work on CDEC's linked documentary record of Jews in twentieth-century Italy.",
+        "specialist",
     ),
 )
 IPL_KG_IDS = frozenset(item.kg_id for item in IPL_PACKAGES)
+WORKSHOP_PASS_ORDER = ("deduplicated", "all_pairs")
+
+
+def _candidate_records(payload: Mapping[str, Any], *, label: str) -> list[dict[str, Any]]:
+    graphs = payload.get("graphs")
+    if not isinstance(graphs, list):
+        raise ValueError(f"{label} candidate file has no graph list")
+    records: list[dict[str, Any]] = []
+    for graph in graphs:
+        if not isinstance(graph, Mapping) or not isinstance(graph.get("records"), list):
+            raise ValueError(f"{label} candidate file contains an invalid graph")
+        for record in graph["records"]:
+            if not isinstance(record, dict):
+                raise ValueError(f"{label} candidate file contains a non-object record")
+            records.append(record)
+    return records
+
+
+def prepare_quagga_workshop_source(
+    *,
+    all_candidates: Mapping[str, Any],
+    deduplicated_candidates: Mapping[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Convert Quagga candidate reports into a frozen, reviewer-neutral source bundle."""
+    all_records = _candidate_records(all_candidates, label="All-pairs")
+    deduplicated_records = _candidate_records(
+        deduplicated_candidates, label="Deduplicated"
+    )
+    all_index: dict[str, Mapping[str, Any]] = {}
+    for record in all_records:
+        query_id = str(record.get("query_id") or "")
+        if not query_id or query_id in all_index:
+            raise ValueError(f"All-pairs candidate file has duplicate or empty query ID: {query_id}")
+        all_index[query_id] = record
+
+    deduplicated_ids: set[str] = set()
+    for record in deduplicated_records:
+        query_id = str(record.get("query_id") or "")
+        source = all_index.get(query_id)
+        if source is None:
+            raise ValueError(f"Deduplicated candidate is absent from all pairs: {query_id}")
+        if query_id in deduplicated_ids:
+            raise ValueError(f"Deduplicated candidate file repeats query ID: {query_id}")
+        if record.get("sparql_hash") != source.get("sparql_hash"):
+            raise ValueError(f"Deduplicated candidate has a stale SPARQL hash: {query_id}")
+        deduplicated_ids.add(query_id)
+
+    source_run_id = str(all_candidates.get("source_run_id") or "")
+    if not source_run_id:
+        raise ValueError("All-pairs candidate file has no source run ID")
+    records: list[dict[str, Any]] = []
+    selection: list[dict[str, Any]] = []
+    counts = {kg_id: {name: 0 for name in WORKSHOP_PASS_ORDER} for kg_id in IPL_KG_IDS}
+    for query_id, candidate in sorted(all_index.items()):
+        kg_id = query_id.split("__", 1)[0]
+        if kg_id not in IPL_KG_IDS:
+            continue
+        query_label = str(candidate.get("query_label") or "")
+        sparql = candidate.get("sparql")
+        sparql_hash = candidate.get("sparql_hash")
+        nl = candidate.get("nl")
+        if (
+            not query_label
+            or not isinstance(sparql, str)
+            or not isinstance(sparql_hash, str)
+            or SHA256_RE.fullmatch(sparql_hash) is None
+            or not isinstance(nl, Mapping)
+            or not isinstance(nl.get("text"), str)
+        ):
+            raise ValueError(f"Candidate is incomplete: {query_id}")
+        evidence: list[dict[str, Any]] = []
+        evidence_ids: list[str] = []
+        for index, item in enumerate(nl.get("sources") or (), start=1):
+            if not isinstance(item, Mapping):
+                continue
+            evidence_id = f"e{index}"
+            evidence_ids.append(evidence_id)
+            evidence.append(
+                {
+                    "evidence_id": evidence_id,
+                    "type": str(item.get("evidence_type") or "source"),
+                    "snippet": str(item.get("source_text") or ""),
+                    "source_url": item.get("source_url"),
+                    "source_path": item.get("source_path"),
+                }
+            )
+        workshop_pass = (
+            "deduplicated" if query_id in deduplicated_ids else "all_pairs"
+        )
+        counts[kg_id][workshop_pass] += 1
+        records.append(
+            {
+                "review_id": f"{kg_id}::{query_label}::{source_run_id}",
+                "prior_review_ids": [],
+                "review_scope": "new",
+                "has_prior_pair_review": False,
+                "run_id": source_run_id,
+                "generation_run_id": source_run_id,
+                "run_label": source_run_id,
+                "kg_id": kg_id,
+                "query_id": query_id,
+                "query_label": query_label,
+                "workshop_pass": workshop_pass,
+                "input": {
+                    "sparql_clean": sparql,
+                    "sparql_version": 0,
+                    "sparql_hash": sparql_hash,
+                    "evidence": evidence,
+                },
+                "output": {
+                    "nl_question": nl["text"],
+                    "nl_question_origin": {
+                        "mode": str(nl.get("origin") or "unknown"),
+                        "evidence_ids": evidence_ids,
+                    },
+                },
+                "output_meta": {"model": nl.get("model")},
+            }
+        )
+        selection.append(
+            {
+                "kg_id": kg_id,
+                "query_id": query_id,
+                "sparql_version": 0,
+                "sparql_hash": sparql_hash,
+            }
+        )
+
+    empty = sorted(kg_id for kg_id, value in counts.items() if not sum(value.values()))
+    if empty:
+        raise ValueError("Candidate files do not cover every workshop KG: " + ", ".join(empty))
+    dataset_id = digest_bytes(
+        canonical_json(
+            {
+                "source_run_id": source_run_id,
+                "records": [(item["query_id"], item["workshop_pass"]) for item in records],
+            }
+        )
+    )[7:23]
+    bundle = {
+        "schema": "musparql.review-bundle.v2",
+        "mode": "initial",
+        "dataset_id": f"ipl-quagga-{dataset_id}",
+        "source_run_id": source_run_id,
+        "holdout_input_policy": "identity_private_filtered_upstream",
+        "holdout_review_provenance_complete": False,
+        "record_count": len(records),
+        "review_scope_policy": {
+            "include_reviewed": True,
+            "reveal_previous_decision": False,
+            "default_scope": "all",
+            "counts": {
+                "new_records": len(records),
+                "previously_reviewed_records": 0,
+                "previously_reviewed_excluded": 0,
+                "holdout_excluded": 0,
+            },
+        },
+        "workshop_pass_order": list(WORKSHOP_PASS_ORDER),
+        "workshop_pass_counts": counts,
+        "records": records,
+    }
+    return bundle, sorted(selection, key=lambda item: (item["kg_id"], item["query_id"]))
 
 
 def canonical_json(value: Any) -> bytes:
@@ -265,6 +428,10 @@ def build_package_set(
     package_rows: list[dict[str, Any]] = []
     for order, definition in enumerate(IPL_PACKAGES, start=1):
         records = grouped[definition.kg_id]
+        pass_counts = {
+            name: sum(record.get("workshop_pass", "deduplicated") == name for record in records)
+            for name in WORKSHOP_PASS_ORDER
+        }
         package_payload = deepcopy(source)
         package_payload["dataset_id"] = f"ipl-{round_id}-{definition.kg_id}-{package_set_id}"
         package_payload["record_count"] = len(records)
@@ -284,6 +451,9 @@ def build_package_set(
             }
         package_payload["workshop_package"] = {
             "kg_id": definition.kg_id,
+            "priority_tier": definition.priority_tier,
+            "pass_order": list(WORKSHOP_PASS_ORDER),
+            "pass_counts": pass_counts,
             "package_set_id": package_set_id,
             "status": status,
             "source_bundle_digest": source_digest,
@@ -396,7 +566,7 @@ def validate_package_set(manifest: Mapping[str, Any], *, bundle_root: Path) -> N
             raise ValueError("Frozen IPL selection digest mismatch")
     packages = manifest.get("packages")
     if not isinstance(packages, list) or len(packages) != len(IPL_PACKAGES):
-        raise ValueError("IPL package manifest must contain exactly five packages")
+        raise ValueError("IPL package manifest must contain exactly four packages")
     expected_round = manifest.get("workshop_round_id")
     record_membership: dict[str, list[str]] = {}
     for order, (row, definition) in enumerate(zip(packages, IPL_PACKAGES), start=1):
@@ -441,8 +611,13 @@ def validate_package_set(manifest: Mapping[str, Any], *, bundle_root: Path) -> N
         ordered_query_ids: list[str] = []
         for record in payload["records"]:
             query_id = str(record.get("query_id") or "")
+            workshop_pass = record.get("workshop_pass", "deduplicated")
             if not query_id or query_id in query_ids:
                 raise ValueError(f"IPL package has duplicate or empty query IDs: {definition.kg_id}")
+            if workshop_pass not in WORKSHOP_PASS_ORDER:
+                raise ValueError(
+                    f"IPL package has an invalid workshop pass: {definition.kg_id}/{query_id}"
+                )
             query_ids.add(query_id)
             ordered_query_ids.append(query_id)
             pin = _record_pin(record)
@@ -458,8 +633,18 @@ def validate_package_set(manifest: Mapping[str, Any], *, bundle_root: Path) -> N
             raise ValueError(f"IPL package records are not in canonical order: {definition.kg_id}")
         record_membership[definition.kg_id] = ordered_query_ids
         metadata = payload.get("workshop_package")
+        expected_pass_counts = {
+            name: sum(
+                record.get("workshop_pass", "deduplicated") == name
+                for record in payload["records"]
+            )
+            for name in WORKSHOP_PASS_ORDER
+        }
         if not isinstance(metadata, Mapping) or (
             metadata.get("kg_id") != definition.kg_id
+            or metadata.get("priority_tier") != definition.priority_tier
+            or metadata.get("pass_order") != list(WORKSHOP_PASS_ORDER)
+            or metadata.get("pass_counts") != expected_pass_counts
             or metadata.get("package_set_id") != manifest.get("package_set_id")
             or metadata.get("status") != status
             or metadata.get("source_bundle_digest") != manifest.get("source_bundle_digest")
@@ -521,7 +706,7 @@ def register_package_set(
         )
         unexpected = [row for row in existing_rows if row.kg_id not in IPL_KG_IDS]
         if unexpected:
-            raise ValueError("Workshop round contains packages outside the IPL five")
+            raise ValueError("Workshop round contains packages outside the IPL four")
         by_kg = {row.kg_id: row for row in existing_rows}
         for values in rows:
             seed = session.get(

@@ -44,6 +44,11 @@
         {% if value.packages %}
           <div class="package-list">
             {% for package in value.packages %}
+              {% if loop.first or package.priority_tier != value.packages[loop.index0 - 1].priority_tier %}
+                <h5 class="package-tier">
+                  {% if package.priority_tier == "core" %}Core workshop packages{% else %}Specialist packages{% endif %}
+                </h5>
+              {% endif %}
               <article class="package">
                 <h5>{{ package.display_name }}</h5>
                 {% if package.short_description %}<p>{{ package.short_description }}</p>{% endif %}

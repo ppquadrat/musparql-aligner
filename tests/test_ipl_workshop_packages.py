@@ -17,6 +17,7 @@ from musparql.workshop_packages import (
     build_package_set,
     canonical_json,
     digest_bytes,
+    prepare_quagga_workshop_source,
     register_package_set,
     validate_package_set,
 )
@@ -47,7 +48,7 @@ def _source_bundle(path: Path, *, holdout_policy: str = "identity_private_filter
         )
     payload = {
         "schema": "musparql.review-bundle.v2",
-        "dataset_id": "synthetic-five-kg-source",
+        "dataset_id": "synthetic-four-kg-source",
         "mode": "initial",
         "holdout_input_policy": holdout_policy,
         "record_count": len(records),
@@ -74,6 +75,52 @@ def _selection(path: Path, *, stale: bool = False) -> Path:
         )
     path.write_text(json.dumps(records), encoding="utf-8")
     return path
+
+
+def _candidate_report(*, deduplicated: bool = False) -> dict:
+    graphs = []
+    packages = (*IPL_PACKAGES, type("Dropped", (), {"kg_id": "alyra"})())
+    for index, package in enumerate(packages, start=1):
+        records = []
+        for record_index in range(1, 2 if deduplicated else 3):
+            query_id = f"{package.kg_id}__sha256:{index:062x}{record_index:02x}"
+            records.append(
+                {
+                    "kg_id": package.kg_id,
+                    "query_id": query_id,
+                    "query_label": f"{package.kg_id}-{record_index:04d}",
+                    "sparql": "SELECT * WHERE { ?s ?p ?o }",
+                    "sparql_hash": f"sha256:{index:062x}{record_index:02x}",
+                    "nl": {
+                        "text": f"Synthetic question {index}-{record_index}?",
+                        "origin": "generated",
+                        "model": "synthetic-model",
+                        "sources": [],
+                    },
+                }
+            )
+        graphs.append({"kg_id": package.kg_id, "records": records})
+    return {
+        "schema": "musparql.quagga-filter-candidates.v1",
+        "source_run_id": "synthetic-run",
+        "graphs": graphs,
+    }
+
+
+def test_quagga_reports_prepare_four_kg_two_pass_source() -> None:
+    bundle, selection = prepare_quagga_workshop_source(
+        all_candidates=_candidate_report(),
+        deduplicated_candidates=_candidate_report(deduplicated=True),
+    )
+
+    assert bundle["record_count"] == 8
+    assert len(selection) == 8
+    assert {record["kg_id"] for record in bundle["records"]} == {
+        package.kg_id for package in IPL_PACKAGES
+    }
+    assert sum(record["workshop_pass"] == "deduplicated" for record in bundle["records"]) == 4
+    assert sum(record["workshop_pass"] == "all_pairs" for record in bundle["records"]) == 4
+    assert bundle["workshop_pass_order"] == ["deduplicated", "all_pairs"]
 
 
 def test_provisional_package_set_is_complete_deterministic_and_disabled(tmp_path: Path) -> None:
@@ -119,7 +166,7 @@ def test_final_selection_is_pinned_and_packages_are_enabled(tmp_path: Path) -> N
     first_path = root / manifest["packages"][0]["bundle_path"]
     first = json.loads(first_path.read_text(encoding="utf-8"))
     assert first["workshop_package"]["status"] == "frozen"
-    assert first["records"][0]["kg_id"] == "alyra"
+    assert first["records"][0]["kg_id"] == "europeana"
 
 
 def test_final_selection_rejects_stale_sparql_pin(tmp_path: Path) -> None:
@@ -193,7 +240,7 @@ def test_validation_rejects_noncanonical_manifest_bundle_path(tmp_path: Path) ->
         round_id="ipl-2026",
         selection_path=_selection(tmp_path / "selection.json"),
     )
-    manifest["packages"][0]["bundle_path"] = "final/../final/01-alyra.json"
+    manifest["packages"][0]["bundle_path"] = "final/../final/01-europeana.json"
 
     with pytest.raises(ValueError, match="bundle path is not canonical"):
         validate_package_set(manifest, bundle_root=root)
@@ -258,8 +305,8 @@ def test_validation_rejects_noncanonical_bundle_record_order(tmp_path: Path) -> 
     source_path = _source_bundle(tmp_path / "source.json")
     source = json.loads(source_path.read_text(encoding="utf-8"))
     extra = deepcopy(source["records"][0])
-    extra["query_id"] = "alyra__synthetic-0"
-    extra["review_id"] = "alyra::query-0::synthetic"
+    extra["query_id"] = "europeana__synthetic-0"
+    extra["review_id"] = "europeana::query-0::synthetic"
     source["records"].append(extra)
     source["record_count"] += 1
     source_path.write_bytes(canonical_json(source))
@@ -267,8 +314,8 @@ def test_validation_rejects_noncanonical_bundle_record_order(tmp_path: Path) -> 
     selection = json.loads(selection_path.read_text(encoding="utf-8"))
     selection.append(
         {
-            "kg_id": "alyra",
-            "query_id": "alyra__synthetic-0",
+            "kg_id": "europeana",
+            "query_id": "europeana__synthetic-0",
             "sparql_version": extra["input"]["sparql_version"],
             "sparql_hash": extra["input"]["sparql_hash"],
         }
@@ -302,7 +349,7 @@ def test_build_atomically_replaces_output_symlinks(tmp_path: Path) -> None:
     external_manifest = tmp_path / "external-manifest.json"
     external_package.write_text("package sentinel", encoding="utf-8")
     external_manifest.write_text("manifest sentinel", encoding="utf-8")
-    (destination / "01-alyra.json").symlink_to(external_package)
+    (destination / "01-europeana.json").symlink_to(external_package)
     (destination / "manifest.json").symlink_to(external_manifest)
 
     build_package_set(
@@ -316,7 +363,7 @@ def test_build_atomically_replaces_output_symlinks(tmp_path: Path) -> None:
 
     assert external_package.read_text(encoding="utf-8") == "package sentinel"
     assert external_manifest.read_text(encoding="utf-8") == "manifest sentinel"
-    assert not (destination / "01-alyra.json").is_symlink()
+    assert not (destination / "01-europeana.json").is_symlink()
     assert not (destination / "manifest.json").is_symlink()
 
 
@@ -351,7 +398,7 @@ def test_frozen_package_set_registers_idempotently_on_draft_round(tmp_path: Path
                 )
             )
 
-        assert register_package_set(manifest, sessions=sessions, bundle_root=root) == (5, 0)
+        assert register_package_set(manifest, sessions=sessions, bundle_root=root) == (4, 0)
         assert register_package_set(manifest, sessions=sessions, bundle_root=root) == (0, 0)
         with sessions.begin() as session:
             session.get(WorkshopRound, "ipl-2026").status = "open"

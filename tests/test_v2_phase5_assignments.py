@@ -20,6 +20,7 @@ from musparql.database.models import (
     ReviewerResourceFamiliarityAssessment,
 )
 from musparql.web import create_app
+from musparql.web.assignments import AssignmentService, _randomize_workshop_records
 from musparql.web.auth import timestamp, utc_now
 from musparql.web.email import SyntheticEmailSender
 from musparql.linguistic_dimensions import build_bundle, text_digest
@@ -453,7 +454,6 @@ def test_assignment_creation_rejects_identity_paths_and_unfiltered_bundles(tmp_p
     upgrade_database(service_path)
     engine = create_database_engine(service_path)
     sessions = session_factory(engine)
-    from musparql.web.assignments import AssignmentService
 
     service = AssignmentService(sessions, bundle_root)
     for bundle_name in (
@@ -475,3 +475,51 @@ def test_assignment_creation_rejects_identity_paths_and_unfiltered_bundles(tmp_p
         else:
             raise AssertionError(f"unsafe bundle accepted: {bundle_name}")
     engine.dispose()
+
+
+def test_workshop_records_are_randomized_with_deduplicated_pass_first() -> None:
+    records = [
+        {
+            "query_id": f"dedup-{index}",
+            "workshop_pass": "deduplicated",
+        }
+        for index in range(8)
+    ] + [
+        {
+            "query_id": f"all-{index}",
+            "workshop_pass": "all_pairs",
+        }
+        for index in range(8)
+    ]
+    payload = {
+        "records": records,
+        "workshop_package": {
+            "pass_order": ["deduplicated", "all_pairs"],
+        },
+    }
+
+    first = _randomize_workshop_records(
+        payload,
+        assignment_id="assignment-000000000000000000000001",
+        bundle_digest="sha256:" + "1" * 64,
+    )
+    repeated = _randomize_workshop_records(
+        payload,
+        assignment_id="assignment-000000000000000000000001",
+        bundle_digest="sha256:" + "1" * 64,
+    )
+    second = _randomize_workshop_records(
+        payload,
+        assignment_id="assignment-000000000000000000000002",
+        bundle_digest="sha256:" + "1" * 64,
+    )
+
+    assert first["workshop_package"]["presentation_order"] == repeated[
+        "workshop_package"
+    ]["presentation_order"]
+    assert first["workshop_package"]["presentation_order"] != second[
+        "workshop_package"
+    ]["presentation_order"]
+    assert [record["workshop_pass"] for record in first["records"]] == [
+        "deduplicated"
+    ] * 8 + ["all_pairs"] * 8

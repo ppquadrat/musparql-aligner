@@ -18,7 +18,7 @@ hosting setup and fold the successful workshop work into it.
 
 The workshop release has one narrow purpose: allow individually registered and
 consented participants to form reviewing groups of one or more people in the
-room, select one of five identical-for-everyone KG packages, complete the work,
+room, select one of four identical-for-everyone KG packages, complete the work,
 and return for another assignment.
 
 This plan covers the data and pipeline changes needed to make that journey
@@ -43,7 +43,7 @@ is out of scope.
    using a short group-join code shown by another participant.
 5. A group may contain one or more reviewers. A person working alone is simply
    a one-member reviewing group; there is no separate assignment path.
-6. The group sees the same five frozen KG packages as every other group. The
+6. The group sees the same four frozen KG packages as every other group. The
    facilitator can advise which one to choose.
 7. Each group member completes their own KG-specific pre-assignment questions.
    Existing profile and assessment answers provide expertise information; the
@@ -96,7 +96,7 @@ Only the following is workshop-critical:
    using the final approved notice and statement.
 3. **Reviewing groups:** a simple 1+ member group and self-join mechanism, with
    no roles and no membership-history workflow.
-4. **Reusable packages:** five owner-prepared frozen KG packages visible to all
+4. **Reusable packages:** four owner-prepared frozen KG packages visible to all
    eligible groups and independently claimable more than once.
 5. **Group attribution:** assignments, submissions, and processing provenance
    must treat the reviewing group as one rater while retaining its contributor
@@ -241,26 +241,24 @@ workshop_work_packages
   created_at
 ```
 
-Prepare five primary packages. A package is a frozen template, not an
+Prepare four primary packages. A package is a frozen template, not an
 assignment. Any number of groups may claim it and receive separate assignment
 and submission IDs over identical item identities and digests.
 
-The five workshop packages are fixed as follows:
+The four workshop packages are fixed as follows:
 
 | Display name | Canonical `kg_id` |
 | --- | --- |
-| Archaic Lyric Poetry Ontology (ALyrA) | `alyra` |
-| Camera dei Deputati Knowledge Graph | `camera-dei-deputati` |
 | Europeana Knowledge Graph | `europeana` |
 | NFDI4Culture Culture Knowledge Graph (CKG) | `nfdi4culture` |
+| Camera dei Deputati Knowledge Graph | `camera-dei-deputati` |
 | CDEC Knowledge Graph | `cdec` |
 
-Until ODOMA's deduplication run supplies the final selectors, development and
-synthetic rehearsal may build provisional packages from all currently eligible
-non-holdout pairs for each of these KGs. Provisional package digests are never
-the workshop freeze. Rebuild, validate, and freeze the five packages after the
-owner supplies the deduplicated pair selection; this replacement must not
-require an application or schema change.
+Each package contains two passes: received deduplicated candidates first, then
+the remaining eligible all-pairs candidates. The record set and pass membership
+are frozen in the package digest. Presentation is randomised independently for
+each assignment within each pass, so a group never sees a pair twice and
+multiple groups naturally provide overlapping judgments for inter-rater data.
 
 ### 5.4 Group assignments and submissions
 
@@ -371,7 +369,8 @@ create expertise roles.
 
 Package choice is intentionally simple:
 
-- all eligible groups see the same five enabled packages;
+- all eligible groups see the same four enabled packages, with Europeana and
+  CKG labelled core and Camera dei Deputati and CDEC labelled specialist;
 - there is no automatic matching or capacity allocation;
 - claiming a package creates a fresh group assignment atomically;
 - several groups may claim the same package;
@@ -401,10 +400,8 @@ For each signed-in contributor, the outcome page also flags an outstanding
 KG-specific form and links directly to it when one is owed. Completing that
 form updates the flag but does not reopen or alter the assignment.
 
-If extra reviewed material is prepared, expose it as another ordinary optional
-package. Defer the linguistic-dimensions study unless the five primary packages
-are working, deployed, and rehearsed; it has different instructions and state
-and is not a safe critical-path addition.
+ALyrA, LinkedMusic, and the linguistic-dimensions study are outside this
+workshop package set.
 
 ## 8. Pipeline boundary and separate UI work
 
@@ -524,14 +521,14 @@ The complete notice is linked before login and throughout the site, together
 with the approved email-based withdrawal route.
 Group linguistic submission is kept unavailable as part of the explicit
 linguistic-mode deferral. The item 6 package tooling now builds and validates
-exactly the fixed five-KG set. Its v2 manifest embeds canonical annotation-free
+exactly the fixed four-KG set. Its v2 manifest embeds canonical annotation-free
 selection pins; validation independently derives selection membership, record
 order, the selection digest, and the package-set ID, and rejects noncanonical
 bundle paths. Package files are replaced atomically without following existing
 output symlinks, while seed import and draft-round package registration commit
 in one transaction. Provisional packages remain disabled and unregistrable. The
-actual workshop freeze remains pending only the owner-approved deduplicated
-selection; holdout pairs are explicitly excluded from every IPL package.
+received deduplicated subset and complete all-pairs membership; holdout pairs
+are explicitly excluded from every IPL package.
 Complete, partial, and abandoned outcomes now close group membership, return to
 package choice, and expose another claim only when the round's
 `allow_additional_assignments` switch permits it. Submission outcomes preserve
@@ -552,7 +549,7 @@ deployment, and rehearsal remain operational work.
 3. Adapt assignment assessment checks and submission processing for groups.
 4. Add SMTP-first/shared-code-fallback registration.
 5. Add the versioned affirmative-consent gate.
-6. Prepare and validate the five anonymous KG packages.
+6. Prepare and validate the four anonymous KG packages.
 7. Implement finish, partial, abandon, return, and optional-next-assignment
    behaviour at the route/service level.
 8. Deploy the exact passing commit to the ICF VPS.
@@ -632,7 +629,7 @@ conditions remains red at the agreed cutoff:
 1. the final participant notice and consent statement have not been approved;
 2. the deployed application fails its security, consent, or data-isolation
    checks;
-3. the five primary packages are not frozen and validated;
+3. the four primary packages are not frozen and validated;
 4. group attribution or durable submission fails in the synthetic rehearsal;
 5. the production database/files are outside the existing backup set or the
    restore test fails; or
@@ -648,7 +645,7 @@ Before participants arrive:
 
 - verify HTTPS health, web/worker state, disk space, database access, and owner
   access;
-- confirm the five package digests and run one synthetic claim/submission;
+- confirm the four package digests and run one synthetic claim/submission;
 - confirm the last backup status and keep the pre-workshop snapshot;
 - choose SMTP or enable the shared-code fallback; and
 - open the workshop round shortly before entry.
@@ -674,10 +671,9 @@ At the end:
 
 These choices do not prevent schema/auth work from starting:
 
-1. the final deduplicated pair selectors for the five recorded KGs;
-2. whether an abandoned or partial assignment permits another primary package;
-3. the shared-code opening time (its redemption cap is fixed at 30); and
-4. the cutoff at which failed SMTP causes the shared-code fallback to be
+1. whether an abandoned or partial assignment permits another primary package;
+2. the shared-code opening time (its redemption cap is fixed at 30); and
+3. the cutoff at which failed SMTP causes the shared-code fallback to be
    enabled.
 
 Everything else in this plan has a simple default: groups contain one or more

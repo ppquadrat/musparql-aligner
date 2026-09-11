@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 from pathlib import Path
+import random
 import re
 import secrets
 from typing import Any, Sequence
@@ -36,6 +37,45 @@ _SAFE_HOLDOUT_POLICIES = {
     "identity_visible_selectors",
     "identity_private_filtered_upstream",
 }
+
+
+def _randomize_workshop_records(
+    payload: dict[str, Any], *, assignment_id: str, bundle_digest: str
+) -> dict[str, Any]:
+    """Keep workshop passes ordered while deterministically shuffling within each pass."""
+    workshop_package = payload.get("workshop_package")
+    if not isinstance(workshop_package, dict):
+        return payload
+    pass_order = workshop_package.get("pass_order")
+    if pass_order != ["deduplicated", "all_pairs"]:
+        return payload
+    strata = {name: [] for name in pass_order}
+    for record in payload["records"]:
+        name = str(record.get("workshop_pass") or "deduplicated")
+        if name not in strata:
+            raise ValueError(f"Workshop record has an invalid pass: {name}")
+        strata[name].append(record)
+    ordered_records = []
+    for name in pass_order:
+        seed = int.from_bytes(
+            hashlib.sha256(
+                f"{assignment_id}\0{bundle_digest}\0{name}".encode("utf-8")
+            ).digest(),
+            "big",
+        )
+        random.Random(seed).shuffle(strata[name])
+        ordered_records.extend(strata[name])
+    return {
+        **payload,
+        "records": ordered_records,
+        "workshop_package": {
+            **workshop_package,
+            "presentation_strategy": "assignment-randomized-within-pass",
+            "presentation_order": [
+                str(record.get("query_id") or "") for record in ordered_records
+            ],
+        },
+    }
 _RECIPES = {
     "initial": {"validate_initial_review", "stage_initial_benchmark_update"},
     "compare": {
@@ -379,6 +419,9 @@ class AssignmentService:
                 record["literal"].pop("validation_provenance", None)
                 for candidate in record["candidates"]:
                     candidate.pop("provenance", None)
+        attributed = _randomize_workshop_records(
+            attributed, assignment_id=assignment_id, bundle_digest=digest
+        )
         attributed["reviewer_id"] = reviewer_id
         attributed["assignment_id"] = assignment_id
         attributed["bundle_digest"] = digest

@@ -1,16 +1,21 @@
 # IPL workshop package preparation
 
 This runbook covers Track A item 6: preparing, validating, and registering the
-five reviewer-neutral IPL knowledge-graph packages. It does not authorise access
+four reviewer-neutral IPL knowledge-graph packages. It does not authorise access
 to real holdout annotations or deployment to the ICF server.
 
 The fixed package order is:
 
-1. Archaic Lyric Poetry Ontology (`alyra`)
-2. Camera dei Deputati Knowledge Graph (`camera-dei-deputati`)
-3. Europeana Knowledge Graph (`europeana`)
-4. NFDI4Culture Culture Knowledge Graph (`nfdi4culture`)
-5. CDEC Knowledge Graph (`cdec`)
+1. Europeana Knowledge Graph (`europeana`, core)
+2. NFDI4Culture Culture Knowledge Graph (`nfdi4culture`, core)
+3. Camera dei Deputati Knowledge Graph (`camera-dei-deputati`, specialist)
+4. CDEC Knowledge Graph (`cdec`, specialist)
+
+Each package contains two ordered passes. Deduplicated candidates are presented
+first, followed by the remaining all-pairs candidates. Every assignment uses a
+stable assignment-specific shuffle within each pass. A group therefore sees no
+pair twice, while two groups claiming the same package provide independent
+overlapping judgments for inter-rater analysis.
 
 ## Safety boundary
 
@@ -21,13 +26,15 @@ already removed every holdout. The package command rejects the `no_holdout`
 assertion: it accepts only reviewer-neutral, initial-review data whose policy
 records actual holdout filtering and whose contents contain no holdout markers.
 
-The final deduplicated selection is an annotation-free JSON array or JSONL file.
+The final selection is an annotation-free JSON array or JSONL file covering all
+four-KG package members. The source bundle marks the deduplicated subset with
+`workshop_pass: deduplicated`; remaining records use `workshop_pass: all_pairs`.
 Every row contains exactly these immutable identity fields:
 
 ```json
 {
-  "kg_id": "alyra",
-  "query_id": "alyra__sha256:...",
+  "kg_id": "europeana",
+  "query_id": "europeana__sha256:...",
   "sparql_version": 0,
   "sparql_hash": "sha256:..."
 }
@@ -40,7 +47,7 @@ missing records, and stale SPARQL version/hash pins.
 ## Build a provisional rehearsal set
 
 A provisional build uses every eligible record in the source bundle. It creates
-all five packages but marks them `provisional` and disabled. It cannot be
+all four packages but marks them `provisional` and disabled. It cannot be
 registered in the database, so its digests cannot be mistaken for the workshop
 freeze.
 
@@ -50,25 +57,36 @@ freeze.
   --seed-snapshots catalog/kg_seed_snapshots.yaml \
   --bundle-root var/review/bundles \
   --out-dir var/review/bundles/ipl/provisional \
-  --round-id ipl-2026-09-16 \
+  --round-id ipl-2026 \
   --provisional
 ```
 
 ## Build the final frozen set
 
-After the owner has approved the deduplicated selection, build the final set:
+First convert the received Quagga reports into the reviewer-neutral source
+bundle and its complete pinned selection:
+
+```bash
+.venv/bin/python scripts/prepare_ipl_workshop_packages.py prepare-source \
+  --all-candidates var/workshop/quagga-filter-candidates.json \
+  --deduplicated-candidates var/workshop/quagga-filter-candidates-deduplicated.json \
+  --source-bundle-out var/workshop/ipl-quagga-source-bundle.json \
+  --selection-out var/workshop/ipl-quagga-selection.json
+```
+
+Then build the final set:
 
 ```bash
 .venv/bin/python -m scripts.prepare_ipl_workshop_packages build \
-  --source-bundle var/review/bundles/ipl/source.json \
+  --source-bundle var/workshop/ipl-quagga-source-bundle.json \
   --seed-snapshots catalog/kg_seed_snapshots.yaml \
   --bundle-root var/review/bundles \
-  --out-dir var/review/bundles/ipl/final \
-  --round-id ipl-2026-09-16 \
-  --selection var/review/ipl-deduplicated-selection.json
+  --out-dir var/review/bundles/ipl-2026 \
+  --round-id ipl-2026 \
+  --selection var/workshop/ipl-quagga-selection.json
 ```
 
-The command atomically replaces five canonical JSON bundles and `manifest.json`,
+The command atomically replaces four canonical JSON bundles and `manifest.json`,
 then immediately validates them. Identical inputs produce identical package-set
 and bundle digests. The manifest embeds the canonical annotation-free selection
 pins and pins the source bundle, canonical selection digest, seed version/digest,
@@ -79,11 +97,11 @@ Revalidate files after copying them to their operational location:
 
 ```bash
 .venv/bin/python -m scripts.prepare_ipl_workshop_packages validate \
-  --manifest var/review/bundles/ipl/final/manifest.json \
+  --manifest var/review/bundles/ipl-2026/manifest.json \
   --bundle-root var/review/bundles
 ```
 
-Validation requires exactly the five fixed packages in the fixed order, at
+Validation requires exactly the four fixed packages in the fixed order, at
 least one item per package, one KG per bundle, canonical record and path order,
 unique query identities, exact agreement with the embedded SPARQL pins,
 reviewer-neutral content, approved holdout handling, and independently derived
@@ -96,7 +114,7 @@ register the validated set against a migrated database:
 
 ```bash
 .venv/bin/python -m scripts.prepare_ipl_workshop_packages register \
-  --manifest var/review/bundles/ipl/final/manifest.json \
+  --manifest var/review/bundles/ipl-2026/manifest.json \
   --bundle-root var/review/bundles \
   --database var/database/musparql.sqlite3 \
   --seed-snapshots catalog/kg_seed_snapshots.yaml
@@ -107,7 +125,7 @@ one transaction, is idempotent, and can insert or replace package metadata only
 while the round remains a draft.
 It refuses provisional sets, unexpected extra packages, missing seed snapshots,
 and replacement after a package has been claimed. Open the round only after
-recording and independently checking the five manifest digests.
+recording and independently checking the four manifest digests.
 
 ## Verification
 
@@ -118,6 +136,6 @@ recording and independently checking the five manifest digests.
 ```
 
 Before the workshop, follow the release plan's run sheet: revalidate the copied
-manifest, compare its five digests with the recorded freeze, and run one
+manifest, compare its four digests with the recorded freeze, and run one
 synthetic claim and submission. Package files and the operational database stay
 under ICF-backed-up paths in production.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build, validate, and register the five reviewer-neutral IPL packages."""
+"""Prepare, build, validate, and register the four reviewer-neutral IPL packages."""
 from __future__ import annotations
 
 import argparse
@@ -13,6 +13,8 @@ from musparql.database.engine import create_database_engine, session_factory
 from musparql.database.services import SeedSnapshotService
 from musparql.workshop_packages import (
     build_package_set,
+    canonical_json,
+    prepare_quagga_workshop_source,
     register_package_set,
     validate_package_set,
 )
@@ -33,7 +35,16 @@ def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     commands = result.add_subparsers(dest="command", required=True)
 
-    build = commands.add_parser("build", help="Create and immediately validate all five packages.")
+    prepare = commands.add_parser(
+        "prepare-source",
+        help="Convert the all-pairs and deduplicated Quagga reports into a frozen source and selection.",
+    )
+    prepare.add_argument("--all-candidates", type=Path, required=True)
+    prepare.add_argument("--deduplicated-candidates", type=Path, required=True)
+    prepare.add_argument("--source-bundle-out", type=Path, required=True)
+    prepare.add_argument("--selection-out", type=Path, required=True)
+
+    build = commands.add_parser("build", help="Create and immediately validate all four packages.")
     build.add_argument("--source-bundle", type=Path, required=True)
     build.add_argument("--seed-snapshots", type=Path, default=Path("catalog/kg_seed_snapshots.yaml"))
     build.add_argument("--bundle-root", type=Path, required=True)
@@ -67,6 +78,22 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
+    if args.command == "prepare-source":
+        bundle, selection = prepare_quagga_workshop_source(
+            all_candidates=_mapping(args.all_candidates),
+            deduplicated_candidates=_mapping(args.deduplicated_candidates),
+        )
+        args.source_bundle_out.parent.mkdir(parents=True, exist_ok=True)
+        args.selection_out.parent.mkdir(parents=True, exist_ok=True)
+        args.source_bundle_out.write_bytes(canonical_json(bundle))
+        args.selection_out.write_bytes(canonical_json(selection))
+        print(
+            f"Prepared {bundle['record_count']} four-KG records and "
+            f"{sum(record['workshop_pass'] == 'deduplicated' for record in bundle['records'])} "
+            "deduplicated-first records."
+        )
+        return 0
+
     if args.command == "build":
         manifest = build_package_set(
             source_bundle=args.source_bundle,
