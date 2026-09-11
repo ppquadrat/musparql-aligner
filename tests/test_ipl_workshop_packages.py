@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SEEDS = ROOT / "catalog" / "kg_seed_snapshots.yaml"
 
 
-def _source_bundle(path: Path) -> Path:
+def _source_bundle(path: Path, *, holdout_policy: str = "identity_private_filtered_upstream") -> Path:
     records = []
     for index, package in enumerate(IPL_PACKAGES, start=1):
         digest = f"sha256:{index:064x}"
@@ -46,7 +46,7 @@ def _source_bundle(path: Path) -> Path:
         "schema": "musparql.review-bundle.v2",
         "dataset_id": "synthetic-five-kg-source",
         "mode": "initial",
-        "holdout_input_policy": "no_holdout",
+        "holdout_input_policy": holdout_policy,
         "record_count": len(records),
         "records": records,
     }
@@ -128,6 +128,21 @@ def test_final_selection_rejects_stale_sparql_pin(tmp_path: Path) -> None:
             output_dir=root / "final",
             round_id="ipl-2026",
             selection_path=_selection(tmp_path / "selection.json", stale=True),
+        )
+
+
+def test_package_set_requires_explicit_holdout_filtering(tmp_path: Path) -> None:
+    root = tmp_path / "bundles"
+    with pytest.raises(ValueError, match="holdouts to be explicitly filtered"):
+        build_package_set(
+            source_bundle=_source_bundle(
+                tmp_path / "source.json", holdout_policy="no_holdout"
+            ),
+            seed_archive=_seed_archive(),
+            bundle_root=root,
+            output_dir=root / "provisional",
+            round_id="ipl-2026",
+            selection_path=None,
         )
 
 

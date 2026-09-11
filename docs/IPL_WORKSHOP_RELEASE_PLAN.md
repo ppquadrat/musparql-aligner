@@ -525,9 +525,9 @@ linguistic-mode deferral. The item 6 package tooling now builds and validates
 exactly the fixed five-KG set, pins the source, deduplicated selection, seed,
 item, and file digests, keeps provisional packages disabled and unregistrable,
 and safely registers only a final frozen set on a draft round. The actual
-workshop freeze remains pending the owner-approved deduplicated selection and
-holdout-exclusion confirmation. Terminal lifecycle actions, ICF deployment,
-and rehearsal remain items 7–9.
+workshop freeze remains pending only the owner-approved deduplicated selection;
+holdout pairs are explicitly excluded from every IPL package. Terminal lifecycle
+actions, ICF deployment, and rehearsal remain items 7–9.
 
 ### Track A — must work first
 

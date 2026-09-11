@@ -78,6 +78,11 @@ def _load_neutral_bundle(path: Path) -> tuple[dict[str, Any], str]:
     payload, _relative, digest = load_neutral_bundle_file(path.parent, path.name)
     if str(payload.get("mode") or "initial") != "initial":
         raise ValueError("IPL packages require an initial-review bundle")
+    if payload.get("holdout_input_policy") not in {
+        "identity_visible_selectors",
+        "identity_private_filtered_upstream",
+    }:
+        raise ValueError("IPL packages require holdouts to be explicitly filtered")
     return payload, digest
 
 

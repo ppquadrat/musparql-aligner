@@ -14,11 +14,12 @@ The fixed package order is:
 
 ## Safety boundary
 
-Build the source with `scripts.build_review_bundle` in reviewer-neutral mode and
-make one explicit, truthful holdout-handling choice. The package command accepts
-only a bundle that the hosted assignment path itself accepts: it must be
-reviewer-neutral, initial-review data with a safe holdout policy and no holdout
-markers.
+Holdout pairs are excluded from the IPL package set completely. Build the source
+with `scripts.build_review_bundle` in reviewer-neutral mode, using either the
+owner-approved annotation-free selector or an identity-private process that has
+already removed every holdout. The package command rejects the `no_holdout`
+assertion: it accepts only reviewer-neutral, initial-review data whose policy
+records actual holdout filtering and whose contents contain no holdout markers.
 
 The final deduplicated selection is an annotation-free JSON array or JSONL file.
 Every row contains exactly these immutable identity fields:
@@ -55,8 +56,7 @@ freeze.
 
 ## Build the final frozen set
 
-After the owner has approved the deduplicated selection and confirmed the
-source bundle's holdout-exclusion route, build the final set:
+After the owner has approved the deduplicated selection, build the final set:
 
 ```bash
 .venv/bin/python -m scripts.prepare_ipl_workshop_packages build \
