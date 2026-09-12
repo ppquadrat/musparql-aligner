@@ -21,16 +21,13 @@ consented participants to form reviewing groups of one or more people in the
 room, select one of four identical-for-everyone KG packages, complete the work,
 and return for another assignment.
 
-Synthetic-rehearsal feedback proposes a simpler assignment-first participant
-journey and a dedicated workshop workbench in
-[`IPL_WORKSHOP_UX_PROPOSAL.md`](IPL_WORKSHOP_UX_PROPOSAL.md). That document is a
-proposal only and intentionally has not yet changed the implementation.
+Synthetic-rehearsal feedback led to the assignment-first participant journey
+and dedicated workshop workbench recorded in
+[`IPL_WORKSHOP_UX_IMPLEMENTATION.md`](IPL_WORKSHOP_UX_IMPLEMENTATION.md). The
+earlier proposal remains as historical design rationale.
 
-This plan covers the data and pipeline changes needed to make that journey
-honest and reliable. The IPL-specific redesign of the initial-review workbench
-is a separate piece of work and will have its own plan. This release must expose
-the group and assignment context that redesign will need, but it does not decide
-the redesign's layout, wording, or interaction priorities.
+This plan covers the data, pipeline, participant flow, and workbench changes
+needed to make that journey honest and reliable.
 
 Production remains the dedicated ICF Ubuntu VPS described in
 [`ICF_HOSTING_BOUNDARY.md`](ICF_HOSTING_BOUNDARY.md). The legacy WSL deployment
@@ -44,28 +41,29 @@ is out of scope.
    The shared code is never a shared account.
 3. The participant sees the approved notice, gives affirmative consent, and
    completes their own profile.
-4. In the room, the participant either creates a reviewing group or joins one
-   using a short group-join code shown by another participant.
-5. A group may contain one or more reviewers. A person working alone is simply
-   a one-member reviewing group; there is no separate assignment path.
-6. The group sees the same four frozen KG packages as every other group. The
+4. The participant sees the same four frozen KG batches as everyone else. The
    facilitator can advise which one to choose.
+5. Starting a batch creates its own one-member team and opens the KG-specific
+   form. A participant working alone needs no separate team-creation step.
+6. From that batch's workbench, a participant may add a consenting collaborator
+   by pseudonymous reviewer ID. The visible team summary lists the member IDs.
 7. Each group member completes their own KG-specific pre-assignment questions.
    Existing profile and assessment answers provide expertise information; the
    group has no expertise-role fields. A participant added after review has
    started may defer these questions while joining the active workbench.
-8. The group may open any of the four packages and move among its joint
-   assignments. Any signed-in member of that group may operate the nominated
-   browser and submit the current state.
+8. Each batch has its own team. Moving to another batch starts with a separate
+   one-member team; the same collaborators add one another again if they want
+   to work together on that KG. Any signed-in member of a batch team may operate
+   the nominated browser and submit the current state.
 9. While the workshop is open, another registered and consented participant
-   may join the group and access its work if extra expertise is needed. They may
-   already be contributing to another group. Missing KG-specific questions do
-   not prevent them from joining or prevent the group from submitting.
+   may be added to the batch team and access its work if extra expertise is
+   needed. Missing KG-specific questions do not prevent membership or prevent
+   the team from submitting.
 10. Leaving a workbench preserves its browser-local draft for return. Submitting
     creates an immutable complete or partial snapshot, reports any missing
     member pre-batch forms, and leaves the workbench open for further revisions.
-11. Back to workshop returns directly to package choice. The group may open or
-    resume any batch at any time during the workshop.
+11. Back to workshop returns directly to batch choice. The participant may open
+    or resume any batch at any time during the workshop.
 12. Several groups may independently review the same frozen package. They
     remain distinct rater units for inter-rater analysis.
 
@@ -100,8 +98,9 @@ Only the following is workshop-critical:
    that creates separate reviewer accounts and sessions.
 2. **Affirmative consent:** an explicit consent gate before profile collection,
    using the final approved notice and statement.
-3. **Reviewing groups:** a simple 1+ member group and self-join mechanism, with
-   no roles and no membership-history workflow.
+3. **Reviewing groups:** a simple batch-scoped 1+ member team, with direct
+   collaborator addition by pseudonymous reviewer ID, no roles, and no
+   membership-history workflow.
 4. **Reusable packages:** four owner-prepared frozen KG packages visible to all
    eligible groups and independently claimable more than once.
 5. **Group attribution:** assignments, submissions, and processing provenance
@@ -199,9 +198,10 @@ review_group_members
 There are deliberately no expertise roles, invitations, acceptance states,
 drivers, member history, or administrator pre-allocation.
 
-A signed-in participant creates a group and receives a short join code. Other
-signed-in, consented participants add themselves using that code. A participant
-who will work alone creates a group and continues without inviting anyone.
+A signed-in participant starts a batch and receives a one-person group for its
+assignment. From the workbench they may add another signed-in, consented
+participant using that person's pseudonymous reviewer ID. A participant who
+will work alone continues without inviting anyone.
 
 Joining remains open while the workshop round is active. This supports the
 workshop case where a reviewer starts, discovers that more expertise is needed,
@@ -211,14 +211,14 @@ joined member may access and contribute to the existing work immediately. If
 their KG-specific questions are missing, the application records them as owed;
 this never blocks access or submission.
 
-A reviewer may belong to more than one group in the round, so a scarce expert
-can help another active assignment. Membership is unique only within a group.
-Joining means being named as a contributor to that assignment; it is not an
-informal observer role.
+A reviewer may belong to more than one batch-scoped group in the round, so a
+scarce expert can help another active assignment. Membership is unique only
+within a group. Being added means being named as a contributor to that
+assignment; it is not an informal observer role.
 
-The active assignment page keeps the group's join code available through a
-simple “add a participant” action. Joining the group while it has an active
-assignment also joins that assignment; it does not create or restart one.
+The active workbench provides a simple “add a team member” action and shows the
+current member IDs. Adding a reviewer joins that existing assignment; it does
+not create or restart one.
 
 Each immutable submission records the contributor set and authenticated
 submitter at that moment. Later edits create a new revision rather than changing
@@ -380,9 +380,9 @@ Package choice is intentionally simple:
 - all eligible groups see the same four enabled packages, with Europeana and
   CKG labelled core and Camera dei Deputati and CDEC labelled specialist;
 - there is no automatic matching or capacity allocation;
-- claiming a package creates a fresh group assignment atomically;
+- starting a package creates a fresh batch-scoped group assignment atomically;
 - several groups may claim the same package;
-- a group may keep one assignment open for each package at the same time; and
+- a person may keep one separately teamed assignment open for each package; and
 - package and seed digests are checked when claimed, opened, and submitted.
 
 The workbench exposes two actions:
@@ -414,9 +414,10 @@ existing contributors may still reopen and submit that assignment after the
 scheduled workshop window. This prevents the timetable boundary from turning a
 valid submit or reload into an unexplained 404.
 
-Every team can open each enabled package once and move among those assignments.
-Submission feedback flags any outstanding KG-specific form and links directly
-to it for the signed-in contributor when one is owed.
+Each team belongs to one enabled package. A participant can move among their
+separately teamed assignments. Submission feedback flags every outstanding
+KG-specific form; the owing reviewer also sees its direct link on the Workshop
+page regardless of which team is selected.
 
 ALyrA, LinkedMusic, and the linguistic-dimensions study are outside this
 workshop package set.
@@ -550,18 +551,19 @@ received deduplicated subset and complete all-pairs membership; holdout pairs
 are explicitly excluded from every IPL package.
 Complete and partial submissions now preserve server-derived item counts and
 completion type in each immutable export and processing audit while keeping the
-workbench open. Teams may keep all four distinct package assignments open and
-move among their browser-local drafts. Pre-item-7 terminal v2 group receipts
+workbench open. Participants may keep separately teamed package assignments
+open and move among their browser-local drafts. Pre-item-7 terminal v2 group receipts
 without the additive count fields remain schema-valid; a retry derives and
 persists the missing assignment counts before its queued job is processed.
 Missing KG-specific forms are reported after submission and remain directly
-accessible. Current snapshot retries, changed revisions, legacy terminal
+accessible to the owing reviewer from the Workshop page across team selections.
+Current snapshot retries, changed revisions, legacy terminal
 retries, and exceptional abandonment races are covered by regression tests.
 Following the NL-provenance pipeline fix, item 6
 was rebuilt and validated locally on 12 September 2026 as corrected package set
 `30a5695ba92519fe`, while preserving the historical August artifacts. Workshop
-database registration, ICF deployment, and the production rehearsal remain
-operational work.
+database registration and ICF deployment are complete; the production
+rehearsal is the remaining operational check.
 
 ### Track A — must work first
 

@@ -9,6 +9,11 @@ the owing reviewer's Workshop page.
 
 **Recorded:** 12 September 2026
 
+The sections below preserve the proposal as it was evaluated. References to
+the “current implementation” describe the pre-implementation rehearsal and are
+not the live contract; follow the implementation document linked above for
+operations and testing.
+
 This proposal covers only the IPL workshop journey and an additional
 workshop-specific initial-review workbench. It does not replace the existing
 general review, comparison, correction, or linguistic interfaces.
