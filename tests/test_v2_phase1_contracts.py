@@ -85,6 +85,14 @@ def _json_schema_errors(schema_name: str, instance: object) -> list[str]:
             "reviewer_resource_familiarity_assessment.schema.json",
             "musparql.reviewer-resource-familiarity-assessment.v1",
         ),
+        (
+            "reviewer_kg_domain_assessment_v2.schema.json",
+            "musparql.reviewer-kg-domain-assessment.v2",
+        ),
+        (
+            "reviewer_resource_familiarity_assessment_v2.schema.json",
+            "musparql.reviewer-resource-familiarity-assessment.v2",
+        ),
         ("kg_seeds.schema.json", "musparql.kg-seeds.v2"),
         ("kg_seed_snapshots.schema.json", "musparql.kg-seed-snapshots.v1"),
         (

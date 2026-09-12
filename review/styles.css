@@ -42,6 +42,7 @@ body {
 
 .hosted-session form { margin: 0; }
 .hosted-session a { color: var(--accent); }
+.hosted-team-code { margin-right: auto; color: var(--ink); font-weight: 700; }
 
 button,
 input,
@@ -716,6 +717,26 @@ textarea {
 .hidden {
   display: none !important;
 }
+
+/* The IPL participant mode reuses the proven decision controls while removing
+   the catalogue, filtering, holdout, run, confidence, and export apparatus. */
+.workshop-mode .topbar .toolbar > * { display: none; }
+.workshop-mode .topbar .toolbar #exportReviewsBtn,
+.workshop-mode .topbar .toolbar #leaveAssignmentLink { display: inline-flex; }
+.workshop-mode .summary-strip .chip:first-child,
+.workshop-mode .summary-strip .chip:nth-child(3),
+.workshop-mode .sidebar,
+.workshop-mode .hero-badges,
+.workshop-mode .meta-grid > div:nth-child(n+2),
+.workshop-mode .confidence-rationale,
+.workshop-mode .detail-stack > .panel:last-child { display: none; }
+.workshop-mode .layout { grid-template-columns: minmax(0, 1fr); }
+.workshop-mode .detail-stack { max-width: 76rem; margin: 0 auto; width: 100%; }
+.workshop-mode .hero-head { align-items: center; }
+.workshop-mode .hero-head .hero-actions { display: block; }
+.workshop-mode .hero-head .pager { flex-wrap: nowrap; }
+.workshop-mode .retained-block .evidence-meta { display: none; }
+.workshop-mode .submission-status.submission-error { border-color: #c44; background: #fff1f1; }
 
 .empty-state {
   text-align: center;

@@ -10,7 +10,7 @@ import re
 import secrets
 from typing import Any, Sequence
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from musparql.database.models import (
@@ -25,6 +25,7 @@ from musparql.database.models import (
     ReviewerKgDomainAssessment,
     ReviewerResourceFamiliarityAssessment,
     WorkshopRound,
+    WorkshopAssessmentDeferral,
 )
 from musparql.database.services import ProvenanceService
 from musparql.linguistic_dimensions import BUNDLE_SCHEMA, validate_bundle
@@ -356,9 +357,18 @@ class AssignmentService:
         ) != len(view.familiarity_prompts):
             raise ValueError("The complete frozen prompt set is required")
         now = timestamp(utc_now())
+        with self.sessions() as session:
+            deferred = session.scalar(
+                select(WorkshopAssessmentDeferral.id).where(
+                    WorkshopAssessmentDeferral.assignment_id == assignment_id,
+                    WorkshopAssessmentDeferral.reviewer_id == reviewer_id,
+                )
+            )
+        context = "post_review_followup" if deferred else "pre_review"
+        version = "v2" if deferred else "v1"
         domain_records = [
             {
-                "schema": "musparql.reviewer-kg-domain-assessment.v1",
+                "schema": f"musparql.reviewer-kg-domain-assessment.{version}",
                 "id": "assessment-" + secrets.token_hex(12),
                 "reviewer_id": reviewer_id,
                 "kg_id": prompt.kg_id,
@@ -366,7 +376,7 @@ class AssignmentService:
                 "review_domain_label": prompt.label,
                 "subject_expertise_level": value,
                 "assessed_at": now,
-                "context": "pre_review",
+                "context": context,
                 "assignment_id": assignment_id,
                 "seed_version": prompt.seed_version,
                 "previous_assessment_id": self._domain_head_id(
@@ -377,7 +387,7 @@ class AssignmentService:
         ]
         familiarity_records = [
             {
-                "schema": "musparql.reviewer-resource-familiarity-assessment.v1",
+                "schema": f"musparql.reviewer-resource-familiarity-assessment.{version}",
                 "id": "assessment-" + secrets.token_hex(12),
                 "reviewer_id": reviewer_id,
                 "kg_id": prompt.kg_id,
@@ -385,7 +395,7 @@ class AssignmentService:
                 "familiarity_scope_label": prompt.label,
                 "familiarity_level": value,
                 "assessed_at": now,
-                "context": "pre_review",
+                "context": context,
                 "assignment_id": assignment_id,
                 "seed_version": prompt.seed_version,
                 "previous_assessment_id": self._familiarity_head_id(
@@ -402,6 +412,40 @@ class AssignmentService:
             activate_assignment=view.assignment.participant_status
             in {"not_started", "active"},
         )
+
+    def defer_assessment(self, assignment_id: str, reviewer_id: str) -> None:
+        """Record an explicit no-answer event for a joiner entering active work."""
+        view = self.view(assignment_id, reviewer_id)
+        if (
+            view.assignment.review_group_id is None
+            or not view.workbench_available
+            or view.assessed
+        ):
+            raise PermissionError("This assessment cannot be deferred")
+        session = self.sessions()
+        try:
+            session.execute(text("BEGIN IMMEDIATE"))
+            existing = session.scalar(
+                select(WorkshopAssessmentDeferral.id).where(
+                    WorkshopAssessmentDeferral.assignment_id == assignment_id,
+                    WorkshopAssessmentDeferral.reviewer_id == reviewer_id,
+                )
+            )
+            if existing is None:
+                session.add(
+                    WorkshopAssessmentDeferral(
+                        id="deferral-" + secrets.token_hex(12),
+                        assignment_id=assignment_id,
+                        reviewer_id=reviewer_id,
+                        deferred_at=timestamp(utc_now()),
+                    )
+                )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     def attributed_bundle(self, assignment_id: str, reviewer_id: str) -> dict[str, Any]:
         view = self.view(assignment_id, reviewer_id)

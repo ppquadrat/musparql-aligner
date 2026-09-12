@@ -26,7 +26,9 @@ from musparql.database.models import (
     Reviewer,
     ReviewerDomainExpertise,
     ReviewerExperience,
+    ReviewerKgDomainAssessment,
     ReviewerLanguage,
+    ReviewerResourceFamiliarityAssessment,
     ReviewAssignment,
     ReviewGroupMember,
     ReviewSubmission,
@@ -35,6 +37,7 @@ from musparql.database.models import (
     WorkshopEntryRedemption,
     WorkshopAdmissionAttempt,
     WorkshopAdmissionNonce,
+    WorkshopAssessmentDeferral,
     WorkshopRound,
     WorkshopSessionReset,
     WorkshopWorkPackage,
@@ -890,7 +893,8 @@ def test_affirmative_consent_records_both_versions_before_profile_collection(
     assert participant.get("/consent").location == "/"
     profile = participant.get("/profile")
     assert profile.status_code == 200
-    assert b"does not use a verified email address" in profile.data
+    assert b'name="contact_email"' in profile.data
+    assert b"not verified and cannot be used to sign in" in profile.data
     assert b"@example.invalid" not in profile.data
     notice = app.test_client().get("/participant-notice")
     assert notice.status_code == 200
@@ -924,8 +928,7 @@ def test_email_login_with_missing_consent_routes_to_the_same_gate(workshop_app) 
     )
     app.extensions["musparql_email_dispatcher"].wait_for_idle()
     verified = client.post(
-        "/auth/verify",
-        data={"csrf_token": _csrf(client), "code": message.value},
+        "/auth/verify", data={"csrf_token": _csrf(client), "code": message.value},
     )
     assert verified.location == "/consent"
     assert client.get("/profile").location == "/consent"
@@ -943,6 +946,69 @@ def test_email_login_with_missing_consent_routes_to_the_same_gate(workshop_app) 
         assert reviewer.consent_statement_version == "synthetic-consent-v1"
     engine.dispose()
 
+
+def test_shared_code_profile_requires_and_retains_unverified_contact_email(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    owner = app.test_client()
+    _login(owner, app, sender, "owner@example.invalid")
+    code = _issue_workshop_entry_code(owner)
+    participant = app.test_client()
+    assert participant.post(
+        "/auth/workshop", data={"csrf_token": _csrf(participant), "code": code}
+    ).location == "/consent"
+    assert participant.post(
+        "/consent",
+        data={"csrf_token": _csrf(participant), "consent_affirmed": "yes"},
+    ).location == "/profile"
+
+    incomplete = participant.post(
+        "/profile",
+        data={
+            "csrf_token": _csrf(participant),
+            "name": "Synthetic Workshop Participant",
+            "affiliation": "",
+            "kg_ontology_experience": "regular",
+            "sparql_experience": "regular",
+            "nlp_llm_experience": "regular",
+            "language_tag": "en",
+            "language_level": "fluent",
+            "new_domain_label": "Synthetic workshop field",
+            "new_domain_level": "working",
+        },
+    )
+    assert incomplete.status_code == 200
+    assert b"Email address is invalid" in incomplete.data
+
+    saved = participant.post(
+        "/profile",
+        data={
+            "csrf_token": _csrf(participant),
+            "contact_email": "Participant@Example.org",
+            "name": "Synthetic Workshop Participant",
+            "affiliation": "",
+            "kg_ontology_experience": "regular",
+            "sparql_experience": "regular",
+            "nlp_llm_experience": "regular",
+            "language_tag": "en",
+            "language_level": "fluent",
+            "new_domain_label": "Synthetic workshop field",
+            "new_domain_level": "working",
+        },
+    )
+    assert saved.location == "/workshop?result=profile-saved"
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        reviewer = session.scalar(
+            select(Reviewer).where(Reviewer.registration_method == "workshop_code")
+        )
+        assert reviewer is not None
+        assert reviewer.email_display == "Participant@Example.org"
+        assert reviewer.email_normalized == "participant@example.org"
+        assert reviewer.email_verified_at is None
+    engine.dispose()
 
 def test_owner_access_does_not_require_a_consent_record(workshop_app) -> None:
     app, sender, database_path, _bundle_root = workshop_app
@@ -1028,6 +1094,71 @@ def _assessment_form(client) -> dict[str, str]:
         "familiarity_level": "worked",
         "confirmed": "yes",
     }
+
+
+def test_workshop_page_silently_creates_team_and_lists_each_batch_once(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    client = app.test_client()
+    _login(client, app, sender, "first@example.invalid")
+
+    page = client.get("/workshop")
+
+    assert page.status_code == 200
+    assert page.data.count(b"Synthetic Knowledge Graph") == 1
+    assert b"Current team" in page.data
+    assert b"Join another team" in page.data
+    assert b"Create a reviewing group" not in page.data
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        assert session.scalar(
+            select(func.count())
+            .select_from(ReviewGroupMember)
+            .where(ReviewGroupMember.reviewer_id == FIRST_ID)
+        ) == 1
+    engine.dispose()
+
+
+def test_deferred_joiner_answers_are_post_review_followup(workshop_app) -> None:
+    app, _sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    assignments = app.extensions["musparql_assignments"]
+    group_id = workshops.create_group(FIRST_ID)
+    code = workshops.dashboard(FIRST_ID).groups[0].join_code
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    assignments.assess(
+        assignment_id, FIRST_ID, ["advanced"], ["worked"], confirmed=True
+    )
+    workshops.join_group(SECOND_ID, code)
+    assignments.defer_assessment(assignment_id, SECOND_ID)
+    assignments.assess(
+        assignment_id, SECOND_ID, ["working"], ["inspected"], confirmed=True
+    )
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        domain = session.scalar(
+            select(ReviewerKgDomainAssessment).where(
+                ReviewerKgDomainAssessment.assignment_id == assignment_id,
+                ReviewerKgDomainAssessment.reviewer_id == SECOND_ID,
+            )
+        )
+        familiarity = session.scalar(
+            select(ReviewerResourceFamiliarityAssessment).where(
+                ReviewerResourceFamiliarityAssessment.assignment_id == assignment_id,
+                ReviewerResourceFamiliarityAssessment.reviewer_id == SECOND_ID,
+            )
+        )
+        assert domain is not None and domain.context == "post_review_followup"
+        assert familiarity is not None and familiarity.context == "post_review_followup"
+    engine.dispose()
 
 
 def _review_payload(
@@ -1139,12 +1270,12 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert third.get(f"/assignments/{assignment_id}").status_code == 404
     assert first.get(f"/assignments/{assignment_id}/bundle").status_code == 403
 
-    assert first.post(
+    first_setup = first.post(
         f"/assignments/{assignment_id}", data=_assessment_form(first)
-    ).status_code == 302
-    waiting = first.get(f"/assignments/{assignment_id}")
-    assert b"when every current group member" in waiting.data
-    assert first.get(f"/assignments/{assignment_id}/bundle").status_code == 403
+    )
+    assert first_setup.status_code == 302
+    assert first_setup.location.endswith(f"/assignments/{assignment_id}/workbench/")
+    assert first.get(f"/assignments/{assignment_id}/bundle").status_code == 200
 
     assert second.post(
         f"/assignments/{assignment_id}", data=_assessment_form(second)
@@ -1162,6 +1293,8 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert b'"submission_url"' in context
     assert b'"partial_submission_url"' in context
     assert b'"workshop_url":"/workshop"' in context
+    assert b'"workshop_mode":true' in context
+    assert f'"team_join_code":"{group.join_code}"'.encode() in context
     assert b'"abandon_url"' not in context
 
     late_join = third.post(
@@ -1171,7 +1304,13 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert late_join.status_code == 302
     late_page = third.get(f"/assignments/{assignment_id}")
     assert late_page.status_code == 200
-    assert b"may contribute now" in late_page.data
+    assert b"team review is already active" in late_page.data
+    assert b"Skip for now and join review" in late_page.data
+    skipped = third.post(
+        f"/assignments/{assignment_id}/assessment/skip",
+        data={"csrf_token": _csrf(third)},
+    )
+    assert skipped.location.endswith(f"/assignments/{assignment_id}/workbench/")
     assert b"Synthetic subject expertise" in late_page.data
     assert third.get(f"/assignments/{assignment_id}/bundle").status_code == 200
 
@@ -1188,6 +1327,13 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
             assert assignment.participant_status == "active"
             assert assignment.claimed_at is not None
             assert assignment.opened_at is not None
+            deferral = session.scalar(
+                select(WorkshopAssessmentDeferral).where(
+                    WorkshopAssessmentDeferral.assignment_id == assignment_id,
+                    WorkshopAssessmentDeferral.reviewer_id == THIRD_ID,
+                )
+            )
+            assert deferral is not None
             seed = session.get(AssignmentKgSeed, (assignment_id, "synthetic-kg"))
             assert seed is not None
             assert seed.seed_digest == "sha256:" + "a" * 64
@@ -2155,7 +2301,7 @@ def test_leave_is_non_mutating_and_abandon_closes_without_submission(
     )
 
     assignment_page = client.get(f"/assignments/{assignment_id}")
-    assert b"Back to package choice" in assignment_page.data
+    assert b"Back to workshop" in assignment_page.data
     assert b"Close without submitting" not in assignment_page.data
     assert client.get("/workshop").status_code == 200
 

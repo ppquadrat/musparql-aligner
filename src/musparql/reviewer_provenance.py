@@ -375,7 +375,7 @@ def validate_reviewer_profile_projection(
 def _validate_longitudinal_assessments(
     records: Sequence[Mapping[str, Any]], *, domain: bool, reviewer_ids: set[str] | None
 ) -> None:
-    expected_schema = (
+    base_schema = (
         "musparql.reviewer-kg-domain-assessment.v1"
         if domain else "musparql.reviewer-resource-familiarity-assessment.v1"
     )
@@ -389,6 +389,12 @@ def _validate_longitudinal_assessments(
         unknown = set(record) - allowed_fields
         if unknown:
             raise ValueError(f"{subject} has unsupported fields: {sorted(unknown)}")
+        context = record.get("context")
+        expected_schema = (
+            base_schema.removesuffix(".v1") + ".v2"
+            if context == "post_review_followup"
+            else base_schema
+        )
         if record.get("schema") != expected_schema:
             raise ValueError(f"{subject} requires schema {expected_schema}")
         assessment_id = _required_text(record, "id", subject)
@@ -408,12 +414,13 @@ def _validate_longitudinal_assessments(
         levels = SUBJECT_EXPERTISE_LEVELS if domain else RESOURCE_FAMILIARITY_LEVELS
         if record.get(level_field) not in levels:
             raise ValueError(f"Unsupported {level_field}")
-        context = record.get("context")
         assignment_id = record.get("assignment_id")
-        if context not in {"pre_review", "profile"}:
+        if context not in {"pre_review", "post_review_followup", "profile"}:
             raise ValueError(f"Unsupported {subject.lower()} context")
-        if context == "pre_review" and not _nonempty_string(assignment_id):
-            raise ValueError(f"{subject} pre_review context requires assignment_id")
+        if context in {"pre_review", "post_review_followup"} and not _nonempty_string(
+            assignment_id
+        ):
+            raise ValueError(f"{subject} assignment context requires assignment_id")
         if context == "profile" and assignment_id is not None:
             raise ValueError(f"{subject} profile context requires null assignment_id")
         previous = record.get("previous_assessment_id")

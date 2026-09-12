@@ -44,6 +44,9 @@ class WorkPackageView:
     short_description: str
     kg_id: str
     priority_tier: str
+    status: str
+    action_label: str | None
+    assignment_id: str | None
 
 
 @dataclass(frozen=True)
@@ -69,6 +72,7 @@ class WorkshopView:
     round_name: str
     is_open: bool
     allow_additional_assignments: bool
+    current_group_id: str
     groups: tuple[ReviewGroupView, ...]
     packages: tuple[WorkPackageView, ...]
 
@@ -102,6 +106,7 @@ class WorkshopService:
 
     def dashboard(self, reviewer_id: str) -> WorkshopView:
         now = timestamp(utc_now())
+        self._ensure_personal_group(reviewer_id, now)
         with self.sessions() as session:
             reviewer = session.get(Reviewer, reviewer_id)
             self._require_eligible(reviewer)
@@ -136,6 +141,7 @@ class WorkshopService:
                 )
             }
             group_views: list[ReviewGroupView] = []
+            assignments_by_group: dict[str, list[ReviewAssignment]] = {}
             for group in groups:
                 assignments = list(
                     session.scalars(
@@ -144,6 +150,7 @@ class WorkshopService:
                         .order_by(ReviewAssignment.created_at.desc())
                     )
                 )
+                assignments_by_group[group.id] = assignments
                 active = next(
                     (
                         item
@@ -192,8 +199,41 @@ class WorkshopService:
                         outstanding_assessments=outstanding_assessments,
                     )
                 )
-            packages = tuple(
-                WorkPackageView(
+            selected_group = next(
+                (group for group in group_views if group.active_assignment_id),
+                group_views[0],
+            )
+            selected_assignments = assignments_by_group[selected_group.id]
+            package_views: list[WorkPackageView] = []
+            for package in session.scalars(
+                select(WorkshopWorkPackage)
+                .where(
+                    WorkshopWorkPackage.workshop_round_id == workshop_round.id,
+                    WorkshopWorkPackage.enabled.is_(True),
+                )
+                .order_by(WorkshopWorkPackage.display_order)
+            ):
+                assignment = next(
+                    (
+                        item
+                        for item in selected_assignments
+                        if item.work_package_id == package.id
+                    ),
+                    None,
+                )
+                if assignment is None:
+                    status = "available"
+                    action_label = "Start" if selected_group.can_claim else None
+                elif assignment.participant_status in _ACTIVE_PARTICIPANT_STATUSES:
+                    assessed = self.assignments.assessment_is_complete(
+                        session, assignment, reviewer_id
+                    )
+                    status = "in_progress" if assignment.status == "active" else "setup_needed"
+                    action_label = "Continue" if assessed and assignment.status == "active" else "Complete setup"
+                else:
+                    status = "submitted" if assignment.participant_status in {"completed", "partial"} else "closed"
+                    action_label = "View submission" if status == "submitted" else None
+                package_views.append(WorkPackageView(
                     id=package.id,
                     display_name=package.display_name,
                     short_description=package.short_description,
@@ -203,24 +243,74 @@ class WorkshopService:
                         if package.kg_id in {"europeana", "nfdi4culture"}
                         else "specialist"
                     ),
-                )
-                for package in session.scalars(
-                    select(WorkshopWorkPackage)
-                    .where(
-                        WorkshopWorkPackage.workshop_round_id == workshop_round.id,
-                        WorkshopWorkPackage.enabled.is_(True),
-                    )
-                    .order_by(WorkshopWorkPackage.display_order)
-                )
-            )
+                    status=status,
+                    action_label=action_label,
+                    assignment_id=assignment.id if assignment else None,
+                ))
             return WorkshopView(
                 round_id=workshop_round.id,
                 round_name=workshop_round.name,
                 is_open=round_is_open,
                 allow_additional_assignments=workshop_round.allow_additional_assignments,
+                current_group_id=selected_group.id,
                 groups=tuple(group_views),
-                packages=packages,
+                packages=tuple(package_views),
             )
+
+    def _ensure_personal_group(self, reviewer_id: str, now: str) -> None:
+        """Create the participant's one-person team on first workshop entry."""
+        session = self.sessions()
+        try:
+            session.execute(text("BEGIN IMMEDIATE"))
+            reviewer = session.get(Reviewer, reviewer_id)
+            self._require_eligible(reviewer)
+            open_rounds = self._open_rounds(session, now)
+            if not open_rounds:
+                if self._latest_joined_round(session, reviewer_id) is not None:
+                    session.commit()
+                    return
+                raise WorkshopUnavailable("No workshop round is available")
+            if len(open_rounds) != 1:
+                raise WorkshopUnavailable("Exactly one workshop round must be open")
+            workshop_round = open_rounds[0]
+            existing = session.scalar(select(ReviewGroupMember.group_id).join(
+                ReviewGroup, ReviewGroup.id == ReviewGroupMember.group_id
+            ).where(
+                ReviewGroupMember.reviewer_id == reviewer_id,
+                ReviewGroup.workshop_round_id == workshop_round.id,
+            ).limit(1))
+            if existing is None:
+                for _attempt in range(20):
+                    group_id = "group-" + secrets.token_hex(12)
+                    join_code = self._join_code(group_id)
+                    if session.scalar(
+                        select(ReviewGroup.id).where(
+                            ReviewGroup.join_code_digest == self._join_digest(join_code)
+                        )
+                    ) is None:
+                        break
+                else:
+                    raise RuntimeError("Could not allocate a unique team code")
+                session.add(
+                    ReviewGroup(
+                        id=group_id,
+                        workshop_round_id=workshop_round.id,
+                        join_code_digest=self._join_digest(join_code),
+                        created_at=now,
+                    )
+                )
+                session.flush()
+                session.add(
+                    ReviewGroupMember(
+                        group_id=group_id, reviewer_id=reviewer_id, joined_at=now
+                    )
+                )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     def create_group(self, reviewer_id: str) -> str:
         now = timestamp(utc_now())
@@ -310,6 +400,51 @@ class WorkshopService:
             raise
         finally:
             session.close()
+
+    def active_assignment(self, reviewer_id: str, group_id: str) -> str | None:
+        """Return the active review after verifying current team membership."""
+        with self.sessions() as session:
+            if session.get(ReviewGroupMember, (group_id, reviewer_id)) is None:
+                raise WorkshopAccessError("Team is not available")
+            return session.scalar(
+                select(ReviewAssignment.id)
+                .where(
+                    ReviewAssignment.review_group_id == group_id,
+                    ReviewAssignment.participant_status.in_(_ACTIVE_PARTICIPANT_STATUSES),
+                )
+                .order_by(ReviewAssignment.created_at.desc())
+                .limit(1)
+            )
+
+    def workbench_team(self, reviewer_id: str, assignment_id: str) -> dict[str, object]:
+        """Return the minimal participant-facing team context for a workbench."""
+        with self.sessions() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            if assignment is None or assignment.review_group_id is None:
+                raise WorkshopAccessError("Team review is not available")
+            if session.get(
+                ReviewGroupMember, (assignment.review_group_id, reviewer_id)
+            ) is None:
+                raise WorkshopAccessError("Team review is not available")
+            members = list(
+                session.scalars(
+                    select(ReviewGroupMember.reviewer_id).where(
+                        ReviewGroupMember.group_id == assignment.review_group_id
+                    )
+                )
+            )
+            missing = [
+                member_id
+                for member_id in members
+                if not self.assignments.assessment_is_complete(
+                    session, assignment, member_id
+                )
+            ]
+            return {
+                "join_code": self._join_code(assignment.review_group_id),
+                "member_count": len(members),
+                "missing_assessment_reviewer_ids": sorted(missing),
+            }
 
     def claim_package(
         self, *, reviewer_id: str, group_id: str, package_id: str

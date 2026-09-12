@@ -11,6 +11,7 @@ import unicodedata
 import uuid
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from musparql.database.models import (
@@ -22,6 +23,7 @@ from musparql.database.models import (
 )
 from musparql.reviewer_provenance import validate_reviewer_domain_expertise_assertions
 from musparql.source_catalog import load_expertise_domain_suggestions
+from musparql.database.services import normalize_email
 
 from .auth import timestamp, utc_now
 
@@ -221,6 +223,27 @@ class ProfileService:
             reviewer = session.get(Reviewer, reviewer_id)
             if reviewer is None or reviewer.status != "active":
                 raise ValueError("The reviewer account is not active")
+            if reviewer.registration_method == "workshop_code":
+                email_display = unicodedata.normalize(
+                    "NFC", form.get("contact_email", "")
+                ).strip()
+                email_normalized = normalize_email(email_display)
+                owner = session.scalar(
+                    select(Reviewer.id).where(
+                        Reviewer.email_normalized == email_normalized,
+                        Reviewer.id != reviewer_id,
+                    )
+                )
+                if owner is not None:
+                    raise ValueError("That contact email is already in use.")
+                reviewer.email_display = email_display
+                reviewer.email_normalized = email_normalized
+                # Shared-code addresses are contact details, not login proof.
+                reviewer.email_verified_at = None
+                try:
+                    session.flush()
+                except IntegrityError as exc:
+                    raise ValueError("That contact email is already in use.") from exc
             notice_is_current = (
                 reviewer.privacy_notice_version == self.notice_version
                 and reviewer.privacy_notice_acknowledged_at is not None
@@ -303,6 +326,11 @@ class ProfileService:
         if (
             reviewer.privacy_notice_version != self.notice_version
             or reviewer.privacy_notice_acknowledged_at is None
+        ):
+            return False
+        if (
+            reviewer.registration_method == "workshop_code"
+            and reviewer.email_normalized.endswith("@example.invalid")
         ):
             return False
         if session.get(ReviewerExperience, reviewer.id) is None:

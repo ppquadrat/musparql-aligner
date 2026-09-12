@@ -107,6 +107,13 @@
     els.leaveAssignmentLink.href = hosted.assignment_url;
     els.leaveAssignmentLink.classList.remove("hidden");
   }
+  if (hosted?.workshop_mode) {
+    document.body.classList.add("workshop-mode");
+    document.querySelector(".topbar h1").textContent = "Workshop review";
+    document.querySelector(".topbar .subtitle").textContent = "Review each SPARQL and model-question pair.";
+    els.leaveAssignmentLink.textContent = "Back to workshop";
+    els.prevBtn.textContent = "Previous";
+  }
   els.continueReviewBtn.addEventListener("click", () => {
     els.submissionStatus.classList.add("hidden");
     if (continueAfterSubmission) continueAfterSubmission();
@@ -366,13 +373,17 @@
       ...(output.ranked_evidence_phrases || []).map((item) => item.evidence_id),
     ]);
 
-    els.detailMeta.textContent = `${record.kg_id} · ${record.run_label}`;
-    els.detailTitle.textContent = record.query_label;
+    els.detailMeta.textContent = hosted?.workshop_mode ? "Pair ID" : `${record.kg_id} · ${record.run_label}`;
+    els.detailTitle.textContent = hosted?.workshop_mode
+      ? (record.query_id || record.review_id)
+      : record.query_label;
     els.modeBadge.textContent = mode;
     els.confidenceBadge.textContent = `confidence ${confidence}`;
     els.reviewBadge.textContent = review.status || "unreviewed";
     els.detailQuestion.textContent = output.nl_question || "No model question";
-    els.detailOrigin.textContent = formatOrigin(output.nl_question_origin);
+    els.detailOrigin.textContent = hosted?.workshop_mode
+      ? (output.nl_question_origin?.mode || "unknown")
+      : formatOrigin(output.nl_question_origin);
     els.detailModel.textContent = record.output_meta?.model || "-";
     els.detailRun.textContent = record.run_label;
     els.detailElapsed.textContent = record.output_meta?.elapsed_ms ? `${record.output_meta.elapsed_ms} ms` : "-";
@@ -400,8 +411,14 @@
     els.rankedEvidenceList.innerHTML = "";
     const ranked = output.ranked_evidence_phrases || [];
     if (!ranked.length) {
-      els.rankedEvidenceList.innerHTML = '<p class="muted-meta">No retained evidence phrases.</p>';
+      els.rankedEvidenceList.innerHTML = hosted?.workshop_mode
+        ? ""
+        : '<p class="muted-meta">No retained evidence phrases.</p>';
+      if (hosted?.workshop_mode) {
+        els.rankedEvidenceList.closest(".retained-block")?.classList.add("hidden");
+      }
     } else {
+      els.rankedEvidenceList.closest(".retained-block")?.classList.remove("hidden");
       ranked.forEach((item) => {
         const card = document.createElement("div");
         card.className = "evidence-card used";
@@ -1068,7 +1085,7 @@
       const reviewed = reviewDecisionCount(publicReviews);
       const total = Number(data.record_count) || data.records.length;
       if (reviewed === 0) {
-        window.alert("Review at least one item before submitting current work.");
+        showSubmissionMessage("Review at least one pair before submitting current work.");
         return;
       }
       const resolvedType = completionType === "auto"
@@ -1081,7 +1098,7 @@
         window.alert("This assignment cannot accept the current review state.");
         return;
       }
-      if (!window.confirm(`Submit the current ${reviewed} of ${total} reviewed items and close this assignment?`)) {
+      if (!window.confirm(`Submit the current ${reviewed} of ${total} reviewed pairs and close this review?`)) {
         return;
       }
       await submitHostedPayload(payload, submissionUrl);
@@ -1253,6 +1270,7 @@
   }
 
   function showSubmissionSuccess(result, payload) {
+    els.submissionStatus.classList.remove("submission-error");
     const completed = Number.isInteger(result.completion_item_count)
       ? result.completion_item_count
       : Object.keys(payload.reviews || {}).length;
@@ -1268,10 +1286,24 @@
         : "Thank you — your review was submitted.";
     els.submissionProgress.textContent = `You completed ${percentage}% of this assignment (${completed} of ${total} items).`;
     els.submissionReceipt.textContent = `Receipt recorded · revision ${result.revision}.`;
+    if (hosted?.workshop_mode && hosted.missing_assessment_reviewer_ids?.length) {
+      els.submissionReceipt.textContent += ` Background form still missing for ${hosted.missing_assessment_reviewer_ids.join(", ")}.`;
+    }
     els.continueReviewBtn.classList.add("hidden");
     els.backToAssignmentsLink.classList.remove("hidden");
     els.exportReviewsBtn.classList.add("hidden");
     document.querySelectorAll(".hosted-terminal-control").forEach((control) => control.remove());
+    els.submissionStatus.classList.remove("hidden");
+    els.submissionStatus.scrollIntoView({behavior: "smooth", block: "start"});
+  }
+
+  function showSubmissionMessage(message) {
+    els.submissionHeading.textContent = message;
+    els.submissionProgress.textContent = "Your draft is unchanged.";
+    els.submissionReceipt.textContent = "";
+    els.continueReviewBtn.classList.add("hidden");
+    els.backToAssignmentsLink.classList.add("hidden");
+    els.submissionStatus.classList.add("submission-error");
     els.submissionStatus.classList.remove("hidden");
     els.submissionStatus.scrollIntoView({behavior: "smooth", block: "start"});
   }
@@ -2190,9 +2222,17 @@
     identity.textContent = `Signed in as ${hosted.reviewer_id}`;
     bar.appendChild(identity);
 
+    if (hosted.workshop_mode && hosted.team_join_code) {
+      const team = document.createElement("span");
+      const code = String(hosted.team_join_code);
+      team.className = "hosted-team-code";
+      team.textContent = `Team ${code.slice(0, 3)} ${code.slice(3)} · ask teammates to enter this code on their Workshop page`;
+      bar.appendChild(team);
+    }
+
     els.backToAssignmentsLink.href = hosted.assignments_url || "/";
     if (hosted.workshop_url) {
-      els.backToAssignmentsLink.textContent = "Back to package choice";
+      els.backToAssignmentsLink.textContent = "Back to workshop";
     }
 
     const profile = document.createElement("a");

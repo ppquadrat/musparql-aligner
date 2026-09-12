@@ -347,8 +347,11 @@ class ProvenanceService:
         assignment_ids = {record.get("assignment_id") for record in records}
         if len(assignment_ids) != 1 or None in assignment_ids:
             raise ValueError("Pre-review assessments must identify one assignment")
-        if any(record.get("context") != "pre_review" for record in records):
-            raise ValueError("Pre-review assessment batch requires pre_review context")
+        contexts = {record.get("context") for record in records}
+        if len(contexts) != 1 or not contexts.issubset(
+            {"pre_review", "post_review_followup"}
+        ):
+            raise ValueError("Assignment assessment batch has inconsistent context")
         assignment_id = str(next(iter(assignment_ids)))
 
         with self.sessions() as session:
@@ -465,48 +468,9 @@ class ProvenanceService:
                 else:
                     if assignment.status not in {"ready", "active"}:
                         raise ValueError("This group assignment is not open for assessment")
-                    session.flush()
-                    member_ids = list(
-                        session.scalars(
-                            select(ReviewGroupMember.reviewer_id).where(
-                                ReviewGroupMember.group_id
-                                == assignment.review_group_id
-                            )
-                        )
-                    )
-                    expected_domain_count = len(provided_domains)
-                    expected_familiarity_count = len(provided_familiarities)
-                    should_activate = assignment.status == "ready" and all(
-                        int(
-                            session.scalar(
-                                select(func.count())
-                                .select_from(ReviewerKgDomainAssessment)
-                                .where(
-                                    ReviewerKgDomainAssessment.assignment_id
-                                    == assignment.id,
-                                    ReviewerKgDomainAssessment.reviewer_id
-                                    == member_id,
-                                )
-                            )
-                            or 0
-                        )
-                        == expected_domain_count
-                        and int(
-                            session.scalar(
-                                select(func.count())
-                                .select_from(ReviewerResourceFamiliarityAssessment)
-                                .where(
-                                    ReviewerResourceFamiliarityAssessment.assignment_id
-                                    == assignment.id,
-                                    ReviewerResourceFamiliarityAssessment.reviewer_id
-                                    == member_id,
-                                )
-                            )
-                            or 0
-                        )
-                        == expected_familiarity_count
-                        for member_id in member_ids
-                    )
+                    # A team review opens for the participant who completed
+                    # setup; teammates' individual forms never gate access.
+                    should_activate = assignment.status == "ready"
                 if should_activate:
                     assignment.status = "active"
                     assignment.opened_at = str(records[0]["assessed_at"])
@@ -532,9 +496,11 @@ class ProvenanceService:
         for item in history:
             saved = dict(
                 schema=(
-                    "musparql.reviewer-kg-domain-assessment.v1"
-                    if domain else "musparql.reviewer-resource-familiarity-assessment.v1"
-                ),
+                    "musparql.reviewer-kg-domain-assessment"
+                    if domain
+                    else "musparql.reviewer-resource-familiarity-assessment"
+                )
+                + (".v2" if item.context == "post_review_followup" else ".v1"),
                 id=item.id, reviewer_id=item.reviewer_id, kg_id=item.kg_id,
                 assessed_at=item.assessed_at, context=item.context,
                 assignment_id=item.assignment_id, seed_version=item.seed_version,

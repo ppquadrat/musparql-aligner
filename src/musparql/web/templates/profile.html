@@ -3,7 +3,7 @@
 {% block content %}
   <h1>{% if profile_complete %}My profile{% else %}Complete your profile{% endif %}</h1>
   {% if current_reviewer.registration_method == 'workshop_code' %}
-    <p>Your workshop participant account is <strong>{{ current_reviewer.id }}</strong>. It does not use a verified email address.</p>
+    <p>Your workshop participant account is <strong>{{ current_reviewer.id }}</strong>. Your contact email is retained for workshop follow-up but is not verified and cannot be used to sign in.</p>
   {% else %}
     <p>Your email address is verified as <strong>{{ profile.email }}</strong>. Contact the project owner if it needs to change.</p>
   {% endif %}
@@ -25,6 +25,12 @@
 
     <section>
       <h2>About you</h2>
+      {% if current_reviewer.registration_method == 'workshop_code' %}
+        <label class="field" for="contact_email">Contact email
+          <input id="contact_email" name="contact_email" type="email" maxlength="254" autocomplete="email" value="{% if not profile.email.endswith('@example.invalid') %}{{ profile.email }}{% endif %}" required>
+          <span class="metadata">Unverified. Used only for approved workshop follow-up; it is excluded from review bundles and exports.</span>
+        </label>
+      {% endif %}
       <label class="field" for="name">Name
         <input id="name" name="name" maxlength="200" autocomplete="name" value="{{ profile.name }}" required>
       </label>

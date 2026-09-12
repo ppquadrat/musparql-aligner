@@ -47,6 +47,19 @@ def test_workbench_keeps_columns_until_a_genuinely_narrow_window() -> None:
     assert "@media (max-width: 1100px)" not in css
 
 
+def test_workshop_mode_is_a_scoped_single_pair_workbench() -> None:
+    app = (ROOT / "review" / "app.js").read_text(encoding="utf-8")
+    css = (ROOT / "review" / "styles.css").read_text(encoding="utf-8")
+
+    assert 'document.body.classList.add("workshop-mode")' in app
+    assert 'els.leaveAssignmentLink.textContent = "Back to workshop"' in app
+    assert "Review at least one pair before submitting current work." in app
+    assert "hosted.team_join_code" in app
+    assert ".workshop-mode .sidebar" in css
+    assert ".workshop-mode .detail-stack > .panel:last-child" in css
+    assert ".workshop-mode .layout { grid-template-columns: minmax(0, 1fr); }" in css
+
+
 def test_imports_reject_cross_reviewer_and_non_owner_legacy_state() -> None:
     script = r'''
 const fs = require("node:fs");

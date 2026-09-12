@@ -161,6 +161,23 @@ class ReviewGroupMember(Base):
     joined_at: Mapped[str] = mapped_column(String)
 
 
+class WorkshopAssessmentDeferral(Base):
+    """An explicit no-answer event when a teammate joins an active review."""
+
+    __tablename__ = "workshop_assessment_deferrals"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    assignment_id: Mapped[str] = mapped_column(
+        ForeignKey("review_assignments.id"), index=True
+    )
+    reviewer_id: Mapped[str] = mapped_column(ForeignKey("reviewers.id"), index=True)
+    deferred_at: Mapped[str] = mapped_column(String)
+    __table_args__ = (
+        UniqueConstraint(
+            "assignment_id", "reviewer_id", name="uq_workshop_assessment_deferral"
+        ),
+    )
+
+
 class WorkshopWorkPackage(Base):
     __tablename__ = "workshop_work_packages"
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -498,9 +515,13 @@ class ReviewerKgDomainAssessment(Base):
             name="fk_domain_assessment_seed_prompt",
         ),
         CheckConstraint(f"subject_expertise_level IN ({SUBJECT_LEVELS})", name="ck_domain_assessment_level"),
-        CheckConstraint("context IN ('pre_review','profile')", name="ck_domain_assessment_context"),
         CheckConstraint(
-            "(context = 'pre_review' AND assignment_id IS NOT NULL) OR (context = 'profile' AND assignment_id IS NULL)",
+            "context IN ('pre_review','post_review_followup','profile')",
+            name="ck_domain_assessment_context",
+        ),
+        CheckConstraint(
+            "(context IN ('pre_review','post_review_followup') AND assignment_id IS NOT NULL) "
+            "OR (context = 'profile' AND assignment_id IS NULL)",
             name="ck_domain_assessment_assignment",
         ),
         CheckConstraint("previous_assessment_id IS NULL OR previous_assessment_id <> id", name="ck_domain_assessment_not_self"),
@@ -548,9 +569,13 @@ class ReviewerResourceFamiliarityAssessment(Base):
             name="fk_familiarity_assessment_seed_prompt",
         ),
         CheckConstraint(f"familiarity_level IN ({FAMILIARITY_LEVELS})", name="ck_familiarity_assessment_level"),
-        CheckConstraint("context IN ('pre_review','profile')", name="ck_familiarity_assessment_context"),
         CheckConstraint(
-            "(context = 'pre_review' AND assignment_id IS NOT NULL) OR (context = 'profile' AND assignment_id IS NULL)",
+            "context IN ('pre_review','post_review_followup','profile')",
+            name="ck_familiarity_assessment_context",
+        ),
+        CheckConstraint(
+            "(context IN ('pre_review','post_review_followup') AND assignment_id IS NOT NULL) "
+            "OR (context = 'profile' AND assignment_id IS NULL)",
             name="ck_familiarity_assessment_assignment",
         ),
         CheckConstraint("previous_assessment_id IS NULL OR previous_assessment_id <> id", name="ck_familiarity_assessment_not_self"),

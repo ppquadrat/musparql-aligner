@@ -1,6 +1,8 @@
 # IPL workshop participant-flow and workbench proposal
 
-**Status:** proposed from synthetic rehearsal feedback; not implemented
+**Status:** implemented for the workshop flow on 12 September 2026; the
+revision-after-submission lifecycle remains deliberately deferred as documented in
+[`IPL_WORKSHOP_UX_IMPLEMENTATION.md`](IPL_WORKSHOP_UX_IMPLEMENTATION.md)
 
 **Recorded:** 12 September 2026
 

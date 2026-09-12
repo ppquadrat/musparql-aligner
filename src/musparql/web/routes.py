@@ -173,14 +173,15 @@ def workshop():
     except WorkshopUnavailable:
         abort(404)
     messages = {
-        "group-created": "Your reviewing group is ready.",
-        "group-joined": "You joined the reviewing group.",
-        "package-claimed": "The package is assigned to your group.",
-        "assignment-abandoned": "The assignment was closed without a submission.",
+        "profile-saved": "Your profile is complete. Choose a review batch to begin.",
+        "group-created": "Your team is ready.",
+        "group-joined": "You joined the team.",
+        "package-claimed": "The review batch is ready for setup.",
+        "assignment-abandoned": "The review was closed without a submission.",
     }
     errors = {
-        "invalid-group-code": "That reviewing-group code is not available.",
-        "claim-unavailable": "That package could not be assigned to this group.",
+        "invalid-group-code": "That team code is not available.",
+        "claim-unavailable": "That review batch could not be started by this team.",
     }
     return render_template(
         "workshop.html",
@@ -220,13 +221,18 @@ def join_workshop_group():
     ):
         abort(403)
     try:
-        current_app.extensions["musparql_workshops"].join_group(
+        group_id = current_app.extensions["musparql_workshops"].join_group(
             g.current_reviewer.id, request.form.get("join_code", "")
         )
     except WorkshopAccessError:
         return redirect(url_for("portal.workshop", error="invalid-group-code"))
     except WorkshopUnavailable:
         abort(404)
+    assignment_id = current_app.extensions["musparql_workshops"].active_assignment(
+        g.current_reviewer.id, group_id
+    )
+    if assignment_id:
+        return redirect(url_for("portal.assignment", assignment_id=assignment_id, joined="yes"))
     return redirect(url_for("portal.workshop", result="group-joined"))
 
 
@@ -311,6 +317,10 @@ def profile():
                         profile_saved="yes",
                     )
                 )
+            if current_app.extensions["musparql_workshops"].available(
+                g.current_reviewer.id
+            ):
+                return redirect(url_for("portal.workshop", result="profile-saved"))
             return redirect(url_for("portal.index", profile_saved="yes"))
     value = service.load(g.current_reviewer.id)
     new_domain_rows: list[tuple[str, str]]
@@ -326,6 +336,7 @@ def profile():
             value,
             name=request.form.get("name", ""),
             affiliation=request.form.get("affiliation", ""),
+            email=request.form.get("contact_email", value.email),
             kg_ontology_experience=request.form.get("kg_ontology_experience", ""),
             sparql_experience=request.form.get("sparql_experience", ""),
             nlp_llm_experience=request.form.get("nlp_llm_experience", ""),
@@ -823,7 +834,11 @@ def assignment(assignment_id: str):
                 confirmed=request.form.get("confirmed") == "yes",
             )
             if before.assignment.review_group_id is not None:
-                return redirect(url_for("portal.workshop"))
+                if before.assignment.participant_status not in {"not_started", "active"}:
+                    return redirect(url_for("portal.workshop"))
+                return redirect(
+                    url_for("portal.assignment_workbench", assignment_id=assignment_id)
+                )
             return redirect(url_for("portal.assignment", assignment_id=assignment_id))
         value = service.view(assignment_id, g.current_reviewer.id)
     except LookupError:
@@ -839,8 +854,31 @@ def assignment(assignment_id: str):
         value=value,
         error=error,
         profile_saved=request.args.get("profile_saved") == "yes",
+        joined=request.args.get("joined") == "yes",
         subject_levels=("none", "basic", "working", "advanced", "expert"),
         familiarity_levels=("none", "inspected", "worked", "regular_user", "creator"),
+    )
+
+
+@portal.post("/assignments/<assignment_id>/assessment/skip")
+@consent_required
+def skip_assignment_assessment(assignment_id: str):
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    if not current_app.extensions["musparql_profiles"].is_complete(
+        g.current_reviewer.id
+    ):
+        abort(403)
+    try:
+        current_app.extensions["musparql_assignments"].defer_assessment(
+            assignment_id, g.current_reviewer.id
+        )
+    except LookupError:
+        abort(404)
+    except PermissionError:
+        abort(403)
+    return redirect(
+        url_for("portal.assignment_workbench", assignment_id=assignment_id)
     )
 
 
@@ -960,6 +998,9 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
             ),
         }
         if payload.get("review_group_id"):
+            team = current_app.extensions["musparql_workshops"].workbench_team(
+                g.current_reviewer.id, assignment_id
+            )
             context.update(
                 assignments_url=url_for("portal.workshop"),
                 partial_submission_url=url_for(
@@ -968,6 +1009,13 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
                     completion="partial",
                 ),
                 workshop_url=url_for("portal.workshop"),
+                workshop_mode=True,
+                team_join_code=team["join_code"],
+                team_member_count=team["member_count"],
+                missing_assessment_reviewer_ids=team[
+                    "missing_assessment_reviewer_ids"
+                ],
+                submission_closes_review=True,
             )
         body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(
             context, ensure_ascii=True, separators=(",", ":")

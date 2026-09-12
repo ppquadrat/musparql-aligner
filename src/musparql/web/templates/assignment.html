@@ -1,30 +1,30 @@
 {% extends "base.html" %}
 {% block title %}{{ value.assignment.id }} — Musparql review{% endblock %}
 {% block content %}
-  <h1>Review assignment</h1>
+  <h1>Review batch setup</h1>
   {% if profile_saved %}<p class="success" role="status">Your profile is saved. Your assignment is ready below.</p>{% endif %}
-  <p class="metadata">{{ value.assignment.id }} · {{ value.assignment.mode }} · {{ value.assignment.status }}</p>
+  <p class="metadata">Review {{ value.assignment.id }}</p>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
   {% if value.workbench_available %}
     {% if value.assessed %}
-      <p>Your pre-review assessment has been recorded. The workbench is attributed from your authenticated assignment; browser-supplied identity is not used.</p>
+      <p>Your background answers have been recorded. The review is ready.</p>
     {% else %}
-      <p>This group assignment is already active. You may contribute now; your individual KG-specific questions remain available below and do not block the group.</p>
+      <p>This team review is already active. These questions ask about your knowledge and familiarity before reviewing this batch.</p>
     {% endif %}
-    <p><a class="button" href="{{ url_for('portal.assignment_workbench', assignment_id=value.assignment.id) }}">Open {% if value.assignment.mode == 'linguistic' %}linguistic rating{% else %}review{% endif %} workbench</a></p>
+    <p><a class="button" href="{{ url_for('portal.assignment_workbench', assignment_id=value.assignment.id) }}">Join review</a></p>
   {% elif value.assessed %}
     <p>Your pre-review assessment has been recorded. The assignment will open when every current group member has completed their questions.</p>
   {% endif %}
   {% if value.assignment.review_group_id and value.assignment.participant_status in ('not_started', 'active') %}
     <div class="actions">
-      <a class="button secondary" href="{{ url_for('portal.workshop') }}">Back to package choice</a>
+      <a class="button secondary" href="{{ url_for('portal.workshop') }}">Back to workshop</a>
     </div>
   {% endif %}
   {% if not value.assessed %}
     {% if value.assignment.participant_status in ('completed', 'partial', 'abandoned') %}
       <p>This assignment is closed, but your outstanding KG-specific form can still be completed. It will not reopen or change the assignment.</p>
     {% endif %}
-    <p>Before review items become available, confirm or update your current expertise and familiarity for every frozen prompt below. Your previous value is selected where one exists.</p>
+    <p>These questions ask about your knowledge and familiarity before reviewing this batch. Your previous value is selected where one exists.</p>
     <form method="post" action="{{ url_for('portal.assignment', assignment_id=value.assignment.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <section>
@@ -52,7 +52,14 @@
         {% endfor %}
       </section>
       <label class="check"><input type="checkbox" name="confirmed" value="yes" required> <span>I confirm these are my current answers for this review round.</span></label>
-      <button type="submit">Record assessment</button>
+      <button type="submit">Save and {% if value.workbench_available %}join{% else %}start{% endif %} review</button>
     </form>
+    {% if value.workbench_available %}
+      <form method="post" action="{{ url_for('portal.skip_assignment_assessment', assignment_id=value.assignment.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="secondary" type="submit">Skip for now and join review</button>
+      </form>
+      <p class="metadata">Skipping does not record an expertise value. If you complete this form after contributing, it will be treated as follow-up rather than pre-review data.</p>
+    {% endif %}
   {% endif %}
 {% endblock %}
