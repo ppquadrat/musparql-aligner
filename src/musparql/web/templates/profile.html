@@ -15,7 +15,7 @@
       <section class="notice" aria-labelledby="privacy-heading">
         <h2 id="privacy-heading">Privacy notice</h2>
         <p class="metadata">Version {{ notice_version }}</p>
-        <p>{{ notice_body }}</p>
+        <div class="formatted-notice">{{ notice_body|notice_markdown }}</div>
         <label class="check">
           <input type="checkbox" name="notice_acknowledged" value="yes"{% if notice_acknowledged %} checked{% endif %} required>
           <span>I acknowledge that I have read this privacy notice.</span>

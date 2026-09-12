@@ -201,6 +201,14 @@ def test_participant_notice_renders_safe_markdown(tmp_path: Path) -> None:
         app.extensions["musparql_engine"].dispose()
 
 
+def test_all_onboarding_notice_copy_uses_markdown_renderer() -> None:
+    root = Path(__file__).resolve().parents[1]
+    consent = (root / "src/musparql/web/templates/consent_pending.html").read_text()
+    profile = (root / "src/musparql/web/templates/profile.html").read_text()
+    assert "{{ summary_body|notice_markdown }}" in consent
+    assert "{{ notice_body|notice_markdown }}" in profile
+
+
 @pytest.mark.parametrize(
     ("version_key", "version"),
     (

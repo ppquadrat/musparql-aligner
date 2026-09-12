@@ -6,7 +6,7 @@
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
   <section class="notice" aria-labelledby="consent-summary-heading">
     <h2 id="consent-summary-heading">Essential information</h2>
-    <p class="preserve-lines">{{ summary_body }}</p>
+    <div class="formatted-notice">{{ summary_body|notice_markdown }}</div>
     <p><a href="{{ url_for('portal.participant_notice') }}" target="_blank" rel="noopener">Read the complete participant information and privacy notice</a></p>
   </section>
   <p>You may stop or withdraw at any time. <a href="{{ url_for('portal.consent_withdrawal') }}">How to withdraw and what happens next</a>.</p>
