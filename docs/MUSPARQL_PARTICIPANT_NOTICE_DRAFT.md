@@ -85,6 +85,9 @@ Recommended consent-screen summary:
 > expertise, language and review data to run the study and analyse the benchmark.
 > We publish benchmark questions and ambiguity/alternative data, but not your
 > name, contact details, reviewer profile, or reviewer-linked annotations.
+> For the IPL workshop, you may work alone or in a self-selected reviewing
+> group. A group's joint submission is attributed to the pseudonymous reviewer
+> identifiers of the people who contributed to it.
 >
 > You may stop or withdraw at any time. If you withdraw, we delete your contact
 > details and the link between your identity and reviewer ID. Existing
@@ -166,9 +169,17 @@ Musparql's first release is intended only for invited adults aged 18 or over.
 
 ### What you will be asked to do
 
-You will sign in using a short code sent to your invited email address. You will
-complete a short profile and, before each assignment, confirm your relevant
-subject expertise and familiarity with the assigned knowledge graph.
+You will normally sign in using a short code sent to your invited email address.
+If email login is unavailable at the IPL workshop, the facilitator may instead
+give you a shared workshop entry code. Each use of that code creates a separate
+participant account and session. You will then complete a short profile and,
+before each assignment, confirm your relevant subject expertise and familiarity
+with the assigned knowledge graph.
+
+For the IPL workshop, you may work alone or in a self-selected reviewing group.
+Each participant consents and completes their profile individually.
+A group makes one joint submission, attributed to the pseudonymous reviewer
+identifiers of the members who contributed to it.
 
 Depending on the assignment, you may be asked to:
 
@@ -187,11 +198,12 @@ assignment. You may pause and return later while the assignment remains open.
 We collect only the information needed to operate the invited review service
 and conduct the study:
 
-- **Operational identity and contact:** your name, email address, optional
-  affiliation, account status, and the confidential link to your pseudonymous
-  reviewer identifier. These details are used for invitations, login,
-  follow-up questions about your annotations, and future annotation invitations;
-  they are not research variables.
+- **Operational identity and contact:** your name, optional affiliation,
+  account status, and the confidential link to your pseudonymous reviewer
+  identifier. If you use email sign-in, we also collect your email address.
+  These details are used for invitations, login, follow-up questions about your
+  annotations, and future annotation invitations; they are not research
+  variables.
 - **Languages:** the languages you select and your self-described proficiency.
 - **General expertise:** research domains you enter and your selected expertise
   level in each domain.
@@ -202,7 +214,9 @@ and conduct the study:
   assigned knowledge graph and your familiarity with its resource, data, data
   model, or graph representation.
 - **Review contributions:** decisions, rewrites, alternative formulations,
-  ratings, comments, problem reports, and submission timestamps.
+  ratings, comments, problem reports, submission timestamps, and, for joint
+  submissions, the reviewing group's pseudonymous identifier and the
+  pseudonymous reviewer identifiers of its contributors.
 - **Service and security records:** login-code and session records, assignment
   status, submission receipts, processing status, email-delivery status, and
   limited security/audit records needed to protect and operate the service.
@@ -219,7 +233,7 @@ ICF uses the data to:
 - invite and authenticate reviewers and administer their accounts;
 - provide assignments and preserve submitted review work;
 - understand which forms of expertise and knowledge-graph familiarity are
-  represented in the reviewer group;
+  represented in the reviewer cohort;
 - compare review judgements across reviewers and, where relevant, across time;
 - construct, verify, document, and publish the Musparql benchmark and public
   alternatives/provenance file;
@@ -309,12 +323,12 @@ must be described.]**
 
 ### Security
 
-Musparql uses invitation-only access, short-lived single-use login codes,
-revocable sessions, HTTPS, access controls, restricted service accounts,
-redacted operational logs, encrypted off-server backups, security updates, and
-tested recovery procedures. No online service can eliminate every risk, but ICF
-and the researcher take measures proportionate to the limited scale and nature
-of the study.
+Musparql uses controlled access, short-lived single-use login codes, a
+time-limited and capped workshop entry code when needed, revocable sessions,
+HTTPS, access controls, restricted service accounts, redacted operational logs,
+encrypted off-server backups, security updates, and tested recovery procedures.
+No online service can eliminate every risk, but ICF and the researcher take
+measures proportionate to the limited scale and nature of the study.
 
 If a personal-data incident occurs, ICF leads the response and will inform
 affected participants when required.
