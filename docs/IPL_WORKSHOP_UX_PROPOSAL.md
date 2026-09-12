@@ -59,8 +59,9 @@ facilitator.
 6. Saving that form opens the workshop workbench directly. It must not return
    to an intermediate team-choice page.
 7. A teammate can enter the visible six-digit team code on their own Workshop
-   page. If that team already has an active batch, the joiner completes any
-   required KG-specific questions and then opens the same review.
+   page. If that team already has an active batch, the joiner is offered the
+   short KG-specific form with a clear **Skip for now and join review** option.
+   Saving or skipping then opens the same review directly.
 8. Returning from the workbench goes to the Workshop page, where the active
    batch has a clear **Continue review** action.
 
@@ -112,6 +113,51 @@ Joining is not live co-editing. Browser-local drafts on two devices do not
 automatically merge. The workshop instructions and team strip must say that a
 team should nominate one device/person to submit, or the application must gain
 server-side draft synchronisation before claiming collaborative editing.
+
+### Optional KG form for a joining teammate
+
+The KG-specific form is useful covariate data, but it must not interrupt or
+prevent a scarce expert from joining an active review. Immediately after a
+reviewer enters a valid team code:
+
+1. show the form for that team's active KG, if the reviewer has not already
+   completed the frozen questions;
+2. explain concisely: **These questions ask about your knowledge and
+   familiarity before reviewing this batch**;
+3. make **Save and join review** the primary action;
+4. provide **Skip for now and join review** as a visible secondary action; and
+5. route both actions directly to the workshop workbench.
+
+Skipping records an explicit deferred state with reviewer, assignment, and
+timestamp. It is not an expertise value and must not be interpreted as “none.”
+It never blocks access, review, or submission.
+
+Timing provenance matters. An answer collected before the reviewer sees or
+discusses the batch may retain `pre_review` context. If the reviewer skips and
+answers after contributing, store it as a distinct `post_review_followup`
+context (or equivalent explicit timing field), not as `pre_review`. The current
+assessment schemas and database constraints allow only `pre_review` and
+`profile`, so this requires a versioned schema and migration before
+implementation. If that change cannot be completed safely before the workshop,
+collect the late form as explicitly labelled follow-up data outside the
+pre-review analysis rather than misclassifying it.
+
+After an accepted submission, show a non-blocking success panel such as:
+
+> Submitted successfully. The KG background form is still missing for
+> reviewer-1234. Please complete it if you have time. **Fill in the form**
+
+For several missing contributors, list each pseudonymous reviewer ID and link
+only the signed-in reviewer to the form they are authorised to complete. The
+submission remains valid whether or not any outstanding form is later filled.
+The owner dashboard may show pseudonymous missing-form status for operational
+follow-up.
+
+Email follow-up is not universally available. Email-invited reviewers have a
+verified contact address, but accounts created with the shared workshop entry
+code deliberately use no verified email address. Do not imply that every
+missing reviewer can be contacted later, and do not add email collection to the
+fallback flow without the required privacy approval.
 
 ## 6. Workshop-specific workbench
 
@@ -197,7 +243,12 @@ operation.
   no intermediate dashboard choice.
 - A six-digit team code is visible on the Workshop page and in the workbench.
 - Entering that code as another authenticated reviewer joins the intended team
-  and routes to its active batch.
+  and offers the optional KG form before routing to its active batch.
+- A joining reviewer can skip the KG form without blocking team access or
+  submission, and the skip is not stored as an expertise answer.
+- A late KG form is distinguishable from a genuine pre-review assessment.
+- Submission success identifies outstanding forms by pseudonymous reviewer ID
+  and provides an authorised link without weakening the accepted submission.
 - The workshop workbench contains only the specified header, pair frame, and
   existing decision frame.
 - Deduplicated-first pass ordering and assignment-stable randomisation remain
@@ -207,4 +258,3 @@ operation.
 - The workshop deadline cannot turn an existing review or submission into a
   404.
 - Existing non-workshop workbenches are visually and behaviourally unchanged.
-
