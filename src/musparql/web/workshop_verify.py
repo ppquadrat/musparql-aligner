@@ -27,9 +27,13 @@ from musparql.database import create_database_engine, session_factory
 from musparql.database.migrations import upgrade_database
 from musparql.database.models import (
     AuthSession,
+    ExpertiseDomain,
     ProcessingJob,
     ReviewAssignment,
     Reviewer,
+    ReviewerDomainExpertise,
+    ReviewerExperience,
+    ReviewerLanguage,
     ReviewSubmission,
 )
 from . import create_app
@@ -165,6 +169,7 @@ def _app_config(root: Path, project_root: Path | None = None) -> dict[str, Any]:
         "OWNER_REVIEWER_ID": OWNER_ID,
         "COOKIE_SECURE": False,
         "ALLOW_SYNTHETIC_EMAIL": True,
+        "PRIVACY_NOTICE_VERSION": "synthetic-phase-8-v1",
         "ASSIGNMENT_BUNDLE_ROOT": root / "bundles",
         "SUBMISSION_ROOT": root / "submissions",
         "CANDIDATE_ROOT": root / "candidates",
@@ -246,6 +251,45 @@ def run_verification(
     with sessions.begin() as session:
         session.add_all(_reviewer(reviewer_id, index) for reviewer_id, index in all_reviewers)
         session.flush()
+        session.add(
+            ExpertiseDomain(
+                id="domain-phase8-synthetic",
+                entered_label="Synthetic verification",
+                normalized_label="synthetic verification",
+                vocabulary_name=None,
+                vocabulary_concept_uri=None,
+                vocabulary_version=None,
+                created_by="owner",
+            )
+        )
+        session.flush()
+        for reviewer_id, index in all_reviewers:
+            session.add_all(
+                [
+                    ReviewerExperience(
+                        reviewer_id=reviewer_id,
+                        kg_ontology_experience="regular",
+                        sparql_experience="regular",
+                        nlp_llm_experience="regular",
+                        assessed_at=timestamp(now),
+                    ),
+                    ReviewerLanguage(
+                        reviewer_id=reviewer_id,
+                        language_tag="en",
+                        level="fluent",
+                        first_asserted_at=timestamp(now),
+                        updated_at=timestamp(now),
+                    ),
+                    ReviewerDomainExpertise(
+                        id=f"assertion-phase8-{index}",
+                        reviewer_id=reviewer_id,
+                        domain_id="domain-phase8-synthetic",
+                        expertise_level="working",
+                        asserted_at=timestamp(now),
+                        supersedes_id=None,
+                    ),
+                ]
+            )
         for index, reviewer_id in enumerate([SEED_REVIEWER_ID, *reviewer_ids], start=1):
             assignment_id = f"assignment-{index:024x}"
             bundle_name = f"bundle-{index}.json"

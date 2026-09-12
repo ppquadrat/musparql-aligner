@@ -134,10 +134,12 @@ def _write_bundle(path: Path, *, kg_id: str = "synthetic-kg") -> str:
             {
                 "review_id": "synthetic-kg::synthetic-query::one",
                 "kg_id": kg_id,
+                "run_id": "synthetic-workshop-run",
             },
             {
                 "review_id": "synthetic-kg::synthetic-query::two",
                 "kg_id": kg_id,
+                "run_id": "synthetic-workshop-run",
             },
         ],
     }
@@ -1107,7 +1109,8 @@ def test_workshop_page_silently_creates_team_and_lists_each_batch_once(
 
     assert page.status_code == 200
     assert page.data.count(b"Synthetic Knowledge Graph") == 1
-    assert b"Current team" in page.data
+    assert b"You are Team" in page.data
+    assert b"join their team below or give them your team number" in page.data
     assert b"Join another team" in page.data
     assert b"Create a reviewing group" not in page.data
     engine = create_database_engine(database_path)
@@ -1159,6 +1162,209 @@ def test_deferred_joiner_answers_are_post_review_followup(workshop_app) -> None:
         assert domain is not None and domain.context == "post_review_followup"
         assert familiarity is not None and familiarity.context == "post_review_followup"
     engine.dispose()
+
+
+def test_assessment_and_deferral_race_preserves_timing_provenance(
+    workshop_app, monkeypatch
+) -> None:
+    app, _sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    assignments = app.extensions["musparql_assignments"]
+    group_id = workshops.create_group(FIRST_ID)
+    code = workshops.dashboard(FIRST_ID).groups[0].join_code
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    assignments.assess(
+        assignment_id, FIRST_ID, ["advanced"], ["worked"], confirmed=True
+    )
+    workshops.join_group(SECOND_ID, code)
+
+    barrier = threading.Barrier(2)
+    original_view = assignments.view
+
+    def synchronized_view(requested_assignment_id: str, reviewer_id: str):
+        value = original_view(requested_assignment_id, reviewer_id)
+        if reviewer_id == SECOND_ID:
+            barrier.wait(timeout=5)
+        return value
+
+    monkeypatch.setattr(assignments, "view", synchronized_view)
+
+    def assess() -> str:
+        assignments.assess(
+            assignment_id,
+            SECOND_ID,
+            ["working"],
+            ["inspected"],
+            confirmed=True,
+        )
+        return "assessed"
+
+    def defer() -> str:
+        try:
+            assignments.defer_assessment(assignment_id, SECOND_ID)
+        except PermissionError:
+            return "assessment-won"
+        return "deferred"
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assess_future = pool.submit(assess)
+        defer_future = pool.submit(defer)
+        outcomes = {assess_future.result(), defer_future.result()}
+    assert "assessed" in outcomes
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        deferred = session.scalar(
+            select(WorkshopAssessmentDeferral.id).where(
+                WorkshopAssessmentDeferral.assignment_id == assignment_id,
+                WorkshopAssessmentDeferral.reviewer_id == SECOND_ID,
+            )
+        )
+        contexts = {
+            session.scalar(
+                select(ReviewerKgDomainAssessment.context).where(
+                    ReviewerKgDomainAssessment.assignment_id == assignment_id,
+                    ReviewerKgDomainAssessment.reviewer_id == SECOND_ID,
+                )
+            ),
+            session.scalar(
+                select(ReviewerResourceFamiliarityAssessment.context).where(
+                    ReviewerResourceFamiliarityAssessment.assignment_id
+                    == assignment_id,
+                    ReviewerResourceFamiliarityAssessment.reviewer_id == SECOND_ID,
+                )
+            ),
+        }
+        assert contexts == ({"post_review_followup"} if deferred else {"pre_review"})
+    engine.dispose()
+
+
+def test_workshop_dashboard_allows_an_explicit_member_team_selection(
+    workshop_app,
+) -> None:
+    app, sender, _database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    personal = workshops.dashboard(FIRST_ID).current_group_id
+    second_group = workshops.create_group(FIRST_ID)
+
+    assert second_group != personal
+    assert workshops.dashboard(FIRST_ID, second_group).current_group_id == second_group
+
+    client = app.test_client()
+    _login(client, app, sender, "first@example.invalid")
+    page = client.get(f"/workshop?group_id={second_group}")
+    assert page.status_code == 200
+    assert b"Switch team" in page.data
+    assert f'value="{second_group}" selected'.encode() in page.data
+
+
+def test_team_can_open_distinct_batches_at_the_same_time(workshop_app) -> None:
+    app, _sender, database_path, bundle_root = workshop_app
+    second_digest = _write_bundle(
+        bundle_root / "synthetic-package-second.json",
+        kg_id="synthetic-kg-second",
+    )
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        first_package = session.get(WorkshopWorkPackage, "package-synthetic")
+        assert first_package is not None
+        session.add(
+            KgSeedSnapshot(
+                kg_id="synthetic-kg-second",
+                seed_version="synthetic-seed-v1",
+                seed_digest="sha256:" + "b" * 64,
+                previous_seed_digest=None,
+                seed_json={"name": "Second synthetic graph"},
+            )
+        )
+        session.flush()
+        session.add_all(
+            [
+                KgSeedReviewDomain(
+                    kg_id="synthetic-kg-second",
+                    seed_version="synthetic-seed-v1",
+                    domain_id="synthetic-review-domain-second",
+                    label="Second synthetic subject expertise",
+                    description="Synthetic prompt for a second workshop batch.",
+                ),
+                KgSeedFamiliarityScope(
+                    kg_id="synthetic-kg-second",
+                    seed_version="synthetic-seed-v1",
+                    scope_id="synthetic-resource-second",
+                    label="Second synthetic resource familiarity",
+                    description="Synthetic familiarity prompt for a second batch.",
+                ),
+            ]
+        )
+        session.add(
+            WorkshopWorkPackage(
+                id="package-synthetic-second",
+                workshop_round_id=first_package.workshop_round_id,
+                kg_id="synthetic-kg-second",
+                seed_version="synthetic-seed-v1",
+                seed_digest="sha256:" + "b" * 64,
+                display_name="Second Synthetic Knowledge Graph",
+                short_description="A second fictional package for tests.",
+                display_order=2,
+                bundle_path="synthetic-package-second.json",
+                bundle_digest=second_digest,
+                processing_recipe=first_package.processing_recipe,
+                enabled=True,
+                created_at=first_package.created_at,
+            )
+        )
+    engine.dispose()
+
+    workshops = app.extensions["musparql_workshops"]
+    group_id = workshops.create_group(FIRST_ID)
+    first_assignment = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    second_assignment = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic-second",
+    )
+
+    assert first_assignment != second_assignment
+    view = workshops.dashboard(FIRST_ID, group_id)
+    assert [package.action_label for package in view.packages] == [
+        "Complete setup",
+        "Complete setup",
+    ]
+
+
+def test_submission_route_rejects_an_incomplete_profile(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    group_id = workshops.create_group(FIRST_ID)
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        session.delete(session.get(ReviewerExperience, FIRST_ID))
+    engine.dispose()
+
+    client = app.test_client()
+    _login(client, app, sender, "first@example.invalid")
+    response = client.post(
+        f"/assignments/{assignment_id}/submissions",
+        json={},
+        headers={"X-CSRF-Token": _csrf(client)},
+    )
+    assert response.status_code == 403
 
 
 def _review_payload(
@@ -1284,6 +1490,9 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     second_bundle = second.get(f"/assignments/{assignment_id}/bundle").get_json()
     assert first_bundle["reviewer_id"] == FIRST_ID
     assert second_bundle["reviewer_id"] == SECOND_ID
+    assert first_bundle["single_run_id"] == "synthetic-workshop-run"
+    assert first_bundle["run_ids"] == ["synthetic-workshop-run"]
+    assert first_bundle["runs"] == [{"run_id": "synthetic-workshop-run"}]
     assert first_bundle["review_group_id"] == group.id
     assert second_bundle["review_group_id"] == group.id
     context = first.get(
@@ -1292,7 +1501,7 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert f'"draft_owner_id":"{group.id}"'.encode() in context
     assert b'"submission_url"' in context
     assert b'"partial_submission_url"' in context
-    assert b'"workshop_url":"/workshop"' in context
+    assert f'"workshop_url":"/workshop?group_id={group.id}"'.encode() in context
     assert b'"workshop_mode":true' in context
     assert f'"team_join_code":"{group.join_code}"'.encode() in context
     assert b'"abandon_url"' not in context
@@ -1306,6 +1515,8 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert late_page.status_code == 200
     assert b"team review is already active" in late_page.data
     assert b"Skip for now and join review" in late_page.data
+    assert b">Join review<" not in late_page.data
+    assert third.get(f"/assignments/{assignment_id}/bundle").status_code == 403
     skipped = third.post(
         f"/assignments/{assignment_id}/assessment/skip",
         data={"csrf_token": _csrf(third)},
@@ -1420,11 +1631,13 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     revised["reviews"]["synthetic-kg::synthetic-query::one"][
         "public_comment"
     ] = "A real content revision"
-    assert first.post(
+    revised_response = first.post(
         f"/assignments/{assignment_id}/submissions",
         json=revised,
         headers={"X-CSRF-Token": _csrf(first)},
-    ).status_code == 403
+    )
+    assert revised_response.status_code == 202
+    assert revised_response.get_json()["revision"] == 2
 
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
@@ -1443,15 +1656,11 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
                 THIRD_ID,
             ]
             assert assignment is not None
-            assert assignment.closed_contributor_ids == [
-                FIRST_ID,
-                SECOND_ID,
-                THIRD_ID,
-            ]
-            assert assignment.participant_status == "completed"
-            assert assignment.completion_item_count == 2
-            assert assignment.completion_total_count == 2
-            assert len(jobs) == 1
+            assert assignment.closed_contributor_ids is None
+            assert assignment.participant_status == "active"
+            assert assignment.completion_item_count is None
+            assert assignment.completion_total_count is None
+            assert len(jobs) == 2
             stored = json.loads(
                 (Path(app.config["SUBMISSION_ROOT"]) / submission.export_path).read_text()
             )
@@ -1543,14 +1752,15 @@ def test_submission_and_abandonment_are_serialized(workshop_app) -> None:
             if assignment.participant_status == "abandoned":
                 assert (submission_count, job_count) == (0, 0)
             else:
-                assert assignment.participant_status == "completed"
+                assert assignment.participant_status == "active"
+                assert assignment.closed_contributor_ids is None
                 assert (submission_count, job_count) == (1, 1)
     finally:
         engine.dispose()
 
 
 @pytest.mark.parametrize("closure", ["submit", "abandon"])
-def test_late_join_and_terminal_closure_freeze_one_membership_snapshot(
+def test_late_join_stays_open_after_snapshot_but_abandonment_freezes_membership(
     workshop_app, closure: str
 ) -> None:
     app, _sender, database_path, _bundle_root = workshop_app
@@ -1613,7 +1823,11 @@ def test_late_join_and_terminal_closure_freeze_one_membership_snapshot(
                 )
             )
             assert assignment is not None
-            assert set(assignment.closed_contributor_ids or ()) == members
+            if closure == "submit":
+                assert assignment.participant_status == "active"
+                assert assignment.closed_contributor_ids is None
+            else:
+                assert set(assignment.closed_contributor_ids or ()) == members
             assert (SECOND_ID in members) is joined
     finally:
         engine.dispose()
@@ -2168,7 +2382,7 @@ def test_joining_is_idempotent_but_closed_groups_reject_new_members(
         check_engine.dispose()
 
 
-def test_partial_submission_closes_assignment_and_preserves_outstanding_form(
+def test_partial_submission_keeps_assignment_open_and_preserves_missing_form(
     workshop_app,
 ) -> None:
     app, sender, database_path, _bundle_root = workshop_app
@@ -2213,6 +2427,11 @@ def test_partial_submission_closes_assignment_and_preserves_outstanding_form(
     assert receipt_payload["completion_type"] == "partial"
     assert receipt_payload["completion_item_count"] == 1
     assert receipt_payload["completion_total_count"] == 2
+    assert receipt_payload["missing_assessment_reviewer_ids"] == [THIRD_ID]
+    assert receipt_payload["assessment_url"] is None
+    assert receipt_payload["submission_url"].endswith(
+        f"/assignments/{assignment_id}/submission"
+    )
     receipt_id = receipt_payload["receipt_id"]
     job_id = receipt_payload["job_id"]
     assert submissions.submit(
@@ -2221,15 +2440,19 @@ def test_partial_submission_closes_assignment_and_preserves_outstanding_form(
         payload,
         completion_type="partial",
     ).duplicate is True
-    assert workshops.dashboard(FIRST_ID).groups[0].can_claim is False
+    assert workshops.dashboard(FIRST_ID).groups[0].can_claim is True
     outstanding = workshops.dashboard(THIRD_ID).groups[0].outstanding_assessments
-    assert [item.assignment_id for item in outstanding] == [assignment_id]
+    assert outstanding == ()
 
-    closed_view = assignments.view(assignment_id, THIRD_ID)
-    assert closed_view.workbench_available is False
-    assert closed_view.assessed is False
+    open_view = assignments.view(assignment_id, THIRD_ID)
+    assert open_view.workbench_available is False
+    assert open_view.assessed is False
+    assert open_view.assessment_deferrable is True
     third = app.test_client()
     _login(third, app, sender, "third@example.invalid")
+    receipt_page = third.get(receipt_payload["submission_url"])
+    assert receipt_page.status_code == 200
+    assert receipt_id.encode() in receipt_page.data
     assessment_response = third.post(
         f"/assignments/{assignment_id}",
         data={
@@ -2240,7 +2463,9 @@ def test_partial_submission_closes_assignment_and_preserves_outstanding_form(
         },
     )
     assert assessment_response.status_code == 302
-    assert assessment_response.location == "/workshop"
+    assert assessment_response.location.endswith(
+        f"/assignments/{assignment_id}/workbench/"
+    )
     assert third.get(assessment_response.location).status_code == 200
     assert workshops.dashboard(THIRD_ID).groups[0].outstanding_assessments == ()
 
@@ -2251,11 +2476,11 @@ def test_partial_submission_closes_assignment_and_preserves_outstanding_form(
             assignment = session.get(ReviewAssignment, assignment_id)
             submission = session.get(ReviewSubmission, receipt_id)
             assert assignment is not None
-            assert assignment.participant_status == "partial"
+            assert assignment.participant_status == "active"
             assert assignment.status == "submitted"
-            assert assignment.completion_item_count == 1
-            assert assignment.completion_total_count == 2
-            assert assignment.closed_contributor_ids == [FIRST_ID, SECOND_ID, THIRD_ID]
+            assert assignment.completion_item_count is None
+            assert assignment.completion_total_count is None
+            assert assignment.closed_contributor_ids is None
             assert submission is not None
             stored = json.loads(
                 (Path(app.config["SUBMISSION_ROOT"]) / submission.export_path).read_text()
@@ -2263,7 +2488,6 @@ def test_partial_submission_closes_assignment_and_preserves_outstanding_form(
             assert stored["completion_type"] == "partial"
             assert stored["completion_item_count"] == 1
             assert stored["completion_total_count"] == 2
-            session.get(WorkshopRound, "workshop-ipl").allow_additional_assignments = True
         assert app.extensions["musparql_processing"].process_next() == job_id
         audit = json.loads(
             (
@@ -2275,13 +2499,29 @@ def test_partial_submission_closes_assignment_and_preserves_outstanding_form(
         assert audit["completion_type"] == "partial"
         assert audit["item_count"] == 1
         assert audit["total_item_count"] == 2
-        assert workshops.dashboard(FIRST_ID).groups[0].can_claim is True
-        next_assignment_id = workshops.claim_package(
-            reviewer_id=FIRST_ID,
-            group_id=group_id,
-            package_id="package-synthetic",
+        assert assignments.view(assignment_id, FIRST_ID).workbench_available is True
+        updated_payload = _review_payload(
+            assignment_id,
+            bundle["bundle_digest"],
+            submitter_id=FIRST_ID,
+            event_reviewer_id=FIRST_ID,
         )
-        assert next_assignment_id != assignment_id
+        updated_payload["exported_at"] = "2026-09-12T12:00:00Z"
+        updated = submissions.submit(
+            assignment_id,
+            FIRST_ID,
+            updated_payload,
+            completion_type="completed",
+        )
+        assert updated.duplicate is False
+        assert updated.revision == 2
+        assert assignments.view(assignment_id, FIRST_ID).workbench_available is True
+        with pytest.raises(WorkshopAccessError, match="already has"):
+            workshops.claim_package(
+                reviewer_id=FIRST_ID,
+                group_id=group_id,
+                package_id="package-synthetic",
+            )
     finally:
         engine.dispose()
 
@@ -2325,7 +2565,7 @@ def test_leave_is_non_mutating_and_abandon_closes_without_submission(
             assert list(session.scalars(select(ProcessingJob))) == []
     finally:
         engine.dispose()
-    assert workshops.dashboard(FIRST_ID).groups[0].can_claim is False
+    assert workshops.dashboard(FIRST_ID).groups[0].can_claim is True
     assert [
         item.assignment_id
         for item in workshops.dashboard(FIRST_ID).groups[0].outstanding_assessments

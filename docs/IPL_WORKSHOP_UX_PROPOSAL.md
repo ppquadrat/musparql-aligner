@@ -238,11 +238,11 @@ deadline stops new admission and claims but does not revoke an already claimed
 review. At finalisation, the latest accepted revision is the candidate for
 owner processing, while every earlier receipt remains immutable.
 
-This differs from the current terminal-submit implementation and requires a
-deliberate backend change to participant status, contributor snapshots,
-processing-job selection, and owner finalisation. It must not be achieved by a
-label-only UI change. Until that change is made, the confirmation must state
-that submitting closes the review.
+This lifecycle is now implemented for workshop assignments through coordinated
+participant-status, contributor-snapshot, revision, and processing-selection
+changes. Submission records a revision without closing the workbench and does
+not require a confirmation dialog. Non-workshop assignments retain their
+existing lifecycle.
 
 There should be no ordinary participant-facing **Abandon**, **Finish**, or
 **Close assignment** action. Exceptional cleanup can remain an owner-assisted

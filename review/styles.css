@@ -214,6 +214,22 @@ h1 {
   align-items: flex-start;
 }
 
+.hero-head > :first-child {
+  min-width: 0;
+}
+
+.hero-head h2 {
+  overflow-wrap: anywhere;
+}
+
+.hero-actions {
+  flex: 0 0 auto;
+}
+
+.decision-help {
+  margin: 0.8rem 0 1rem;
+}
+
 .hero-actions,
 .hero-badges {
   display: flex;
@@ -735,7 +751,6 @@ textarea {
 .workshop-mode .hero-head { align-items: center; }
 .workshop-mode .hero-head .hero-actions { display: block; }
 .workshop-mode .hero-head .pager { flex-wrap: nowrap; }
-.workshop-mode .retained-block .evidence-meta { display: none; }
 .workshop-mode .submission-status.submission-error { border-color: #c44; background: #fff1f1; }
 
 .empty-state {

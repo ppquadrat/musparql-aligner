@@ -2,12 +2,16 @@
 
 Status: **draft for ICF review — not approved for use**
 
-Draft date: 10 September 2026
+Draft date: 12 September 2026
 
-Proposed notice version: `musparql-participant-notice-2026-09-v1`
+Proposed notice version: `musparql-participant-notice-2026-09-v2`
 
-ICF review copy: [`Musparql_Participant_Notice_ICF_Review.docx`](Musparql_Participant_Notice_ICF_Review.docx).
-This Markdown file remains the editable source of truth.
+Proposed consent statement version: `musparql-participant-consent-2026-09-v2`
+
+The linked [`Musparql_Participant_Notice_ICF_Review.docx`](Musparql_Participant_Notice_ICF_Review.docx)
+is the earlier version-1 review copy and must be regenerated from this source
+before version-2 approval. This Markdown file remains the editable source of
+truth.
 
 This draft implements the ICF decision recorded in the 29 August 2026 hosting
 handover. It is not legal advice and must be approved by ICF before the first
@@ -53,6 +57,12 @@ invitation or collection of real reviewer data.
     do not publish stable reviewer IDs, reviewer-level expertise/familiarity, or
     linked individual annotations. Existing v1–v10 single-reviewer releases
     remain unchanged.
+12. Approve the shared-code contact-email wording added in version 2. Only after
+    ICF approves the exact notice, summary, and consent statement should the
+    deployed `MUSPARQL_PRIVACY_NOTICE_VERSION` and
+    `MUSPARQL_CONSENT_STATEMENT_VERSION` be changed to the proposed version-2
+    identifiers. The version change intentionally requires every participant
+    to see the revised text and consent again before profile or assignment use.
 
 ---
 
@@ -88,6 +98,11 @@ Recommended consent-screen summary:
 > For the IPL workshop, you may work alone or in a self-selected reviewing
 > group. A group's joint submission is attributed to the pseudonymous reviewer
 > identifiers of the people who contributed to it.
+> If you enter with a shared workshop code, we ask for a contact email after
+> you consent. We do not verify that address or use it to sign you in. We retain
+> it with your operational contact record and may use it for best-effort
+> workshop or outstanding-form follow-up; a mistyped address may prevent us
+> from reaching you.
 >
 > You may stop or withdraw at any time. If you withdraw, we delete your contact
 > details and the link between your identity and reviewer ID. Existing
@@ -199,11 +214,16 @@ We collect only the information needed to operate the invited review service
 and conduct the study:
 
 - **Operational identity and contact:** your name, optional affiliation,
-  account status, and the confidential link to your pseudonymous reviewer
-  identifier. If you use email sign-in, we also collect your email address.
-  These details are used for invitations, login, follow-up questions about your
-  annotations, and future annotation invitations; they are not research
-  variables.
+  account status, email address, and the confidential link to your pseudonymous
+  reviewer identifier. For email sign-in, the address is verified when you use
+  a login code. If you enter with a shared workshop code, we collect the address
+  on the profile form after consent, retain it as unverified, and do not use it
+  to authenticate you. The unverified address may be used for best-effort
+  workshop coordination, questions about your annotations, or reminders to
+  complete an outstanding background form; a missing or mistyped address can
+  make that follow-up fail. Operational contact details are also used for
+  invitations, login where applicable, and future annotation invitations; they
+  are not research variables.
 - **Languages:** the languages you select and your self-described proficiency.
 - **General expertise:** research domains you enter and your selected expertise
   level in each domain.
@@ -360,6 +380,11 @@ recruitment, annotation rounds, or planned analyses requiring the private
 pseudonymous dataset remain active and no approved successor arrangement has
 been established. Project status will be reviewed periodically rather than
 left open indefinitely.
+
+This same retention period applies to an unverified contact email supplied
+after shared-code entry. It is deleted on withdrawal under the timetable above
+and otherwise no later than two years after formal project closure; backup
+copies expire through the normal backup cycle within 90 days.
 
 Pseudonymous annotations and the minimum research variables needed to interpret
 them are retained for the documented lifetime of the Musparql research dataset,

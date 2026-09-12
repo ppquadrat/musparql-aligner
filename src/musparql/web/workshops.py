@@ -104,7 +104,9 @@ class WorkshopService:
                 return True
             return self._latest_joined_round(session, reviewer_id) is not None
 
-    def dashboard(self, reviewer_id: str) -> WorkshopView:
+    def dashboard(
+        self, reviewer_id: str, selected_group_id: str | None = None
+    ) -> WorkshopView:
         now = timestamp(utc_now())
         self._ensure_personal_group(reviewer_id, now)
         with self.sessions() as session:
@@ -190,19 +192,26 @@ class WorkshopService:
                         active_package_name=(
                             package_names.get(active.work_package_id) if active else None
                         ),
-                        can_claim=round_is_open
-                        and active is None
-                        and (
-                            not assignments
-                            or workshop_round.allow_additional_assignments
-                        ),
+                        # A workshop team may move between the four batches at
+                        # will.  Each package has its own durable assignment;
+                        # an open assignment for one package must not block the
+                        # other three.
+                        can_claim=round_is_open,
                         outstanding_assessments=outstanding_assessments,
                     )
                 )
-            selected_group = next(
-                (group for group in group_views if group.active_assignment_id),
-                group_views[0],
-            )
+            if selected_group_id is not None:
+                selected_group = next(
+                    (group for group in group_views if group.id == selected_group_id),
+                    None,
+                )
+                if selected_group is None:
+                    raise WorkshopAccessError("Team is not available")
+            else:
+                selected_group = next(
+                    (group for group in group_views if group.active_assignment_id),
+                    group_views[0],
+                )
             selected_assignments = assignments_by_group[selected_group.id]
             package_views: list[WorkPackageView] = []
             for package in session.scalars(
@@ -228,8 +237,16 @@ class WorkshopService:
                     assessed = self.assignments.assessment_is_complete(
                         session, assignment, reviewer_id
                     )
-                    status = "in_progress" if assignment.status == "active" else "setup_needed"
-                    action_label = "Continue" if assessed and assignment.status == "active" else "Complete setup"
+                    status = (
+                        "in_progress"
+                        if assessed and assignment.status != "ready"
+                        else "setup_needed"
+                    )
+                    action_label = (
+                        "Continue"
+                        if assessed and assignment.status != "ready"
+                        else "Complete setup"
+                    )
                 else:
                     status = "submitted" if assignment.participant_status in {"completed", "partial"} else "closed"
                     action_label = "View submission" if status == "submitted" else None
@@ -443,6 +460,17 @@ class WorkshopService:
             return {
                 "join_code": self._join_code(assignment.review_group_id),
                 "member_count": len(members),
+                "batch_name": (
+                    package.display_name
+                    if assignment.work_package_id
+                    and (
+                        package := session.get(
+                            WorkshopWorkPackage, assignment.work_package_id
+                        )
+                    )
+                    is not None
+                    else None
+                ),
                 "missing_assessment_reviewer_ids": sorted(missing),
             }
 
@@ -518,13 +546,8 @@ class WorkshopService:
                     )
                 )
             )
-            if any(
-                item.participant_status in _ACTIVE_PARTICIPANT_STATUSES
-                for item in existing
-            ):
-                raise WorkshopAccessError("The group already has an active assignment")
-            if existing and not workshop_round.allow_additional_assignments:
-                raise WorkshopAccessError("Additional assignments are not enabled")
+            if any(item.work_package_id == package_id for item in existing):
+                raise WorkshopAccessError("The group already has this work package")
 
             prompt_count = int(
                 db_session.scalar(

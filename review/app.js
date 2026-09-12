@@ -111,6 +111,10 @@
     document.body.classList.add("workshop-mode");
     document.querySelector(".topbar h1").textContent = "Workshop review";
     document.querySelector(".topbar .subtitle").textContent = "Review each SPARQL and model-question pair.";
+    els.datasetId.textContent = hosted.batch_name || data.dataset_id;
+    const datasetLabel = els.datasetId.closest(".chip")?.querySelector(".chip-label");
+    if (datasetLabel) datasetLabel.textContent = "Batch";
+    els.leaveAssignmentLink.href = hosted.assignments_url || hosted.workshop_url || "/workshop";
     els.leaveAssignmentLink.textContent = "Back to workshop";
     els.prevBtn.textContent = "Previous";
   }
@@ -142,7 +146,9 @@
 
   els.emptyState.classList.add("hidden");
   els.detailView.classList.remove("hidden");
-  els.datasetId.textContent = data.dataset_id;
+  els.datasetId.textContent = hosted?.workshop_mode
+    ? (hosted.batch_name || data.dataset_id)
+    : data.dataset_id;
   els.recordCount.textContent = String(data.record_count);
 
   populateFilters();
@@ -252,6 +258,11 @@
       });
     });
     els.exportReviewsBtn.addEventListener("click", () => exportReviews("auto"));
+    if (hosted?.workshop_mode) {
+      [els.leaveAssignmentLink, els.backToAssignmentsLink].forEach((link) => {
+        link.addEventListener("click", submitBeforeWorkshopReturn);
+      });
+    }
     els.exportPrivateReviewsBtn.addEventListener("click", exportPrivateReviews);
     bindHoldoutSelectorExport(() => selectorUpdatesForInitialReview());
     els.clearPrivateStateBtn.addEventListener("click", clearPrivateState);
@@ -375,7 +386,7 @@
 
     els.detailMeta.textContent = hosted?.workshop_mode ? "Pair ID" : `${record.kg_id} · ${record.run_label}`;
     els.detailTitle.textContent = hosted?.workshop_mode
-      ? (record.query_id || record.review_id)
+      ? (record.query_label || record.query_id || record.review_id)
       : record.query_label;
     els.modeBadge.textContent = mode;
     els.confidenceBadge.textContent = `confidence ${confidence}`;
@@ -410,7 +421,28 @@
 
     els.rankedEvidenceList.innerHTML = "";
     const ranked = output.ranked_evidence_phrases || [];
-    if (!ranked.length) {
+    const evidenceById = new Map(evidence.map((item) => [item.evidence_id, item]));
+    const retainedEvidence = ranked.map((item) => ({
+      item,
+      sourceEvidence: evidenceById.get(item.evidence_id) || {},
+      ranked: true,
+    }));
+    if (hosted?.workshop_mode) {
+      const rankedIds = new Set(ranked.map((item) => item.evidence_id));
+      evidence
+        .filter((item) => usedEvidenceIds.has(item.evidence_id) && !rankedIds.has(item.evidence_id))
+        .forEach((sourceEvidence) => retainedEvidence.push({
+          item: {
+            evidence_id: sourceEvidence.evidence_id,
+            source_type: sourceEvidence.type,
+            text: sourceEvidence.snippet || "",
+            verbatim: output.nl_question_origin?.mode === "verbatim",
+          },
+          sourceEvidence,
+          ranked: false,
+        }));
+    }
+    if (!retainedEvidence.length) {
       els.rankedEvidenceList.innerHTML = hosted?.workshop_mode
         ? ""
         : '<p class="muted-meta">No retained evidence phrases.</p>';
@@ -419,18 +451,36 @@
       }
     } else {
       els.rankedEvidenceList.closest(".retained-block")?.classList.remove("hidden");
-      ranked.forEach((item) => {
+      retainedEvidence.forEach(({item, sourceEvidence, ranked: isRanked}) => {
+        const sourceType = sourceEvidence.type || item.source_type || "unknown";
+        const sourceReference = sourceEvidence.source_url || item.source_url || sourceEvidence.source_path || "";
         const card = document.createElement("div");
         card.className = "evidence-card used";
         card.innerHTML = `
           <div class="evidence-meta">
-            <span class="pill">rank ${escapeHtml(formatInlineValue(item.rank, "-"))}</span>
-            <span class="pill">${escapeHtml(item.source_type)}</span>
+            ${isRanked ? `<span class="pill">rank ${escapeHtml(formatInlineValue(item.rank, "-"))}</span>` : ""}
+            <span class="pill">${escapeHtml(sourceType)}</span>
             <span class="pill">${escapeHtml(item.evidence_id)}</span>
             <span class="pill">${item.verbatim ? "verbatim" : "cleaned"}</span>
           </div>
           <p class="snippet">${escapeHtml(item.text || "")}</p>
         `;
+        if (sourceReference) {
+          const sourceLine = document.createElement("p");
+          sourceLine.className = "record-subline";
+          const sourceUrl = externalHttpUrl(sourceReference);
+          if (sourceUrl) {
+            const sourceLink = document.createElement("a");
+            sourceLink.href = sourceUrl;
+            sourceLink.target = "_blank";
+            sourceLink.rel = "noreferrer";
+            sourceLink.textContent = "Open source";
+            sourceLine.append(sourceLink);
+          } else {
+            sourceLine.textContent = sourceReference;
+          }
+          card.appendChild(sourceLine);
+        }
         els.rankedEvidenceList.appendChild(card);
       });
     }
@@ -1085,8 +1135,12 @@
       const reviewed = reviewDecisionCount(publicReviews);
       const total = Number(data.record_count) || data.records.length;
       if (reviewed === 0) {
-        showSubmissionMessage("Review at least one pair before submitting current work.");
-        return;
+        if (hosted?.workshop_mode) {
+          showSubmissionMessage("Review at least one pair before submitting current work.");
+        } else {
+          window.alert("Review at least one item before submitting current work.");
+        }
+        return false;
       }
       const resolvedType = completionType === "auto"
         ? (reviewed === total ? "completed" : "partial")
@@ -1096,16 +1150,32 @@
         : hosted.submission_url;
       if (!submissionUrl) {
         window.alert("This assignment cannot accept the current review state.");
-        return;
+        return false;
       }
-      if (!window.confirm(`Submit the current ${reviewed} of ${total} reviewed pairs and close this review?`)) {
-        return;
+      if (
+        !hosted?.workshop_mode
+        && !window.confirm(`Submit the current ${reviewed} of ${total} reviewed items and close this assignment?`)
+      ) {
+        return false;
       }
-      await submitHostedPayload(payload, submissionUrl);
+      return submitHostedPayload(payload, submissionUrl);
     } else {
       const timestamp = timestampForFilename(new Date());
       downloadJson(payload, `musparql-review-non-holdout-${data.dataset_id}-${timestamp}.json`);
+      return true;
     }
+  }
+
+  async function submitBeforeWorkshopReturn(event) {
+    event.preventDefault();
+    const destination = event.currentTarget.href;
+    const { publicReviews } = partitionReviewMap(reviews);
+    if (reviewDecisionCount(publicReviews) === 0) {
+      window.location.assign(destination);
+      return;
+    }
+    const submitted = await exportReviews("auto");
+    if (submitted) window.location.assign(destination);
   }
 
   function selectorUpdatesForInitialReview() {
@@ -1220,6 +1290,15 @@
       .replaceAll('"', "&quot;");
   }
 
+  function externalHttpUrl(value) {
+    try {
+      const url = new URL(String(value));
+      return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+    } catch (_error) {
+      return "";
+    }
+  }
+
   function formatInlineValue(value, fallback = "") {
     return value === null || value === undefined || value === "" ? fallback : String(value);
   }
@@ -1262,8 +1341,10 @@
         : {error: "Submission was not accepted."};
       if (!response.ok) throw new Error(result.error || "Submission was not accepted.");
       showSubmissionSuccess(result, payload);
+      return true;
     } catch (error) {
       window.alert(error.message || "Submission was not accepted.");
+      return false;
     } finally {
       els.exportReviewsBtn.disabled = false;
     }
@@ -1280,19 +1361,37 @@
     const percentage = total ? Math.round((completed / total) * 100) : 0;
     const partial = result.completion_type === "partial";
     els.submissionHeading.textContent = result.duplicate
-      ? "Thank you — this review was already safely submitted."
-      : partial
-        ? "Thank you — your partial review was submitted."
-        : "Thank you — your review was submitted.";
-    els.submissionProgress.textContent = `You completed ${percentage}% of this assignment (${completed} of ${total} items).`;
+      ? "This version of your current work was already safely submitted."
+      : hosted?.workshop_mode
+        ? "Current work submitted."
+        : partial
+          ? "Thank you — your partial review was submitted."
+          : "Thank you — your review was submitted.";
+    els.submissionProgress.textContent = hosted?.workshop_mode
+      ? `Submitted ${completed} of ${total} reviewed pairs (${percentage}%). You can keep working and submit an updated version later.`
+      : `You completed ${percentage}% of this assignment (${completed} of ${total} items).`;
     els.submissionReceipt.textContent = `Receipt recorded · revision ${result.revision}.`;
-    if (hosted?.workshop_mode && hosted.missing_assessment_reviewer_ids?.length) {
-      els.submissionReceipt.textContent += ` Background form still missing for ${hosted.missing_assessment_reviewer_ids.join(", ")}.`;
+    if (hosted?.workshop_mode && result.missing_assessment_reviewer_ids?.length) {
+      els.submissionReceipt.append(
+        document.createTextNode(` Pre-batch form still missing for ${result.missing_assessment_reviewer_ids.join(", ")}.`)
+      );
+      if (result.assessment_url) {
+        els.submissionReceipt.append(document.createTextNode(" "));
+        const assessmentLink = document.createElement("a");
+        assessmentLink.href = result.assessment_url;
+        assessmentLink.textContent = "Fill in your form";
+        els.submissionReceipt.append(assessmentLink, document.createTextNode("."));
+      }
+    }
+    if (hosted?.workshop_mode && result.submission_url) {
+      els.submissionReceipt.append(document.createTextNode(" "));
+      const receiptLink = document.createElement("a");
+      receiptLink.href = result.submission_url;
+      receiptLink.textContent = "View submission";
+      els.submissionReceipt.append(receiptLink, document.createTextNode("."));
     }
     els.continueReviewBtn.classList.add("hidden");
     els.backToAssignmentsLink.classList.remove("hidden");
-    els.exportReviewsBtn.classList.add("hidden");
-    document.querySelectorAll(".hosted-terminal-control").forEach((control) => control.remove());
     els.submissionStatus.classList.remove("hidden");
     els.submissionStatus.scrollIntoView({behavior: "smooth", block: "start"});
   }
@@ -2226,7 +2325,8 @@
       const team = document.createElement("span");
       const code = String(hosted.team_join_code);
       team.className = "hosted-team-code";
-      team.textContent = `Team ${code.slice(0, 3)} ${code.slice(3)} · ask teammates to enter this code on their Workshop page`;
+      const members = Number(hosted.team_member_count) || 1;
+      team.textContent = `Team ${code.slice(0, 3)} ${code.slice(3)} · ${members} member${members === 1 ? "" : "s"}`;
       bar.appendChild(team);
     }
 

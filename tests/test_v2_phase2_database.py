@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import json
 from pathlib import Path
+import sqlite3
 
 import pytest
 import yaml
@@ -29,6 +30,7 @@ from musparql.database.models import (
     ReviewSubmission,
     WorkshopEntryCode,
     WorkshopEntryRedemption,
+    WorkshopAssessmentDeferral,
     WorkshopRound,
     WorkshopWorkPackage,
 )
@@ -164,6 +166,16 @@ def test_alembic_upgrade_creates_complete_schema_and_sqlite_safety(database) -> 
         assert connection.exec_driver_sql("PRAGMA integrity_check").scalar_one() == "ok"
         context = MigrationContext.configure(connection)
         assert compare_metadata(context, Base.metadata) == []
+        trigger_names = set(
+            connection.exec_driver_sql(
+                "SELECT name FROM sqlite_master WHERE type = 'trigger'"
+            ).scalars()
+        )
+        assert {
+            "reviewer_kg_domain_assessments_assignment_member_insert",
+            "reviewer_resource_familiarity_assessments_assignment_member_insert",
+            "workshop_assessment_deferrals_assignment_member_insert",
+        } <= trigger_names
 
 
 def test_workshop_groups_allow_one_or_more_members_and_cross_group_help(database) -> None:
@@ -588,6 +600,31 @@ def test_group_assignment_and_submission_freeze_member_provenance(database) -> N
         ProvenanceService(sessions).append_pre_review_assessments(
             [nonmember_domain], [nonmember_familiarity]
         )
+    for model, record in (
+        (ReviewerKgDomainAssessment, nonmember_domain),
+        (ReviewerResourceFamiliarityAssessment, nonmember_familiarity),
+    ):
+        values = {key: value for key, value in record.items() if key != "schema"}
+        values["context"] = "post_review_followup"
+        with pytest.raises(
+            IntegrityError,
+            match="assessment reviewer is not an assignment participant",
+        ):
+            with sessions.begin() as session:
+                session.add(model(**values))
+    with pytest.raises(
+        IntegrityError,
+        match="deferral reviewer is not an assignment participant",
+    ):
+        with sessions.begin() as session:
+            session.add(
+                WorkshopAssessmentDeferral(
+                    id="deferral-nonmember",
+                    assignment_id="group-assignment-provenance",
+                    reviewer_id="reviewer-0203",
+                    deferred_at="2026-09-10T10:30:00Z",
+                )
+            )
     with sessions.begin() as session:
         assignment = session.get(ReviewAssignment, "group-assignment-provenance")
         assignment.participant_status = "completed"
@@ -605,6 +642,46 @@ def test_alembic_downgrade_and_reupgrade(tmp_path: Path) -> None:
     command.downgrade(alembic_config(database_path), "base")
     assert current_revision(database_path) is None
     upgrade_database(database_path)
+    assert current_revision(database_path) == "20260912_10"
+
+
+@pytest.mark.parametrize("revision_ten_data", ["deferral", "followup"])
+def test_revision_ten_downgrade_fails_before_ddl_when_data_exists(
+    tmp_path: Path, revision_ten_data: str
+) -> None:
+    database_path = tmp_path / f"irreversible-{revision_ten_data}.sqlite3"
+    upgrade_database(database_path)
+    # Insert an isolated synthetic row with FK checks disabled to exercise the
+    # migration's preflight without constructing an unrelated full workshop.
+    with sqlite3.connect(database_path) as connection:
+        if revision_ten_data == "deferral":
+            connection.execute(
+                "DROP TRIGGER workshop_assessment_deferrals_assignment_member_insert"
+            )
+            connection.execute(
+                "INSERT INTO workshop_assessment_deferrals "
+                "(id, assignment_id, reviewer_id, deferred_at) VALUES (?, ?, ?, ?)",
+                ("deferral-synthetic", "assignment-synthetic", "reviewer-9998", "2026-09-12T10:00:00Z"),
+            )
+        else:
+            connection.execute(
+                "DROP TRIGGER reviewer_kg_domain_assessments_assignment_member_insert"
+            )
+            connection.execute(
+                "INSERT INTO reviewer_kg_domain_assessments "
+                "(id, reviewer_id, kg_id, review_domain_id, review_domain_label, "
+                "subject_expertise_level, assessed_at, context, assignment_id, "
+                "seed_version, previous_assessment_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    "assessment-synthetic", "reviewer-9998", "synthetic-kg",
+                    "synthetic-domain", "Synthetic domain", "working",
+                    "2026-09-12T10:00:00Z", "post_review_followup",
+                    "assignment-synthetic", "synthetic-v1", None,
+                ),
+            )
+    with pytest.raises(RuntimeError, match="cannot be downgraded"):
+        command.downgrade(alembic_config(database_path), "20260911_09")
     assert current_revision(database_path) == "20260912_10"
 
 

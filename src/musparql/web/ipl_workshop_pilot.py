@@ -192,7 +192,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--packages",
         type=Path,
-        default=Path("var/review/bundles/ipl-2026"),
+        default=Path("var/review/bundles/ipl-2026-20260912-provenance-fix"),
         help="Directory containing the frozen four-KG manifest and bundles",
     )
     result.add_argument(

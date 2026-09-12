@@ -53,18 +53,19 @@ is out of scope.
 7. Each group member completes their own KG-specific pre-assignment questions.
    Existing profile and assessment answers provide expertise information; the
    group has no expertise-role fields. A participant added after review has
-   started may defer these questions until the assignment ends.
-8. The group claims a package and completes one joint assignment. Any signed-in
-   member of that group may operate the browser and submit it.
-9. While the assignment is active, another registered and consented participant
+   started may defer these questions while joining the active workbench.
+8. The group may open any of the four packages and move among its joint
+   assignments. Any signed-in member of that group may operate the nominated
+   browser and submit the current state.
+9. While the workshop is open, another registered and consented participant
    may join the group and access its work if extra expertise is needed. They may
    already be contributing to another group. Missing KG-specific questions do
    not prevent them from joining or prevent the group from submitting.
-10. Leaving an unfinished assignment preserves it for return. Finishing,
-   submitting partial work, or abandoning it returns the group to the package
-   page.
-11. The group may choose another package if the facilitator enables further
-    assignments.
+10. Leaving a workbench preserves its browser-local draft for return. Submitting
+    creates an immutable complete or partial snapshot, reports any missing
+    member pre-batch forms, and leaves the workbench open for further revisions.
+11. Back to workshop returns directly to package choice. The group may open or
+    resume any batch at any time during the workshop.
 12. Several groups may independently review the same frozen package. They
     remain distinct rater units for inter-rater analysis.
 
@@ -106,8 +107,8 @@ Only the following is workshop-critical:
 5. **Group attribution:** assignments, submissions, and processing provenance
    must treat the reviewing group as one rater while retaining its contributor
    reviewer IDs.
-6. **Simple lifecycle:** return, finish, partial submit, and abandon without
-   trapping the participant in a dead assignment.
+6. **Simple lifecycle:** move among batches, preserve drafts, and submit
+   complete or partial snapshots without closing the workbench.
 7. **ICF deployment:** install and rehearse the exact release on the current VPS,
    not WSL.
 8. **Workshop operation:** a short run sheet, safe counts, code close/revoke,
@@ -202,13 +203,13 @@ A signed-in participant creates a group and receives a short join code. Other
 signed-in, consented participants add themselves using that code. A participant
 who will work alone creates a group and continues without inviting anyone.
 
-Joining remains open while the group's assignment is active. This supports the
+Joining remains open while the workshop round is active. This supports the
 workshop case where a reviewer starts, discovers that more expertise is needed,
 and asks another participant in the room to help. Joining is additive: there is
 no member-removal or membership-history workflow during an assignment. A newly
 joined member may access and contribute to the existing work immediately. If
 their KG-specific questions are missing, the application records them as owed;
-this never blocks access, submission, partial submission, or abandonment.
+this never blocks access or submission.
 
 A reviewer may belong to more than one group in the round, so a scarce expert
 can help another active assignment. Membership is unique only within a group.
@@ -219,13 +220,10 @@ The active assignment page keeps the group's join code available through a
 simple “add a participant” action. Joining the group while it has an active
 assignment also joins that assignment; it does not create or restart one.
 
-The contributor set freezes into the assignment when it reaches a terminal
-outcome (complete, partial, or abandoned). A later change requires a new
-assignment; it never changes the attribution of closed work.
-
-After any terminal outcome, each contributor with an owed KG-specific form sees
-a clear reminder and direct link to complete it. The assignment remains closed
-whether or not that follow-up form has yet been completed.
+Each immutable submission records the contributor set and authenticated
+submitter at that moment. Later edits create a new revision rather than changing
+an existing receipt. A missing KG-specific form remains visible on batch setup
+and in submission feedback without closing the assignment.
 
 ### 5.3 Reusable KG packages
 
@@ -384,7 +382,7 @@ Package choice is intentionally simple:
 - there is no automatic matching or capacity allocation;
 - claiming a package creates a fresh group assignment atomically;
 - several groups may claim the same package;
-- a group has at most one active assignment at a time; and
+- a group may keep one assignment open for each package at the same time; and
 - package and seed digests are checked when claimed, opened, and submitted.
 
 The workbench exposes two actions:
@@ -392,22 +390,23 @@ The workbench exposes two actions:
 - **Submit current work:** create a durable receipt for the current state. The
   client selects complete submission when every item has a decision and partial
   submission otherwise, so the reviewer cannot choose an incompatible action;
-  either accepted submission closes the assignment under the current lifecycle.
-- **Back to assignment:** submit nothing, keep the assignment active, and
-  preserve the assignment-scoped browser-local draft on that device.
+  an accepted snapshot leaves the workbench open for a later revision.
+- **Back to workshop:** if at least one pair has a decision, submit the current
+  complete or partial snapshot and wait for server acceptance before returning
+  to package choice. If no pair has a decision, return immediately without an
+  empty submission. A failed submission keeps the workbench open.
 
-There is no participant-facing manual close or abandon control. With additional
-assignments disabled, abandoning a package would not permit another claim and
-would add a terminal choice without helping the workshop flow. The protected
+There is no participant-facing manual close or abandon control. The protected
 server operation remains available for exceptional owner-assisted recovery,
 but is not part of the participant interface.
 
 The list above is the Track A item 7 contract. The route and service
-implementation now distinguishes complete and partial submissions, derives and
-stores their item counts server-side, freezes the current contributor set, and
-creates the same durable receipt and processing job for either submission type.
-Returning to the assignment page is non-mutating, so the assignment and its
-assignment-namespaced browser-local draft remain active.
+implementation distinguishes complete and partial snapshots, derives and stores
+their item counts server-side in each immutable export and audit, records the
+current contributor set on each receipt, and creates the same processing job for
+either snapshot type. Returning to the workshop persists any reviewed work as
+a server-side snapshot while the assignment and its assignment-namespaced
+browser-local draft remain active.
 
 The round's closing time stops shared-code admission, group changes, and new
 package claims. It does not revoke an assignment that was already claimed:
@@ -415,12 +414,9 @@ existing contributors may still reopen and submit that assignment after the
 scheduled workshop window. This prevents the timetable boundary from turning a
 valid submit or reload into an unexplained 404.
 
-Every terminal outcome returns to package choice. Additional claims are allowed
-only when the round's `allow_additional_assignments` switch is on. That switch
-is enough for spare capacity; no separate “old pairs” feature is required.
-For each signed-in contributor, the outcome page also flags an outstanding
-KG-specific form and links directly to it when one is owed. Completing that
-form updates the flag but does not reopen or alter the assignment.
+Every team can open each enabled package once and move among those assignments.
+Submission feedback flags any outstanding KG-specific form and links directly
+to it for the signed-in contributor when one is owed.
 
 ALyrA, LinkedMusic, and the linguistic-dimensions study are outside this
 workshop package set.
@@ -430,8 +426,8 @@ workshop package set.
 This plan does not redesign the initial workbench. The pipeline work required
 before the redesign is:
 
-1. create an assignment from a frozen package for a reviewing group and permit
-   authenticated late joins until the assignment closes;
+1. create assignments from frozen packages for a reviewing group and permit
+   authenticated late joins while the workshop round is open;
 2. pass assignment ID, group ID, contributor IDs, package digest, and safe
    return URL into the hosted workbench context;
 3. namespace browser-local draft state by assignment ID so two groups using one
@@ -513,13 +509,14 @@ foundation and participant-facing journey cover reviewing-group creation,
 code-based self-join, reusable-package discovery, atomic package claims,
 per-member assessment gating, and assessment-gated workbench access during the
 open round. Browser-local group drafts are shared by assignment on the same
-device. Any eligible group member can submit; the server freezes the current
-contributor set, authenticated submitter, and group identity into the immutable
+device. Any eligible group member can submit; the server records the current
+contributor set, authenticated submitter, and group identity in each immutable
 export and receipt, and preserves that attribution through isolated processing
-and owner review. Browser recovery treats a fresh export timestamp—and a retry
-by another frozen contributor—as the same submission when the review content is
-unchanged. Canonical group exports round-trip through the importer and enter the
-benchmark builder as one rater judgment. SMTP remains the preferred sign-in
+and owner review. The active workbench remains open and changed work creates a
+later immutable revision. Browser recovery treats a fresh export timestamp—and
+a retry by another recorded contributor—as the same submission when the review
+content is unchanged. Canonical group exports round-trip through the importer
+and enter the benchmark builder as one rater judgment. SMTP remains the preferred sign-in
 path; the owner can issue or immediately revoke one digest-only shared entry
 code. Durable digest-only throttling is keyed by trusted remote address rather
 than User-Agent and survives application restart. Redemption rejects an active
@@ -551,17 +548,16 @@ output symlinks, while seed import and draft-round package registration commit
 in one transaction. Provisional packages remain disabled and unregistrable. The
 received deduplicated subset and complete all-pairs membership; holdout pairs
 are explicitly excluded from every IPL package.
-Complete, partial, and abandoned outcomes now close group membership, return to
-package choice, and expose another claim only when the round's
-`allow_additional_assignments` switch permits it. Submission outcomes preserve
-server-derived item counts and completion type in their immutable export and
-processing audit. Pre-item-7 v2 group receipts without those additive fields
-remain schema-valid; a retry derives and persists the missing assignment counts
-before its queued job is processed. A frozen contributor who still owes the
-KG-specific form sees a direct link after closure and can complete it without
-changing the terminal assignment, including after the workshop round closes.
-Submission, abandonment, retry, and late-join terminal races are serialized and
-covered by regression tests. Following the NL-provenance pipeline fix, item 6
+Complete and partial submissions now preserve server-derived item counts and
+completion type in each immutable export and processing audit while keeping the
+workbench open. Teams may keep all four distinct package assignments open and
+move among their browser-local drafts. Pre-item-7 terminal v2 group receipts
+without the additive count fields remain schema-valid; a retry derives and
+persists the missing assignment counts before its queued job is processed.
+Missing KG-specific forms are reported after submission and remain directly
+accessible. Current snapshot retries, changed revisions, legacy terminal
+retries, and exceptional abandonment races are covered by regression tests.
+Following the NL-provenance pipeline fix, item 6
 was rebuilt and validated locally on 12 September 2026 as corrected package set
 `30a5695ba92519fe`, while preserving the historical August artifacts. Workshop
 database registration, ICF deployment, and the production rehearsal remain
@@ -575,8 +571,8 @@ operational work.
 4. Add SMTP-first/shared-code-fallback registration.
 5. Add the versioned affirmative-consent gate.
 6. Prepare and validate the four anonymous KG packages.
-7. Implement finish, partial, abandon, return, and optional-next-assignment
-   behaviour at the route/service level.
+7. Implement non-terminal complete/partial snapshots, direct return, and
+   concurrent distinct-package assignments at the route/service level.
 8. Deploy the exact passing commit to the ICF VPS.
 9. Rehearse the whole journey with synthetic participants.
 
@@ -633,21 +629,21 @@ Automated and synthetic rehearsal must prove:
 - a participant may join a second group without losing access to their first;
 - a consented/profile-complete participant can join before or during active
   review and access the existing work immediately;
-- a missing late-joiner KG form never blocks complete submission, partial
-  submission, or abandonment;
-- after any terminal outcome, that contributor sees an outstanding-form flag
-  and direct link until the form is completed;
-- no one can join after a terminal assignment outcome;
+- a missing late-joiner KG form never blocks a complete or partial submission
+  and is reported in submission feedback;
+- teams can open distinct package assignments concurrently and move among them;
+- submitting a snapshot keeps the current assignment and workbench available;
 - two groups can claim the same package without sharing assignment or draft
   state;
-- submission attribution is server-derived and freezes the member set present
-  when the assignment closes;
-- submission versus abandonment, retry versus abandonment, and late join versus
-  either terminal operation serialize to one consistent outcome;
+- submission attribution is server-derived and records the member set present
+  for that immutable revision;
+- unchanged retries remain idempotent while changed work creates a new revision;
 - legacy v2 group receipts validate, retry idempotently, backfill authoritative
   counts, and produce a processing audit with a non-null total;
 - a group submission is processed as one judgment, not one per contributor;
-- leave, finish, partial, and abandon all return to a usable package page;
+- Back to workshop submits reviewed work before returning, returns immediately
+  when there is no decision to submit, and does not navigate after a failed
+  submission;
 - web and worker recover after restart, and durable receipts remain intact;
 - external HTTPS/session/origin/CSRF/logging checks pass; and
 - an isolated database-plus-file restore succeeds.

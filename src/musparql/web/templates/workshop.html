@@ -3,17 +3,27 @@
 {% block content %}
   <p class="metadata">{{ value.round_name }}</p>
   <h1>Workshop</h1>
-  <p>Choose a review batch, answer its short background questions, and review the pairs.</p>
+  <p>Open any review batch, answer its short background questions, and review the pairs. You can move between batches whenever you like.</p>
   {% if result %}<p class="success" role="status">{{ result }}</p>{% endif %}
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 
   {% set team = value.groups|selectattr('id', 'equalto', value.current_group_id)|first %}
+  {% if value.groups|length > 1 %}
+    <form method="get" action="{{ url_for('portal.workshop') }}">
+      <label class="field">Current team
+        <select name="group_id" onchange="this.form.submit()">
+          {% for group in value.groups %}
+            <option value="{{ group.id }}"{% if group.id == value.current_group_id %} selected{% endif %}>Team {{ group.join_code[:3] }} {{ group.join_code[3:] }}{% if group.active_package_name %} — {{ group.active_package_name }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <noscript><button class="secondary" type="submit">Switch team</button></noscript>
+    </form>
+  {% endif %}
   <section class="team-strip" aria-labelledby="team-heading">
     <div>
-      <p id="team-heading" class="metadata">Current team</p>
-      <strong class="join-code">Team {{ team.join_code[:3] }} {{ team.join_code[3:] }}</strong>
-      <p>{{ team.member_count }} member{% if team.member_count != 1 %}s{% endif %}. Ask a teammate to enter this code on their Workshop page.</p>
-      <p class="metadata">Drafts stay on this browser. Nominate one device and person to submit for the team.</p>
+      <p id="team-heading"><strong>You are Team <span class="join-code">{{ team.join_code[:3] }} {{ team.join_code[3:] }}</span></strong> · {{ team.member_count }} member{% if team.member_count != 1 %}s{% endif %}</p>
+      <p>If you are working with someone, join their team below or give them your team number.</p>
     </div>
     {% if value.is_open %}
       <form class="join-team-form" method="post" action="{{ url_for('portal.join_workshop_group') }}">
@@ -41,7 +51,7 @@
               <p class="batch-tier">{% if package.priority_tier == 'core' %}Core batch{% else %}Specialist batch{% endif %}</p>
               <h3>{{ package.display_name }}</h3>
             </div>
-            <span class="batch-status batch-status-{{ package.status|replace('_', '-') }}">{{ package.status|replace('_', ' ')|title }}</span>
+            {% if package.status != 'available' %}<span class="batch-status batch-status-{{ package.status|replace('_', '-') }}">{{ package.status|replace('_', ' ')|title }}</span>{% endif %}
           </div>
           {% if package.short_description %}<p>{{ package.short_description }}</p>{% endif %}
           {% if package.assignment_id and package.action_label in ('Complete setup', 'Continue') %}
@@ -52,7 +62,7 @@
               <button type="submit">Start review</button>
             </form>
           {% elif package.action_label == 'View submission' %}
-            <span class="metadata">Submitted successfully</span>
+            <a class="button secondary" href="{{ url_for('portal.assignment_submission', assignment_id=package.assignment_id) }}">View submission</a>
           {% endif %}
         </article>
       {% else %}

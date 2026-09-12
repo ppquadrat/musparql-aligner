@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Submission receipt — Musparql review{% endblock %}
+{% block content %}
+  <h1>Submission receipt</h1>
+  <p class="success">Your submission was accepted.</p>
+  <dl>
+    <dt>Receipt</dt><dd>{{ receipt.receipt_id }}</dd>
+    <dt>Assignment</dt><dd>{{ receipt.assignment_id }}</dd>
+    <dt>Revision</dt><dd>{{ receipt.revision }}</dd>
+    <dt>Submitted</dt><dd>{{ receipt.submitted_at }}</dd>
+    <dt>Completion</dt><dd>{{ receipt.completion_type|replace('_', ' ')|title }}{% if receipt.completion_item_count is not none %} — {{ receipt.completion_item_count }} of {{ receipt.completion_total_count }} items{% endif %}</dd>
+    <dt>Processing</dt><dd>{{ receipt.processing_status|replace('_', ' ')|title }}</dd>
+  </dl>
+  <p><a class="button" href="{{ url_for('portal.workshop', group_id=receipt.workshop_group_id) if receipt.workshop_group_id else url_for('portal.index') }}">Back</a></p>
+{% endblock %}

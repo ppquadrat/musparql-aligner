@@ -70,6 +70,23 @@ def consent_required(view: View) -> View:
     return cast(View, wrapped)
 
 
+def complete_profile_required(view: View) -> View:
+    """Keep participant mutation/API routes behind the complete-profile gate."""
+
+    @wraps(view)
+    @consent_required
+    def wrapped(*args: Any, **kwargs: Any):
+        if g.current_reviewer.id != current_app.config["OWNER_REVIEWER_ID"] and not (
+            current_app.extensions["musparql_profiles"].is_complete(
+                g.current_reviewer.id
+            )
+        ):
+            abort(403)
+        return view(*args, **kwargs)
+
+    return cast(View, wrapped)
+
+
 def _request_context() -> str:
     # ProxyFix has already replaced this with the trusted client address when
     # the explicitly configured single reverse proxy is in use. Do not include
@@ -166,7 +183,7 @@ def workshop():
         return redirect(url_for("portal.profile"))
     try:
         value = current_app.extensions["musparql_workshops"].dashboard(
-            g.current_reviewer.id
+            g.current_reviewer.id, request.args.get("group_id")
         )
     except WorkshopAccessError:
         abort(403)
@@ -228,12 +245,9 @@ def join_workshop_group():
         return redirect(url_for("portal.workshop", error="invalid-group-code"))
     except WorkshopUnavailable:
         abort(404)
-    assignment_id = current_app.extensions["musparql_workshops"].active_assignment(
-        g.current_reviewer.id, group_id
+    return redirect(
+        url_for("portal.workshop", result="group-joined", group_id=group_id)
     )
-    if assignment_id:
-        return redirect(url_for("portal.assignment", assignment_id=assignment_id, joined="yes"))
-    return redirect(url_for("portal.workshop", result="group-joined"))
 
 
 @portal.post("/workshop/groups/<group_id>/packages/<package_id>/claim")
@@ -861,14 +875,10 @@ def assignment(assignment_id: str):
 
 
 @portal.post("/assignments/<assignment_id>/assessment/skip")
-@consent_required
+@complete_profile_required
 def skip_assignment_assessment(assignment_id: str):
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
-    if not current_app.extensions["musparql_profiles"].is_complete(
-        g.current_reviewer.id
-    ):
-        abort(403)
     try:
         current_app.extensions["musparql_assignments"].defer_assessment(
             assignment_id, g.current_reviewer.id
@@ -883,14 +893,10 @@ def skip_assignment_assessment(assignment_id: str):
 
 
 @portal.get("/assignments/<assignment_id>/bundle")
-@consent_required
+@complete_profile_required
 def assignment_bundle(assignment_id: str):
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
-    if not current_app.extensions["musparql_profiles"].is_complete(
-        g.current_reviewer.id
-    ):
-        abort(403)
     try:
         payload = current_app.extensions[
             "musparql_assignments"
@@ -906,7 +912,7 @@ def assignment_bundle(assignment_id: str):
 
 
 @portal.post("/assignments/<assignment_id>/submissions")
-@consent_required
+@complete_profile_required
 def submit_assignment(assignment_id: str):
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
@@ -927,16 +933,46 @@ def submit_assignment(assignment_id: str):
         abort(403)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 422
-    return jsonify(receipt.as_dict()), 200 if receipt.duplicate else 202
+    response = receipt.as_dict()
+    try:
+        team = current_app.extensions["musparql_workshops"].workbench_team(
+            g.current_reviewer.id, assignment_id
+        )
+    except WorkshopAccessError:
+        pass
+    else:
+        missing = team["missing_assessment_reviewer_ids"]
+        response["missing_assessment_reviewer_ids"] = missing
+        response["assessment_url"] = (
+            url_for("portal.assignment", assignment_id=assignment_id)
+            if g.current_reviewer.id in missing
+            else None
+        )
+        response["submission_url"] = url_for(
+            "portal.assignment_submission", assignment_id=assignment_id
+        )
+    return jsonify(response), 200 if receipt.duplicate else 202
+
+
+@portal.get("/assignments/<assignment_id>/submission")
+@complete_profile_required
+def assignment_submission(assignment_id: str):
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    try:
+        receipt = current_app.extensions["musparql_submissions"].participant_receipt(
+            assignment_id, g.current_reviewer.id
+        )
+    except LookupError:
+        abort(404)
+    except PermissionError:
+        abort(403)
+    return render_template("submission_receipt.html", receipt=receipt)
 
 
 def _hosted_assignment_bundle(assignment_id: str) -> dict[str, Any]:
     if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
         abort(404)
-    if not current_app.extensions["musparql_profiles"].is_complete(
-        g.current_reviewer.id
-    ):
-        abort(403)
     try:
         return current_app.extensions["musparql_assignments"].attributed_bundle(
             assignment_id, g.current_reviewer.id
@@ -951,7 +987,7 @@ def _hosted_assignment_bundle(assignment_id: str) -> dict[str, Any]:
 
 
 @portal.get("/assignments/<assignment_id>/workbench/")
-@consent_required
+@complete_profile_required
 def assignment_workbench(assignment_id: str):
     payload = _hosted_assignment_bundle(assignment_id)
     root_key = (
@@ -966,7 +1002,7 @@ def assignment_workbench(assignment_id: str):
 
 
 @portal.get("/assignments/<assignment_id>/workbench/<asset_name>")
-@consent_required
+@complete_profile_required
 def assignment_workbench_asset(assignment_id: str, asset_name: str):
     payload = _hosted_assignment_bundle(assignment_id)
     linguistic = payload.get("mode") == "linguistic"
@@ -1002,20 +1038,25 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
                 g.current_reviewer.id, assignment_id
             )
             context.update(
-                assignments_url=url_for("portal.workshop"),
+                assignments_url=url_for(
+                    "portal.workshop", group_id=payload["review_group_id"]
+                ),
                 partial_submission_url=url_for(
                     "portal.submit_assignment",
                     assignment_id=assignment_id,
                     completion="partial",
                 ),
-                workshop_url=url_for("portal.workshop"),
+                workshop_url=url_for(
+                    "portal.workshop", group_id=payload["review_group_id"]
+                ),
                 workshop_mode=True,
                 team_join_code=team["join_code"],
                 team_member_count=team["member_count"],
+                batch_name=team["batch_name"],
                 missing_assessment_reviewer_ids=team[
                     "missing_assessment_reviewer_ids"
                 ],
-                submission_closes_review=True,
+                submission_closes_review=False,
             )
         body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(
             context, ensure_ascii=True, separators=(",", ":")

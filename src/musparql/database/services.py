@@ -32,6 +32,7 @@ from .models import (
     ReviewGroupMember,
     WorkshopEntryCode,
     WorkshopEntryRedemption,
+    WorkshopAssessmentDeferral,
     WorkshopRound,
 )
 from .repositories import AssignmentRepository, ProvenanceRepository, SeedRepository
@@ -341,17 +342,14 @@ class ProvenanceService:
         activate_assignment: bool = False,
     ) -> None:
         """Atomically record the complete frozen prompt set for one assignment."""
+        domain_records = [dict(record) for record in domain_records]
+        familiarity_records = [dict(record) for record in familiarity_records]
         records = [*domain_records, *familiarity_records]
         if not records:
             raise ValueError("Pre-review assessment set must not be empty")
         assignment_ids = {record.get("assignment_id") for record in records}
         if len(assignment_ids) != 1 or None in assignment_ids:
             raise ValueError("Pre-review assessments must identify one assignment")
-        contexts = {record.get("context") for record in records}
-        if len(contexts) != 1 or not contexts.issubset(
-            {"pre_review", "post_review_followup"}
-        ):
-            raise ValueError("Assignment assessment batch has inconsistent context")
         assignment_id = str(next(iter(assignment_ids)))
 
         with self.sessions() as session:
@@ -364,6 +362,43 @@ class ProvenanceService:
             if assignment is None:
                 raise ValueError(f"Unknown review assignment: {assignment_id}")
             reviewer_ids = {validate_reviewer_id(record.get("reviewer_id")) for record in records}
+            if len(reviewer_ids) != 1:
+                raise ValueError("Assignment assessments must belong to one reviewer")
+            reviewer_id = next(iter(reviewer_ids))
+            already_recorded = session.scalar(
+                select(ReviewerKgDomainAssessment.id).where(
+                    ReviewerKgDomainAssessment.assignment_id == assignment_id,
+                    ReviewerKgDomainAssessment.reviewer_id == reviewer_id,
+                ).limit(1)
+            ) or session.scalar(
+                select(ReviewerResourceFamiliarityAssessment.id).where(
+                    ReviewerResourceFamiliarityAssessment.assignment_id == assignment_id,
+                    ReviewerResourceFamiliarityAssessment.reviewer_id == reviewer_id,
+                ).limit(1)
+            )
+            if already_recorded is not None:
+                raise ValueError("This assignment assessment is already complete")
+            deferred = session.scalar(
+                select(WorkshopAssessmentDeferral.id).where(
+                    WorkshopAssessmentDeferral.assignment_id == assignment_id,
+                    WorkshopAssessmentDeferral.reviewer_id == reviewer_id,
+                )
+            )
+            followup = bool(deferred) or assignment.participant_status in {
+                "completed", "partial", "abandoned"
+            }
+            context = "post_review_followup" if followup else "pre_review"
+            version = "v2" if followup else "v1"
+            for record in domain_records:
+                record["context"] = context
+                record["schema"] = (
+                    f"musparql.reviewer-kg-domain-assessment.{version}"
+                )
+            for record in familiarity_records:
+                record["context"] = context
+                record["schema"] = (
+                    f"musparql.reviewer-resource-familiarity-assessment.{version}"
+                )
             if assignment.reviewer_id is not None:
                 if reviewer_ids != {assignment.reviewer_id}:
                     raise ValueError(
@@ -466,7 +501,10 @@ class ProvenanceService:
                         raise ValueError("Only a ready assignment can be activated")
                     should_activate = True
                 else:
-                    if assignment.status not in {"ready", "active"}:
+                    if (
+                        assignment.status != "ready"
+                        and assignment.participant_status != "active"
+                    ):
                         raise ValueError("This group assignment is not open for assessment")
                     # A team review opens for the participant who completed
                     # setup; teammates' individual forms never gate access.

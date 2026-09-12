@@ -30,9 +30,13 @@ def test_hosted_review_state_is_scoped_to_assignment_and_keeps_local_keys() -> N
     assert "You completed ${percentage}% of this assignment" in app
     assert "result.completion_item_count" in app
     assert "result.completion_total_count" in app
-    assert 'querySelectorAll(".hosted-terminal-control")' in app
+    assert 'querySelectorAll(".hosted-terminal-control")' not in app
+    assert "You can keep working and submit an updated version later." in app
+    assert "record.query_label || record.query_id" in app
     assert 'id="continueReviewBtn"' in html
     assert 'id="backToAssignmentsLink"' in html
+    assert "What each choice does:" in html
+    assert "gold-standard wording" in html
     assert '<script src="host_context.js?' in html
     assert (ROOT / "review" / "host_context.js").read_text(encoding="utf-8").strip() == (
         "window.MUSPARQL_HOSTED_CONTEXT = null;"
@@ -49,12 +53,30 @@ def test_workbench_keeps_columns_until_a_genuinely_narrow_window() -> None:
 
 def test_workshop_mode_is_a_scoped_single_pair_workbench() -> None:
     app = (ROOT / "review" / "app.js").read_text(encoding="utf-8")
+    html = (ROOT / "review" / "index.html").read_text(encoding="utf-8")
     css = (ROOT / "review" / "styles.css").read_text(encoding="utf-8")
+    workshop = (ROOT / "src" / "musparql" / "web" / "templates" / "workshop.html").read_text(encoding="utf-8")
 
     assert 'document.body.classList.add("workshop-mode")' in app
     assert 'els.leaveAssignmentLink.textContent = "Back to workshop"' in app
+    assert "hosted.assignments_url || hosted.workshop_url" in app
+    assert "link.addEventListener(\"click\", submitBeforeWorkshopReturn)" in app
+    assert "if (reviewDecisionCount(publicReviews) === 0)" in app
+    assert 'const submitted = await exportReviews("auto")' in app
+    assert "if (submitted) window.location.assign(destination)" in app
     assert "Review at least one pair before submitting current work." in app
+    assert "!hosted?.workshop_mode" in app
+    assert "Current work submitted." in app
+    assert "Pre-batch form still missing for" in app
+    assert "const evidenceById = new Map" in app
+    assert "const retainedEvidence = ranked.map" in app
+    assert "usedEvidenceIds.has(item.evidence_id) && !rankedIds.has(item.evidence_id)" in app
+    assert 'sourceLink.textContent = "Open source"' in app
     assert "hosted.team_join_code" in app
+    assert "incomplete or administrative queries" in html
+    assert "do not exclude a pair merely because its generated wording needs improvement" in html
+    assert "Drafts stay on this browser" not in workshop
+    assert "Nominate one device" not in workshop
     assert ".workshop-mode .sidebar" in css
     assert ".workshop-mode .detail-stack > .panel:last-child" in css
     assert ".workshop-mode .layout { grid-template-columns: minmax(0, 1fr); }" in css

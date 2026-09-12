@@ -12,6 +12,7 @@ from musparql.database.engine import create_database_engine, session_factory
 from musparql.database.migrations import upgrade_database
 from musparql.database.models import KgSeedSnapshot, WorkshopRound, WorkshopWorkPackage
 from musparql.database.services import SeedSnapshotService
+from musparql.web.ipl_workshop_pilot import parser as pilot_parser
 from musparql.workshop_packages import (
     IPL_PACKAGES,
     build_package_set,
@@ -25,6 +26,14 @@ from musparql.workshop_packages import (
 
 ROOT = Path(__file__).resolve().parents[1]
 SEEDS = ROOT / "catalog" / "kg_seed_snapshots.yaml"
+
+
+def test_local_pilot_defaults_to_provenance_corrected_package_set() -> None:
+    args = pilot_parser().parse_args([])
+
+    assert args.packages == Path(
+        "var/review/bundles/ipl-2026-20260912-provenance-fix"
+    )
 
 
 def _source_bundle(path: Path, *, holdout_policy: str = "identity_private_filtered_upstream") -> Path:

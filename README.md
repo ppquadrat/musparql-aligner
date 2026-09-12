@@ -28,15 +28,13 @@ gate before profile collection. Access fails closed unless both the recorded
 privacy-notice and consent-statement versions and timestamps are current, and a
 non-testing process requires approved file-backed copy. The full notice and
 withdrawal route remain available throughout the site. Group review submissions
-now support complete and explicit partial outcomes with server-derived item
-counts preserved in both immutable exports and processing audits; legacy v2
-group receipts remain valid and acquire missing counts when retried;
-groups can also leave an active browser-local draft for later or abandon an
-assignment without creating a submission. Terminal outcomes return to package
-choice, where another claim is available only when the round permits it, and
-late contributors can finish an outstanding KG-specific form after assignment
-or round closure without reopening the assignment. Group linguistic submission
-remains deferred. Item 6's four core/specialist reviewer-neutral KG packages
+create immutable complete or partial snapshots with server-derived item counts
+while leaving the browser-local review session open. Teams can move among all
+four batches, resume drafts on the same browser, and submit updated revisions;
+legacy terminal v2 receipts remain valid and acquire missing counts when
+retried. Missing member pre-batch forms are reported without blocking a
+submission. Group linguistic submission remains deferred. Item 6's four
+core/specialist reviewer-neutral KG packages
 use a v2 manifest with embedded canonical selection pins, independently derived
 selection and package-set digests, atomic file replacement, and transactional
 seed/package registration. Their two-pass bundles present deduplicated records

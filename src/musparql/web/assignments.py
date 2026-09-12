@@ -122,6 +122,7 @@ class AssignmentView:
     familiarity_prompts: tuple[Prompt, ...]
     assessed: bool
     workbench_available: bool
+    assessment_deferrable: bool
 
 
 class AssignmentService:
@@ -207,7 +208,6 @@ class AssignmentService:
                     )
                     .where(
                         ReviewGroupMember.reviewer_id == reviewer_id,
-                        ReviewAssignment.status.in_(("ready", "active")),
                         ReviewAssignment.participant_status.in_(
                             ("not_started", "active")
                         ),
@@ -316,11 +316,25 @@ class AssignmentService:
             assessed = self._assessment_is_complete(
                 session, assignment, reviewer_id
             )
+            deferred = session.scalar(
+                select(WorkshopAssessmentDeferral.id).where(
+                    WorkshopAssessmentDeferral.assignment_id == assignment_id,
+                    WorkshopAssessmentDeferral.reviewer_id == reviewer_id,
+                )
+            )
             terminal_assessment = (
                 terminal_access
                 and not assessed
             )
-            if assignment.status not in {"ready", "active"} and not terminal_assessment:
+            workshop_in_progress = (
+                assignment.review_group_id is not None
+                and assignment.participant_status == "active"
+            )
+            if (
+                assignment.status not in {"ready", "active"}
+                and not workshop_in_progress
+                and not terminal_assessment
+            ):
                 raise LookupError("Assignment is not available")
             if (
                 assignment.participant_status
@@ -334,8 +348,13 @@ class AssignmentService:
                 familiarities,
                 assessed,
                 assignment.participant_status == "active"
-                and assignment.status == "active"
-                and (assignment.review_group_id is not None or assessed),
+                and assignment.status != "ready"
+                and (assessed or bool(deferred)),
+                assignment.review_group_id is not None
+                and assignment.participant_status == "active"
+                and assignment.status != "ready"
+                and not assessed
+                and not deferred,
             )
 
     def assess(
@@ -357,15 +376,8 @@ class AssignmentService:
         ) != len(view.familiarity_prompts):
             raise ValueError("The complete frozen prompt set is required")
         now = timestamp(utc_now())
-        with self.sessions() as session:
-            deferred = session.scalar(
-                select(WorkshopAssessmentDeferral.id).where(
-                    WorkshopAssessmentDeferral.assignment_id == assignment_id,
-                    WorkshopAssessmentDeferral.reviewer_id == reviewer_id,
-                )
-            )
-        context = "post_review_followup" if deferred else "pre_review"
-        version = "v2" if deferred else "v1"
+        context = "pre_review"
+        version = "v1"
         domain_records = [
             {
                 "schema": f"musparql.reviewer-kg-domain-assessment.{version}",
@@ -416,15 +428,23 @@ class AssignmentService:
     def defer_assessment(self, assignment_id: str, reviewer_id: str) -> None:
         """Record an explicit no-answer event for a joiner entering active work."""
         view = self.view(assignment_id, reviewer_id)
-        if (
-            view.assignment.review_group_id is None
-            or not view.workbench_available
-            or view.assessed
-        ):
+        if not view.assessment_deferrable:
             raise PermissionError("This assessment cannot be deferred")
         session = self.sessions()
         try:
             session.execute(text("BEGIN IMMEDIATE"))
+            assignment = session.get(ReviewAssignment, assignment_id)
+            if (
+                assignment is None
+                or assignment.review_group_id is None
+                or assignment.status == "ready"
+                or assignment.participant_status != "active"
+                or session.get(
+                    ReviewGroupMember, (assignment.review_group_id, reviewer_id)
+                ) is None
+                or self._assessment_is_complete(session, assignment, reviewer_id)
+            ):
+                raise PermissionError("This assessment cannot be deferred")
             existing = session.scalar(
                 select(WorkshopAssessmentDeferral.id).where(
                     WorkshopAssessmentDeferral.assignment_id == assignment_id,
@@ -466,6 +486,22 @@ class AssignmentService:
         attributed = _randomize_workshop_records(
             attributed, assignment_id=assignment_id, bundle_digest=digest
         )
+        if attributed.get("mode") != "compare":
+            run_ids = attributed.get("run_ids")
+            if not isinstance(run_ids, list):
+                run_ids = list(
+                    dict.fromkeys(
+                        str(record.get("generation_run_id") or record.get("run_id"))
+                        for record in attributed["records"]
+                        if record.get("generation_run_id") or record.get("run_id")
+                    )
+                )
+            attributed["run_ids"] = run_ids
+            attributed["single_run_id"] = attributed.get("single_run_id") or (
+                run_ids[0] if len(run_ids) == 1 else None
+            )
+            if not isinstance(attributed.get("runs"), list):
+                attributed["runs"] = [{"run_id": run_id} for run_id in run_ids]
         attributed["reviewer_id"] = reviewer_id
         attributed["assignment_id"] = assignment_id
         attributed["bundle_digest"] = digest

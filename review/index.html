@@ -179,6 +179,10 @@
 
             <section class="panel">
               <h2>Reviewer Decision</h2>
+              <div class="inline-note decision-help">
+                <strong>What each choice does:</strong>
+                <span><strong>Accept</strong> keeps the pair. <strong>Exclude</strong> removes incomplete or administrative queries from the benchmark; do not exclude a pair merely because its generated wording needs improvement. <strong>Recommend Prompt Improvement</strong> keeps the human-confirmed pair and flags the prompt or model behaviour for improvement. <strong>Recommend Input-Data Improvement</strong> keeps the pair and flags its input data for improvement. You may add a preferred or corrected wording to any pair; it is retained as the human-confirmed gold-standard wording.</span>
+              </div>
               <div class="decision-grid">
                 <button data-status="accepted" class="decision-btn accepted">Accept</button>
                 <button data-status="excluded" class="decision-btn excluded">Exclude</button>
@@ -211,10 +215,6 @@
                   <textarea id="internalCommentInput" rows="3" placeholder="Private operational note"></textarea>
                 </label>
               </div>
-              <div class="inline-note">
-                <strong>Labels:</strong>
-                <span>Exclude removes a candidate from the benchmark. The two improvement recommendations keep the human-confirmed canonical pair while recording whether the prompt/model behaviour or its input data should improve.</span>
-              </div>
             </section>
 
             <section class="panel">
@@ -231,6 +231,6 @@
 
     <script src="host_context.js?v=review-workbench-20260819"></script>
     <script src="review_data.js?v=review-workbench-20260819"></script>
-    <script src="app.js?v=review-workbench-20260911"></script>
+    <script src="app.js?v=review-workbench-20260912g"></script>
   </body>
   </html>

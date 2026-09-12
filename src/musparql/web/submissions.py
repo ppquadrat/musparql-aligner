@@ -17,6 +17,7 @@ from musparql.database.models import (
     OwnerProcessingDecision,
     ProcessingJob,
     ReviewAssignment,
+    ReviewGroupMember,
     ReviewSubmission,
 )
 from musparql.reviewer_provenance import validate_review_provenance
@@ -155,6 +156,11 @@ class SubmissionService:
                 raise PermissionError("Assignment is not open for submission")
             if persisted.participant_status == "abandoned":
                 raise PermissionError("Abandoned assignments cannot be submitted")
+            workshop_session_open = (
+                persisted.review_group_id is not None
+                and persisted.participant_status in {"not_started", "active"}
+                and persisted.closed_contributor_ids is None
+            )
             if completion_type not in {"completed", "partial"}:
                 raise ValueError("Completion type must be completed or partial")
             if persisted.review_group_id is None and completion_type != "completed":
@@ -201,10 +207,11 @@ class SubmissionService:
                 )
                 if job is None:
                     raise RuntimeError("Accepted submission has no processing job")
-                self._backfill_completion(
-                    persisted, completion_type, completion_item_count,
-                    completion_total_count, contributor_ids,
-                )
+                if not workshop_session_open:
+                    self._backfill_completion(
+                        persisted, completion_type, completion_item_count,
+                        completion_total_count, contributor_ids,
+                    )
                 session.commit()
                 return self._receipt(
                     existing,
@@ -238,10 +245,17 @@ class SubmissionService:
                     )
                     if job is None:
                         raise RuntimeError("Accepted submission has no processing job")
-                    self._backfill_completion(
-                        persisted, completion_type, completion_item_count,
-                        completion_total_count, contributor_ids,
-                    )
+                    # Receipts created before the completion fields existed
+                    # retain their original terminal semantics when retried.
+                    # Current workshop snapshots leave the session open.
+                    if (
+                        not workshop_session_open
+                        or "completion_type" not in candidate_payload
+                    ):
+                        self._backfill_completion(
+                            persisted, completion_type, completion_item_count,
+                            completion_total_count, contributor_ids,
+                        )
                     session.commit()
                     return self._receipt(
                         candidate,
@@ -258,7 +272,7 @@ class SubmissionService:
                 raise PermissionError(
                     "Closed group assignments accept retries but not new revisions"
                 )
-            if persisted.status == "approved":
+            if persisted.status == "approved" and not workshop_session_open:
                 raise PermissionError("Approved assignments accept retries but not new revisions")
             revision = int(
                 session.scalar(
@@ -303,11 +317,12 @@ class SubmissionService:
             session.add(job)
             persisted.status = "submitted"
             persisted.submitted_at = now
-            persisted.participant_status = completion_type
-            persisted.completed_at = now
-            persisted.completion_item_count = completion_item_count
-            persisted.completion_total_count = completion_total_count
-            persisted.closed_contributor_ids = list(contributor_ids)
+            if not workshop_session_open:
+                persisted.participant_status = completion_type
+                persisted.completed_at = now
+                persisted.completion_item_count = completion_item_count
+                persisted.completion_total_count = completion_total_count
+                persisted.closed_contributor_ids = list(contributor_ids)
             session.commit()
             return self._receipt(
                 submission,
@@ -324,6 +339,59 @@ class SubmissionService:
             raise
         finally:
             session.close()
+
+    def participant_receipt(
+        self, assignment_id: str, reviewer_id: str
+    ) -> dict[str, Any]:
+        """Return a minimal receipt after verifying assignment participation."""
+        with self.sessions() as session:
+            assignment = session.get(ReviewAssignment, assignment_id)
+            if assignment is None:
+                raise LookupError("Submission is not available")
+            if assignment.reviewer_id is not None:
+                authorized = assignment.reviewer_id == reviewer_id
+            elif assignment.review_group_id is not None:
+                authorized = session.get(
+                    ReviewGroupMember, (assignment.review_group_id, reviewer_id)
+                ) is not None
+            else:
+                authorized = False
+            if not authorized:
+                raise PermissionError("Submission is not available")
+            submission = session.scalar(
+                select(ReviewSubmission)
+                .where(ReviewSubmission.assignment_id == assignment_id)
+                .order_by(ReviewSubmission.revision.desc())
+                .limit(1)
+            )
+            if submission is None:
+                raise LookupError("Submission is not available")
+            submission_path = (self.submission_root / submission.export_path).resolve()
+            try:
+                submission_path.relative_to(self.submission_root)
+                raw = submission_path.read_bytes()
+                if _digest(raw) != submission.export_digest:
+                    raise ValueError("Stored submission digest mismatch")
+                payload = json.loads(raw)
+            except (OSError, ValueError, json.JSONDecodeError) as exc:
+                raise LookupError("Submission is not available") from exc
+            job = session.scalar(
+                select(ProcessingJob).where(
+                    ProcessingJob.submission_id == submission.id
+                )
+            )
+            return {
+                "receipt_id": submission.id,
+                "assignment_id": assignment_id,
+                "revision": submission.revision,
+                "submitted_at": submission.submitted_at,
+                "status": "accepted",
+                "processing_status": job.status if job is not None else "unknown",
+                "completion_type": payload.get("completion_type", "completed"),
+                "completion_item_count": payload.get("completion_item_count"),
+                "completion_total_count": payload.get("completion_total_count"),
+                "workshop_group_id": assignment.review_group_id,
+            }
 
     @staticmethod
     def _backfill_completion(

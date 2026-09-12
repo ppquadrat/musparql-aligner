@@ -26,8 +26,8 @@ the established non-workshop review interfaces.
 - The first Workshop-page visit silently creates a one-person team when the
   participant has no team in the open round.
 - The Workshop page shows the current six-digit team code, member count,
-  browser-local collaboration warning, one join field, and each enabled batch
-  exactly once. Participant wording uses *team*, *review batch*, and *review*.
+  concise join/share guidance, one join field, and each enabled batch exactly
+  once. Participant wording uses *team*, *review batch*, and *review*.
 - Batch cards expose contextual states and actions: available/Start, setup
   needed/Complete setup, in progress/Continue, and submitted.
 - Saving the frozen KG-specific questions opens the workbench directly.
@@ -42,28 +42,35 @@ the established non-workshop review interfaces.
 - Workshop workbenches show the authenticated reviewer, team code and joining
   instruction, profile/sign-out links, Submit current work, Back to workshop,
   Records and Reviewed. The pair view retains SPARQL, model question, origin,
-  retained phrases when present, Previous/Next, and the existing decision
-  controls. General filters, record list, run/model/confidence details,
-  holdout controls, import/export controls, and full evidence are hidden only
-  in workshop mode.
+  Previous/Next, and the existing decision controls. It displays only evidence
+  explicitly cited by the question provenance or retained as a ranked phrase,
+  including its evidence type and a web source link when available; unrelated
+  input evidence remains hidden. General filters, record list,
+  run/model/confidence details, holdout controls, import/export controls, and
+  full evidence are hidden only in workshop mode.
 - A zero-item submission produces an inline prompt and preserves the draft.
   Completion type is derived from reviewed counts by the existing client and
   server contract.
 
-## Deliberately retained lifecycle
+## Submission lifecycle
 
-Submission remains terminal for this release. The confirmation explicitly
-states that it closes the review. The proposal's revision-after-submission
-lifecycle depends on coordinated changes to participant status, processing-job
-selection, contributor snapshots, and owner finalisation; presenting it as a
-UI-only change would be unsafe. Immutable idempotent retry receipts continue to
-work as before.
+Workshop submission is non-terminal and has no confirmation dialog. It records
+an immutable revision, displays an inline success banner, and leaves the
+workbench open. A team can continue reviewing and submit a later revision; the
+latest accepted revision is selected for owner processing while earlier
+receipts remain immutable. Non-workshop assignments retain their existing
+terminal lifecycle.
+
+Back to workshop submits the current reviewed work to the server first and
+navigates only after acceptance. If validation or transmission fails, the
+workbench remains open and reports the error. When no pair has a review
+decision, there is nothing valid to submit and the link returns immediately.
 
 A skipped joiner can enter the active workbench without an expertise answer.
 If they later complete the form, the versioned assessment contract and database
 migration store those answers with `post_review_followup` context rather than
 misclassifying them as `pre_review`. Outstanding forms remain visible after
-terminal submission under the existing attributable terminal-assessment path.
+submission in the success banner and through the attributable assessment path.
 
 ## Verification
 
