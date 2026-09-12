@@ -35,10 +35,6 @@ section { margin-bottom: 1.5rem; }
 .package-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; }
 .package { border: 1px solid #8888; border-radius: .35rem; padding: 1rem; }
 .package h5 { font-size: 1rem; margin: 0 0 .5rem; }
-.team-strip { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem); gap: 1rem; align-items: center; border: 1px solid #8888; border-radius: .45rem; padding: .7rem .9rem; }
-.team-strip p { margin: .25rem 0; }
-.team-strip .join-code { font-size: 1.1rem; }
-.join-team-form { justify-self: end; }
 .batch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; }
 .batch-card { display: flex; flex-direction: column; align-items: flex-start; border: 1px solid #8888; border-radius: .65rem; padding: 1rem; }
 .batch-card-heading { display: flex; justify-content: space-between; gap: 1rem; width: 100%; }
@@ -83,6 +79,4 @@ section { margin-bottom: 1.5rem; }
   thead { position: absolute; left: -10000px; }
   tr { margin-bottom: 1rem; }
   .repeat-row, .repeat-row-removable { grid-template-columns: 1fr; }
-  .team-strip { grid-template-columns: 1fr; }
-  .join-team-form { justify-self: stretch; }
 }

@@ -1370,7 +1370,7 @@
     els.submissionProgress.textContent = hosted?.workshop_mode
       ? `Submitted ${completed} of ${total} reviewed pairs (${percentage}%). You can keep working and submit an updated version later.`
       : `You completed ${percentage}% of this assignment (${completed} of ${total} items).`;
-    els.submissionReceipt.textContent = `Receipt recorded · revision ${result.revision}.`;
+    els.submissionReceipt.textContent = "Saved on the server.";
     if (hosted?.workshop_mode && result.missing_assessment_reviewer_ids?.length) {
       els.submissionReceipt.append(
         document.createTextNode(` Pre-batch form still missing for ${result.missing_assessment_reviewer_ids.join(", ")}.`)
@@ -1379,16 +1379,10 @@
         els.submissionReceipt.append(document.createTextNode(" "));
         const assessmentLink = document.createElement("a");
         assessmentLink.href = result.assessment_url;
-        assessmentLink.textContent = "Fill in your form";
+        assessmentLink.textContent = "Open the missing form";
+        assessmentLink.title = "Open this link in the missing reviewer’s signed-in browser.";
         els.submissionReceipt.append(assessmentLink, document.createTextNode("."));
       }
-    }
-    if (hosted?.workshop_mode && result.submission_url) {
-      els.submissionReceipt.append(document.createTextNode(" "));
-      const receiptLink = document.createElement("a");
-      receiptLink.href = result.submission_url;
-      receiptLink.textContent = "View submission";
-      els.submissionReceipt.append(receiptLink, document.createTextNode("."));
     }
     els.continueReviewBtn.classList.add("hidden");
     els.backToAssignmentsLink.classList.remove("hidden");
@@ -2328,6 +2322,11 @@
       team.className = "hosted-team-code";
       const members = Number(hosted.team_member_count) || 1;
       team.textContent = `Team ${code.slice(0, 3)} ${code.slice(3)} · ${members} member${members === 1 ? "" : "s"}`;
+      const memberIds = Array.isArray(hosted.team_member_reviewer_ids)
+        ? hosted.team_member_reviewer_ids
+        : [];
+      team.title = `Members: ${memberIds.join(", ")}`;
+      team.setAttribute("aria-label", `${team.textContent}. Members: ${memberIds.join(", ")}`);
       bar.appendChild(team);
     }
 
@@ -2399,6 +2398,11 @@
           const members = Number(result.member_count) || 1;
           const code = String(hosted.team_join_code);
           team.textContent = `Team ${code.slice(0, 3)} ${code.slice(3)} · ${members} member${members === 1 ? "" : "s"}`;
+          const memberIds = Array.isArray(result.member_reviewer_ids)
+            ? result.member_reviewer_ids
+            : [];
+          team.title = `Members: ${memberIds.join(", ")}`;
+          team.setAttribute("aria-label", `${team.textContent}. Members: ${memberIds.join(", ")}`);
           status.textContent = result.added ? "Teammate added." : "That reviewer is already on this team.";
           reviewerInput.value = "";
         } catch (error) {

@@ -68,11 +68,17 @@ def test_workshop_mode_is_a_scoped_single_pair_workbench() -> None:
     assert "!hosted?.workshop_mode" in app
     assert "Current work submitted." in app
     assert "Pre-batch form still missing for" in app
+    assert 'els.submissionReceipt.textContent = "Saved on the server."' in app
+    assert 'assessmentLink.textContent = "Open the missing form"' in app
+    assert "Receipt recorded" not in app
+    assert 'receiptLink.textContent = "View submission"' not in app
     assert "const evidenceById = new Map" in app
     assert "const retainedEvidence = ranked.map" in app
     assert "usedEvidenceIds.has(item.evidence_id) && !rankedIds.has(item.evidence_id)" in app
     assert 'sourceLink.textContent = "Open source"' in app
     assert "hosted.team_join_code" in app
+    assert "hosted.team_member_reviewer_ids" in app
+    assert 'team.title = `Members: ${memberIds.join(", ")}`' in app
     assert "hosted.add_team_member_url" in app
     assert "Add teammate" in app
     assert "create their own reviewer profile" in app
@@ -81,7 +87,8 @@ def test_workshop_mode_is_a_scoped_single_pair_workbench() -> None:
     assert "Drafts stay on this browser" not in workshop
     assert "Nominate one device" not in workshop
     assert "adds the others by reviewer number from inside the workbench" in workshop
-    assert "add them before submitting" in workshop
+    assert "add them before submitting" not in workshop
+    assert "Alternative: join by team number" not in workshop
     assert ".workshop-mode .sidebar" in css
     assert ".workshop-mode .detail-stack > .panel:last-child" in css
     assert ".workshop-mode .layout { grid-template-columns: minmax(0, 1fr); }" in css

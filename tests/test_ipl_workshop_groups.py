@@ -360,6 +360,7 @@ def test_active_workbench_can_add_an_enrolled_teammate_by_reviewer_number(
         f'"add_team_member_url":"/assignments/{assignment_id}/team/members"'.encode()
         in context.data
     )
+    assert f'"team_member_reviewer_ids":["{FIRST_ID}"]'.encode() in context.data
     added = first.post(
         f"/assignments/{assignment_id}/team/members",
         data={"csrf_token": _csrf(first), "reviewer_id": SECOND_ID},
@@ -367,8 +368,12 @@ def test_active_workbench_can_add_an_enrolled_teammate_by_reviewer_number(
     assert added.status_code == 200
     assert added.get_json()["added"] is True
     assert added.get_json()["member_count"] == 2
+    assert added.get_json()["member_reviewer_ids"] == [FIRST_ID, SECOND_ID]
     assert SECOND_ID in added.get_json()["missing_assessment_reviewer_ids"]
-    assert second.get(f"/assignments/{assignment_id}").status_code == 200
+    second_form = second.get(f"/assignments/{assignment_id}")
+    assert second_form.status_code == 200
+    assert b"Form for Synthetic reviewer-0043" in second_form.data
+    assert f"Reviewer ID: <code>{SECOND_ID}</code>".encode() in second_form.data
 
     repeated = first.post(
         f"/assignments/{assignment_id}/team/members",
@@ -1204,9 +1209,8 @@ def test_workshop_page_silently_creates_team_and_lists_each_batch_once(
 
     assert page.status_code == 200
     assert page.data.count(b"Synthetic Knowledge Graph") == 1
-    assert b"You are Team" in page.data
-    assert b"add them before submitting" in page.data
-    assert b"Alternative: join by team number" in page.data
+    assert b"You are Team" not in page.data
+    assert b"Alternative: join by team number" not in page.data
     assert b"Create a reviewing group" not in page.data
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
@@ -2523,7 +2527,9 @@ def test_partial_submission_keeps_assignment_open_and_preserves_missing_form(
     assert receipt_payload["completion_item_count"] == 1
     assert receipt_payload["completion_total_count"] == 2
     assert receipt_payload["missing_assessment_reviewer_ids"] == [THIRD_ID]
-    assert receipt_payload["assessment_url"] is None
+    assert receipt_payload["assessment_url"].endswith(
+        f"/assignments/{assignment_id}"
+    )
     assert receipt_payload["submission_url"].endswith(
         f"/assignments/{assignment_id}/submission"
     )

@@ -462,6 +462,7 @@ class WorkshopService:
             return {
                 "join_code": self._join_code(assignment.review_group_id),
                 "member_count": len(members),
+                "member_reviewer_ids": sorted(members),
                 "batch_name": (
                     package.display_name
                     if assignment.work_package_id

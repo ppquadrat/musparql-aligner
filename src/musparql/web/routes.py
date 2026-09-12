@@ -949,9 +949,11 @@ def submit_assignment(assignment_id: str):
         response["missing_assessment_reviewer_ids"] = missing
         response["assessment_url"] = (
             url_for("portal.assignment", assignment_id=assignment_id)
-            if g.current_reviewer.id in missing
+            if missing
             else None
         )
+        # Retained as a stable participant API endpoint, but no longer linked
+        # from the workshop interface.
         response["submission_url"] = url_for(
             "portal.assignment_submission", assignment_id=assignment_id
         )
@@ -978,6 +980,7 @@ def add_assignment_team_member(assignment_id: str):
         {
             "added": added,
             "member_count": team["member_count"],
+            "member_reviewer_ids": team["member_reviewer_ids"],
             "missing_assessment_reviewer_ids": team[
                 "missing_assessment_reviewer_ids"
             ],
@@ -1083,6 +1086,7 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
                 workshop_mode=True,
                 team_join_code=team["join_code"],
                 team_member_count=team["member_count"],
+                team_member_reviewer_ids=team["member_reviewer_ids"],
                 batch_name=team["batch_name"],
                 missing_assessment_reviewer_ids=team[
                     "missing_assessment_reviewer_ids"

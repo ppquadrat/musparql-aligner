@@ -4,6 +4,7 @@
   <h1>{% if value.assignment.review_group_id %}Review batch setup{% else %}Review assignment{% endif %}</h1>
   {% if profile_saved %}<p class="success" role="status">Your profile is saved. Your assignment is ready below.</p>{% endif %}
   <p class="metadata">{% if value.assignment.review_group_id %}Review {{ value.assignment.id }}{% else %}{{ value.assignment.id }} · {{ value.assignment.mode }} · {{ value.assignment.status }}{% endif %}</p>
+  <p class="notice"><strong>Form for {% if current_reviewer.title %}{{ current_reviewer.title }} {% endif %}{{ current_reviewer.first_name }} {{ current_reviewer.last_name }}</strong><br>Reviewer ID: <code>{{ current_reviewer.id }}</code></p>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
   {% if value.workbench_available %}
     {% if value.assessed %}
