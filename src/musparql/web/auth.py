@@ -417,7 +417,7 @@ class AuthService:
             mailbox = uuid.uuid4().hex
             reviewer = Reviewer(
                 id=reviewer_id,
-                name=reviewer_id,
+                name="",
                 affiliation="",
                 email_display=f"workshop-{mailbox}@example.invalid",
                 email_normalized=f"workshop-{mailbox}@example.invalid",

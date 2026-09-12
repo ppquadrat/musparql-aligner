@@ -153,7 +153,11 @@ class ProfileService:
                 for assertion, domain in self._domain_heads(session, reviewer_id)
             )
             return ProfileValue(
-                name=reviewer.name,
+                name=(
+                    reviewer.name
+                    if self._valid_name(reviewer.name, reviewer.id)
+                    else ""
+                ),
                 affiliation=reviewer.affiliation,
                 email=reviewer.email_display,
                 kg_ontology_experience=(experience.kg_ontology_experience if experience else ""),
@@ -184,8 +188,8 @@ class ProfileService:
         now_text = timestamp(now or utc_now())
         name = unicodedata.normalize("NFC", form.get("name", "")).strip()
         affiliation = unicodedata.normalize("NFC", form.get("affiliation", "")).strip()
-        if not name:
-            raise ValueError("Enter your name.")
+        if not self._valid_name(name, reviewer_id):
+            raise ValueError("Enter your first and last name.")
         if len(name) > 200:
             raise ValueError("Name must be 200 characters or fewer.")
         if len(affiliation) > 300:
@@ -323,6 +327,8 @@ class ProfileService:
                 )
 
     def _is_complete(self, session: Session, reviewer: Reviewer) -> bool:
+        if not self._valid_name(reviewer.name, reviewer.id):
+            return False
         if (
             reviewer.privacy_notice_version != self.notice_version
             or reviewer.privacy_notice_acknowledged_at is None
@@ -341,6 +347,11 @@ class ProfileService:
             )
         )
         return bool(language_count and self._domain_heads(session, reviewer.id))
+
+    @staticmethod
+    def _valid_name(name: str, reviewer_id: str) -> bool:
+        normalized = unicodedata.normalize("NFC", name).strip()
+        return normalized != reviewer_id and len(normalized.split()) >= 2
 
     @staticmethod
     def _domain_heads(

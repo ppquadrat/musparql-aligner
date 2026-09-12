@@ -422,6 +422,7 @@ def test_shared_code_creates_distinct_accounts_and_sessions_then_routes_to_conse
         assert len({reviewer.id for reviewer in reviewers}) == 2
         assert all(reviewer.email_verified_at is None for reviewer in reviewers)
         assert all(reviewer.consented_at is None for reviewer in reviewers)
+        assert all(reviewer.name == "" for reviewer in reviewers)
         assert all(reviewer.email_normalized.endswith("@example.invalid") for reviewer in reviewers)
         assert session.scalar(select(func.count()).select_from(WorkshopEntryRedemption)) == 2
         assert session.scalar(
@@ -1018,6 +1019,28 @@ def test_shared_code_profile_requires_and_retains_unverified_contact_email(
         "/consent",
         data={"csrf_token": _csrf(participant), "consent_affirmed": "yes"},
     ).location == "/profile"
+    profile_page = participant.get("/profile")
+    assert b"First and last name" in profile_page.data
+    assert b'id="name" name="name" maxlength="200" autocomplete="name" value="" required' in profile_page.data
+
+    one_name = participant.post(
+        "/profile",
+        data={
+            "csrf_token": _csrf(participant),
+            "contact_email": "Participant@Example.org",
+            "name": "Synthetic",
+            "affiliation": "",
+            "kg_ontology_experience": "regular",
+            "sparql_experience": "regular",
+            "nlp_llm_experience": "regular",
+            "language_tag": "en",
+            "language_level": "fluent",
+            "new_domain_label": "Synthetic workshop field",
+            "new_domain_level": "working",
+        },
+    )
+    assert one_name.status_code == 200
+    assert b"Enter your first and last name" in one_name.data
 
     incomplete = participant.post(
         "/profile",

@@ -426,6 +426,21 @@ def test_language_snapshot_and_profile_javascript_are_available(phase4_app) -> N
     assert b'input[type="checkbox"] { width: 1.4rem; height: 1.4rem;' in stylesheet.data
 
 
+def test_reviewer_identifier_does_not_count_as_a_profile_name(phase4_app) -> None:
+    app, _sender, database_path = phase4_app
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions.begin() as session:
+        reviewer = session.get(Reviewer, REVIEWER_ID)
+        assert reviewer is not None
+        reviewer.name = REVIEWER_ID
+    try:
+        assert app.extensions["musparql_profiles"].is_complete(REVIEWER_ID) is False
+        assert app.extensions["musparql_profiles"].load(REVIEWER_ID).name == ""
+    finally:
+        engine.dispose()
+
+
 def test_owner_sees_only_pseudonymous_completion_status(phase4_app) -> None:
     app, sender, _database_path = phase4_app
     owner = app.test_client()
