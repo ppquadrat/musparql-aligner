@@ -46,7 +46,9 @@ facilitator.
 
 ## 3. Recommended journey
 
-1. The participant signs in, consents, and completes their profile.
+1. The participant signs in, consents, and completes their profile, including
+   a required contact email address, before any batch can be started or joined.
+   For shared-code admission the address is retained but remains unverified.
 2. On first entering the workshop, the server silently creates a one-person
    team if the participant has no current team context.
 3. The participant lands on a single **Workshop** page that immediately shows
@@ -153,11 +155,21 @@ submission remains valid whether or not any outstanding form is later filled.
 The owner dashboard may show pseudonymous missing-form status for operational
 follow-up.
 
-Email follow-up is not universally available. Email-invited reviewers have a
-verified contact address, but accounts created with the shared workshop entry
-code deliberately use no verified email address. Do not imply that every
-missing reviewer can be contacted later, and do not add email collection to the
-fallback flow without the required privacy approval.
+Every participant profile includes a required contact email address before the
+participant can see or join an assignment. Email-invited reviewers have already
+verified that address through login. A shared-code participant enters it during
+profile completion; it remains explicitly unverified, so later contact is
+best-effort and may fail if mistyped, but the owner may use it to request an
+outstanding form where the approved notice permits that follow-up.
+
+The current shared-code implementation instead leaves a synthetic placeholder
+address on the account and does not expose an email field in profile editing.
+That is an implementation gap against this proposal. The eventual change must
+normalize and uniqueness-check the supplied address, retain
+`email_verified_at = NULL`, keep email out of review bundles and exports, and
+continue to block every assignment route until the full profile is complete.
+Collection and follow-up wording remain subject to the approved participant
+notice and consent materials.
 
 ## 6. Workshop-specific workbench
 
@@ -238,6 +250,9 @@ operation.
 
 - A newly profiled participant sees all four review batches without creating
   or selecting a team.
+- Both email-login and shared-code participants must provide a profile contact
+  email before seeing or joining a batch; shared-code email remains visibly
+  unverified and never enters review artifacts.
 - Each batch appears once, regardless of the participant's team memberships.
 - Starting a batch, completing its KG form, and reaching its workbench requires
   no intermediate dashboard choice.

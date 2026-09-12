@@ -336,9 +336,14 @@ The shared workshop code must:
 - create a distinct reviewer ID and secure session per redemption; and
 - route directly to consent, never directly to a package or workbench.
 
-The synthetic fallback address is excluded from normal login-code issuance and
-verification, and the database prevents it from being marked verified. If SMTP
-is unavailable, the practical MVP recovery procedure is facilitator-assisted:
+Shared-code redemption may use an internal placeholder only until profile
+completion. The profile requires the participant to enter a contact email
+before any group, package, assignment, or workbench route becomes available.
+That address remains unverified (`email_verified_at = NULL`) but is retained for
+best-effort follow-up under the approved notice; it must never enter a review
+bundle, submission, benchmark, or application log. The unverified address is
+excluded from normal login-code issuance and verification. If SMTP is
+unavailable, the practical MVP recovery procedure is facilitator-assisted:
 keep the participant on the same browser where possible and provide one narrow,
 audited owner reset operation for a genuinely lost session. Do not build a
 general recovery system for next week.
@@ -607,9 +612,13 @@ Automated and synthetic rehearsal must prove:
 - workshop attempt limits survive application restart and cannot be bypassed by
   changing User-Agent;
 - reissued codes report and enforce total round-wide redemptions;
-- fallback addresses cannot enter normal email verification, recovery guesses
-  and consumption are serialized, and recovery audit rows cannot be updated or
-  deleted;
+- shared-code profile emails remain unverified and cannot enter normal email
+  login, recovery guesses and consumption are serialized, and recovery audit
+  rows cannot be updated or deleted;
+- shared-code participants cannot see or join an assignment until a valid
+  contact email and the rest of the required profile have been supplied;
+- profile email never crosses into review bundles, submissions, benchmarks, or
+  logs;
 - no protected route works before current consent and profile completion;
 - non-null consent for an obsolete statement or notice version still routes to
   the consent boundary, including after application restart;
