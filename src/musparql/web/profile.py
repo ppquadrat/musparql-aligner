@@ -46,7 +46,9 @@ class DomainValue:
 
 @dataclass(frozen=True)
 class ProfileValue:
-    name: str
+    title: str
+    first_name: str
+    last_name: str
     affiliation: str
     email: str
     kg_ontology_experience: str
@@ -153,11 +155,9 @@ class ProfileService:
                 for assertion, domain in self._domain_heads(session, reviewer_id)
             )
             return ProfileValue(
-                name=(
-                    reviewer.name
-                    if self._valid_name(reviewer.name, reviewer.id)
-                    else ""
-                ),
+                title=reviewer.title,
+                first_name=reviewer.first_name,
+                last_name=reviewer.last_name,
                 affiliation=reviewer.affiliation,
                 email=reviewer.email_display,
                 kg_ontology_experience=(experience.kg_ontology_experience if experience else ""),
@@ -186,12 +186,20 @@ class ProfileService:
         now: datetime | None = None,
     ) -> None:
         now_text = timestamp(now or utc_now())
-        name = unicodedata.normalize("NFC", form.get("name", "")).strip()
+        title = unicodedata.normalize("NFC", form.get("title", "")).strip()
+        first_name = unicodedata.normalize("NFC", form.get("first_name", "")).strip()
+        last_name = unicodedata.normalize("NFC", form.get("last_name", "")).strip()
         affiliation = unicodedata.normalize("NFC", form.get("affiliation", "")).strip()
-        if not self._valid_name(name, reviewer_id):
-            raise ValueError("Enter your first and last name.")
-        if len(name) > 200:
-            raise ValueError("Name must be 200 characters or fewer.")
+        if not first_name:
+            raise ValueError("Enter your first name.")
+        if not last_name:
+            raise ValueError("Enter your last name.")
+        if len(title) > 50:
+            raise ValueError("Title must be 50 characters or fewer.")
+        if len(first_name) > 100:
+            raise ValueError("First name must be 100 characters or fewer.")
+        if len(last_name) > 100:
+            raise ValueError("Last name must be 100 characters or fewer.")
         if len(affiliation) > 300:
             raise ValueError("Affiliation must be 300 characters or fewer.")
 
@@ -272,7 +280,10 @@ class ProfileService:
             if not heads and not new_domains:
                 raise ValueError("At least one expertise domain is required")
 
-            reviewer.name = name
+            reviewer.title = title
+            reviewer.first_name = first_name
+            reviewer.last_name = last_name
+            reviewer.name = f"{first_name} {last_name}"
             reviewer.affiliation = affiliation
             reviewer.updated_at = now_text
             if not notice_is_current:
@@ -327,7 +338,7 @@ class ProfileService:
                 )
 
     def _is_complete(self, session: Session, reviewer: Reviewer) -> bool:
-        if not self._valid_name(reviewer.name, reviewer.id):
+        if not reviewer.first_name.strip() or not reviewer.last_name.strip():
             return False
         if (
             reviewer.privacy_notice_version != self.notice_version
@@ -347,11 +358,6 @@ class ProfileService:
             )
         )
         return bool(language_count and self._domain_heads(session, reviewer.id))
-
-    @staticmethod
-    def _valid_name(name: str, reviewer_id: str) -> bool:
-        normalized = unicodedata.normalize("NFC", name).strip()
-        return normalized != reviewer_id and len(normalized.split()) >= 2
 
     @staticmethod
     def _domain_heads(

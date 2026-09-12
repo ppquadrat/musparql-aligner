@@ -45,6 +45,9 @@ def _owner() -> Reviewer:
     return Reviewer(
         id=OWNER_ID,
         name="Synthetic IPL Pilot Owner",
+        title="",
+        first_name="Synthetic IPL Pilot",
+        last_name="Owner",
         affiliation="",
         email_display="ipl-pilot-owner@example.invalid",
         email_normalized="ipl-pilot-owner@example.invalid",

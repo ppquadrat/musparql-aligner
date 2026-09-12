@@ -25,6 +25,9 @@ def reviewer(reviewer_id: str, email: str, *, status: str = "active") -> Reviewe
     return Reviewer(
         id=reviewer_id,
         name=f"Synthetic {reviewer_id}",
+        title="",
+        first_name="Synthetic",
+        last_name=reviewer_id,
         affiliation="Synthetic Institute",
         email_display=email,
         email_normalized=email,
@@ -132,7 +135,7 @@ def test_digest_limiter_has_hard_key_bounds() -> None:
 
 def test_phase3_migration_is_current_and_audit_is_append_only(portal_app) -> None:
     _app, _sender, database_path = portal_app
-    assert current_revision(database_path) == "20260912_10"
+    assert current_revision(database_path) == "20260912_11"
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
     try:
@@ -160,12 +163,13 @@ def test_auth_hardening_migrates_an_existing_phase3_database(tmp_path: Path) -> 
     upgrade_database(database_path, "20260819_02")
     assert current_revision(database_path) == "20260819_02"
     upgrade_database(database_path)
-    assert current_revision(database_path) == "20260912_10"
+    assert current_revision(database_path) == "20260912_11"
 
     engine = create_database_engine(database_path)
     try:
         columns = {column["name"] for column in inspect(engine).get_columns("reviewers")}
         assert "disabled_from_status" in columns
+        assert {"title", "first_name", "last_name"} <= columns
     finally:
         engine.dispose()
 
@@ -537,7 +541,9 @@ def test_owner_controls_require_recent_auth_and_audit_actions(portal_app) -> Non
         "/owner/invitations",
         data={
             "csrf_token": csrf(owner),
-            "name": "Synthetic Invitee",
+            "title": "Dr",
+            "first_name": "Synthetic",
+            "last_name": "Invitee",
             "email": "invitee@example.invalid",
         },
     )
@@ -560,7 +566,10 @@ def test_owner_controls_require_recent_auth_and_audit_actions(portal_app) -> Non
         with sessions() as session:
             invitee = session.get(Reviewer, invitee_id)
             assert invitee.status == "withdrawn"
-            assert invitee.name == "Withdrawn reviewer"
+            assert invitee.name == ""
+            assert invitee.title == ""
+            assert invitee.first_name == ""
+            assert invitee.last_name == ""
             assert "invitee@example.invalid" not in invitee.email_normalized
             actions = list(
                 session.scalars(select(OwnerAuditEvent.action).order_by(OwnerAuditEvent.created_at))
@@ -601,7 +610,9 @@ def test_failed_invitation_rolls_back_and_can_be_retried(portal_app) -> None:
         "/owner/invitations",
         data={
             "csrf_token": csrf(owner),
-            "name": "Retry Invitee",
+            "title": "",
+            "first_name": "Retry",
+            "last_name": "Invitee",
             "email": "retry@example.invalid",
         },
     )
@@ -626,7 +637,9 @@ def test_failed_invitation_rolls_back_and_can_be_retried(portal_app) -> None:
         "/owner/invitations",
         data={
             "csrf_token": csrf(owner),
-            "name": "Retry Invitee",
+            "title": "",
+            "first_name": "Retry",
+            "last_name": "Invitee",
             "email": "retry@example.invalid",
         },
     )
@@ -656,7 +669,9 @@ def test_invitation_delivery_does_not_hold_database_lock(portal_app) -> None:
         try:
             auth.invite(
                 OWNER_ID,
-                "Concurrent Invitee",
+                "",
+                "Concurrent",
+                "Invitee",
                 "concurrent@example.invalid",
             )
         except BaseException as exc:

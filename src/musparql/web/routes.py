@@ -348,7 +348,9 @@ def profile():
         )
         value = replace(
             value,
-            name=request.form.get("name", ""),
+            title=request.form.get("title", ""),
+            first_name=request.form.get("first_name", ""),
+            last_name=request.form.get("last_name", ""),
             affiliation=request.form.get("affiliation", ""),
             email=request.form.get("contact_email", value.email),
             kg_ontology_experience=request.form.get("kg_ontology_experience", ""),
@@ -699,7 +701,9 @@ def invite():
     try:
         current_app.extensions["musparql_auth"].invite(
             g.current_reviewer.id,
-            request.form.get("name", ""),
+            request.form.get("title", ""),
+            request.form.get("first_name", ""),
+            request.form.get("last_name", ""),
             request.form.get("email", ""),
         )
     except ValueError:

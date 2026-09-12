@@ -92,9 +92,13 @@ def _digest(raw: bytes) -> str:
 
 def _reviewer(reviewer_id: str, email: str, name: str) -> Reviewer:
     now = timestamp(utc_now())
+    first_name, last_name = name.rsplit(" ", 1)
     return Reviewer(
         id=reviewer_id,
         name=name,
+        title="",
+        first_name=first_name,
+        last_name=last_name,
         affiliation="",
         email_display=email,
         email_normalized=email,
@@ -458,7 +462,9 @@ def _profile_form(client: Any) -> MultiDict:
         [
             ("csrf_token", _csrf(client)),
             ("notice_acknowledged", "yes"),
-            ("name", REVIEWER_NAME),
+            ("title", "Dr"),
+            ("first_name", "Synthetic Phase 9"),
+            ("last_name", "Reviewer"),
             ("affiliation", "Synthetic Phase 9 Institute"),
             ("kg_ontology_experience", "regular"),
             ("sparql_experience", "regular"),

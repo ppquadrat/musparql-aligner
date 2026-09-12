@@ -76,6 +76,9 @@ def _reviewer(reviewer_id: str, index: int) -> Reviewer:
     return Reviewer(
         id=reviewer_id,
         name=f"Synthetic Phase 8 reviewer {index}",
+        title="",
+        first_name="Synthetic Phase 8",
+        last_name=f"reviewer {index}",
         affiliation="Synthetic Phase 8 Institute",
         email_display=f"phase8-{index}@example.invalid",
         email_normalized=f"phase8-{index}@example.invalid",

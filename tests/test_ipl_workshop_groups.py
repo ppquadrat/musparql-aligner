@@ -63,6 +63,9 @@ def _reviewer(
     return Reviewer(
         id=reviewer_id,
         name=f"Synthetic {reviewer_id}",
+        title="",
+        first_name="Synthetic",
+        last_name=reviewer_id,
         affiliation="Synthetic Institute",
         email_display=email,
         email_normalized=email,
@@ -423,6 +426,9 @@ def test_shared_code_creates_distinct_accounts_and_sessions_then_routes_to_conse
         assert all(reviewer.email_verified_at is None for reviewer in reviewers)
         assert all(reviewer.consented_at is None for reviewer in reviewers)
         assert all(reviewer.name == "" for reviewer in reviewers)
+        assert all(reviewer.title == "" for reviewer in reviewers)
+        assert all(reviewer.first_name == "" for reviewer in reviewers)
+        assert all(reviewer.last_name == "" for reviewer in reviewers)
         assert all(reviewer.email_normalized.endswith("@example.invalid") for reviewer in reviewers)
         assert session.scalar(select(func.count()).select_from(WorkshopEntryRedemption)) == 2
         assert session.scalar(
@@ -1020,15 +1026,19 @@ def test_shared_code_profile_requires_and_retains_unverified_contact_email(
         data={"csrf_token": _csrf(participant), "consent_affirmed": "yes"},
     ).location == "/profile"
     profile_page = participant.get("/profile")
-    assert b"First and last name" in profile_page.data
-    assert b'id="name" name="name" maxlength="200" autocomplete="name" value="" required' in profile_page.data
+    assert b"Title" in profile_page.data
+    assert b'id="title" name="title" maxlength="50" autocomplete="honorific-prefix" value=""' in profile_page.data
+    assert b'id="first_name" name="first_name" maxlength="100" autocomplete="given-name" value="" required' in profile_page.data
+    assert b'id="last_name" name="last_name" maxlength="100" autocomplete="family-name" value="" required' in profile_page.data
 
     one_name = participant.post(
         "/profile",
         data={
             "csrf_token": _csrf(participant),
             "contact_email": "Participant@Example.org",
-            "name": "Synthetic",
+            "title": "Dr",
+            "first_name": "Synthetic",
+            "last_name": "",
             "affiliation": "",
             "kg_ontology_experience": "regular",
             "sparql_experience": "regular",
@@ -1040,13 +1050,15 @@ def test_shared_code_profile_requires_and_retains_unverified_contact_email(
         },
     )
     assert one_name.status_code == 200
-    assert b"Enter your first and last name" in one_name.data
+    assert b"Enter your last name" in one_name.data
 
     incomplete = participant.post(
         "/profile",
         data={
             "csrf_token": _csrf(participant),
-            "name": "Synthetic Workshop Participant",
+            "title": "Dr",
+            "first_name": "Synthetic Workshop",
+            "last_name": "Participant",
             "affiliation": "",
             "kg_ontology_experience": "regular",
             "sparql_experience": "regular",
@@ -1065,7 +1077,9 @@ def test_shared_code_profile_requires_and_retains_unverified_contact_email(
         data={
             "csrf_token": _csrf(participant),
             "contact_email": "Participant@Example.org",
-            "name": "Synthetic Workshop Participant",
+            "title": "Dr",
+            "first_name": "Synthetic Workshop",
+            "last_name": "Participant",
             "affiliation": "",
             "kg_ontology_experience": "regular",
             "sparql_experience": "regular",
@@ -1087,6 +1101,10 @@ def test_shared_code_profile_requires_and_retains_unverified_contact_email(
         assert reviewer.email_display == "Participant@Example.org"
         assert reviewer.email_normalized == "participant@example.org"
         assert reviewer.email_verified_at is None
+        assert reviewer.title == "Dr"
+        assert reviewer.first_name == "Synthetic Workshop"
+        assert reviewer.last_name == "Participant"
+        assert reviewer.name == "Synthetic Workshop Participant"
     engine.dispose()
 
 def test_owner_access_does_not_require_a_consent_record(workshop_app) -> None:

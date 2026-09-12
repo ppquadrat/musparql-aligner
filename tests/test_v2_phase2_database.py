@@ -63,6 +63,9 @@ def _reviewer(reviewer_id: str = "reviewer-0042") -> Reviewer:
     return Reviewer(
         id=reviewer_id,
         name="Synthetic Reviewer",
+        title="",
+        first_name="Synthetic",
+        last_name="Reviewer",
         affiliation="Synthetic Institute",
         email_display=f"{reviewer_id}@example.invalid",
         email_normalized=f"{reviewer_id}@example.invalid",
@@ -83,6 +86,9 @@ def _workshop_reviewer(index: int) -> Reviewer:
     return Reviewer(
         id=reviewer_id,
         name=f"Synthetic Workshop Reviewer {index}",
+        title="",
+        first_name="Synthetic Workshop",
+        last_name=f"Reviewer {index}",
         affiliation="",
         email_display=f"workshop-{index}@example.invalid",
         email_normalized=f"workshop-{index}@example.invalid",
@@ -144,7 +150,7 @@ def _seed_database(sessions) -> None:
 
 def test_alembic_upgrade_creates_complete_schema_and_sqlite_safety(database) -> None:
     database_path, engine, _sessions = database
-    assert current_revision(database_path) == "20260912_10"
+    assert current_revision(database_path) == "20260912_11"
     assert database_path.stat().st_mode & 0o777 == 0o600
     tables = set(inspect(engine).get_table_names())
     assert {
@@ -642,7 +648,7 @@ def test_alembic_downgrade_and_reupgrade(tmp_path: Path) -> None:
     command.downgrade(alembic_config(database_path), "base")
     assert current_revision(database_path) is None
     upgrade_database(database_path)
-    assert current_revision(database_path) == "20260912_10"
+    assert current_revision(database_path) == "20260912_11"
 
 
 @pytest.mark.parametrize("revision_ten_data", ["deferral", "followup"])
@@ -682,6 +688,8 @@ def test_revision_ten_downgrade_fails_before_ddl_when_data_exists(
             )
     with pytest.raises(RuntimeError, match="cannot be downgraded"):
         command.downgrade(alembic_config(database_path), "20260911_09")
+    # Revision 11 downgrades cleanly before revision 10 performs its data
+    # preflight and refuses the remaining downgrade.
     assert current_revision(database_path) == "20260912_10"
 
 
@@ -730,7 +738,7 @@ def test_database_path_with_url_delimiters_is_not_reparsed(tmp_path: Path) -> No
     upgrade_database(database_path)
     assert database_path.is_file()
     assert not (tmp_path / "musparql").exists()
-    assert current_revision(database_path) == "20260912_10"
+    assert current_revision(database_path) == "20260912_11"
     engine = create_database_engine(database_path)
     try:
         assert set(inspect(engine).get_table_names()) >= {"reviewers", "review_assignments"}
@@ -961,7 +969,7 @@ def test_schema_cli_diagnostics_do_not_print_profile_fields(tmp_path: Path, caps
     database_path = tmp_path / "diagnostic.sqlite3"
     assert main(["upgrade", "--database", str(database_path)]) == 0
     output = capsys.readouterr().out
-    assert output == "Database schema upgraded to 20260912_10.\n"
+    assert output == "Database schema upgraded to 20260912_11.\n"
     assert "Synthetic Reviewer" not in output
     assert "@example.invalid" not in output
     engine = create_database_engine(database_path)

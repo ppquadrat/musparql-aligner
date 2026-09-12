@@ -31,8 +31,14 @@
           <span class="metadata">Unverified. Used only for approved workshop follow-up; it is excluded from review bundles and exports.</span>
         </label>
       {% endif %}
-      <label class="field" for="name">First and last name
-        <input id="name" name="name" maxlength="200" autocomplete="name" value="{{ profile.name }}" required>
+      <label class="field" for="title"><span>Title <span class="optional">(optional)</span></span>
+        <input id="title" name="title" maxlength="50" autocomplete="honorific-prefix" value="{{ profile.title }}">
+      </label>
+      <label class="field" for="first_name">First name
+        <input id="first_name" name="first_name" maxlength="100" autocomplete="given-name" value="{{ profile.first_name }}" required>
+      </label>
+      <label class="field" for="last_name">Last name
+        <input id="last_name" name="last_name" maxlength="100" autocomplete="family-name" value="{{ profile.last_name }}" required>
       </label>
       <label class="field" for="affiliation"><span>Affiliation <span class="optional">(optional)</span></span>
         <input id="affiliation" name="affiliation" maxlength="300" autocomplete="organization" value="{{ profile.affiliation }}">

@@ -30,10 +30,16 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     if not REVIEWER_ID.fullmatch(args.reviewer_id):
         raise SystemExit("Owner ID must match reviewer-NNNN (with at least four digits).")
-    name = input("Owner name: ").strip()
+    title = input("Owner title (optional): ").strip()
+    first_name = input("Owner first name: ").strip()
+    last_name = input("Owner last name: ").strip()
     email_display = input("Owner email: ").strip()
-    if not name or len(name) > 200:
-        raise SystemExit("Owner name must contain 1-200 characters.")
+    if len(title) > 50:
+        raise SystemExit("Owner title must contain at most 50 characters.")
+    if not first_name or len(first_name) > 100:
+        raise SystemExit("Owner first name must contain 1-100 characters.")
+    if not last_name or len(last_name) > 100:
+        raise SystemExit("Owner last name must contain 1-100 characters.")
     try:
         email_normalized = normalize_email(email_display)
     except ValueError as exc:
@@ -54,7 +60,10 @@ def main(argv: list[str] | None = None) -> int:
             session.add(
                 Reviewer(
                     id=args.reviewer_id,
-                    name=name,
+                    name=f"{first_name} {last_name}",
+                    title=title,
+                    first_name=first_name,
+                    last_name=last_name,
                     affiliation="",
                     email_display=email_display,
                     email_normalized=email_normalized,

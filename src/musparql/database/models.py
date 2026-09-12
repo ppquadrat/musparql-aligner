@@ -41,6 +41,9 @@ class Reviewer(Base):
     __tablename__ = "reviewers"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     name: Mapped[str] = mapped_column(Text)
+    title: Mapped[str] = mapped_column(Text, default="")
+    first_name: Mapped[str] = mapped_column(Text, default="")
+    last_name: Mapped[str] = mapped_column(Text, default="")
     affiliation: Mapped[str] = mapped_column(Text, default="")
     email_display: Mapped[str] = mapped_column(Text)
     email_normalized: Mapped[str] = mapped_column(Text, unique=True)

@@ -26,6 +26,9 @@ def _database(path: Path) -> None:
             Reviewer(
                 id=OWNER_ID,
                 name="Synthetic Owner",
+                title="",
+                first_name="Synthetic",
+                last_name="Owner",
                 affiliation="Synthetic Institute",
                 email_display="owner@example.invalid",
                 email_normalized="owner@example.invalid",

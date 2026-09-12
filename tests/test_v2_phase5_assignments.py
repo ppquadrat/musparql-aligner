@@ -38,6 +38,9 @@ def _reviewer(reviewer_id: str, email: str, *, notice: bool = False) -> Reviewer
     return Reviewer(
         id=reviewer_id,
         name=f"Synthetic {reviewer_id}",
+        title="",
+        first_name="Synthetic",
+        last_name=reviewer_id,
         affiliation="Synthetic Institute",
         email_display=email,
         email_normalized=email,

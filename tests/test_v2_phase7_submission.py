@@ -33,6 +33,9 @@ def _reviewer(index: int) -> Reviewer:
     return Reviewer(
         id=reviewer_id,
         name=f"Synthetic reviewer {index}",
+        title="",
+        first_name="Synthetic",
+        last_name=f"reviewer {index}",
         affiliation="Synthetic Institute",
         email_display=f"reviewer-{index}@example.invalid",
         email_normalized=f"reviewer-{index}@example.invalid",

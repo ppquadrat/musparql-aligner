@@ -101,11 +101,14 @@ def login(client, app, sender, email: str) -> None:
 
 
 def profile_form(client, *, domain_level: str = "advanced", name: str = "Synthetic Reviewer") -> MultiDict:
+    first_name, last_name = name.rsplit(" ", 1)
     return MultiDict(
         [
             ("csrf_token", csrf(client)),
             ("notice_acknowledged", "yes"),
-            ("name", name),
+            ("title", "Dr"),
+            ("first_name", first_name),
+            ("last_name", last_name),
             ("affiliation", "Synthetic Research Institute"),
             ("kg_ontology_experience", "regular"),
             ("sparql_experience", "expert"),
@@ -272,7 +275,8 @@ def test_profile_correction_appends_domain_history_and_preserves_first_language_
     response = client.post("/profile", data=stale)
     assert response.status_code == 200
     assert b"Profile not saved: The profile changed in another request" in response.data
-    assert b"Stale Synthetic Reviewer" in response.data
+    assert b'value="Stale Synthetic"' in response.data
+    assert b'value="Reviewer"' in response.data
 
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
@@ -306,7 +310,8 @@ def test_invalid_or_stale_profile_is_atomic(phase4_app) -> None:
     response = client.post("/profile", data=invalid)
     assert response.status_code == 200
     assert b"Profile not saved: The submitted domain set is stale or invalid" in response.data
-    assert b"Must Not Persist" in response.data
+    assert b'value="Must Not"' in response.data
+    assert b'value="Persist"' in response.data
 
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
@@ -396,7 +401,8 @@ def test_invalid_new_domain_preserves_all_submitted_profile_fields(phase4_app) -
 
     assert response.status_code == 200
     assert b"Profile not saved: Choose an expertise level for Retained synthetic domain" in response.data
-    assert b'value="Retained Synthetic Reviewer"' in response.data
+    assert b'value="Retained Synthetic"' in response.data
+    assert b'value="Reviewer"' in response.data
     assert b'value="Retained synthetic domain"' in response.data
     assert b'<option value="en" selected>English (en)</option>' in response.data
     assert b'<option value="native" selected>Native</option>' in response.data
@@ -426,17 +432,21 @@ def test_language_snapshot_and_profile_javascript_are_available(phase4_app) -> N
     assert b'input[type="checkbox"] { width: 1.4rem; height: 1.4rem;' in stylesheet.data
 
 
-def test_reviewer_identifier_does_not_count_as_a_profile_name(phase4_app) -> None:
+def test_legacy_combined_name_does_not_count_as_a_structured_profile_name(phase4_app) -> None:
     app, _sender, database_path = phase4_app
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
     with sessions.begin() as session:
         reviewer = session.get(Reviewer, REVIEWER_ID)
         assert reviewer is not None
-        reviewer.name = REVIEWER_ID
+        reviewer.name = "Synthetic Legacy Name"
+        reviewer.first_name = ""
+        reviewer.last_name = ""
     try:
         assert app.extensions["musparql_profiles"].is_complete(REVIEWER_ID) is False
-        assert app.extensions["musparql_profiles"].load(REVIEWER_ID).name == ""
+        profile = app.extensions["musparql_profiles"].load(REVIEWER_ID)
+        assert profile.first_name == ""
+        assert profile.last_name == ""
     finally:
         engine.dispose()
 

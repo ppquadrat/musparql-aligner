@@ -766,10 +766,23 @@ class AuthService:
             seconds=self.config["OWNER_RECENT_AUTH_SECONDS"]
         )
 
-    def invite(self, actor_id: str, name: str, email: str) -> Reviewer:
-        name = unicodedata.normalize("NFC", name).strip()
-        if not name or len(name) > 200:
-            raise ValueError("A reviewer name of at most 200 characters is required")
+    def invite(
+        self,
+        actor_id: str,
+        title: str,
+        first_name: str,
+        last_name: str,
+        email: str,
+    ) -> Reviewer:
+        title = unicodedata.normalize("NFC", title).strip()
+        first_name = unicodedata.normalize("NFC", first_name).strip()
+        last_name = unicodedata.normalize("NFC", last_name).strip()
+        if len(title) > 50:
+            raise ValueError("Title must be 50 characters or fewer")
+        if not first_name or len(first_name) > 100:
+            raise ValueError("A first name of at most 100 characters is required")
+        if not last_name or len(last_name) > 100:
+            raise ValueError("A last name of at most 100 characters is required")
         display = unicodedata.normalize("NFC", email).strip()
         normalized = normalize_email(display)
         now = self.clock()
@@ -780,7 +793,10 @@ class AuthService:
             reviewer_id = self._allocate_reviewer_id(session)
             reviewer = Reviewer(
                 id=reviewer_id,
-                name=name,
+                name=f"{first_name} {last_name}",
+                title=title,
+                first_name=first_name,
+                last_name=last_name,
                 affiliation="",
                 email_display=display,
                 email_normalized=normalized,
@@ -851,7 +867,10 @@ class AuthService:
             if reviewer is None or reviewer.status == "withdrawn":
                 raise ValueError("The account is not eligible for deletion")
             old_email = reviewer.email_normalized
-            reviewer.name = "Withdrawn reviewer"
+            reviewer.name = ""
+            reviewer.title = ""
+            reviewer.first_name = ""
+            reviewer.last_name = ""
             reviewer.affiliation = ""
             random_mailbox = secrets.token_hex(16)
             reviewer.email_display = f"withdrawn-{random_mailbox}@example.invalid"
