@@ -59,8 +59,8 @@ def nl_sources($input; $output):
 | group_by(.kg_id)
 | {
     schema: "musparql.quagga-filter-candidates.v1",
-    purpose: "Candidate NL-SPARQL pairs from the 2026-08-23 KG-discovery follow-up run, prepared for comparison with existing Quagga pairs.",
-    source_run_id: "2026-08-23-104601-minimax-m2-5",
+    purpose: "Candidate NL-SPARQL pairs from the KG-discovery follow-up run, prepared for comparison with existing Quagga pairs.",
+    source_run_id: ($ARGS.named.source_run_id // "2026-08-23-104601-minimax-m2-5"),
     notes: [
       "Exact SPARQL hashes are unique within this file.",
       "Semantic or structurally rewritten duplicates may still exist.",

@@ -161,6 +161,13 @@ the earlier behavior. Where corrected candidate or package artifacts are still
 needed, rerun generation and rebuild them with new immutable digests; do not
 rewrite the historical artifacts in place.
 
+The corrected IPL artifacts were rebuilt locally on 12 September 2026 from
+generation run `2026-09-12-014200-minimax-m2-5`. The historical August run and
+package directory remain untouched. The corrected frozen package set is
+`30a5695ba92519fe`; its manifest is under the ignored operational path
+`var/review/bundles/ipl-2026-20260912-provenance-fix/`. Registration in the
+workshop database and production deployment remain separate operational steps.
+
 ## Dependency maintenance
 
 The test suite currently emits deprecation warnings from `rdflib` using legacy

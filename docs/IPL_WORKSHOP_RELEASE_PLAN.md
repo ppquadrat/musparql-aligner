@@ -561,8 +561,11 @@ before its queued job is processed. A frozen contributor who still owes the
 KG-specific form sees a direct link after closure and can complete it without
 changing the terminal assignment, including after the workshop round closes.
 Submission, abandonment, retry, and late-join terminal races are serialized and
-covered by regression tests. The owner-approved item 6 selection freeze, ICF
-deployment, and rehearsal remain operational work.
+covered by regression tests. Following the NL-provenance pipeline fix, item 6
+was rebuilt and validated locally on 12 September 2026 as corrected package set
+`30a5695ba92519fe`, while preserving the historical August artifacts. Workshop
+database registration, ICF deployment, and the production rehearsal remain
+operational work.
 
 ### Track A — must work first
 

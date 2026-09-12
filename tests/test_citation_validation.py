@@ -237,13 +237,16 @@ class CitationValidationTests(unittest.TestCase):
             script = Path(__file__).resolve().parents[1] / "scripts" / "build_quagga_filter_candidates.jq"
             completed = subprocess.run(
                 [
-                    "jq", "-n", "--slurpfile", "inputs", str(paths[0]),
+                    "jq", "-n", "--arg", "source_run_id", "synthetic-run",
+                    "--slurpfile", "inputs", str(paths[0]),
                     "--slurpfile", "outputs", str(paths[1]),
                     "--slurpfile", "ledger", str(paths[2]), "-f", str(script),
                 ],
                 check=True, capture_output=True, text=True,
             )
-        source = json.loads(completed.stdout)["graphs"][0]["records"][0]["nl"]["sources"][0]
+        report = json.loads(completed.stdout)
+        self.assertEqual(report["source_run_id"], "synthetic-run")
+        source = report["graphs"][0]["records"][0]["nl"]["sources"][0]
         self.assertEqual(source["evidence_id"], "e1")
         self.assertEqual(source["source_id"], "synthetic-source")
 
