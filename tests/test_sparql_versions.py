@@ -121,6 +121,90 @@ def test_prompt_input_records_selected_version_and_hash():
     assert payload["sparql_provenance"]["history_digest"].startswith("sha256:")
 
 
+def test_prompt_input_retains_structured_authored_question_as_evidence():
+    record = record_with_edits()
+    record.update({
+        "query_id": "q1",
+        "query_label": "kg-0001",
+        "kg_id": "kg",
+        "nl_question": {
+            "text": "Which subjects occur in the graph?",
+            "source": "synthetic-curated-source",
+            "generated_at": None,
+            "generator": None,
+        },
+        "evidence": [{
+            "evidence_id": "e1",
+            "type": "curated_query",
+            "snippet": ORIGINAL,
+            "source_id": "synthetic-curated-source",
+            "source_path": "synthetic/queries.jsonl",
+            "source_url": "https://example.invalid/queries",
+        }],
+    })
+
+    payload = build_prompt_input(record, False, False)
+
+    assert payload["evidence"] == [{
+        "evidence_id": "e2",
+        "type": "curated_nl_question",
+        "snippet": "Which subjects occur in the graph?",
+        "source_id": "synthetic-curated-source",
+        "source_path": "synthetic/queries.jsonl",
+        "source_url": "https://example.invalid/queries",
+    }]
+
+
+def test_prompt_input_extracts_question_comment_without_structured_nl():
+    query = "# Which subjects occur in the graph?\nSELECT ?s WHERE { ?s ?p ?o }"
+    record = {
+        "query_id": "q1",
+        "query_label": "kg-0001",
+        "kg_id": "kg",
+        "sparql_clean": query,
+        "sparql_hash": sparql_hash(query),
+        "evidence": [{
+            "evidence_id": "e1",
+            "type": "repo_file",
+            "snippet": query,
+            "source_id": "synthetic-repository",
+            "source_path": "queries/example.rq",
+            "source_url": "https://example.invalid/repository",
+        }],
+    }
+
+    payload = build_prompt_input(record, False, False)
+
+    assert payload["evidence"] == [{
+        "evidence_id": "e2",
+        "type": "query_comment",
+        "snippet": "Which subjects occur in the graph?",
+        "source_id": "synthetic-repository",
+        "source_path": "queries/example.rq",
+        "source_url": "https://example.invalid/repository",
+    }]
+
+
+def test_prompt_input_deduplicates_matching_structured_nl_and_query_comment():
+    query = "# Which subjects occur in the graph?\nSELECT ?s WHERE { ?s ?p ?o }"
+    record = {
+        "query_id": "q1", "query_label": "kg-0001", "kg_id": "kg",
+        "sparql_clean": query, "sparql_hash": sparql_hash(query),
+        "nl_question": {
+            "text": "Which subjects occur in the graph?", "source": "synthetic-source",
+            "generated_at": None, "generator": None,
+        },
+        "evidence": [{
+            "evidence_id": "e1", "type": "curated_query", "snippet": query,
+            "source_id": "synthetic-source",
+        }],
+    }
+
+    payload = build_prompt_input(record, False, False)
+
+    assert [item["type"] for item in payload["evidence"]] == ["curated_nl_question"]
+
+
 def test_original_prompt_selection_still_reports_retained_edit_history():
     record = record_with_edits()
     record.update({"query_id": "q1", "query_label": "kg-0001", "kg_id": "kg", "evidence": []})

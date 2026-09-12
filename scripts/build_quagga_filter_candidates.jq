@@ -19,23 +19,20 @@ def source_groups($evidence):
     });
 
 def nl_sources($input; $output):
-  if $output.llm_output.nl_question_origin.mode == "generated" then
-    []
-  else
-    [
-      $output.llm_output.nl_question_origin.evidence_ids[] as $evidence_id
-      | ($input.evidence[] | select(.evidence_id == $evidence_id)) as $evidence
-      | ($output.llm_output.ranked_evidence_phrases[] | select(.evidence_id == $evidence_id)) as $phrase
-      | {
-          evidence_id: $evidence_id,
-          evidence_type: $evidence.type,
-          source_text: $phrase.text,
-          source_url: ($evidence.source_url // null),
-          source_path: ($evidence.source_path // null),
-          verbatim: $phrase.verbatim
-        }
-    ]
-  end;
+  [
+    $output.llm_output.nl_question_origin.evidence_ids[] as $evidence_id
+    | ($input.evidence[] | select(.evidence_id == $evidence_id)) as $evidence
+    | ($output.llm_output.ranked_evidence_phrases[] | select(.evidence_id == $evidence_id)) as $phrase
+    | {
+        evidence_id: $evidence_id,
+        evidence_type: $evidence.type,
+        source_id: ($evidence.source_id // null),
+        source_text: $phrase.text,
+        source_url: ($evidence.source_url // null),
+        source_path: ($evidence.source_path // null),
+        verbatim: $phrase.verbatim
+      }
+  ];
 
 [
   $inputs[] as $input
@@ -67,7 +64,7 @@ def nl_sources($input; $output):
     notes: [
       "Exact SPARQL hashes are unique within this file.",
       "Semantic or structurally rewritten duplicates may still exist.",
-      "NL sources are present only when the generated formulation used retained source evidence; generated NL has an empty sources array."
+      "NL sources preserve every retained citation, including partial evidence used by generated formulations."
     ],
     record_count: (map(length) | add),
     graphs: map({kg_id: .[0].kg_id, record_count: length, records: .})

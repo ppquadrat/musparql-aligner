@@ -88,7 +88,33 @@
             }
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"mode": {"const": "generated"}},
+            "required": ["mode"]
+          },
+          "then": {
+            "properties": {"primary_evidence_id": {"type": "null"}}
+          }
+        },
+        {
+          "if": {
+            "properties": {"mode": {"enum": ["verbatim", "paraphrased"]}},
+            "required": ["mode"]
+          },
+          "then": {
+            "properties": {
+              "evidence_ids": {"minItems": 1},
+              "primary_evidence_id": {
+                "type": "string",
+                "pattern": "^e[0-9]+$"
+              }
+            }
+          }
+        }
+      ]
     },
     "confidence": {
       "type": "integer",

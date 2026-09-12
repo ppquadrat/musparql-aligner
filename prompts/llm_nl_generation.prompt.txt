@@ -41,7 +41,7 @@ Hard constraints
 
 Evidence priority (preference, not absolute)
 Global priority:
-1. query_comment
+1. curated_nl_question / query_comment
 2. readme_query_desc / doc_query_desc / web_query_desc
 3. cq_item
 4. general summaries (kg_summary, doc_summary, readme_summary, web_summary, repo_summary)
@@ -55,6 +55,7 @@ Additional rules:
 - Generic headings or labels such as "TOP PEOPLE" or "TOP PLACES" can support scope or top-k interpretation, but by themselves they are usually not enough to justify nl_question_origin.mode="paraphrased".
 
 Known source_type values (input evidence.type)
+- curated_nl_question
 - query_comment
 - readme_query_desc
 - doc_query_desc

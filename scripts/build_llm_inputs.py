@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
 from typing import Dict, Iterable, List, Set, Tuple
 
 from musparql.holdout_selectors import add_holdout_filter_arguments, validate_selector_record, validate_selectors_current
@@ -20,6 +21,8 @@ SPARQL_BLOCK_EVIDENCE_TYPES = {
     "doc_pdf",
     "curated_query",
 }
+
+AUTHORED_NL_EVIDENCE_TYPE = "curated_nl_question"
 
 
 def load_jsonl(path: Path) -> List[Dict[str, object]]:
@@ -145,11 +148,84 @@ def iter_evidence(
                 "evidence_id": evidence_id,
                 "type": ev_type,
                 "snippet": snippet,
+                "source_id": ev.get("source_id"),
                 "source_path": ev.get("source_path", ""),
                 "source_url": ev.get("source_url", ""),
             }
         )
     return out
+
+
+def _next_evidence_id(evidence: Iterable[object]) -> str:
+    used = {
+        item.get("evidence_id")
+        for item in evidence
+        if isinstance(item, dict) and isinstance(item.get("evidence_id"), str)
+    }
+    number = 1
+    while f"e{number}" in used:
+        number += 1
+    return f"e{number}"
+
+
+def _source_metadata(rec: Dict[str, object], source_id: object = None) -> Dict[str, object]:
+    evidence = [item for item in (rec.get("evidence") or []) if isinstance(item, dict)]
+    matching = [item for item in evidence if source_id and item.get("source_id") == source_id]
+    candidates = matching or [item for item in evidence if item.get("type") == "curated_query"]
+    if not candidates:
+        candidates = [item for item in evidence if item.get("type") in SPARQL_BLOCK_EVIDENCE_TYPES]
+    source = candidates[0] if candidates else {}
+    return {
+        "source_id": source_id or source.get("source_id"),
+        "source_path": source.get("source_path", ""),
+        "source_url": source.get("source_url", ""),
+    }
+
+
+def authored_nl_evidence(rec: Dict[str, object], evidence: List[Dict[str, object]]) -> None:
+    """Expose structured, source-authored NL at the model-input boundary."""
+    nl_question = rec.get("nl_question")
+    if not isinstance(nl_question, dict):
+        return
+    text = nl_question.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return
+    if nl_question.get("generator") is not None or nl_question.get("generated_at") is not None:
+        return
+    normalized = " ".join(text.split())
+    evidence.append(
+        {
+            "evidence_id": _next_evidence_id([*(rec.get("evidence") or []), *evidence]),
+            "type": AUTHORED_NL_EVIDENCE_TYPE,
+            "snippet": normalized,
+            **_source_metadata(rec, nl_question.get("source")),
+        }
+    )
+
+
+def query_comment_evidence(
+    rec: Dict[str, object], sparql: str, evidence: List[Dict[str, object]]
+) -> None:
+    """Retain question-like SPARQL comments as NL evidence, without duplicates."""
+    existing = {" ".join(str(item.get("snippet") or "").split()).casefold() for item in evidence}
+    metadata = _source_metadata(rec)
+    all_evidence: List[object] = [*(rec.get("evidence") or []), *evidence]
+    for line in sparql.splitlines():
+        match = re.match(r"^\s*#\s*(.+?\?)\s*$", line)
+        if not match:
+            continue
+        question = " ".join(match.group(1).split())
+        if len(question) < 8 or question.casefold() in existing:
+            continue
+        item = {
+            "evidence_id": _next_evidence_id(all_evidence),
+            "type": "query_comment",
+            "snippet": question,
+            **metadata,
+        }
+        evidence.append(item)
+        all_evidence.append(item)
+        existing.add(question.casefold())
 
 
 def build_prompt_input(
@@ -159,6 +235,9 @@ def build_prompt_input(
     sparql_version: str = "latest",
 ) -> Dict[str, object]:
     resolved = resolve_sparql_version(rec, sparql_version)
+    evidence = iter_evidence(rec.get("evidence", []) or [], include_sparql_blocks)
+    authored_nl_evidence(rec, evidence)
+    query_comment_evidence(rec, str(resolved["sparql"]), evidence)
     payload: Dict[str, object] = {
         "query_id": rec.get("query_id"),
         "query_label": rec.get("query_label"),
@@ -167,11 +246,23 @@ def build_prompt_input(
         "sparql_version": resolved["sparql_version"],
         "sparql_hash": resolved["sparql_hash"],
         "sparql_provenance": sparql_provenance(rec, resolved),
-        "evidence": iter_evidence(rec.get("evidence", []) or [], include_sparql_blocks),
+        "evidence": evidence,
         "schema_ref": "schemas/llm_output.schema.json",
     }
     if include_raw:
         payload["sparql_raw"] = rec.get("sparql_raw")
+    nl_question = rec.get("nl_question")
+    if (
+        isinstance(nl_question, dict)
+        and isinstance(nl_question.get("text"), str)
+        and nl_question["text"].strip()
+        and nl_question.get("generator") is None
+        and nl_question.get("generated_at") is None
+        and not any(
+            item.get("type") == AUTHORED_NL_EVIDENCE_TYPE for item in evidence
+        )
+    ):
+        raise ValueError("Source-authored nl_question was not retained as prompt evidence")
     return payload
 
 

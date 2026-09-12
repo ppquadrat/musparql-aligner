@@ -241,21 +241,75 @@ def extract_first_json_object(text: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def validate_output(obj: Dict[str, Any], schema: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+def validate_output(
+    obj: Dict[str, Any], schema: Dict[str, Any], payload: Optional[Dict[str, Any]] = None
+) -> Tuple[bool, Optional[str]]:
     try:
         import jsonschema  # type: ignore
     except Exception:
+        jsonschema = None
         required = schema.get("required", [])
         missing = [k for k in required if k not in obj]
         if missing:
             return False, f"Missing required keys: {missing}"
+
+    if jsonschema is not None:
+        try:
+            jsonschema.validate(instance=obj, schema=schema)
+        except Exception as e:
+            return False, str(e)
+
+    # This validator is also reused by the SPARQL-correction service.
+    if "nl_question_origin" not in obj:
         return True, None
 
-    try:
-        jsonschema.validate(instance=obj, schema=schema)
-        return True, None
-    except Exception as e:
-        return False, str(e)
+    origin = obj.get("nl_question_origin")
+    if not isinstance(origin, dict):
+        return False, "nl_question_origin must be an object"
+    evidence_ids = origin.get("evidence_ids")
+    primary = origin.get("primary_evidence_id")
+    mode = origin.get("mode")
+    if not isinstance(evidence_ids, list):
+        return False, "nl_question_origin.evidence_ids must be an array"
+    if mode == "generated" and primary is not None:
+        return False, "generated NL must not declare a primary_evidence_id"
+    if mode in {"verbatim", "paraphrased"}:
+        if not evidence_ids or not isinstance(primary, str) or primary not in evidence_ids:
+            return False, f"{mode} NL requires a primary evidence ID present in evidence_ids"
+
+    phrase_ids = {
+        phrase.get("evidence_id")
+        for phrase in (obj.get("ranked_evidence_phrases") or [])
+        if isinstance(phrase, dict)
+    }
+    missing_phrases = sorted(set(evidence_ids) - phrase_ids)
+    if missing_phrases:
+        return False, f"NL origin cites evidence without a retained phrase: {missing_phrases}"
+    if payload is not None:
+        valid_ids = {
+            item.get("evidence_id")
+            for item in (payload.get("evidence") or [])
+            if isinstance(item, dict)
+        }
+        cited_ids = phrase_ids | set(evidence_ids)
+        unknown = sorted(item for item in cited_ids - valid_ids if isinstance(item, str))
+        if unknown:
+            return False, f"Model output cites unknown evidence IDs: {unknown}"
+        if mode == "generated":
+            question = normalize_citation_text(obj.get("nl_question"))
+            direct_matches = {
+                item.get("evidence_id")
+                for item in (payload.get("evidence") or [])
+                if isinstance(item, dict)
+                and item.get("type") in {"curated_nl_question", "query_comment"}
+                and normalize_citation_text(item.get("snippet")) == question
+            }
+            if direct_matches:
+                return False, (
+                    "generated NL exactly matches source-authored question evidence: "
+                    f"{sorted(direct_matches)}"
+                )
+    return True, None
 
 
 def normalize_citation_text(text: Any) -> str:
@@ -689,7 +743,7 @@ def main() -> None:
                 if parsed is None:
                     raise ValueError("No JSON object found in model output")
                 citation_validation = validate_and_repair_citations(parsed, payload)
-                valid, validation_error = validate_output(parsed, schema)
+                valid, validation_error = validate_output(parsed, schema, payload)
                 if not valid:
                     raise ValueError(f"Schema validation failed: {validation_error}")
                 out_rec = {
