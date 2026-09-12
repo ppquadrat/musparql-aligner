@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import builtins
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 from scripts import run_llm_generation
 
@@ -32,6 +34,30 @@ class CitationValidationTests(unittest.TestCase):
         error = RuntimeError("Invalid model name passed in model=gpt-5")
         self.assertTrue(run_llm_generation.is_fatal_configuration_error(error))
         self.assertFalse(run_llm_generation.is_fatal_configuration_error(RuntimeError("Schema validation failed")))
+
+    def test_schema_validation_fails_closed_when_jsonschema_is_unavailable(self) -> None:
+        correction_schema = json.loads(
+            (Path(__file__).resolve().parents[1] / "schemas" / "sparql_correction_suggestion.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        invalid_output = {
+            "recommendation": "no_edit", "proposed_sparql": "SELECT * WHERE { ?s ?p ?o }",
+            "edit_type": "syntax_correction", "rationale": "Synthetic rationale.",
+            "evidence_ids": [], "uncertainty": "",
+        }
+        real_import = builtins.__import__
+
+        def import_without_jsonschema(name, *args, **kwargs):
+            if name == "jsonschema":
+                raise ImportError("synthetically unavailable")
+            return real_import(name, *args, **kwargs)
+
+        with mock.patch("builtins.__import__", side_effect=import_without_jsonschema):
+            valid, error = run_llm_generation.validate_output(invalid_output, correction_schema)
+
+        self.assertFalse(valid)
+        self.assertIn("validation unavailable", str(error))
 
     def test_repairs_minimax_cq_number_evidence_id_drift(self) -> None:
         payload = {

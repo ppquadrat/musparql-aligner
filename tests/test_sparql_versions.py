@@ -205,6 +205,98 @@ def test_prompt_input_deduplicates_matching_structured_nl_and_query_comment():
     assert [item["type"] for item in payload["evidence"]] == ["curated_nl_question"]
 
 
+def test_prompt_input_deduplicates_question_contained_in_existing_comment_evidence():
+    query = "# Which subjects occur in the graph?\nSELECT ?s WHERE { ?s ?p ?o }"
+    record = {
+        "query_id": "q1", "query_label": "kg-0001", "kg_id": "kg",
+        "sparql_clean": query, "sparql_hash": sparql_hash(query),
+        "evidence": [{
+            "evidence_id": "e1", "type": "query_comment",
+            "snippet": "Example query\nWhich subjects occur in the graph?\nReturns every subject.",
+            "source_id": "synthetic-source",
+        }],
+    }
+
+    payload = build_prompt_input(record, False, False)
+
+    assert [item["evidence_id"] for item in payload["evidence"]] == ["e1"]
+
+
+@pytest.mark.parametrize("nl_question", [
+    {"text": "Legacy generated question?"},
+    {
+        "text": "Question with an unknown source?", "source": "missing-source",
+        "generated_at": None, "generator": None,
+    },
+])
+def test_prompt_input_does_not_infer_authorship_from_incomplete_provenance(nl_question):
+    record = {
+        "query_id": "q1", "query_label": "kg-0001", "kg_id": "kg",
+        "sparql_clean": ORIGINAL, "sparql_hash": sparql_hash(ORIGINAL),
+        "nl_question": nl_question,
+        "evidence": [],
+    }
+
+    payload = build_prompt_input(record, False, False)
+
+    assert payload["evidence"] == []
+
+
+def test_prompt_input_does_not_mix_unmatched_source_id_with_fallback_metadata():
+    edited = "# Which edited subjects occur?\nSELECT DISTINCT ?s WHERE { ?s ?p ?o }"
+    record = {
+        "query_id": "q1", "query_label": "kg-0001", "kg_id": "kg",
+        "sparql_clean": ORIGINAL, "sparql_hash": sparql_hash(ORIGINAL),
+        "sparql_edits": [{
+            "version": 1, "sparql": edited, "note": "Synthetic sourced edit.",
+            "source_id": "missing-source",
+        }],
+        "evidence": [{
+            "evidence_id": "e1", "type": "curated_query", "snippet": ORIGINAL,
+            "source_id": "different-source", "source_path": "different/query.rq",
+            "source_url": "https://example.invalid/different",
+        }],
+    }
+
+    payload = build_prompt_input(record, False, False)
+
+    assert payload["evidence"] == [{
+        "evidence_id": "e2", "type": "query_comment",
+        "snippet": "Which edited subjects occur?", "source_id": "missing-source",
+        "source_path": "", "source_url": "",
+    }]
+
+
+def test_prompt_comment_uses_selected_edit_source_metadata():
+    edited = "# Which edited subjects occur?\nSELECT DISTINCT ?s WHERE { ?s ?p ?o }"
+    record = {
+        "query_id": "q1", "query_label": "kg-0001", "kg_id": "kg",
+        "sparql_clean": ORIGINAL, "sparql_hash": sparql_hash(ORIGINAL),
+        "sparql_edits": [{
+            "version": 1, "sparql": edited, "note": "Synthetic sourced edit.",
+            "source_id": "edit-source",
+        }],
+        "evidence": [
+            {
+                "evidence_id": "e1", "type": "curated_query", "snippet": ORIGINAL,
+                "source_id": "original-source", "source_path": "original/query.rq",
+            },
+            {
+                "evidence_id": "e2", "type": "repo_file", "snippet": edited,
+                "source_id": "edit-source", "source_path": "edits/query.rq",
+            },
+        ],
+    }
+
+    payload = build_prompt_input(record, False, False)
+
+    assert payload["evidence"] == [{
+        "evidence_id": "e3", "type": "query_comment",
+        "snippet": "Which edited subjects occur?", "source_id": "edit-source",
+        "source_path": "edits/query.rq", "source_url": "",
+    }]
+
+
 def test_original_prompt_selection_still_reports_retained_edit_history():
     record = record_with_edits()
     record.update({"query_id": "q1", "query_label": "kg-0001", "kg_id": "kg", "evidence": []})

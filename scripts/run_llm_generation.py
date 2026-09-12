@@ -246,18 +246,13 @@ def validate_output(
 ) -> Tuple[bool, Optional[str]]:
     try:
         import jsonschema  # type: ignore
-    except Exception:
-        jsonschema = None
-        required = schema.get("required", [])
-        missing = [k for k in required if k not in obj]
-        if missing:
-            return False, f"Missing required keys: {missing}"
+    except Exception as e:
+        return False, f"JSON Schema validation unavailable: {e}"
 
-    if jsonschema is not None:
-        try:
-            jsonschema.validate(instance=obj, schema=schema)
-        except Exception as e:
-            return False, str(e)
+    try:
+        jsonschema.validate(instance=obj, schema=schema)
+    except Exception as e:
+        return False, str(e)
 
     # This validator is also reused by the SPARQL-correction service.
     if "nl_question_origin" not in obj:

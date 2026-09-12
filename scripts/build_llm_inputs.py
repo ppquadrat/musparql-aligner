@@ -171,7 +171,14 @@ def _next_evidence_id(evidence: Iterable[object]) -> str:
 def _source_metadata(rec: Dict[str, object], source_id: object = None) -> Dict[str, object]:
     evidence = [item for item in (rec.get("evidence") or []) if isinstance(item, dict)]
     matching = [item for item in evidence if source_id and item.get("source_id") == source_id]
-    candidates = matching or [item for item in evidence if item.get("type") == "curated_query"]
+    if source_id:
+        source = matching[0] if matching else {}
+        return {
+            "source_id": source_id,
+            "source_path": source.get("source_path", ""),
+            "source_url": source.get("source_url", ""),
+        }
+    candidates = [item for item in evidence if item.get("type") == "curated_query"]
     if not candidates:
         candidates = [item for item in evidence if item.get("type") in SPARQL_BLOCK_EVIDENCE_TYPES]
     source = candidates[0] if candidates else {}
@@ -182,6 +189,13 @@ def _source_metadata(rec: Dict[str, object], source_id: object = None) -> Dict[s
     }
 
 
+def _has_source(rec: Dict[str, object], source_id: str) -> bool:
+    return any(
+        isinstance(item, dict) and item.get("source_id") == source_id
+        for item in (rec.get("evidence") or [])
+    )
+
+
 def authored_nl_evidence(rec: Dict[str, object], evidence: List[Dict[str, object]]) -> None:
     """Expose structured, source-authored NL at the model-input boundary."""
     nl_question = rec.get("nl_question")
@@ -190,32 +204,56 @@ def authored_nl_evidence(rec: Dict[str, object], evidence: List[Dict[str, object
     text = nl_question.get("text")
     if not isinstance(text, str) or not text.strip():
         return
-    if nl_question.get("generator") is not None or nl_question.get("generated_at") is not None:
+    if (
+        "generator" not in nl_question
+        or "generated_at" not in nl_question
+        or nl_question["generator"] is not None
+        or nl_question["generated_at"] is not None
+    ):
         return
+    source_id = nl_question.get("source")
+    if not isinstance(source_id, str) or not source_id.strip():
+        return
+    if not _has_source(rec, source_id):
+        return
+    source_metadata = _source_metadata(rec, source_id)
     normalized = " ".join(text.split())
     evidence.append(
         {
             "evidence_id": _next_evidence_id([*(rec.get("evidence") or []), *evidence]),
             "type": AUTHORED_NL_EVIDENCE_TYPE,
             "snippet": normalized,
-            **_source_metadata(rec, nl_question.get("source")),
+            **source_metadata,
         }
     )
 
 
 def query_comment_evidence(
-    rec: Dict[str, object], sparql: str, evidence: List[Dict[str, object]]
+    rec: Dict[str, object],
+    sparql: str,
+    evidence: List[Dict[str, object]],
+    source_id: object = None,
 ) -> None:
     """Retain question-like SPARQL comments as NL evidence, without duplicates."""
     existing = {" ".join(str(item.get("snippet") or "").split()).casefold() for item in evidence}
-    metadata = _source_metadata(rec)
+    existing_query_comments = {
+        " ".join(str(item.get("snippet") or "").split()).casefold()
+        for item in evidence
+        if item.get("type") == "query_comment"
+    }
+    metadata = _source_metadata(rec, source_id)
     all_evidence: List[object] = [*(rec.get("evidence") or []), *evidence]
     for line in sparql.splitlines():
         match = re.match(r"^\s*#\s*(.+?\?)\s*$", line)
         if not match:
             continue
         question = " ".join(match.group(1).split())
-        if len(question) < 8 or question.casefold() in existing:
+        normalized_question = question.casefold()
+        if (
+            len(question) < 8
+            or normalized_question in existing
+            or any(normalized_question in snippet for snippet in existing_query_comments)
+        ):
             continue
         item = {
             "evidence_id": _next_evidence_id(all_evidence),
@@ -225,7 +263,8 @@ def query_comment_evidence(
         }
         evidence.append(item)
         all_evidence.append(item)
-        existing.add(question.casefold())
+        existing.add(normalized_question)
+        existing_query_comments.add(normalized_question)
 
 
 def build_prompt_input(
@@ -237,7 +276,9 @@ def build_prompt_input(
     resolved = resolve_sparql_version(rec, sparql_version)
     evidence = iter_evidence(rec.get("evidence", []) or [], include_sparql_blocks)
     authored_nl_evidence(rec, evidence)
-    query_comment_evidence(rec, str(resolved["sparql"]), evidence)
+    query_comment_evidence(
+        rec, str(resolved["sparql"]), evidence, resolved.get("source_id")
+    )
     payload: Dict[str, object] = {
         "query_id": rec.get("query_id"),
         "query_label": rec.get("query_label"),
@@ -256,8 +297,13 @@ def build_prompt_input(
         isinstance(nl_question, dict)
         and isinstance(nl_question.get("text"), str)
         and nl_question["text"].strip()
-        and nl_question.get("generator") is None
-        and nl_question.get("generated_at") is None
+        and "generator" in nl_question
+        and "generated_at" in nl_question
+        and nl_question["generator"] is None
+        and nl_question["generated_at"] is None
+        and isinstance(nl_question.get("source"), str)
+        and nl_question["source"].strip()
+        and _has_source(rec, nl_question["source"])
         and not any(
             item.get("type") == AUTHORED_NL_EVIDENCE_TYPE for item in evidence
         )
