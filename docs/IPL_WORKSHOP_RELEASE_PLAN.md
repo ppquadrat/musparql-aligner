@@ -21,6 +21,11 @@ consented participants to form reviewing groups of one or more people in the
 room, select one of four identical-for-everyone KG packages, complete the work,
 and return for another assignment.
 
+Synthetic-rehearsal feedback proposes a simpler assignment-first participant
+journey and a dedicated workshop workbench in
+[`IPL_WORKSHOP_UX_PROPOSAL.md`](IPL_WORKSHOP_UX_PROPOSAL.md). That document is a
+proposal only and intentionally has not yet changed the implementation.
+
 This plan covers the data and pipeline changes needed to make that journey
 honest and reliable. The IPL-specific redesign of the initial-review workbench
 is a separate piece of work and will have its own plan. This release must expose
