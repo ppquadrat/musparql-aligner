@@ -103,27 +103,63 @@ The stale agent-metadata defect described there is fixed: changing an agent
 proposal now clears the suggestion, edit type, rationale, and evidence IDs and
 requires the human to enter fresh edit metadata.
 
-## NL provenance and query-comment handling
+## Resolved: NL provenance and query-comment handling
 
-### Authored NL can be mislabelled as generated when it is embedded in SPARQL
+Resolved in `db9a8b2` and hardened after review in `c5e8d8b`.
 
-The IPL rehearsal exposed a concrete case in `nfdi4culture-0006`. Its curated
-source record has an authored `prompt`, and the same question appears verbatim
-as a leading comment inside the SPARQL. The working query catalogue retains
-both the curated `nl_question` and a `curated_query` evidence item. However,
-`build_llm_inputs.py` excludes SPARQL-block evidence by default and does not
-pass the catalogue's structured `nl_question` to generation. The 2026-08-23
-model therefore received an empty evidence list, copied the query comment word
-for word, and correctly described its output under the current contract as
-`generated` with no evidence IDs. The downstream Quagga candidate and workshop
-package faithfully preserved that misleading provenance.
+### Historical problem: authored NL was dropped at the generation-input boundary
 
-Repair the boundary rather than this one output: structured authored questions
-from curated sources must be retained as NL evidence before generation, and
-query comments that contain an apparent question should be extracted or
-cross-checked so an exact copy cannot be labelled as unsupported generated NL.
-Audit the affected run for other exact or near-exact comment copies, then
-rebuild any corrected candidate/package artifacts with new immutable digests.
+The IPL rehearsal first exposed a concrete case in `nfdi4culture-0006`, but an
+audit of all 112 workshop pairs shows that the problem is systematic. The
+packages contain 106 `generated`, five `paraphrased`, and one `verbatim`
+formulation. All 52 Europeana pairs, all six NFDI4Culture pairs, and all 45
+Camera dei Deputati pairs are labelled `generated`; only CDEC has any other
+origins.
+
+The working query catalogue contains a source-authored structured
+`nl_question` for 82 of those pairs: 52 Europeana, six NFDI4Culture, and 24
+Camera dei Deputati records. All 82 also have only a `curated_query` evidence
+item. `extract_queries.py` gained support for storing curated prompts in August
+2026, but the older `build_llm_inputs.py` boundary had not been extended with
+it. That builder excluded `curated_query` as SPARQL-block evidence by default
+and did not pass the catalogue's structured `nl_question` to generation. All 82
+therefore reached the model with an empty evidence list, and all 82 were
+classified as `generated`. This was not an ID-alignment or workshop-package
+join failure: every workshop query ID occurred in the expected ledger, input,
+output, and package records.
+
+`nfdi4culture-0006` is the clearest symptom. Its authored prompt also appears
+verbatim as a leading comment inside the SPARQL. Although the structured prompt
+and evidence were absent from the model input, the model copied the comment
+word for word and described the result as `generated` with no evidence IDs.
+It is the only exact whole-question copy of a SPARQL comment found in this
+workshop run, but the other 81 curated questions were still needlessly replaced
+by newly generated wording.
+
+The remaining 30 pairs reached the model with one `web_query_desc` item. Of
+these, 24 were classified as `generated`, five as `paraphrased`, and one as
+`verbatim`. Seven `generated` outputs nevertheless cited retained evidence. The
+Quagga candidate builder emitted an empty `sources` array for every `generated`
+output, so those seven citations and their retained phrases were also lost
+before packaging. One CDEC output additionally had the inconsistent combination
+`mode=generated` with a non-null `primary_evidence_id`; the schema and citation
+validator allowed it at the time of the audit.
+
+The implementation now retains a structured question as
+`curated_nl_question` evidence only when it has the explicit source-authored
+shape (`generator: null`, `generated_at: null`) and its source resolves in the
+record. Question-like SPARQL comments are extracted without duplicating a
+question already contained in existing `query_comment` evidence and inherit
+metadata from the selected SPARQL version rather than an unrelated source.
+Origin validation rejects inconsistent primary evidence, generated wording
+cannot exactly copy retained authored-question evidence, generated outputs keep
+their cited evidence in Quagga candidates, and schema validation fails closed
+when the `jsonschema` dependency is unavailable.
+
+Historical generation outputs and workshop packages are immutable records of
+the earlier behavior. Where corrected candidate or package artifacts are still
+needed, rerun generation and rebuild them with new immutable digests; do not
+rewrite the historical artifacts in place.
 
 ## Dependency maintenance
 
