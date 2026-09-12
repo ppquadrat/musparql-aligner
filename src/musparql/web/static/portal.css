@@ -6,11 +6,11 @@ footer { display: flex; flex-wrap: wrap; gap: 1rem; border-top: 1px solid #8885;
 form { display: grid; gap: .75rem; width: 100%; max-width: 32rem; }
 input, select, button, .button { box-sizing: border-box; font: inherit; padding: .6rem; }
 input, select { min-width: 0; width: 100%; }
-input[type="checkbox"] { width: auto; }
+input[type="checkbox"] { width: 1.4rem; height: 1.4rem; flex: 0 0 1.4rem; accent-color: #176b2c; }
 button, .button { cursor: pointer; width: fit-content; }
 .actions { display: flex; flex-wrap: wrap; gap: 1rem; }
-.check { display: flex; gap: .5rem; align-items: start; }
-.check input { margin-top: .35rem; }
+.check { display: flex; gap: .7rem; align-items: start; padding: .55rem; cursor: pointer; }
+.check input { margin: .15rem 0 0; }
 .error { color: #b00020; }
 .success { color: #176b2c; }
 table { border-collapse: collapse; width: 100%; }
@@ -21,6 +21,9 @@ section { margin-bottom: 1.5rem; }
 .notice { border: 2px solid #7778; border-radius: .35rem; padding: 1rem; }
 .metadata, .optional { color: #666; font-size: .9rem; }
 .preserve-lines { white-space: pre-line; }
+.formatted-notice { max-width: 52rem; }
+.formatted-notice h2, .formatted-notice h3 { margin-top: 1.8rem; }
+.formatted-notice li { margin-bottom: .35rem; }
 .field { display: grid; gap: .25rem; margin-bottom: .75rem; }
 .repeat-rows { display: grid; gap: .75rem; margin-bottom: .75rem; }
 .repeat-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; align-items: end; }

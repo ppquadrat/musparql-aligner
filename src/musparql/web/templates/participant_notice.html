@@ -3,6 +3,6 @@
 {% block content %}
   <h1>Participant information and privacy notice</h1>
   <p class="metadata">Version {{ notice_version }}</p>
-  <div class="preserve-lines">{{ notice_body }}</div>
+  <div class="formatted-notice">{{ notice_body|notice_markdown }}</div>
   <p>Questions or data-rights requests: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
 {% endblock %}

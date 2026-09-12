@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import hmac
+import re
 import secrets
 
 from sqlalchemy import func, select, text
@@ -27,6 +28,7 @@ from .auth import timestamp, utc_now
 
 
 _ACTIVE_PARTICIPANT_STATUSES = ("not_started", "active")
+_REVIEWER_ID = re.compile(r"reviewer-[0-9]{4,}")
 
 
 class WorkshopUnavailable(ValueError):
@@ -473,6 +475,72 @@ class WorkshopService:
                 ),
                 "missing_assessment_reviewer_ids": sorted(missing),
             }
+
+    def add_assignment_member(
+        self, actor_id: str, assignment_id: str, teammate_id: str
+    ) -> bool:
+        """Add a consenting workshop participant to an open team assignment."""
+        teammate_id = teammate_id.strip()
+        if not _REVIEWER_ID.fullmatch(teammate_id):
+            raise WorkshopAccessError("Reviewer number is not available")
+        now = timestamp(utc_now())
+        session = self.sessions()
+        try:
+            session.execute(text("BEGIN IMMEDIATE"))
+            actor = session.get(Reviewer, actor_id)
+            teammate = session.get(Reviewer, teammate_id)
+            self._require_eligible(actor)
+            if teammate_id == actor_id or not self._eligible(teammate):
+                raise WorkshopAccessError("Reviewer number is not available")
+            assignment = session.get(ReviewAssignment, assignment_id)
+            if (
+                assignment is None
+                or assignment.review_group_id is None
+                or assignment.participant_status not in _ACTIVE_PARTICIPANT_STATUSES
+                or assignment.closed_contributor_ids is not None
+            ):
+                raise WorkshopAccessError("Team review is not open to new members")
+            group = session.get(ReviewGroup, assignment.review_group_id)
+            actor_member = session.get(
+                ReviewGroupMember, (assignment.review_group_id, actor_id)
+            )
+            workshop_round = self._open_round(session, now)
+            teammate_enrolled = session.scalar(
+                select(ReviewGroupMember.reviewer_id)
+                .join(ReviewGroup, ReviewGroup.id == ReviewGroupMember.group_id)
+                .where(
+                    ReviewGroupMember.reviewer_id == teammate_id,
+                    ReviewGroup.workshop_round_id == workshop_round.id,
+                )
+                .limit(1)
+            )
+            if (
+                group is None
+                or actor_member is None
+                or group.workshop_round_id != workshop_round.id
+                or teammate_enrolled is None
+            ):
+                raise WorkshopAccessError("Reviewer number is not available")
+            existing = session.get(
+                ReviewGroupMember, (assignment.review_group_id, teammate_id)
+            )
+            if existing is not None:
+                session.commit()
+                return False
+            session.add(
+                ReviewGroupMember(
+                    group_id=assignment.review_group_id,
+                    reviewer_id=teammate_id,
+                    joined_at=now,
+                )
+            )
+            session.commit()
+            return True
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     def claim_package(
         self, *, reviewer_id: str, group_id: str, package_id: str

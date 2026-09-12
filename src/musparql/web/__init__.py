@@ -14,11 +14,13 @@ from musparql.database.models import Reviewer
 
 from .auth import AuthService, DigestRateLimiter
 from .email import AsyncEmailDispatcher, SyntheticEmailSender
+from .notice_formatting import render_notice_markdown
 from .security import install_security
 
 
 def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     app = Flask(__name__, template_folder="templates")
+    app.jinja_env.filters["notice_markdown"] = render_notice_markdown
     app.config.from_mapping(
         DATABASE_PATH=os.environ.get("MUSPARQL_DATABASE_PATH"),
         APP_SECRET=os.environ.get("MUSPARQL_APP_SECRET"),

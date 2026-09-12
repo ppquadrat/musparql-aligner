@@ -954,6 +954,33 @@ def submit_assignment(assignment_id: str):
     return jsonify(response), 200 if receipt.duplicate else 202
 
 
+@portal.post("/assignments/<assignment_id>/team/members")
+@complete_profile_required
+def add_assignment_team_member(assignment_id: str):
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    try:
+        added = current_app.extensions["musparql_workshops"].add_assignment_member(
+            g.current_reviewer.id,
+            assignment_id,
+            request.form.get("reviewer_id", "")[:64],
+        )
+        team = current_app.extensions["musparql_workshops"].workbench_team(
+            g.current_reviewer.id, assignment_id
+        )
+    except WorkshopAccessError as exc:
+        return jsonify({"error": str(exc)}), 422
+    return jsonify(
+        {
+            "added": added,
+            "member_count": team["member_count"],
+            "missing_assessment_reviewer_ids": team[
+                "missing_assessment_reviewer_ids"
+            ],
+        }
+    )
+
+
 @portal.get("/assignments/<assignment_id>/submission")
 @complete_profile_required
 def assignment_submission(assignment_id: str):
@@ -1057,6 +1084,10 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
                     "missing_assessment_reviewer_ids"
                 ],
                 submission_closes_review=False,
+                add_team_member_url=url_for(
+                    "portal.add_assignment_team_member",
+                    assignment_id=assignment_id,
+                ),
             )
         body = "window.MUSPARQL_HOSTED_CONTEXT = " + json.dumps(
             context, ensure_ascii=True, separators=(",", ":")

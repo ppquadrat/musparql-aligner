@@ -2321,8 +2321,9 @@
     identity.textContent = `Signed in as ${hosted.reviewer_id}`;
     bar.appendChild(identity);
 
+    let team = null;
     if (hosted.workshop_mode && hosted.team_join_code) {
-      const team = document.createElement("span");
+      team = document.createElement("span");
       const code = String(hosted.team_join_code);
       team.className = "hosted-team-code";
       const members = Number(hosted.team_member_count) || 1;
@@ -2354,5 +2355,60 @@
     form.append(csrf, button);
     bar.appendChild(form);
     document.body.prepend(bar);
+
+    if (hosted.workshop_mode && hosted.add_team_member_url && team) {
+      const panel = document.createElement("section");
+      panel.className = "hosted-team-panel";
+      const heading = document.createElement("strong");
+      heading.textContent = "Working with someone?";
+      const explanation = document.createElement("p");
+      explanation.textContent = "Ask them to create their own reviewer profile, then enter the reviewer number they give you. They will be added to this team and can open this same batch. Add them before submitting so the server attributes the work to the complete team.";
+      const addForm = document.createElement("form");
+      addForm.className = "hosted-team-add-form";
+      const reviewerInput = document.createElement("input");
+      reviewerInput.name = "reviewer_id";
+      reviewerInput.required = true;
+      reviewerInput.pattern = "reviewer-[0-9]{4,}";
+      reviewerInput.maxLength = 64;
+      reviewerInput.autocomplete = "off";
+      reviewerInput.placeholder = "reviewer-0002";
+      reviewerInput.setAttribute("aria-label", "Teammate reviewer number");
+      const addButton = document.createElement("button");
+      addButton.type = "submit";
+      addButton.className = "btn small solid";
+      addButton.textContent = "Add teammate";
+      const status = document.createElement("span");
+      status.className = "muted-meta";
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
+      addForm.append(reviewerInput, addButton, status);
+      addForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        addButton.disabled = true;
+        status.textContent = "Adding…";
+        const body = new FormData(addForm);
+        body.set("csrf_token", hosted.csrf_token);
+        try {
+          const response = await fetch(hosted.add_team_member_url, {
+            method: "POST",
+            headers: {Accept: "application/json"},
+            body,
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Could not add that reviewer.");
+          const members = Number(result.member_count) || 1;
+          const code = String(hosted.team_join_code);
+          team.textContent = `Team ${code.slice(0, 3)} ${code.slice(3)} · ${members} member${members === 1 ? "" : "s"}`;
+          status.textContent = result.added ? "Teammate added." : "That reviewer is already on this team.";
+          reviewerInput.value = "";
+        } catch (error) {
+          status.textContent = error instanceof Error ? error.message : "Could not add that reviewer.";
+        } finally {
+          addButton.disabled = false;
+        }
+      });
+      panel.append(heading, explanation, addForm);
+      bar.insertAdjacentElement("afterend", panel);
+    }
   }
 })();

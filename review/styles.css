@@ -43,6 +43,18 @@ body {
 .hosted-session form { margin: 0; }
 .hosted-session a { color: var(--accent); }
 .hosted-team-code { margin-right: auto; color: var(--ink); font-weight: 700; }
+.hosted-team-panel {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.8rem clamp(1rem, 3vw, 2rem);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.hosted-team-panel p { margin: 0; max-width: 75rem; }
+.hosted-team-add-form { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: center; }
+.hosted-team-add-form input { width: 12rem; }
+.hosted-team-add-form .muted-meta { min-width: 12rem; }
 
 button,
 input,

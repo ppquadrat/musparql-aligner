@@ -178,6 +178,29 @@ def test_non_testing_startup_accepts_complete_file_backed_copy(tmp_path: Path) -
         app.extensions["musparql_engine"].dispose()
 
 
+def test_participant_notice_renders_safe_markdown(tmp_path: Path) -> None:
+    config = _production_config(tmp_path)
+    notice = Path(config["PRIVACY_NOTICE_PATH"])
+    notice.write_text(
+        "## Who is responsible?\n\n**ICF** uses this data.\n\n"
+        "- First safeguard\n- Second safeguard\n\n"
+        "See <https://example.org>. <script>alert(1)</script>",
+        encoding="utf-8",
+    )
+    app = create_app(config)
+    try:
+        page = app.test_client().get("/participant-notice")
+        assert b"<h2>Who is responsible?</h2>" in page.data
+        assert b"<strong>ICF</strong>" in page.data
+        assert b"<li>First safeguard</li>" in page.data
+        assert b'href="https://example.org"' in page.data
+        assert b"<script>" not in page.data
+        assert b"&lt;script&gt;alert(1)&lt;/script&gt;" in page.data
+    finally:
+        app.extensions["musparql_email_dispatcher"].shutdown()
+        app.extensions["musparql_engine"].dispose()
+
+
 @pytest.mark.parametrize(
     ("version_key", "version"),
     (

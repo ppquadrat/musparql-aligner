@@ -73,10 +73,15 @@ def test_workshop_mode_is_a_scoped_single_pair_workbench() -> None:
     assert "usedEvidenceIds.has(item.evidence_id) && !rankedIds.has(item.evidence_id)" in app
     assert 'sourceLink.textContent = "Open source"' in app
     assert "hosted.team_join_code" in app
+    assert "hosted.add_team_member_url" in app
+    assert "Add teammate" in app
+    assert "create their own reviewer profile" in app
     assert "incomplete or administrative queries" in html
     assert "do not exclude a pair merely because its generated wording needs improvement" in html
     assert "Drafts stay on this browser" not in workshop
     assert "Nominate one device" not in workshop
+    assert "adds the others by reviewer number from inside the workbench" in workshop
+    assert "add them before submitting" in workshop
     assert ".workshop-mode .sidebar" in css
     assert ".workshop-mode .detail-stack > .panel:last-child" in css
     assert ".workshop-mode .layout { grid-template-columns: minmax(0, 1fr); }" in css

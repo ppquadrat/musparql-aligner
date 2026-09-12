@@ -3,7 +3,7 @@
 {% block content %}
   <p class="metadata">{{ value.round_name }}</p>
   <h1>Workshop</h1>
-  <p>Open any review batch, answer its short background questions, and review the pairs. You can move between batches whenever you like.</p>
+  <p>Open any review batch, answer its short background questions, and review the pairs. You can move between batches whenever you like. For team work, each person first creates their own profile; one person then opens the batch and adds the others by reviewer number from inside the workbench.</p>
   {% if result %}<p class="success" role="status">{{ result }}</p>{% endif %}
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 
@@ -23,12 +23,12 @@
   <section class="team-strip" aria-labelledby="team-heading">
     <div>
       <p id="team-heading"><strong>You are Team <span class="join-code">{{ team.join_code[:3] }} {{ team.join_code[3:] }}</span></strong> · {{ team.member_count }} member{% if team.member_count != 1 %}s{% endif %}</p>
-      <p>If you are working with someone, join their team below or give them your team number.</p>
+      <p>The workbench has the main team control: ask each teammate for their <code>reviewer-NNNN</code> number and add them before submitting. Alternatively, a teammate can join here using this six-digit team number.</p>
     </div>
     {% if value.is_open %}
       <form class="join-team-form" method="post" action="{{ url_for('portal.join_workshop_group') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label class="field">Join another team
+        <label class="field">Alternative: join by team number
           <input name="join_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 -]{6,7}" maxlength="7" placeholder="123 456" required>
         </label>
         <button class="secondary" type="submit">Join team</button>

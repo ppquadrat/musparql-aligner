@@ -329,6 +329,60 @@ def test_owner_issues_and_revokes_digest_only_workshop_entry_code(workshop_app) 
     assert b"IPL workshop entry" not in app.test_client().get("/auth/login").data
 
 
+def test_active_workbench_can_add_an_enrolled_teammate_by_reviewer_number(
+    workshop_app,
+) -> None:
+    app, sender, _database_path, _bundle_root = workshop_app
+    first = app.test_client()
+    second = app.test_client()
+    _login(first, app, sender, "first@example.invalid")
+    _login(second, app, sender, "second@example.invalid")
+
+    assert first.get("/workshop").status_code == 200
+    assert second.get("/workshop").status_code == 200
+    group = app.extensions["musparql_workshops"].dashboard(FIRST_ID).groups[0]
+    claimed = first.post(
+        f"/workshop/groups/{group.id}/packages/package-synthetic/claim",
+        data={"csrf_token": _csrf(first)},
+    )
+    assignment_id = claimed.location.rsplit("/", 1)[-1]
+    assert first.post(
+        f"/assignments/{assignment_id}", data=_assessment_form(first)
+    ).status_code == 302
+
+    context = first.get(
+        f"/assignments/{assignment_id}/workbench/host_context.js"
+    )
+    assert (
+        f'"add_team_member_url":"/assignments/{assignment_id}/team/members"'.encode()
+        in context.data
+    )
+    added = first.post(
+        f"/assignments/{assignment_id}/team/members",
+        data={"csrf_token": _csrf(first), "reviewer_id": SECOND_ID},
+    )
+    assert added.status_code == 200
+    assert added.get_json()["added"] is True
+    assert added.get_json()["member_count"] == 2
+    assert SECOND_ID in added.get_json()["missing_assessment_reviewer_ids"]
+    assert second.get(f"/assignments/{assignment_id}").status_code == 200
+
+    repeated = first.post(
+        f"/assignments/{assignment_id}/team/members",
+        data={"csrf_token": _csrf(first), "reviewer_id": SECOND_ID},
+    )
+    assert repeated.status_code == 200
+    assert repeated.get_json()["added"] is False
+    assert repeated.get_json()["member_count"] == 2
+
+    invalid = first.post(
+        f"/assignments/{assignment_id}/team/members",
+        data={"csrf_token": _csrf(first), "reviewer_id": "reviewer-9999"},
+    )
+    assert invalid.status_code == 422
+    assert invalid.get_json()["error"] == "Reviewer number is not available"
+
+
 def test_shared_code_creates_distinct_accounts_and_sessions_then_routes_to_consent(
     workshop_app,
 ) -> None:
@@ -1110,8 +1164,8 @@ def test_workshop_page_silently_creates_team_and_lists_each_batch_once(
     assert page.status_code == 200
     assert page.data.count(b"Synthetic Knowledge Graph") == 1
     assert b"You are Team" in page.data
-    assert b"join their team below or give them your team number" in page.data
-    assert b"Join another team" in page.data
+    assert b"add them before submitting" in page.data
+    assert b"Alternative: join by team number" in page.data
     assert b"Create a reviewing group" not in page.data
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
