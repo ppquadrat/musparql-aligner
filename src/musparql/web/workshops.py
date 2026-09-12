@@ -179,10 +179,16 @@ class WorkshopService:
                         ),
                     )
                     for item in assignments
-                    if item.participant_status in {"completed", "partial", "abandoned"}
-                    and reviewer_id in (item.closed_contributor_ids or ())
-                    and not self.assignments.assessment_is_complete(
+                    if not self.assignments.assessment_is_complete(
                         session, item, reviewer_id
+                    )
+                    and (
+                        item.participant_status in _ACTIVE_PARTICIPANT_STATUSES
+                        or (
+                            item.participant_status
+                            in {"completed", "partial", "abandoned"}
+                            and reviewer_id in (item.closed_contributor_ids or ())
+                        )
                     )
                 )
                 group_views.append(

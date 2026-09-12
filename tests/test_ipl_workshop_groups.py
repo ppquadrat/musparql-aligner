@@ -2580,8 +2580,17 @@ def test_partial_submission_keeps_assignment_open_and_preserves_missing_form(
         completion_type="partial",
     ).duplicate is True
     assert workshops.dashboard(FIRST_ID).groups[0].can_claim is True
-    outstanding = workshops.dashboard(THIRD_ID).groups[0].outstanding_assessments
-    assert outstanding == ()
+    third_dashboard = workshops.dashboard(THIRD_ID)
+    third_group = next(
+        group
+        for group in third_dashboard.groups
+        if group.id == third_dashboard.current_group_id
+    )
+    assert len(third_group.outstanding_assessments) == 1
+    assert third_group.outstanding_assessments[0].assignment_id == assignment_id
+    workshop_page = third.get("/workshop")
+    assert b"Background form still missing" in workshop_page.data
+    assert f'href="/assignments/{assignment_id}"'.encode() in workshop_page.data
 
     open_view = assignments.view(assignment_id, THIRD_ID)
     assert open_view.workbench_available is False
@@ -2604,7 +2613,10 @@ def test_partial_submission_keeps_assignment_open_and_preserves_missing_form(
         f"/assignments/{assignment_id}/workbench/"
     )
     assert third.get(assessment_response.location).status_code == 200
-    assert workshops.dashboard(THIRD_ID).groups[0].outstanding_assessments == ()
+    assert all(
+        not group.outstanding_assessments
+        for group in workshops.dashboard(THIRD_ID).groups
+    )
 
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
