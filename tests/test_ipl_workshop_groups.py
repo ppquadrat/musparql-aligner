@@ -2580,6 +2580,7 @@ def test_partial_submission_keeps_assignment_open_and_preserves_missing_form(
         completion_type="partial",
     ).duplicate is True
     assert workshops.dashboard(FIRST_ID).groups[0].can_claim is True
+    other_group_id = workshops.create_group(THIRD_ID)
     third_dashboard = workshops.dashboard(THIRD_ID)
     third_group = next(
         group
@@ -2591,6 +2592,9 @@ def test_partial_submission_keeps_assignment_open_and_preserves_missing_form(
     workshop_page = third.get("/workshop")
     assert b"Background form still missing" in workshop_page.data
     assert f'href="/assignments/{assignment_id}"'.encode() in workshop_page.data
+    other_team_selected = third.get(f"/workshop?group_id={other_group_id}")
+    assert b"Background form still missing" in other_team_selected.data
+    assert f'href="/assignments/{assignment_id}"'.encode() in other_team_selected.data
 
     open_view = assignments.view(assignment_id, THIRD_ID)
     assert open_view.workbench_available is False

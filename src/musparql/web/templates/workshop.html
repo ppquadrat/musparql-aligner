@@ -20,7 +20,7 @@
       <noscript><button class="secondary" type="submit">Switch team</button></noscript>
     </form>
   {% endif %}
-  {% for outstanding in team.outstanding_assessments %}
+  {% for outstanding in value.outstanding_assessments %}
     <p class="notice">Background form still missing for {{ outstanding.package_name }}. <a href="{{ url_for('portal.assignment', assignment_id=outstanding.assignment_id) }}">Fill in the form</a>.</p>
   {% endfor %}
 

@@ -76,6 +76,7 @@ class WorkshopView:
     allow_additional_assignments: bool
     current_group_id: str
     groups: tuple[ReviewGroupView, ...]
+    outstanding_assessments: tuple[OutstandingAssessmentView, ...]
     packages: tuple[WorkPackageView, ...]
 
 
@@ -279,6 +280,11 @@ class WorkshopService:
                 allow_additional_assignments=workshop_round.allow_additional_assignments,
                 current_group_id=selected_group.id,
                 groups=tuple(group_views),
+                outstanding_assessments=tuple(
+                    outstanding
+                    for group in group_views
+                    for outstanding in group.outstanding_assessments
+                ),
                 packages=tuple(package_views),
             )
 
