@@ -42,7 +42,20 @@ body {
 
 .hosted-session form { margin: 0; }
 .hosted-session a { color: var(--accent); }
-.hosted-team-code { margin-right: auto; color: var(--ink); font-weight: 700; }
+.hosted-team-code { margin-right: auto; color: var(--ink); font-weight: 700; position: relative; }
+.hosted-team-code summary { cursor: pointer; }
+.hosted-team-members {
+  position: absolute;
+  z-index: 5;
+  min-width: 18rem;
+  margin-top: 0.35rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.35rem;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  font-weight: 400;
+}
 .hosted-team-panel {
   display: grid;
   gap: 0.45rem;

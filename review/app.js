@@ -1375,12 +1375,15 @@
       els.submissionReceipt.append(
         document.createTextNode(` Pre-batch form still missing for ${result.missing_assessment_reviewer_ids.join(", ")}.`)
       );
-      if (result.assessment_url) {
+      const missingLinks = Array.isArray(result.missing_assessment_links)
+        ? result.missing_assessment_links
+        : [];
+      for (const missing of missingLinks) {
         els.submissionReceipt.append(document.createTextNode(" "));
         const assessmentLink = document.createElement("a");
-        assessmentLink.href = result.assessment_url;
-        assessmentLink.textContent = "Open the missing form";
-        assessmentLink.title = "Open this link in the missing reviewer’s signed-in browser.";
+        assessmentLink.href = missing.url;
+        assessmentLink.textContent = `Form link for ${missing.reviewer_id}`;
+        assessmentLink.title = `Open this link in ${missing.reviewer_id}’s signed-in browser.`;
         els.submissionReceipt.append(assessmentLink, document.createTextNode("."));
       }
     }
@@ -2316,17 +2319,22 @@
     bar.appendChild(identity);
 
     let team = null;
+    let teamSummary = null;
+    let teamMembers = null;
     if (hosted.workshop_mode && hosted.team_join_code) {
-      team = document.createElement("span");
+      team = document.createElement("details");
       const code = String(hosted.team_join_code);
       team.className = "hosted-team-code";
+      teamSummary = document.createElement("summary");
+      teamMembers = document.createElement("div");
+      teamMembers.className = "hosted-team-members";
       const members = Number(hosted.team_member_count) || 1;
-      team.textContent = `Team ${code.slice(0, 3)} ${code.slice(3)} · ${members} member${members === 1 ? "" : "s"}`;
+      teamSummary.textContent = `Team ${code.slice(0, 3)} ${code.slice(3)} · ${members} member${members === 1 ? "" : "s"}`;
       const memberIds = Array.isArray(hosted.team_member_reviewer_ids)
         ? hosted.team_member_reviewer_ids
         : [];
-      team.title = `Members: ${memberIds.join(", ")}`;
-      team.setAttribute("aria-label", `${team.textContent}. Members: ${memberIds.join(", ")}`);
+      teamMembers.textContent = `Members: ${memberIds.join(", ")}`;
+      team.append(teamSummary, teamMembers);
       bar.appendChild(team);
     }
 
@@ -2397,12 +2405,11 @@
           if (!response.ok) throw new Error(result.error || "Could not add that reviewer.");
           const members = Number(result.member_count) || 1;
           const code = String(hosted.team_join_code);
-          team.textContent = `Team ${code.slice(0, 3)} ${code.slice(3)} · ${members} member${members === 1 ? "" : "s"}`;
+          teamSummary.textContent = `Team ${code.slice(0, 3)} ${code.slice(3)} · ${members} member${members === 1 ? "" : "s"}`;
           const memberIds = Array.isArray(result.member_reviewer_ids)
             ? result.member_reviewer_ids
             : [];
-          team.title = `Members: ${memberIds.join(", ")}`;
-          team.setAttribute("aria-label", `${team.textContent}. Members: ${memberIds.join(", ")}`);
+          teamMembers.textContent = `Members: ${memberIds.join(", ")}`;
           status.textContent = result.added ? "Teammate added." : "That reviewer is already on this team.";
           reviewerInput.value = "";
         } catch (error) {

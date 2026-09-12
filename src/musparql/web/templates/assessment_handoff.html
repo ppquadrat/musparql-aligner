@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Open the missing form — Musparql review{% endblock %}
+{% block content %}
+  <h1>Open this link in the other reviewer’s window</h1>
+  <p class="notice">This graph-specific form is for <strong>{{ expected_reviewer_id }}</strong>, but this browser is signed in as <strong>{{ current_reviewer.id }}</strong>.</p>
+  <p>For the answers to be attributed correctly, copy this page’s address and open it in the private window or browser where <strong>{{ expected_reviewer_id }}</strong> is signed in. That reviewer will then see the expertise and graph-familiarity questions.</p>
+  <p><a class="button secondary" href="{{ url_for('portal.assignment_workbench', assignment_id=assignment_id) }}">Back to the workbench</a></p>
+{% endblock %}

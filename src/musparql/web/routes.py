@@ -839,6 +839,21 @@ def assignment(assignment_id: str):
     profiles = current_app.extensions["musparql_profiles"]
     if not profiles.is_complete(g.current_reviewer.id):
         return redirect(url_for("portal.profile"))
+    expected_reviewer_id = request.args.get("expected_reviewer_id", "")
+    if expected_reviewer_id and expected_reviewer_id != g.current_reviewer.id:
+        try:
+            team = current_app.extensions["musparql_workshops"].workbench_team(
+                g.current_reviewer.id, assignment_id
+            )
+        except WorkshopAccessError:
+            abort(404)
+        if expected_reviewer_id not in team["missing_assessment_reviewer_ids"]:
+            abort(404)
+        return render_template(
+            "assessment_handoff.html",
+            assignment_id=assignment_id,
+            expected_reviewer_id=expected_reviewer_id,
+        )
     service = current_app.extensions["musparql_assignments"]
     error = ""
     try:
@@ -948,10 +963,25 @@ def submit_assignment(assignment_id: str):
         missing = team["missing_assessment_reviewer_ids"]
         response["missing_assessment_reviewer_ids"] = missing
         response["assessment_url"] = (
-            url_for("portal.assignment", assignment_id=assignment_id)
+            url_for(
+                "portal.assignment",
+                assignment_id=assignment_id,
+                expected_reviewer_id=missing[0],
+            )
             if missing
             else None
         )
+        response["missing_assessment_links"] = [
+            {
+                "reviewer_id": reviewer_id,
+                "url": url_for(
+                    "portal.assignment",
+                    assignment_id=assignment_id,
+                    expected_reviewer_id=reviewer_id,
+                ),
+            }
+            for reviewer_id in missing
+        ]
         # Retained as a stable participant API endpoint, but no longer linked
         # from the workshop interface.
         response["submission_url"] = url_for(

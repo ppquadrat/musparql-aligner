@@ -69,7 +69,8 @@ def test_workshop_mode_is_a_scoped_single_pair_workbench() -> None:
     assert "Current work submitted." in app
     assert "Pre-batch form still missing for" in app
     assert 'els.submissionReceipt.textContent = "Saved on the server."' in app
-    assert 'assessmentLink.textContent = "Open the missing form"' in app
+    assert "missing_assessment_links" in app
+    assert "Form link for ${missing.reviewer_id}" in app
     assert "Receipt recorded" not in app
     assert 'receiptLink.textContent = "View submission"' not in app
     assert "const evidenceById = new Map" in app
@@ -78,7 +79,8 @@ def test_workshop_mode_is_a_scoped_single_pair_workbench() -> None:
     assert 'sourceLink.textContent = "Open source"' in app
     assert "hosted.team_join_code" in app
     assert "hosted.team_member_reviewer_ids" in app
-    assert 'team.title = `Members: ${memberIds.join(", ")}`' in app
+    assert 'teamMembers.textContent = `Members: ${memberIds.join(", ")}`' in app
+    assert 'team = document.createElement("details")' in app
     assert "hosted.add_team_member_url" in app
     assert "Add teammate" in app
     assert "create their own reviewer profile" in app

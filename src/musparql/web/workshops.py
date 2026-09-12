@@ -617,6 +617,37 @@ class WorkshopService:
             )
             if any(item.work_package_id == package_id for item in existing):
                 raise WorkshopAccessError("The group already has this work package")
+            if existing:
+                # A team belongs to one KG batch. Starting another batch creates
+                # a fresh one-person team; collaborators are added again from
+                # that batch's workbench.
+                for _attempt in range(20):
+                    group_id = "group-" + secrets.token_hex(12)
+                    join_code = self._join_code(group_id)
+                    if db_session.scalar(
+                        select(ReviewGroup.id).where(
+                            ReviewGroup.join_code_digest
+                            == self._join_digest(join_code)
+                        )
+                    ) is None:
+                        break
+                else:
+                    raise RuntimeError("Could not allocate a unique team code")
+                group = ReviewGroup(
+                    id=group_id,
+                    workshop_round_id=workshop_round.id,
+                    join_code_digest=self._join_digest(join_code),
+                    created_at=now,
+                )
+                db_session.add(group)
+                db_session.flush()
+                db_session.add(
+                    ReviewGroupMember(
+                        group_id=group_id,
+                        reviewer_id=reviewer_id,
+                        joined_at=now,
+                    )
+                )
 
             prompt_count = int(
                 db_session.scalar(

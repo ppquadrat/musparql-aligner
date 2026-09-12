@@ -1434,11 +1434,30 @@ def test_team_can_open_distinct_batches_at_the_same_time(workshop_app) -> None:
     )
 
     assert first_assignment != second_assignment
-    view = workshops.dashboard(FIRST_ID, group_id)
-    assert [package.action_label for package in view.packages] == [
-        "Complete setup",
-        "Complete setup",
-    ]
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        first_group_id = session.get(ReviewAssignment, first_assignment).review_group_id
+        second_group_id = session.get(ReviewAssignment, second_assignment).review_group_id
+        assert first_group_id == group_id
+        assert second_group_id != group_id
+        second_members = list(
+            session.scalars(
+                select(ReviewGroupMember.reviewer_id).where(
+                    ReviewGroupMember.group_id == second_group_id
+                )
+            )
+        )
+        assert second_members == [FIRST_ID]
+    engine.dispose()
+    assert [
+        package.action_label
+        for package in workshops.dashboard(FIRST_ID, first_group_id).packages
+    ] == ["Complete setup", "Start"]
+    assert [
+        package.action_label
+        for package in workshops.dashboard(FIRST_ID, second_group_id).packages
+    ] == ["Start", "Complete setup"]
 
 
 def test_submission_route_rejects_an_incomplete_profile(workshop_app) -> None:
@@ -2486,7 +2505,9 @@ def test_partial_submission_keeps_assignment_open_and_preserves_missing_form(
 ) -> None:
     app, sender, database_path, _bundle_root = workshop_app
     client = app.test_client()
+    third = app.test_client()
     _login(client, app, sender, "first@example.invalid")
+    _login(third, app, sender, "third@example.invalid")
     workshops = app.extensions["musparql_workshops"]
     assignments = app.extensions["musparql_assignments"]
     submissions = app.extensions["musparql_submissions"]
@@ -2528,8 +2549,25 @@ def test_partial_submission_keeps_assignment_open_and_preserves_missing_form(
     assert receipt_payload["completion_total_count"] == 2
     assert receipt_payload["missing_assessment_reviewer_ids"] == [THIRD_ID]
     assert receipt_payload["assessment_url"].endswith(
-        f"/assignments/{assignment_id}"
+        f"/assignments/{assignment_id}?expected_reviewer_id={THIRD_ID}"
     )
+    assert receipt_payload["missing_assessment_links"] == [
+        {
+            "reviewer_id": THIRD_ID,
+            "url": (
+                f"/assignments/{assignment_id}"
+                f"?expected_reviewer_id={THIRD_ID}"
+            ),
+        }
+    ]
+    wrong_window = client.get(receipt_payload["assessment_url"])
+    assert wrong_window.status_code == 200
+    assert f"form is for <strong>{THIRD_ID}</strong>".encode() in wrong_window.data
+    assert f"signed in as <strong>{FIRST_ID}</strong>".encode() in wrong_window.data
+    right_window = third.get(receipt_payload["assessment_url"])
+    assert right_window.status_code == 200
+    assert b"Subject expertise" in right_window.data
+    assert b"Resource familiarity" in right_window.data
     assert receipt_payload["submission_url"].endswith(
         f"/assignments/{assignment_id}/submission"
     )
@@ -2549,8 +2587,6 @@ def test_partial_submission_keeps_assignment_open_and_preserves_missing_form(
     assert open_view.workbench_available is False
     assert open_view.assessed is False
     assert open_view.assessment_deferrable is True
-    third = app.test_client()
-    _login(third, app, sender, "third@example.invalid")
     receipt_page = third.get(receipt_payload["submission_url"])
     assert receipt_page.status_code == 200
     assert receipt_id.encode() in receipt_page.data
