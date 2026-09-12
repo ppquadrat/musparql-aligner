@@ -8,10 +8,10 @@ the established non-workshop review interfaces.
 
 ## Delivery plan
 
-1. Gate workshop access on a complete profile, including a contact email for
-   shared-code participants.
-2. Replace the group-first dashboard with one selected team strip and one
-   review-batch catalogue.
+1. Gate workshop access on a complete profile, including separate required
+   first- and last-name fields and a contact email for shared-code participants.
+2. Replace the group-first dashboard with one review-batch catalogue and keep
+   each team's membership scoped to its selected batch.
 3. Route batch selection through the frozen KG form and directly into the
    workshop workbench.
 4. Give active-team joiners a direct route to the review with optional setup.
@@ -23,11 +23,15 @@ the established non-workshop review interfaces.
 
 ## Implemented behavior
 
-- The first Workshop-page visit silently creates a one-person team when the
-  participant has no team in the open round.
-- The Workshop page shows the current six-digit team code, member count,
-  concise join/share guidance, one join field, and each enabled batch exactly
-  once. Participant wording uses *team*, *review batch*, and *review*.
+- Starting a batch silently creates a one-person team for that batch. Changing
+  batches starts with a new one-person team, because expertise and teamwork are
+  KG-specific; collaborators add one another separately for each batch.
+- The Workshop page shows each enabled batch exactly once. The selected batch's
+  compact team switcher exposes the member count and explicit pseudonymous
+  reviewer IDs. There is no separate team-creation frame.
+- A participant can add a consenting collaborator from the workbench by their
+  pseudonymous reviewer ID. The server verifies that the reviewer exists and
+  records batch-specific membership; entering an ID is not a login mechanism.
 - Batch cards expose contextual states and actions: available/Start, setup
   needed/Complete setup, in progress/Continue, and submitted.
 - Saving the frozen KG-specific questions opens the workbench directly.
@@ -35,7 +39,8 @@ the established non-workshop review interfaces.
   **Skip for now and join review** route. Skipping creates no expertise value.
   It creates an append-only, pseudonymous deferral event with reviewer,
   assignment, and timestamp.
-- Shared-code profiles collect a normalized, uniqueness-checked contact email.
+- Shared-code profiles collect optional title plus separate, non-prefilled,
+  required first and last names, and a normalized, uniqueness-checked contact email.
   It remains unverified, is not a login credential, and is not added to review
   bundles or exports. The original synthetic placeholder no longer satisfies
   profile completion.
@@ -55,7 +60,8 @@ the established non-workshop review interfaces.
 ## Submission lifecycle
 
 Workshop submission is non-terminal and has no confirmation dialog. It records
-an immutable revision, displays an inline success banner, and leaves the
+an immutable revision, displays an inline success banner without exposing a
+participant-facing receipt link, and leaves the
 workbench open. A team can continue reviewing and submit a later revision; the
 latest accepted revision is selected for owner processing while earlier
 receipts remain immutable. Non-workshop assignments retain their existing
@@ -70,7 +76,12 @@ A skipped joiner can enter the active workbench without an expertise answer.
 If they later complete the form, the versioned assessment contract and database
 migration store those answers with `post_review_followup` context rather than
 misclassifying them as `pre_review`. Outstanding forms remain visible after
-submission in the success banner and through the attributable assessment path.
+submission in the success banner and on the owing reviewer's Workshop page,
+even when that reviewer is currently viewing another team. A link opened by the
+owing reviewer shows the actual expertise and graph-familiarity form with their
+name and reviewer ID. The same address opened in another member's signed-in
+browser shows an identity-handoff page, preventing answers from being
+attributed to the wrong person.
 
 ## Verification
 
@@ -83,7 +94,8 @@ The focused regression suite is:
   tests/test_v2_phase4_profiles.py
 ```
 
-The tests cover silent team creation, a non-duplicated batch catalogue,
-contact-email collection and unverified persistence, direct setup/join routes,
-workbench team context, workshop-only presentation scoping, stable attribution,
-submission behavior, and existing profile behavior.
+The tests cover batch-scoped team creation, direct collaborator addition,
+explicit member identity, a non-duplicated batch catalogue, structured-name and
+contact-email collection, cross-team outstanding-form recovery, identity-safe
+handoff, direct setup/join routes, workshop-only presentation scoping, stable
+attribution, submission behavior, and existing profile behavior.

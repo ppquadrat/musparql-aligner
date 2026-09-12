@@ -12,8 +12,9 @@ authorise real reviewer profiles, or permit deployment. The gates in
 - Completeness requires acknowledgement of the configured current notice,
   values for all three technical-experience fields, at least one language, and
   at least one research-domain assertion.
-- Name and optional affiliation begin with the owner's invitation values and
-  remain editable. The verified email is displayed but cannot be changed in
+- Title is optional. First name and last name are separate required fields and
+  are never prefilled from a pseudonymous reviewer ID. Optional affiliation
+  remains editable. The verified email is displayed but cannot be changed in
   Phase 4; a later email-change flow must reverify the new address.
 - The form records knowledge-graph/ontology, SPARQL, and NLP/language-model
   experience using the Phase 1 four-value contract.

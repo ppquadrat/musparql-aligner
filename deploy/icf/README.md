@@ -22,6 +22,25 @@ The application and worker run as the unprivileged `musparql` system account.
 Code updates remain an explicit sudo-operated action. Do not place real
 reviewer data in the checkout.
 
+## Reset a synthetic workshop rehearsal
+
+Only while the workshop contains synthetic test data, build a clean replacement
+database with `scripts/reset_ipl_workshop_test_state.py`. The command preserves
+the owner, frozen KG seed/package configuration, workshop round, active entry
+code, and owner session; it resets the entry-code redemption count and excludes
+all participant profiles, teams, forms, assignments, submissions, processing
+jobs, and participant sessions. It refuses to overwrite either database.
+
+Stop the web and worker first. Move the stopped database (including any WAL/SHM
+files) and the exact `review/submissions` and `review/candidates` directories
+into a timestamped directory below `/srv/musparql/deploy-snapshots`; do not use
+wildcards. Install the validated clean database and recreate those two durable
+directories with owner/group `musparql` and mode `0700`. Restart both services,
+then verify SQLite integrity and foreign keys, one owner, zero operational
+participant rows, four packages, one active entry code with zero redemptions,
+service health, and public HTTPS. Retain the snapshot until the rehearsal reset
+has been accepted.
+
 ## First installation
 
 Before cloning, verify whether the repository is anonymously readable:

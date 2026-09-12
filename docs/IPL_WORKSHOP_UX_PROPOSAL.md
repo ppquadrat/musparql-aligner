@@ -1,8 +1,11 @@
 # IPL workshop participant-flow and workbench proposal
 
-**Status:** implemented for the workshop flow on 12 September 2026; the
-revision-after-submission lifecycle remains deliberately deferred as documented in
-[`IPL_WORKSHOP_UX_IMPLEMENTATION.md`](IPL_WORKSHOP_UX_IMPLEMENTATION.md)
+**Status:** historical proposal, implemented with recorded rehearsal changes on
+12 September 2026. The final contract is documented in
+[`IPL_WORKSHOP_UX_IMPLEMENTATION.md`](IPL_WORKSHOP_UX_IMPLEMENTATION.md): teams
+are batch-scoped, teammates may be added by reviewer ID, changed submissions
+create later immutable revisions, and outstanding forms are recoverable from
+the owing reviewer's Workshop page.
 
 **Recorded:** 12 September 2026
 

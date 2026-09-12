@@ -626,12 +626,17 @@ Automated and synthetic rehearsal must prove:
 - email and shared-code admission both record the same current consent, while
   owner access remains independent of participant consent;
 - a one-member group and a multi-member group can each complete the journey;
-- a participant may join a second group without losing access to their first;
+- team membership is scoped to one KG batch, and switching to another batch
+  begins with a separate one-person team;
+- a participant can add a consenting collaborator to the current batch by
+  pseudonymous reviewer ID and can inspect the team's reviewer IDs;
 - a consented/profile-complete participant can join before or during active
   review and access the existing work immediately;
-- a missing late-joiner KG form never blocks a complete or partial submission
-  and is reported in submission feedback;
-- teams can open distinct package assignments concurrently and move among them;
+- a missing late-joiner KG form never blocks a complete or partial submission,
+  is reported in submission feedback, and remains linked from the owing
+  reviewer's Workshop page across team selections;
+- the same people may collaborate on multiple packages only by adding one
+  another separately to each package-specific team;
 - submitting a snapshot keeps the current assignment and workbench available;
 - two groups can claim the same package without sharing assignment or draft
   state;
