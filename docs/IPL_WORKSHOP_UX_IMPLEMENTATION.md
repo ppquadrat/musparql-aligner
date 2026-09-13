@@ -1,6 +1,7 @@
 # IPL workshop UX implementation
 
-**Status:** implemented on 12 September 2026
+**Status:** implemented on 12 September 2026; batch navigation refined on 13
+September 2026
 
 This change implements the participant-flow and workshop-workbench proposal in
 [`IPL_WORKSHOP_UX_PROPOSAL.md`](IPL_WORKSHOP_UX_PROPOSAL.md) without changing
@@ -26,9 +27,13 @@ the established non-workshop review interfaces.
 - Starting a batch silently creates a one-person team for that batch. Changing
   batches starts with a new one-person team, because expertise and teamwork are
   KG-specific; collaborators add one another separately for each batch.
-- The Workshop page shows each enabled batch exactly once. The selected batch's
-  compact team switcher exposes the member count and explicit pseudonymous
-  reviewer IDs. There is no separate team-creation frame.
+- The Workshop page shows each enabled batch exactly once and has no global
+  team selector. Each batch card independently returns the reviewer to the team
+  assignment they last opened for that batch. Starting a different batch
+  creates a separate team automatically.
+- A reviewer may belong to several teams, including several teams reviewing the
+  same batch. Opening one of those assignments updates only that reviewer's
+  remembered batch context; it does not change another member's batch card.
 - A participant can add a consenting collaborator from the workbench by their
   pseudonymous reviewer ID. The server verifies that the reviewer exists and
   records batch-specific membership; entering an ID is not a login mechanism.
@@ -94,7 +99,8 @@ The focused regression suite is:
   tests/test_v2_phase4_profiles.py
 ```
 
-The tests cover batch-scoped team creation, direct collaborator addition,
+The tests cover batch-scoped team creation, per-reviewer last-opened assignment
+memory, multiple teams for the same batch, direct collaborator addition,
 explicit member identity, a non-duplicated batch catalogue, structured-name and
 contact-email collection, cross-team outstanding-form recovery, identity-safe
 handoff, direct setup/join routes, workshop-only presentation scoping, stable

@@ -36,6 +36,7 @@ EMPTY_OPERATIONAL_TABLES = (
     "review_group_members",
     "workshop_assessment_deferrals",
     "review_assignments",
+    "reviewer_workshop_batch_contexts",
     "assignment_kg_seeds",
     "reviewer_kg_domain_assessments",
     "reviewer_resource_familiarity_assessments",

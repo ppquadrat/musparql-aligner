@@ -20,7 +20,7 @@
   {% endif %}
   {% if value.assignment.review_group_id and value.assignment.participant_status in ('not_started', 'active') %}
     <div class="actions">
-      <a class="button secondary" href="{{ url_for('portal.workshop', group_id=value.assignment.review_group_id) }}">Back to workshop</a>
+      <a class="button secondary" href="{{ url_for('portal.workshop') }}">Back to workshop</a>
     </div>
   {% endif %}
   {% if not value.assessed %}

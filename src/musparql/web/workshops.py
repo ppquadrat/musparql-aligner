@@ -19,6 +19,7 @@ from musparql.database.models import (
     ReviewGroupMember,
     ReviewSubmission,
     Reviewer,
+    ReviewerWorkshopBatchContext,
     WorkshopRound,
     WorkshopWorkPackage,
 )
@@ -111,7 +112,6 @@ class WorkshopService:
         self, reviewer_id: str, selected_group_id: str | None = None
     ) -> WorkshopView:
         now = timestamp(utc_now())
-        self._ensure_personal_group(reviewer_id, now)
         with self.sessions() as session:
             reviewer = session.get(Reviewer, reviewer_id)
             self._require_eligible(reviewer)
@@ -201,14 +201,13 @@ class WorkshopService:
                         active_package_name=(
                             package_names.get(active.work_package_id) if active else None
                         ),
-                        # A workshop team may move between the four batches at
-                        # will.  Each package has its own durable assignment;
-                        # an open assignment for one package must not block the
-                        # other three.
+                        # Teams are batch-scoped. A reviewer may start or join
+                        # separate teams for the other batches.
                         can_claim=round_is_open,
                         outstanding_assessments=outstanding_assessments,
                     )
                 )
+            selected_group: ReviewGroupView | None
             if selected_group_id is not None:
                 selected_group = next(
                     (group for group in group_views if group.id == selected_group_id),
@@ -219,9 +218,24 @@ class WorkshopService:
             else:
                 selected_group = next(
                     (group for group in group_views if group.active_assignment_id),
-                    group_views[0],
+                    group_views[0] if group_views else None,
                 )
-            selected_assignments = assignments_by_group[selected_group.id]
+            accessible_assignments = [
+                assignment
+                for assignments in assignments_by_group.values()
+                for assignment in assignments
+            ]
+            assignments_by_id = {
+                assignment.id: assignment for assignment in accessible_assignments
+            }
+            contexts = {
+                context.work_package_id: context.assignment_id
+                for context in session.scalars(
+                    select(ReviewerWorkshopBatchContext).where(
+                        ReviewerWorkshopBatchContext.reviewer_id == reviewer_id
+                    )
+                )
+            }
             package_views: list[WorkPackageView] = []
             for package in session.scalars(
                 select(WorkshopWorkPackage)
@@ -231,17 +245,29 @@ class WorkshopService:
                 )
                 .order_by(WorkshopWorkPackage.display_order)
             ):
-                assignment = next(
-                    (
-                        item
-                        for item in selected_assignments
-                        if item.work_package_id == package.id
-                    ),
-                    None,
+                candidates = [
+                    item
+                    for item in accessible_assignments
+                    if item.work_package_id == package.id
+                ]
+                remembered = assignments_by_id.get(contexts.get(package.id, ""))
+                assignment = (
+                    remembered
+                    if remembered is not None
+                    and remembered.work_package_id == package.id
+                    else max(
+                        candidates,
+                        key=lambda item: (
+                            item.opened_at or item.claimed_at or item.created_at,
+                            item.created_at,
+                            item.id,
+                        ),
+                        default=None,
+                    )
                 )
                 if assignment is None:
                     status = "available"
-                    action_label = "Start" if selected_group.can_claim else None
+                    action_label = "Start" if round_is_open else None
                 elif assignment.participant_status in _ACTIVE_PARTICIPANT_STATUSES:
                     assessed = self.assignments.assessment_is_complete(
                         session, assignment, reviewer_id
@@ -278,7 +304,7 @@ class WorkshopService:
                 round_name=workshop_round.name,
                 is_open=round_is_open,
                 allow_additional_assignments=workshop_round.allow_additional_assignments,
-                current_group_id=selected_group.id,
+                current_group_id=selected_group.id if selected_group else "",
                 groups=tuple(group_views),
                 outstanding_assessments=tuple(
                     outstanding
@@ -287,61 +313,6 @@ class WorkshopService:
                 ),
                 packages=tuple(package_views),
             )
-
-    def _ensure_personal_group(self, reviewer_id: str, now: str) -> None:
-        """Create the participant's one-person team on first workshop entry."""
-        session = self.sessions()
-        try:
-            session.execute(text("BEGIN IMMEDIATE"))
-            reviewer = session.get(Reviewer, reviewer_id)
-            self._require_eligible(reviewer)
-            open_rounds = self._open_rounds(session, now)
-            if not open_rounds:
-                if self._latest_joined_round(session, reviewer_id) is not None:
-                    session.commit()
-                    return
-                raise WorkshopUnavailable("No workshop round is available")
-            if len(open_rounds) != 1:
-                raise WorkshopUnavailable("Exactly one workshop round must be open")
-            workshop_round = open_rounds[0]
-            existing = session.scalar(select(ReviewGroupMember.group_id).join(
-                ReviewGroup, ReviewGroup.id == ReviewGroupMember.group_id
-            ).where(
-                ReviewGroupMember.reviewer_id == reviewer_id,
-                ReviewGroup.workshop_round_id == workshop_round.id,
-            ).limit(1))
-            if existing is None:
-                for _attempt in range(20):
-                    group_id = "group-" + secrets.token_hex(12)
-                    join_code = self._join_code(group_id)
-                    if session.scalar(
-                        select(ReviewGroup.id).where(
-                            ReviewGroup.join_code_digest == self._join_digest(join_code)
-                        )
-                    ) is None:
-                        break
-                else:
-                    raise RuntimeError("Could not allocate a unique team code")
-                session.add(
-                    ReviewGroup(
-                        id=group_id,
-                        workshop_round_id=workshop_round.id,
-                        join_code_digest=self._join_digest(join_code),
-                        created_at=now,
-                    )
-                )
-                session.flush()
-                session.add(
-                    ReviewGroupMember(
-                        group_id=group_id, reviewer_id=reviewer_id, joined_at=now
-                    )
-                )
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
 
     def create_group(self, reviewer_id: str) -> str:
         now = timestamp(utc_now())
@@ -489,6 +460,48 @@ class WorkshopService:
                 "missing_assessment_reviewer_ids": sorted(missing),
             }
 
+    def remember_batch_assignment(
+        self, reviewer_id: str, assignment_id: str
+    ) -> bool:
+        """Remember this accessible team as the reviewer's context for its batch."""
+        now = timestamp(utc_now())
+        session = self.sessions()
+        try:
+            session.execute(text("BEGIN IMMEDIATE"))
+            assignment = session.get(ReviewAssignment, assignment_id)
+            if assignment is None:
+                raise LookupError("Assignment does not exist")
+            if assignment.work_package_id is None:
+                session.commit()
+                return False
+            if assignment.review_group_id is None or session.get(
+                ReviewGroupMember, (assignment.review_group_id, reviewer_id)
+            ) is None:
+                raise WorkshopAccessError("Team review is not available")
+            context = session.get(
+                ReviewerWorkshopBatchContext,
+                (reviewer_id, assignment.work_package_id),
+            )
+            if context is None:
+                session.add(
+                    ReviewerWorkshopBatchContext(
+                        reviewer_id=reviewer_id,
+                        work_package_id=assignment.work_package_id,
+                        assignment_id=assignment.id,
+                        selected_at=now,
+                    )
+                )
+            else:
+                context.assignment_id = assignment.id
+                context.selected_at = now
+            session.commit()
+            return True
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     def add_assignment_member(
         self, actor_id: str, assignment_id: str, teammate_id: str
     ) -> bool:
@@ -518,20 +531,10 @@ class WorkshopService:
                 ReviewGroupMember, (assignment.review_group_id, actor_id)
             )
             workshop_round = self._open_round(session, now)
-            teammate_enrolled = session.scalar(
-                select(ReviewGroupMember.reviewer_id)
-                .join(ReviewGroup, ReviewGroup.id == ReviewGroupMember.group_id)
-                .where(
-                    ReviewGroupMember.reviewer_id == teammate_id,
-                    ReviewGroup.workshop_round_id == workshop_round.id,
-                )
-                .limit(1)
-            )
             if (
                 group is None
                 or actor_member is None
                 or group.workshop_round_id != workshop_round.id
-                or teammate_enrolled is None
             ):
                 raise WorkshopAccessError("Reviewer number is not available")
             existing = session.get(
@@ -547,6 +550,19 @@ class WorkshopService:
                     joined_at=now,
                 )
             )
+            session.flush()
+            if assignment.work_package_id is not None and session.get(
+                ReviewerWorkshopBatchContext,
+                (teammate_id, assignment.work_package_id),
+            ) is None:
+                session.add(
+                    ReviewerWorkshopBatchContext(
+                        reviewer_id=teammate_id,
+                        work_package_id=assignment.work_package_id,
+                        assignment_id=assignment.id,
+                        selected_at=now,
+                    )
+                )
             session.commit()
             return True
         except Exception:
@@ -556,7 +572,7 @@ class WorkshopService:
             session.close()
 
     def claim_package(
-        self, *, reviewer_id: str, group_id: str, package_id: str
+        self, *, reviewer_id: str, group_id: str | None, package_id: str
     ) -> str:
         """Atomically claim a reusable package for one reviewing group."""
         with self.sessions() as session:
@@ -597,9 +613,38 @@ class WorkshopService:
             reviewer = db_session.get(Reviewer, reviewer_id)
             self._require_eligible(reviewer)
             workshop_round = self._open_round(db_session, now)
-            group = db_session.get(ReviewGroup, group_id)
             package = db_session.get(WorkshopWorkPackage, package_id)
-            member = db_session.get(ReviewGroupMember, (group_id, reviewer_id))
+            if group_id is None:
+                for _attempt in range(20):
+                    group_id = "group-" + secrets.token_hex(12)
+                    join_code = self._join_code(group_id)
+                    if db_session.scalar(
+                        select(ReviewGroup.id).where(
+                            ReviewGroup.join_code_digest
+                            == self._join_digest(join_code)
+                        )
+                    ) is None:
+                        break
+                else:
+                    raise RuntimeError("Could not allocate a unique team code")
+                group = ReviewGroup(
+                    id=group_id,
+                    workshop_round_id=workshop_round.id,
+                    join_code_digest=self._join_digest(join_code),
+                    created_at=now,
+                )
+                db_session.add(group)
+                db_session.flush()
+                member = ReviewGroupMember(
+                    group_id=group_id,
+                    reviewer_id=reviewer_id,
+                    joined_at=now,
+                )
+                db_session.add(member)
+                db_session.flush()
+            else:
+                group = db_session.get(ReviewGroup, group_id)
+                member = db_session.get(ReviewGroupMember, (group_id, reviewer_id))
             if (
                 group is None
                 or member is None
@@ -720,6 +765,21 @@ class WorkshopService:
                     seed_digest=package.seed_digest,
                 )
             )
+            context = db_session.get(
+                ReviewerWorkshopBatchContext, (reviewer_id, package.id)
+            )
+            if context is None:
+                db_session.add(
+                    ReviewerWorkshopBatchContext(
+                        reviewer_id=reviewer_id,
+                        work_package_id=package.id,
+                        assignment_id=assignment_id,
+                        selected_at=now,
+                    )
+                )
+            else:
+                context.assignment_id = assignment_id
+                context.selected_at = now
             db_session.commit()
             return assignment_id
         except Exception:

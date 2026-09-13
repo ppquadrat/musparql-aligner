@@ -150,7 +150,7 @@ def _seed_database(sessions) -> None:
 
 def test_alembic_upgrade_creates_complete_schema_and_sqlite_safety(database) -> None:
     database_path, engine, _sessions = database
-    assert current_revision(database_path) == "20260912_11"
+    assert current_revision(database_path) == "20260913_12"
     assert database_path.stat().st_mode & 0o777 == 0o600
     tables = set(inspect(engine).get_table_names())
     assert {
@@ -164,6 +164,7 @@ def test_alembic_upgrade_creates_complete_schema_and_sqlite_safety(database) -> 
         "review_group_members", "workshop_work_packages",
         "workshop_session_resets",
         "workshop_admission_attempts", "workshop_admission_nonces",
+        "reviewer_workshop_batch_contexts",
     } <= tables
     with engine.connect() as connection:
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
@@ -181,6 +182,8 @@ def test_alembic_upgrade_creates_complete_schema_and_sqlite_safety(database) -> 
             "reviewer_kg_domain_assessments_assignment_member_insert",
             "reviewer_resource_familiarity_assessments_assignment_member_insert",
             "workshop_assessment_deferrals_assignment_member_insert",
+            "reviewer_workshop_batch_contexts_valid_insert",
+            "reviewer_workshop_batch_contexts_valid_update",
         } <= trigger_names
 
 
@@ -648,7 +651,7 @@ def test_alembic_downgrade_and_reupgrade(tmp_path: Path) -> None:
     command.downgrade(alembic_config(database_path), "base")
     assert current_revision(database_path) is None
     upgrade_database(database_path)
-    assert current_revision(database_path) == "20260912_11"
+    assert current_revision(database_path) == "20260913_12"
 
 
 @pytest.mark.parametrize("revision_ten_data", ["deferral", "followup"])
@@ -738,7 +741,7 @@ def test_database_path_with_url_delimiters_is_not_reparsed(tmp_path: Path) -> No
     upgrade_database(database_path)
     assert database_path.is_file()
     assert not (tmp_path / "musparql").exists()
-    assert current_revision(database_path) == "20260912_11"
+    assert current_revision(database_path) == "20260913_12"
     engine = create_database_engine(database_path)
     try:
         assert set(inspect(engine).get_table_names()) >= {"reviewers", "review_assignments"}
@@ -969,7 +972,7 @@ def test_schema_cli_diagnostics_do_not_print_profile_fields(tmp_path: Path, caps
     database_path = tmp_path / "diagnostic.sqlite3"
     assert main(["upgrade", "--database", str(database_path)]) == 0
     output = capsys.readouterr().out
-    assert output == "Database schema upgraded to 20260912_11.\n"
+    assert output == "Database schema upgraded to 20260913_12.\n"
     assert "Synthetic Reviewer" not in output
     assert "@example.invalid" not in output
     engine = create_database_engine(database_path)

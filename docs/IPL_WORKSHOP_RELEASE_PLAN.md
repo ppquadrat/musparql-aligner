@@ -90,7 +90,7 @@ foundation:
 
 These should be extended, not rebuilt.
 
-## 4. What is missing for IPL
+## 4. Workshop-critical scope
 
 Only the following is workshop-critical:
 
@@ -108,9 +108,11 @@ Only the following is workshop-critical:
    reviewer IDs.
 6. **Simple lifecycle:** move among batches, preserve drafts, and submit
    complete or partial snapshots without closing the workbench.
-7. **ICF deployment:** install and rehearse the exact release on the current VPS,
+7. **Batch context:** remember the last team assignment each reviewer opened for
+   each batch, so the Workshop page needs no global team selector.
+8. **ICF deployment:** install and rehearse the exact release on the current VPS,
    not WSL.
-8. **Workshop operation:** a short run sheet, safe counts, code close/revoke,
+9. **Workshop operation:** a short run sheet, safe counts, code close/revoke,
    and post-session receipt check.
 
 ## 5. Minimal data model
@@ -193,6 +195,13 @@ review_group_members
   reviewer_id
   joined_at
   primary key               group_id, reviewer_id
+
+reviewer_workshop_batch_contexts
+  reviewer_id
+  work_package_id
+  assignment_id             last team assignment opened for this batch
+  selected_at
+  primary key               reviewer_id, work_package_id
 ```
 
 There are deliberately no expertise roles, invitations, acceptance states,
@@ -215,6 +224,12 @@ A reviewer may belong to more than one batch-scoped group in the round, so a
 scarce expert can help another active assignment. Membership is unique only
 within a group. Being added means being named as a contributor to that
 assignment; it is not an informal observer role.
+
+The Workshop page does not select a global team. For each batch it resolves the
+reviewer's remembered assignment independently. Opening a setup form or
+workbench updates that reviewer's pointer for that batch. Separate reviewers
+may therefore return to different teams for the same batch even when each is a
+member of both teams.
 
 The active workbench provides a simple “add a team member” action and shows the
 current member IDs. Adding a reviewer joins that existing assignment; it does
@@ -382,7 +397,8 @@ Package choice is intentionally simple:
 - there is no automatic matching or capacity allocation;
 - starting a package creates a fresh batch-scoped group assignment atomically;
 - several groups may claim the same package;
-- a person may keep one separately teamed assignment open for each package; and
+- a person may belong to multiple team assignments for the same package, while
+  their batch card returns to the one they opened most recently; and
 - package and seed digests are checked when claimed, opened, and submitted.
 
 The workbench exposes two actions:
@@ -414,8 +430,9 @@ existing contributors may still reopen and submit that assignment after the
 scheduled workshop window. This prevents the timetable boundary from turning a
 valid submit or reload into an unexplained 404.
 
-Each team belongs to one enabled package. A participant can move among their
-separately teamed assignments. Submission feedback flags every outstanding
+Each team belongs to one enabled package. A participant moves among batches
+without selecting a global team; every batch card resolves its own remembered
+assignment. Submission feedback flags every outstanding
 KG-specific form; the owing reviewer also sees its direct link on the Workshop
 page regardless of which team is selected.
 

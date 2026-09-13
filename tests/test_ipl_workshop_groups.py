@@ -9,12 +9,13 @@ from pathlib import Path
 import re
 import threading
 
+from alembic import command
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from musparql.database import create_database_engine, session_factory
-from musparql.database.migrations import upgrade_database
+from musparql.database.migrations import alembic_config, upgrade_database
 from musparql.database.models import (
     AssignmentKgSeed,
     AuthSession,
@@ -29,6 +30,7 @@ from musparql.database.models import (
     ReviewerKgDomainAssessment,
     ReviewerLanguage,
     ReviewerResourceFamiliarityAssessment,
+    ReviewerWorkshopBatchContext,
     ReviewAssignment,
     ReviewGroupMember,
     ReviewSubmission,
@@ -343,9 +345,8 @@ def test_active_workbench_can_add_an_enrolled_teammate_by_reviewer_number(
 
     assert first.get("/workshop").status_code == 200
     assert second.get("/workshop").status_code == 200
-    group = app.extensions["musparql_workshops"].dashboard(FIRST_ID).groups[0]
     claimed = first.post(
-        f"/workshop/groups/{group.id}/packages/package-synthetic/claim",
+        "/workshop/packages/package-synthetic/claim",
         data={"csrf_token": _csrf(first)},
     )
     assignment_id = claimed.location.rsplit("/", 1)[-1]
@@ -1198,7 +1199,7 @@ def _assessment_form(client) -> dict[str, str]:
     }
 
 
-def test_workshop_page_silently_creates_team_and_lists_each_batch_once(
+def test_workshop_page_lists_each_batch_without_creating_an_empty_team(
     workshop_app,
 ) -> None:
     app, sender, database_path, _bundle_root = workshop_app
@@ -1219,7 +1220,7 @@ def test_workshop_page_silently_creates_team_and_lists_each_batch_once(
             select(func.count())
             .select_from(ReviewGroupMember)
             .where(ReviewGroupMember.reviewer_id == FIRST_ID)
-        ) == 1
+        ) == 0
     engine.dispose()
 
 
@@ -1343,12 +1344,12 @@ def test_assessment_and_deferral_race_preserves_timing_provenance(
     engine.dispose()
 
 
-def test_workshop_dashboard_allows_an_explicit_member_team_selection(
+def test_workshop_page_has_no_global_team_selection(
     workshop_app,
 ) -> None:
     app, sender, _database_path, _bundle_root = workshop_app
     workshops = app.extensions["musparql_workshops"]
-    personal = workshops.dashboard(FIRST_ID).current_group_id
+    personal = workshops.create_group(FIRST_ID)
     second_group = workshops.create_group(FIRST_ID)
 
     assert second_group != personal
@@ -1358,8 +1359,9 @@ def test_workshop_dashboard_allows_an_explicit_member_team_selection(
     _login(client, app, sender, "first@example.invalid")
     page = client.get(f"/workshop?group_id={second_group}")
     assert page.status_code == 200
-    assert b"Switch team" in page.data
-    assert f'value="{second_group}" selected'.encode() in page.data
+    assert b"Switch team" not in page.data
+    assert b"Current team" not in page.data
+    assert b'name="group_id"' not in page.data
 
 
 def test_team_can_open_distinct_batches_at_the_same_time(workshop_app) -> None:
@@ -1453,11 +1455,89 @@ def test_team_can_open_distinct_batches_at_the_same_time(workshop_app) -> None:
     assert [
         package.action_label
         for package in workshops.dashboard(FIRST_ID, first_group_id).packages
-    ] == ["Complete setup", "Start"]
+    ] == ["Complete setup", "Complete setup"]
     assert [
         package.action_label
         for package in workshops.dashboard(FIRST_ID, second_group_id).packages
-    ] == ["Start", "Complete setup"]
+    ] == ["Complete setup", "Complete setup"]
+
+
+def test_each_reviewer_remembers_their_last_opened_team_for_a_batch(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    first_group = workshops.create_group(FIRST_ID)
+    second_group = workshops.create_group(SECOND_ID)
+    first_assignment = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=first_group,
+        package_id="package-synthetic",
+    )
+    second_assignment = workshops.claim_package(
+        reviewer_id=SECOND_ID,
+        group_id=second_group,
+        package_id="package-synthetic",
+    )
+
+    assert workshops.add_assignment_member(
+        FIRST_ID, first_assignment, SECOND_ID
+    ) is True
+    assert workshops.add_assignment_member(
+        SECOND_ID, second_assignment, FIRST_ID
+    ) is True
+    assert workshops.dashboard(FIRST_ID).packages[0].assignment_id == first_assignment
+    assert workshops.dashboard(SECOND_ID).packages[0].assignment_id == second_assignment
+
+    first = app.test_client()
+    _login(first, app, sender, "first@example.invalid")
+    assert first.get(f"/assignments/{second_assignment}").status_code == 200
+    assert workshops.dashboard(FIRST_ID).packages[0].assignment_id == second_assignment
+    assert workshops.dashboard(SECOND_ID).packages[0].assignment_id == second_assignment
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            contexts = {
+                context.reviewer_id: context.assignment_id
+                for context in session.scalars(select(ReviewerWorkshopBatchContext))
+            }
+            assert contexts == {
+                FIRST_ID: second_assignment,
+                SECOND_ID: second_assignment,
+            }
+    finally:
+        engine.dispose()
+
+
+def test_batch_context_migration_backfills_an_existing_team_assignment(
+    workshop_app,
+) -> None:
+    app, _sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    group_id = workshops.create_group(FIRST_ID)
+    assignment_id = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=group_id,
+        package_id="package-synthetic",
+    )
+
+    command.downgrade(alembic_config(database_path), "20260912_11")
+    upgrade_database(database_path)
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            context = session.get(
+                ReviewerWorkshopBatchContext,
+                (FIRST_ID, "package-synthetic"),
+            )
+            assert context is not None
+            assert context.assignment_id == assignment_id
+    finally:
+        engine.dispose()
 
 
 def test_submission_route_rejects_an_incomplete_profile(workshop_app) -> None:
@@ -1619,7 +1699,7 @@ def test_group_journey_is_isolated_and_opens_after_initial_members_assess(
     assert f'"draft_owner_id":"{group.id}"'.encode() in context
     assert b'"submission_url"' in context
     assert b'"partial_submission_url"' in context
-    assert f'"workshop_url":"/workshop?group_id={group.id}"'.encode() in context
+    assert b'"workshop_url":"/workshop"' in context
     assert b'"workshop_mode":true' in context
     assert f'"team_join_code":"{group.join_code}"'.encode() in context
     assert b'"abandon_url"' not in context

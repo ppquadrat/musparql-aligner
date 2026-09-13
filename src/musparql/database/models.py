@@ -467,6 +467,20 @@ class ReviewAssignment(Base):
     )
 
 
+class ReviewerWorkshopBatchContext(Base):
+    """The team assignment a reviewer last opened for one workshop batch."""
+
+    __tablename__ = "reviewer_workshop_batch_contexts"
+    reviewer_id: Mapped[str] = mapped_column(
+        ForeignKey("reviewers.id"), primary_key=True
+    )
+    work_package_id: Mapped[str] = mapped_column(
+        ForeignKey("workshop_work_packages.id"), primary_key=True
+    )
+    assignment_id: Mapped[str] = mapped_column(ForeignKey("review_assignments.id"))
+    selected_at: Mapped[str] = mapped_column(String)
+
+
 class AssignmentKgSeed(Base):
     __tablename__ = "assignment_kg_seeds"
     assignment_id: Mapped[str] = mapped_column(ForeignKey("review_assignments.id"), primary_key=True)

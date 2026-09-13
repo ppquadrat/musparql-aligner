@@ -277,6 +277,31 @@ def claim_workshop_package(group_id: str, package_id: str):
     )
 
 
+@portal.post("/workshop/packages/<package_id>/claim")
+@consent_required
+def start_workshop_package(package_id: str):
+    if g.current_reviewer.id == current_app.config["OWNER_REVIEWER_ID"]:
+        abort(404)
+    if not current_app.extensions["musparql_profiles"].is_complete(
+        g.current_reviewer.id
+    ):
+        abort(403)
+    try:
+        assignment_id = current_app.extensions["musparql_workshops"].claim_package(
+            reviewer_id=g.current_reviewer.id,
+            group_id=None,
+            package_id=package_id,
+        )
+    except WorkshopAccessError:
+        return redirect(url_for("portal.workshop", error="claim-unavailable"))
+    except WorkshopUnavailable:
+        abort(404)
+    except ValueError:
+        current_app.logger.error("Workshop package failed integrity validation")
+        return redirect(url_for("portal.workshop", error="claim-unavailable"))
+    return redirect(url_for("portal.assignment", assignment_id=assignment_id))
+
+
 @portal.post("/assignments/<assignment_id>/abandon")
 @consent_required
 def abandon_workshop_assignment(assignment_id: str):
@@ -859,6 +884,10 @@ def assignment(assignment_id: str):
     try:
         if request.method == "POST":
             before = service.view(assignment_id, g.current_reviewer.id)
+            if before.assignment.review_group_id is not None:
+                current_app.extensions[
+                    "musparql_workshops"
+                ].remember_batch_assignment(g.current_reviewer.id, assignment_id)
             service.assess(
                 assignment_id,
                 g.current_reviewer.id,
@@ -874,6 +903,10 @@ def assignment(assignment_id: str):
                 )
             return redirect(url_for("portal.assignment", assignment_id=assignment_id))
         value = service.view(assignment_id, g.current_reviewer.id)
+        if value.assignment.review_group_id is not None:
+            current_app.extensions["musparql_workshops"].remember_batch_assignment(
+                g.current_reviewer.id, assignment_id
+            )
     except LookupError:
         abort(404)
     except ValueError:
@@ -1053,6 +1086,14 @@ def _hosted_assignment_bundle(assignment_id: str) -> dict[str, Any]:
 @portal.get("/assignments/<assignment_id>/workbench/")
 @complete_profile_required
 def assignment_workbench(assignment_id: str):
+    try:
+        current_app.extensions["musparql_workshops"].remember_batch_assignment(
+            g.current_reviewer.id, assignment_id
+        )
+    except LookupError:
+        abort(404)
+    except WorkshopAccessError:
+        abort(403)
     payload = _hosted_assignment_bundle(assignment_id)
     root_key = (
         "LINGUISTIC_WORKBENCH_ROOT"
@@ -1102,17 +1143,13 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
                 g.current_reviewer.id, assignment_id
             )
             context.update(
-                assignments_url=url_for(
-                    "portal.workshop", group_id=payload["review_group_id"]
-                ),
+                assignments_url=url_for("portal.workshop"),
                 partial_submission_url=url_for(
                     "portal.submit_assignment",
                     assignment_id=assignment_id,
                     completion="partial",
                 ),
-                workshop_url=url_for(
-                    "portal.workshop", group_id=payload["review_group_id"]
-                ),
+                workshop_url=url_for("portal.workshop"),
                 workshop_mode=True,
                 team_join_code=team["join_code"],
                 team_member_count=team["member_count"],

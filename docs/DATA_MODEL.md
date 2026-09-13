@@ -214,6 +214,15 @@ services, and immutable-row triggers preserve one non-branching history per
 subject. Operational commands and handling rules are in
 `docs/DATABASE_RUNBOOK.md`.
 
+The IPL workshop adds reusable work packages and batch-scoped reviewing groups.
+`reviewer_workshop_batch_contexts` stores one mutable navigation pointer per
+reviewer and work package: the team assignment that reviewer opened most
+recently. Database triggers require the pointer's assignment to use that package
+and require the reviewer to be a member of its group. This is navigation state,
+not review provenance; different reviewers may remember different assignments
+for the same package, and one reviewer may belong to several groups reviewing
+that package.
+
 The browser bundle is generated and ignored. It contains candidate records,
 their run provenance, source evidence, SPARQL provenance, and holdout eligibility
 information.
