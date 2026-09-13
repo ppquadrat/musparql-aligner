@@ -1,8 +1,10 @@
 # IPL workshop: minimal release plan
 
-**Status:** standalone, time-boxed delivery plan
+**Status:** implemented and deployed; final synthetic acceptance in progress
 
 **Prepared:** 10 September 2026
+
+**Last reviewed:** 13 September 2026
 
 **Workshop:** Wednesday 16 September 2026, 09:00–10:45 CET
 
@@ -12,9 +14,10 @@
 
 ## 1. Decision
 
-This is a separate plan. Do not amend or try to finish the full v2 plan before
-the workshop. After the workshop, rewrite the v2 plan against the current ICF
-hosting setup and fold the successful workshop work into it.
+This is the standalone delivery record for the time-boxed workshop release. The
+full v2 plan remains an architectural baseline; current ICF production hosting
+is governed by `ICF_HOSTING_BOUNDARY.md`, and current participant behaviour is
+governed by `IPL_WORKSHOP_UX_IMPLEMENTATION.md`.
 
 The workshop release has one narrow purpose: allow individually registered and
 consented participants to form reviewing groups of one or more people in the
@@ -432,17 +435,18 @@ valid submit or reload into an unexplained 404.
 
 Each team belongs to one enabled package. A participant moves among batches
 without selecting a global team; every batch card resolves its own remembered
-assignment. Submission feedback flags every outstanding
-KG-specific form; the owing reviewer also sees its direct link on the Workshop
-page regardless of which team is selected.
+assignment. Submission feedback flags every outstanding KG-specific form; the
+owing reviewer also sees its direct link on the Workshop page regardless of
+which batch they last opened.
 
 ALyrA, LinkedMusic, and the linguistic-dimensions study are outside this
 workshop package set.
 
-## 8. Pipeline boundary and separate UI work
+## 8. Pipeline and workbench boundary
 
-This plan does not redesign the initial workbench. The pipeline work required
-before the redesign is:
+The dedicated workshop presentation is implemented without changing the
+pipeline's provenance, draft, or immutable-submission contracts. Its boundary
+is:
 
 1. create assignments from frozen packages for a reviewing group and permit
    authenticated late joins while the workshop round is open;
@@ -457,15 +461,17 @@ before the redesign is:
 7. provide a pseudonymous overlap export keyed by group, package, assignment,
    item, bundle digest, completion type, and decision.
 
-The later IPL workbench-redesign plan can change the sequence and presentation
-inside the workbench without reopening group, package, or provenance design.
+The batch-first workshop page and workbench behaviour are specified in
+`IPL_WORKSHOP_UX_IMPLEMENTATION.md`. Future presentation changes must preserve
+the group, package, and provenance contracts above.
 
 ## 9. Deployment and data safety
 
-Use the current ICF production boundary and add only the missing focused ICF
-deployment artifacts: unprivileged web/worker service definitions, non-secret
-environment template, HTTPS proxy configuration, migration/rollback steps, and
-health/permission/log checks.
+Use the deployed ICF production artifacts: unprivileged web/worker service
+definitions, non-secret environment template, HTTPS proxy configuration,
+migration/rollback steps, and health/permission/log checks. Each release still
+requires an application-consistent snapshot, exact-commit deployment, migration
+verification, and health checks.
 
 Do not change ICF's firewall, SSH, fail2ban, update, escrow, or backup controls.
 All database, package, submission, and processing state stays under ICF-backed
@@ -503,31 +509,27 @@ legal rule:
 - **Team working:** add one sentence to the notice/readiness note explaining
   pseudonymous joint attribution. No expertise-role or team-allocation approval
   is required unless ICF asks for a change.
-- **DMP registration:** do not seek a separate pre-workshop confirmation. ICF
-  has not identified it as an additional action needed for this workshop. Keep
-  it as part of the wider project's governance work after the workshop; it is
-  neither a software dependency nor, by itself, a GDPR precondition to this
-  release.
+- **DMP registration:** ICF's production boundary requires its data-management-
+  plan registration check before the first real invitation. It is not needed
+  for synthetic rehearsal, but the workshop plan does not waive the ICF gate.
 - **Recovery time:** GDPR requires risk-appropriate measures and timely ability
   to restore access; it does not prescribe a universal 15-minute recovery
   point. The existing daily encrypted backup plus the checks above is the MVP
   position unless ICF identifies a stricter contractual requirement.
 
-Because the checked-in hosting boundary currently lists SMTP and DMP among its
-real-use gates, reconcile that document before deployment with this recorded
-workshop decision. Do not leave two contradictory release rules in the
-repository. This is a documentation/governance correction, not a request to
-reconfigure ICF infrastructure.
+The checked-in ICF hosting boundary remains authoritative for real-reviewer use,
+including its SMTP and ICF data-management-plan checks. The workshop's
+synthetic shared-code rehearsal does not override those requirements.
 
 ## 11. Delivery order
 
-Implementation status (11 September 2026): route and service implementation
-through item 7 is complete. The database
-foundation and participant-facing journey cover reviewing-group creation,
-code-based self-join, reusable-package discovery, atomic package claims,
-per-member assessment gating, and assessment-gated workbench access during the
-open round. Browser-local group drafts are shared by assignment on the same
-device. Any eligible group member can submit; the server records the current
+Implementation status (13 September 2026): the release is deployed. The
+database foundation and participant-facing journey cover batch-first team
+creation, direct collaborator addition by pseudonymous reviewer ID,
+reusable-package discovery, per-reviewer remembered batch assignment,
+per-member assessment gating, and workbench access during the open round.
+Browser-local group drafts are shared by assignment on the same device. Any
+eligible group member can submit; the server records the current
 contributor set, authenticated submitter, and group identity in each immutable
 export and receipt, and preserves that attribution through isolated processing
 and owner review. The active workbench remains open and changed work creates a
@@ -573,16 +575,20 @@ open and move among their browser-local drafts. Pre-item-7 terminal v2 group rec
 without the additive count fields remain schema-valid; a retry derives and
 persists the missing assignment counts before its queued job is processed.
 Missing KG-specific forms are reported after submission and remain directly
-accessible to the owing reviewer from the Workshop page across team selections.
+accessible to the owing reviewer from the Workshop page. There is no global
+team selector: each batch card resolves that reviewer's last-opened assignment
+for the batch.
 Current snapshot retries, changed revisions, legacy terminal
 retries, and exceptional abandonment races are covered by regression tests.
 Following the NL-provenance pipeline fix, item 6
 was rebuilt and validated locally on 12 September 2026 as corrected package set
 `30a5695ba92519fe`, while preserving the historical August artifacts. Workshop
-database registration and ICF deployment are complete; the production
-rehearsal is the remaining operational check.
+database registration and ICF deployment are complete. Repeated external
+synthetic rehearsals have passed admission, required-name, team membership,
+missing-form, durable-submission, and return-navigation paths; the final clean
+owner acceptance run remains in progress.
 
-### Track A — must work first
+### Track A — delivery record
 
 1. Freeze this scope for the recorded 16 September workshop and 30-person cap.
 2. Add reviewing groups, membership, reusable packages, and group attribution.
@@ -595,18 +601,14 @@ rehearsal is the remaining operational check.
 8. Deploy the exact passing commit to the ICF VPS.
 9. Rehearse the whole journey with synthetic participants.
 
-Tracks 2–6 can be developed together, but schema and provenance tests should
-land before route/UI work so later redesign does not encode a false two-person
-assumption.
+Items 1–9 are implemented and deployed. The database was reset to a clean
+synthetic rehearsal baseline on 13 September 2026 after a recoverable snapshot.
 
-### Track B — separate but parallel
+### Track B — remaining governance and operations
 
 - Obtain the final response on the participant notice/consent statement.
-- Send ICF one concise readiness update covering self-formed 1+ person groups,
-  joint pseudonymous attribution, and the shared-code fallback.
-- Reconcile `ICF_HOSTING_BOUNDARY.md` with this time-boxed workshop decision;
-  do not ask ICF for a separate DMP confirmation unless they raise it.
-- Write the separate IPL initial-workbench redesign plan.
+- Keep ICF's authoritative real-reviewer gates aligned with the final notice,
+  SMTP, restore/alert, restart, and mobile-browser evidence.
 
 ### Explicitly defer
 
@@ -653,7 +655,7 @@ Automated and synthetic rehearsal must prove:
   review and access the existing work immediately;
 - a missing late-joiner KG form never blocks a complete or partial submission,
   is reported in submission feedback, and remains linked from the owing
-  reviewer's Workshop page across team selections;
+  reviewer's Workshop page regardless of which batch they last opened;
 - the same people may collaborate on multiple packages only by adding one
   another separately to each package-specific team;
 - submitting a snapshot keeps the current assignment and workbench available;
@@ -682,11 +684,12 @@ conditions remains red at the agreed cutoff:
 4. group attribution or durable submission fails in the synthetic rehearsal;
 5. the production database/files are outside the existing backup set or the
    restore test fails; or
-6. ICF explicitly instructs the project not to proceed.
+6. ICF's required data-management-plan registration check is incomplete; or
+7. ICF explicitly instructs the project not to proceed.
 
 SMTP failure alone is not a no-go if the shared-code fallback passes rehearsal.
-DMP registration status is not part of this workshop's go/no gate. Absence of a
-15-minute recovery point is not a no-go.
+The accepted recovery-point objective must be recorded, but it need not be the
+older plan's 15-minute target unless ICF requires that target.
 
 ## 13. Workshop run sheet
 
@@ -702,7 +705,7 @@ Before participants arrive:
 During the workshop:
 
 - display the one shared entry code only if needed;
-- help participants create or join groups in the room;
+- help each participant start a batch and add a collaborator by reviewer ID;
 - advise package choice without pre-assigning teams;
 - monitor safe aggregate counts and service health, not participant answers;
 - close shared entry after arrivals, reopening only for a late participant; and

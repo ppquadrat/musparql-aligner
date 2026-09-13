@@ -1,8 +1,9 @@
 # Phase 6b linguistic-dimensions workbench runbook
 
-Phase 6b is a separate annotation mode. The privacy, home-server, authenticated
-assignment, frozen-KG assessment, and holdout boundaries in the v2 plan remain
-in force. Durable hosted submission and processing are still Phase 7.
+Phase 6b is a separate annotation mode. The privacy, authenticated-assignment,
+frozen-KG assessment, and holdout boundaries in the v2 plan remain in force;
+production hosting follows `ICF_HOSTING_BOUNDARY.md`. Durable hosted submission
+and processing are still Phase 7.
 
 ## Contracts and construction
 

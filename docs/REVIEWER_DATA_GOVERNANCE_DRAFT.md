@@ -4,6 +4,15 @@ Status: **draft for ICF review; not yet an approved privacy notice**
 
 Date: 2026-08-18
 
+Deployment note (reviewed 2026-09-13): the home-server, Google Drive, and
+Tailscale/Funnel facts and approval questions below are superseded by ICF's
+subsequent controller and hosting decision. See
+[`ICF_HOSTING_BOUNDARY.md`](ICF_HOSTING_BOUNDARY.md) for the current ICF-owned
+VPS, Hetzner location, encrypted-restic backup, approved contact address, and
+remaining real-reviewer gates. This draft is retained as the record of the
+questions sent for review; it is not an operational runbook or the final
+participant notice.
+
 This document records the project's current factual understanding, proposed
 decisions, and the questions that ICF must confirm before Musparql collects real
 reviewer data. It is an operational draft, not legal advice and not a substitute

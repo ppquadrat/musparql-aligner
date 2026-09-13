@@ -132,6 +132,8 @@ Before real invitations are enabled, the selected production delivery design
 must define crash recovery and retry semantics; a durable outbox or equivalent
 provider-supported idempotency is preferred.
 
-The Flask development server is not a deployment server. Remote exposure,
-service units, tunnelling, and server operations remain outside this phase and
-must follow `HOME_SERVER_BOUNDARY.md`.
+The Flask development server is not a deployment server. Production exposure,
+service units, reverse-proxy configuration, and server operations remain
+outside this phase and must follow `ICF_HOSTING_BOUNDARY.md`.
+`HOME_SERVER_BOUNDARY.md` applies only to explicitly requested legacy
+home-server work.

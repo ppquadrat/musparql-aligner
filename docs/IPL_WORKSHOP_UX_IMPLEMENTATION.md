@@ -82,7 +82,7 @@ If they later complete the form, the versioned assessment contract and database
 migration store those answers with `post_review_followup` context rather than
 misclassifying them as `pre_review`. Outstanding forms remain visible after
 submission in the success banner and on the owing reviewer's Workshop page,
-even when that reviewer is currently viewing another team. A link opened by the
+even when that reviewer last opened another batch. A link opened by the
 owing reviewer shows the actual expertise and graph-familiarity form with their
 name and reviewer ID. The same address opened in another member's signed-in
 browser shows an identity-handoff page, preventing answers from being

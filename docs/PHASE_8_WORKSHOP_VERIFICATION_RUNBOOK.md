@@ -74,7 +74,7 @@ files, and candidate audits for diagnosis, pass a new or empty directory:
 Never point `--workspace` at an application, submission, review, holdout, or
 benchmark directory. The command refuses a non-empty workspace and uses only
 obviously synthetic reviewers, bundles, exports, and email addresses. It does
-not connect to the home server or any external service.
+not connect to the production server or any external service.
 
 The report conforms to
 `schemas/workshop_verification.schema.json`. Retain the JSON report with the
@@ -91,7 +91,7 @@ canonicalization and hashing, atomic file persistence, the SQLite transaction,
 queue insertion, and receipt serialization.
 
 The local gate uses Flask's in-process test transport, so it deliberately does
-not measure Gunicorn scheduling, TLS, Funnel, or reviewer network latency.
+not measure Gunicorn scheduling, Caddy/TLS, or reviewer network latency.
 Those deployment layers remain part of the isolated deployment and external
 synthetic-review checks in Phases 9 and 10. Phase 8 isolates the application and
 storage behavior that must remain responsive while processing is busy.

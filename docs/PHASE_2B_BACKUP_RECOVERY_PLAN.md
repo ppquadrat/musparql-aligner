@@ -1,12 +1,17 @@
 # Phase 2b — durable backup and recovery plan
 
-Status: **on hold** as of 2026-08-18.
+Status: **deployment topology superseded; recovery requirements remain open**
 
-Implementation must not begin until the VocalLanes backup dead-man's-switch
-failure has been explained and the reference design has passed both a real
-success-ping test and a deliberately missed-window alert test. Planning and
-synthetic-only development in later Musparql phases may continue subject to the
-gate in [Working on later phases](#working-on-later-phases).
+Last reviewed: 2026-09-13.
+
+The Google Drive, home-server, WSL, and VocalLanes-dependent implementation
+described below is historical and must not be used for current production.
+[`ICF_HOSTING_BOUNDARY.md`](ICF_HOSTING_BOUNDARY.md) is the deployment source of
+truth: ICF supplies daily client-side-encrypted restic backup of the approved
+server paths with 90-day retention. This plan's application-level requirement
+for a coherent database-plus-files recovery generation remains current. An
+isolated restore, deletion replay, owner-visible failure alerts, and an accepted
+recovery-point objective remain real-reviewer gates until recorded as passed.
 
 ## 1. Purpose
 

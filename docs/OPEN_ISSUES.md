@@ -1,9 +1,9 @@
 # Open issues
 
-This is the maintained index of known implementation and governance work. It
-contains only issues that remain open; completed code-review findings belong in
-the implementation, tests, and durable runbooks rather than in temporary review
-notes.
+This is the maintained index of known implementation and governance work. Open
+items are listed first. A short resolved reference is retained where it explains
+the provenance of the currently deployed workshop packages; other completed
+findings belong in the implementation, tests, and durable runbooks.
 
 ## Reviewer administration and privacy
 
@@ -22,14 +22,13 @@ add legacy-value tables or infer v2 assertions from legacy scales.
 The proposed decisions, working ICF-controller assessment, rights/incident
 procedures, and ICF/ODOMA questions are now recorded in
 [`REVIEWER_DATA_GOVERNANCE_DRAFT.md`](REVIEWER_DATA_GOVERNANCE_DRAFT.md).
-Before collecting real reviewer data, ICF must confirm:
-
-- the controller and contact route;
-- the lawful basis and any required legitimate-interests, ethics, grant, or
-  security review;
-- the UK home-server, encrypted Google Drive, email, tunnelling, and monitoring
-  arrangements; and
-- the final privacy notice and allocation of rights/incident responsibilities.
+ICF has confirmed the controller allocation, consent basis, participant contact
+route, ICF-owned hosting arrangement, retention position, and allocation of
+rights and incident responsibilities; these decisions are recorded in
+[`ICF_HOSTING_BOUNDARY.md`](ICF_HOSTING_BOUNDARY.md). Before collecting real
+reviewer data, the remaining governance dependency is ICF's confirmation of the
+final participant notice and acknowledgement wording. Production SMTP and the
+other technical real-reviewer gates in that boundary must also pass.
 
 Retention periods, access/correction/deletion procedures, and the proposed
 consequences of withdrawal are decided for implementation but remain subject to
@@ -40,17 +39,19 @@ KG-familiarity fields in review bundles, exports, benchmarks, logs, or tests.
 
 ### Durable backup and recovery
 
-Backup and recovery are a separate implementation phase rather than part of the
-SQLite-foundation phase. The design must protect more than the database: review
-outcomes remain irreplaceable before benchmark publication, and substantial
-provenance is intentionally Git-ignored.
+ICF now supplies daily client-side-encrypted restic backup of `/etc`, `/home`,
+`/opt`, and `/srv`, with 90-day retention and integrity checking. Application
+state is kept under those backed-up paths. Backup design must still protect more
+than the database: review outcomes remain irreplaceable before benchmark
+publication, and substantial provenance is intentionally Git-ignored.
 
 The detailed Phase 2b plan is in
-[`PHASE_2B_BACKUP_RECOVERY_PLAN.md`](PHASE_2B_BACKUP_RECOVERY_PLAN.md). The phase
-is on hold pending end-to-end confirmation of the VocalLanes backup
-healthcheck/dead-man design. Synthetic-only development in later phases may
-continue, but no real reviewer data may be collected before Phase 2b passes its
-backup, monitoring, and restore gates.
+[`PHASE_2B_BACKUP_RECOVERY_PLAN.md`](PHASE_2B_BACKUP_RECOVERY_PLAN.md), but its
+home-server/Google Drive topology is historical. The current work is to prove a
+coherent application restore using ICF's backup: WAL-safe database capture,
+matching referenced files, isolated validation, deletion replay, owner-visible
+failure alerts, and an accepted recovery-point objective. No real reviewer data
+may be collected until those gates pass.
 
 Define, implement, and test an encrypted, authenticated, versioned backup of:
 
@@ -61,14 +62,12 @@ Define, implement, and test an encrypted, authenticated, versioned backup of:
 - separately, through a human-only process, any private or holdout-bearing
   review material that application and agent workflows must never access.
 
-The owner chose Google Drive as the sole encrypted, versioned destination for
-Phase 2b on 2026-08-18 and explicitly deferred a physically separate on-site
-copy as future hardening. The phase must still define key custody and rotation,
-retention, monitoring, restore isolation, and recovery objectives. A second
-directory on the same disk must not be represented as a backup. Hosted durable
-submission now protects accepted reviews from browser-local loss, but those
-receipts and submission files remain unique state that must enter the encrypted
-backup and restore set.
+ICF controls the off-server repository, encryption material, retention, and
+infrastructure-level integrity checks. The application must not access or
+reconfigure those secrets. A second directory on the same disk must not be
+represented as a backup. Hosted durable submission protects accepted reviews
+from browser-local loss, but those receipts and submission files remain unique
+state that must be recovered coherently with the database.
 
 ### Linguistic workbench introduction and correction policy
 
@@ -165,8 +164,8 @@ The corrected IPL artifacts were rebuilt locally on 12 September 2026 from
 generation run `2026-09-12-014200-minimax-m2-5`. The historical August run and
 package directory remain untouched. The corrected frozen package set is
 `30a5695ba92519fe`; its manifest is under the ignored operational path
-`var/review/bundles/ipl-2026-20260912-provenance-fix/`. Registration in the
-workshop database and production deployment remain separate operational steps.
+`var/review/bundles/ipl-2026-20260912-provenance-fix/`. That package set is
+registered and deployed in production.
 
 ## Dependency maintenance
 
@@ -174,24 +173,27 @@ The test suite currently emits deprecation warnings from `rdflib` using legacy
 `pyparsing` APIs. They do not affect correctness today, but dependency upgrades
 should remove or re-evaluate the warnings before they become runtime failures.
 
-## Deployment readiness
+## Production readiness
 
-The application implementation and local synthetic desktop pilot are complete,
-but real-reviewer deployment remains gated by the operational and governance
-work in [`MUSPARQL_V2_PLAN.md`](MUSPARQL_V2_PLAN.md),
-[`HOME_SERVER_BOUNDARY.md`](HOME_SERVER_BOUNDARY.md), and
-[`PHASE_2B_BACKUP_RECOVERY_PLAN.md`](PHASE_2B_BACKUP_RECOVERY_PLAN.md).
-Outstanding work includes:
+The application and corrected four-package IPL release are deployed on the
+ICF-owned VPS at `musparql.industrycommons.net`. The unprivileged web and worker
+services run behind Caddy, and repeated external synthetic rehearsals have
+covered admission, required names, batch-first team formation, outstanding
+forms, durable team-attributed submission, and return to in-progress work.
 
-- verify the dedicated read-only GitHub deploy key inside `MusparqlReview`, then
-  clone and install the project there;
-- select the real public URL/tunnel configuration and production email sender;
-- obtain controller approval for the lawful basis, contact route, final privacy
-  notice, and reviewer acknowledgement wording;
-- activate and verify the independent encrypted backup, monitoring, and
-  isolated database-plus-files restore;
-- install and verify the Musparql-only web, worker, and tunnel services; and
-- perform the owner-approved reboot/recovery test before real invitations.
+The database was returned to a clean synthetic rehearsal baseline on
+13 September 2026 after taking a recoverable server snapshot. Remaining work
+before real-reviewer invitations is governed by
+[`ICF_HOSTING_BOUNDARY.md`](ICF_HOSTING_BOUNDARY.md):
+
+- obtain ICF confirmation of the final participant notice and acknowledgement
+  wording;
+- complete and verify production SMTP delivery and its failure/retry behaviour;
+- validate an isolated coherent database-plus-files restore, deletion replay,
+  and owner-visible backup/service alerts;
+- record the accepted recovery-point objective and complete the required
+  restart/reboot check; and
+- pass or explicitly re-scope the outstanding human mobile-browser observation.
 
 The linguistic-dimensions instruction-page redesign is a pre-pilot usability
 item rather than an infrastructure dependency. Human mobile-browser validation

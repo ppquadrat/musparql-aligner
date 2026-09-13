@@ -1,8 +1,17 @@
 # Musparql v2: remote expert-review platform plan
 
-Status: application implementation complete; operational deployment gates open
+Status: **historical architectural baseline; application implementation complete**
 
-Last updated: 2026-08-22
+Last reviewed: 2026-09-13
+
+Production hosting no longer follows the WSL, home-server, Google Drive, or
+Tailscale Funnel design recorded in this plan. The current deployment source of
+truth is [`ICF_HOSTING_BOUNDARY.md`](ICF_HOSTING_BOUNDARY.md): Musparql runs on
+ICF's dedicated Ubuntu VPS behind Caddy at
+`musparql.industrycommons.net`, with ICF-managed encrypted backup. The older
+topology below is retained as design history; it must not be used for production
+operations. Current workshop behaviour is specified in
+[`IPL_WORKSHOP_UX_IMPLEMENTATION.md`](IPL_WORKSHOP_UX_IMPLEMENTATION.md).
 
 Scope: reviewer administration, remote review, longitudinal expertise data,
 controlled processing, and deployment

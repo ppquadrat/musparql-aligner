@@ -114,8 +114,8 @@ are satisfied:
    confidential and irreplaceable operational state.
 3. The selected real email sender and its crash/retry behaviour have passed the
    Phase 3 handoff gate.
-4. Hosting, tunnelling, resource boundaries, paths, and monitoring have received
-   the required Phase 10 approval.
+4. ICF hosting, reverse-proxy, resource boundaries, durable paths, and
+   monitoring satisfy `ICF_HOSTING_BOUNDARY.md`.
 5. A synthetic or trusted usability pilot has checked the reviewer-facing
    wording and desktop/mobile completion time.
 

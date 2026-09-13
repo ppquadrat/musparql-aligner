@@ -17,7 +17,7 @@ The current public benchmark is under [`benchmark/v10`](benchmark/v10). It
 contains 100 reviewed pairs from Musical Meetups, the Jazz Ontology, MusOW,
 Organs, and LinkedMusic.
 
-The in-progress IPL workshop release adds self-formed reviewing groups,
+The deployed IPL workshop release adds self-formed reviewing groups,
 reusable KG packages, shared assignment drafts, server-derived joint
 submission provenance, and SMTP-first registration with a capped shared-code
 fallback. Shared-code admission is replay-safe, uses durable digest-only
@@ -29,8 +29,9 @@ privacy-notice and consent-statement versions and timestamps are current, and a
 non-testing process requires approved file-backed copy. The full notice and
 withdrawal route remain available throughout the site. Group review submissions
 create immutable complete or partial snapshots with server-derived item counts
-while leaving the browser-local review session open. Teams can move among all
-four batches, resume drafts on the same browser, and submit updated revisions;
+while leaving the browser-local review session open. Each batch has its own
+team; a reviewer can return to the Workshop page, resume the last assignment
+they opened for any batch, and submit updated revisions;
 legacy terminal v2 receipts remain valid and acquire missing counts when
 retried. Missing member pre-batch forms are reported without blocking a
 submission. Group linguistic submission remains deferred. Item 6's four
@@ -39,7 +40,8 @@ use a v2 manifest with embedded canonical selection pins, independently derived
 selection and package-set digests, atomic file replacement, and transactional
 seed/package registration. Their two-pass bundles present deduplicated records
 first and remaining all-pairs records second, with assignment-specific
-randomisation inside each pass; the operational freeze remains pending.
+randomisation inside each pass. The corrected package set is frozen, registered,
+and deployed.
 
 ## How the system fits together
 
