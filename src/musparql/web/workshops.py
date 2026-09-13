@@ -765,6 +765,16 @@ class WorkshopService:
                     seed_digest=package.seed_digest,
                 )
             )
+            db_session.flush()
+            if self.assignments.assessment_is_complete(
+                db_session, assignment, reviewer_id
+            ):
+                # KG-specific background answers are collected once per
+                # reviewer and frozen seed in a workshop round. Starting or
+                # joining another team for the same batch reuses that form.
+                assignment.status = "active"
+                assignment.participant_status = "active"
+                assignment.opened_at = now
             context = db_session.get(
                 ReviewerWorkshopBatchContext, (reviewer_id, package.id)
             )

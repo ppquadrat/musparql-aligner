@@ -223,6 +223,15 @@ not review provenance; different reviewers may remember different assignments
 for the same package, and one reviewer may belong to several groups reviewing
 that package.
 
+Workshop assessment completion is batch-scoped within a round. The first
+complete form remains stored as append-only domain and familiarity rows against
+the assignment where the reviewer supplied it. When the same reviewer joins
+another team whose assignment uses the same frozen KG seed in that workshop
+round, completeness is derived from those existing rows; no duplicate rows are
+created and the second assignment does not claim that the answers were supplied
+there. Another batch, seed version, or workshop round requires its own complete
+form.
+
 The browser bundle is generated and ignored. It contains candidate records,
 their run provenance, source evidence, SPARQL provenance, and holdout eligibility
 information.

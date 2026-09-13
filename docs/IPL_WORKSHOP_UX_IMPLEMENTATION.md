@@ -37,6 +37,11 @@ the established non-workshop review interfaces.
 - A participant can add a consenting collaborator from the workbench by their
   pseudonymous reviewer ID. The server verifies that the reviewer exists and
   records batch-specific membership; entering an ID is not a login mechanism.
+- Each reviewer completes a batch's frozen KG-specific form once per workshop
+  round. If they later join another team on that same batch, the original
+  append-only form satisfies setup and they enter the active workbench directly.
+  Reuse requires the exact frozen KG seed; another batch or workshop round asks
+  again.
 - Batch cards expose contextual states and actions: available/Start, setup
   needed/Complete setup, in progress/Continue, and submitted.
 - Saving the frozen KG-specific questions opens the workbench directly.
@@ -100,7 +105,8 @@ The focused regression suite is:
 ```
 
 The tests cover batch-scoped team creation, per-reviewer last-opened assignment
-memory, multiple teams for the same batch, direct collaborator addition,
+memory, one assessment per reviewer/batch/round, multiple teams for the same
+batch, direct collaborator addition,
 explicit member identity, a non-duplicated batch catalogue, structured-name and
 contact-email collection, cross-team outstanding-form recovery, identity-safe
 handoff, direct setup/join routes, workshop-only presentation scoping, stable

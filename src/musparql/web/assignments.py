@@ -121,6 +121,7 @@ class AssignmentView:
     domain_prompts: tuple[Prompt, ...]
     familiarity_prompts: tuple[Prompt, ...]
     assessed: bool
+    assessment_reused: bool
     workbench_available: bool
     assessment_deferrable: bool
 
@@ -316,6 +317,22 @@ class AssignmentService:
             assessed = self._assessment_is_complete(
                 session, assignment, reviewer_id
             )
+            recorded_for_assignment = bool(
+                session.scalar(
+                    select(ReviewerKgDomainAssessment.id).where(
+                        ReviewerKgDomainAssessment.assignment_id == assignment_id,
+                        ReviewerKgDomainAssessment.reviewer_id == reviewer_id,
+                    ).limit(1)
+                )
+                or session.scalar(
+                    select(ReviewerResourceFamiliarityAssessment.id).where(
+                        ReviewerResourceFamiliarityAssessment.assignment_id
+                        == assignment_id,
+                        ReviewerResourceFamiliarityAssessment.reviewer_id
+                        == reviewer_id,
+                    ).limit(1)
+                )
+            )
             deferred = session.scalar(
                 select(WorkshopAssessmentDeferral.id).where(
                     WorkshopAssessmentDeferral.assignment_id == assignment_id,
@@ -347,6 +364,7 @@ class AssignmentService:
                 domains,
                 familiarities,
                 assessed,
+                assessed and not recorded_for_assignment,
                 assignment.participant_status == "active"
                 and assignment.status != "ready"
                 and (assessed or bool(deferred)),
@@ -667,25 +685,13 @@ class AssignmentService:
     def _assessment_is_complete(
         session: Session, assignment: ReviewAssignment, reviewer_id: str
     ) -> bool:
-        domain_count = len(
-            session.scalars(
-                select(ReviewerKgDomainAssessment).where(
-                    ReviewerKgDomainAssessment.assignment_id == assignment.id,
-                    ReviewerKgDomainAssessment.reviewer_id == reviewer_id,
-                )
-            ).all()
-        )
-        familiarity_count = len(
-            session.scalars(
-                select(ReviewerResourceFamiliarityAssessment).where(
-                    ReviewerResourceFamiliarityAssessment.assignment_id == assignment.id,
-                    ReviewerResourceFamiliarityAssessment.reviewer_id == reviewer_id,
-                )
-            ).all()
-        )
-        expected_domains = len(
-            session.scalars(
-                select(KgSeedReviewDomain).join(
+        expected_domains = set(
+            session.execute(
+                select(
+                    KgSeedReviewDomain.kg_id,
+                    KgSeedReviewDomain.seed_version,
+                    KgSeedReviewDomain.domain_id,
+                ).join(
                     AssignmentKgSeed,
                     (AssignmentKgSeed.kg_id == KgSeedReviewDomain.kg_id)
                     & (
@@ -695,9 +701,13 @@ class AssignmentService:
                 ).where(AssignmentKgSeed.assignment_id == assignment.id)
             ).all()
         )
-        expected_familiarities = len(
-            session.scalars(
-                select(KgSeedFamiliarityScope).join(
+        expected_familiarities = set(
+            session.execute(
+                select(
+                    KgSeedFamiliarityScope.kg_id,
+                    KgSeedFamiliarityScope.seed_version,
+                    KgSeedFamiliarityScope.scope_id,
+                ).join(
                     AssignmentKgSeed,
                     (AssignmentKgSeed.kg_id == KgSeedFamiliarityScope.kg_id)
                     & (
@@ -707,7 +717,57 @@ class AssignmentService:
                 ).where(AssignmentKgSeed.assignment_id == assignment.id)
             ).all()
         )
-        return domain_count == expected_domains and familiarity_count == expected_familiarities
+        if assignment.review_group_id is None or assignment.work_package_id is None:
+            domain_scope = (
+                ReviewerKgDomainAssessment.assignment_id == assignment.id
+            )
+            familiarity_scope = (
+                ReviewerResourceFamiliarityAssessment.assignment_id == assignment.id
+            )
+        else:
+            group = session.get(ReviewGroup, assignment.review_group_id)
+            if group is None:
+                return False
+            workshop_assignment_ids = select(ReviewAssignment.id).join(
+                ReviewGroup, ReviewGroup.id == ReviewAssignment.review_group_id
+            ).where(ReviewGroup.workshop_round_id == group.workshop_round_id)
+            domain_scope = ReviewerKgDomainAssessment.assignment_id.in_(
+                workshop_assignment_ids
+            )
+            familiarity_scope = (
+                ReviewerResourceFamiliarityAssessment.assignment_id.in_(
+                    workshop_assignment_ids
+                )
+            )
+        recorded_domains = set(
+            session.execute(
+                select(
+                    ReviewerKgDomainAssessment.kg_id,
+                    ReviewerKgDomainAssessment.seed_version,
+                    ReviewerKgDomainAssessment.review_domain_id,
+                ).where(
+                    ReviewerKgDomainAssessment.reviewer_id == reviewer_id,
+                    domain_scope,
+                )
+            ).all()
+        )
+        recorded_familiarities = set(
+            session.execute(
+                select(
+                    ReviewerResourceFamiliarityAssessment.kg_id,
+                    ReviewerResourceFamiliarityAssessment.seed_version,
+                    ReviewerResourceFamiliarityAssessment.familiarity_scope_id,
+                ).where(
+                    ReviewerResourceFamiliarityAssessment.reviewer_id == reviewer_id,
+                    familiarity_scope,
+                )
+            ).all()
+        )
+        return (
+            bool(expected_domains or expected_familiarities)
+            and expected_domains.issubset(recorded_domains)
+            and expected_familiarities.issubset(recorded_familiarities)
+        )
 
     @classmethod
     def assessment_is_complete(

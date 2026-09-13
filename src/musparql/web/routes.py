@@ -907,6 +907,13 @@ def assignment(assignment_id: str):
             current_app.extensions["musparql_workshops"].remember_batch_assignment(
                 g.current_reviewer.id, assignment_id
             )
+            if value.assessment_reused and value.workbench_available:
+                return redirect(
+                    url_for(
+                        "portal.assignment_workbench",
+                        assignment_id=assignment_id,
+                    )
+                )
     except LookupError:
         abort(404)
     except ValueError:

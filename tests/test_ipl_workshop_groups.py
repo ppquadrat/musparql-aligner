@@ -1511,6 +1511,90 @@ def test_each_reviewer_remembers_their_last_opened_team_for_a_batch(
         engine.dispose()
 
 
+def test_reviewer_completes_each_batch_form_once_per_workshop_round(
+    workshop_app,
+) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    workshops = app.extensions["musparql_workshops"]
+    assignments = app.extensions["musparql_assignments"]
+
+    first_group = workshops.create_group(FIRST_ID)
+    first_assignment = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=first_group,
+        package_id="package-synthetic",
+    )
+    assignments.assess(
+        first_assignment, FIRST_ID, ["advanced"], ["worked"], confirmed=True
+    )
+
+    repeated_group = workshops.create_group(FIRST_ID)
+    repeated_assignment = workshops.claim_package(
+        reviewer_id=FIRST_ID,
+        group_id=repeated_group,
+        package_id="package-synthetic",
+    )
+    repeated = assignments.view(repeated_assignment, FIRST_ID)
+    assert repeated.assessed is True
+    assert repeated.assessment_reused is True
+    assert repeated.workbench_available is True
+
+    second_group = workshops.create_group(SECOND_ID)
+    second_assignment = workshops.claim_package(
+        reviewer_id=SECOND_ID,
+        group_id=second_group,
+        package_id="package-synthetic",
+    )
+    assignments.assess(
+        second_assignment, SECOND_ID, ["working"], ["inspected"], confirmed=True
+    )
+    assert workshops.add_assignment_member(
+        SECOND_ID, second_assignment, FIRST_ID
+    ) is True
+
+    team = workshops.workbench_team(FIRST_ID, second_assignment)
+    assert team["missing_assessment_reviewer_ids"] == []
+    reused = assignments.view(second_assignment, FIRST_ID)
+    assert reused.assessed is True
+    assert reused.workbench_available is True
+
+    first = app.test_client()
+    _login(first, app, sender, "first@example.invalid")
+    response = first.get(f"/assignments/{second_assignment}")
+    assert response.status_code == 302
+    assert response.location.endswith(
+        f"/assignments/{second_assignment}/workbench/"
+    )
+    assert first.get(f"/assignments/{second_assignment}/bundle").status_code == 200
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    try:
+        with sessions() as session:
+            first_domain_rows = list(
+                session.scalars(
+                    select(ReviewerKgDomainAssessment).where(
+                        ReviewerKgDomainAssessment.reviewer_id == FIRST_ID
+                    )
+                )
+            )
+            first_familiarity_rows = list(
+                session.scalars(
+                    select(ReviewerResourceFamiliarityAssessment).where(
+                        ReviewerResourceFamiliarityAssessment.reviewer_id == FIRST_ID
+                    )
+                )
+            )
+            assert [row.assignment_id for row in first_domain_rows] == [
+                first_assignment
+            ]
+            assert [row.assignment_id for row in first_familiarity_rows] == [
+                first_assignment
+            ]
+    finally:
+        engine.dispose()
+
+
 def test_batch_context_migration_backfills_an_existing_team_assignment(
     workshop_app,
 ) -> None:

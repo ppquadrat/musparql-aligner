@@ -228,6 +228,12 @@ scarce expert can help another active assignment. Membership is unique only
 within a group. Being added means being named as a contributor to that
 assignment; it is not an informal observer role.
 
+Each reviewer completes the frozen KG-specific form once per batch in the
+workshop round. If they later join another team using the same frozen KG seed,
+the original append-only assessment satisfies setup without creating a second
+assessment record. A different batch, seed version, or workshop round asks
+again.
+
 The Workshop page does not select a global team. For each batch it resolves the
 reviewer's remembered assignment independently. Opening a setup form or
 workbench updates that reviewer's pointer for that batch. Separate reviewers
@@ -647,6 +653,9 @@ Automated and synthetic rehearsal must prove:
 - email and shared-code admission both record the same current consent, while
   owner access remains independent of participant consent;
 - a one-member group and a multi-member group can each complete the journey;
+- one reviewer's completed form is reused across teams for the same frozen
+  batch and round without duplicating assessment rows, while another batch or
+  round still requires a form;
 - team membership is scoped to one KG batch, and switching to another batch
   begins with a separate one-person team;
 - a participant can add a consenting collaborator to the current batch by

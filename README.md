@@ -33,7 +33,9 @@ while leaving the browser-local review session open. Each batch has its own
 team; a reviewer can return to the Workshop page, resume the last assignment
 they opened for any batch, and submit updated revisions;
 legacy terminal v2 receipts remain valid and acquire missing counts when
-retried. Missing member pre-batch forms are reported without blocking a
+retried. A reviewer completes the frozen KG-specific form only once per batch
+and workshop round; that recorded form is reused if they later help another
+team on the same batch. Missing forms are reported without blocking a
 submission. Group linguistic submission remains deferred. Item 6's four
 core/specialist reviewer-neutral KG packages
 use a v2 manifest with embedded canonical selection pins, independently derived
