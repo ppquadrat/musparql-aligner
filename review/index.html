@@ -3,10 +3,19 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Musparql Review Workbench</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=review-workbench-20260916b" />
   </head>
   <body>
+    <noscript>
+      <p class="panel empty-state">
+        JavaScript is disabled in this browser. Enable JavaScript for
+        musparql.industrycommons.net, then reload the page.
+      </p>
+    </noscript>
     <div class="shell">
       <header class="topbar">
         <div>
@@ -114,8 +123,8 @@
 
         <main class="detail">
           <div id="emptyState" class="panel empty-state">
-            <h2>No data loaded</h2>
-            <p>Run <code>python -m scripts.build_review_bundle</code> to create <code>review/review_data.js</code>, then reload this page.</p>
+            <h2>Loading review batch</h2>
+            <p>The workbench is loading the assigned records.</p>
           </div>
 
           <div id="detailView" class="detail-stack hidden">
@@ -229,9 +238,9 @@
       </section>
     </div>
 
-    <script src="diagnostics.js?v=review-workbench-20260916"></script>
-    <script src="host_context.js?v=review-workbench-20260819"></script>
-    <script src="review_data.js?v=review-workbench-20260819"></script>
-    <script src="app.js?v=review-workbench-20260912g"></script>
+    <script src="diagnostics.js?v=review-workbench-20260916b"></script>
+    <script src="host_context.js?v=review-workbench-20260916b"></script>
+    <script src="review_data.js?v=review-workbench-20260916b"></script>
+    <script src="app.js?v=review-workbench-20260916b"></script>
   </body>
   </html>

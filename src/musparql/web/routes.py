@@ -1116,6 +1116,8 @@ def assignment_workbench(assignment_id: str):
     return send_from_directory(
         Path(current_app.config[root_key]).expanduser().resolve(),
         "index.html",
+        conditional=False,
+        max_age=0,
     )
 
 
@@ -1124,11 +1126,6 @@ def assignment_workbench(assignment_id: str):
 def assignment_workbench_asset(assignment_id: str, asset_name: str):
     payload = _hosted_assignment_bundle(assignment_id)
     linguistic = payload.get("mode") == "linguistic"
-    current_app.logger.warning(
-        "Workbench asset request assignment=%s asset=%s",
-        assignment_id,
-        asset_name,
-    )
     if asset_name == "review_data.js":
         body = "window.REVIEW_DATA = " + json.dumps(
             payload, ensure_ascii=True, separators=(",", ":")
@@ -1198,6 +1195,8 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
     return send_from_directory(
         Path(current_app.config[root_key]).expanduser().resolve(),
         asset_name,
+        conditional=False,
+        max_age=0,
     )
 
 

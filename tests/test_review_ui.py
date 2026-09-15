@@ -40,6 +40,9 @@ def test_hosted_review_state_is_scoped_to_assignment_and_keeps_local_keys() -> N
     assert '<script src="host_context.js?' in html
     assert '<script src="diagnostics.js?' in html
     assert html.index('src="diagnostics.js?') < html.index('src="host_context.js?')
+    assert "No data loaded" not in html
+    assert "JavaScript is disabled in this browser" in html
+    assert html.count("review-workbench-20260916b") == 5
     assert "window.MUSPARQL_WORKBENCH_READY = true" in app
     assert (ROOT / "review" / "host_context.js").read_text(encoding="utf-8").strip() == (
         "window.MUSPARQL_HOSTED_CONTEXT = null;"

@@ -320,6 +320,12 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
         app_asset = reviewer.get(f"/assignments/{assignment_id}/workbench/app.js")
         assert app_asset.status_code == 200
         assert app_asset.data == (ROOT / "review/app.js").read_bytes()
+        conditional_app_asset = reviewer.get(
+            f"/assignments/{assignment_id}/workbench/app.js",
+            headers={"If-None-Match": app_asset.headers.get("ETag", '"stale"')},
+        )
+        assert conditional_app_asset.status_code == 200
+        assert conditional_app_asset.data == app_asset.data
         diagnostic_asset = reviewer.get(
             f"/assignments/{assignment_id}/workbench/diagnostics.js"
         )
