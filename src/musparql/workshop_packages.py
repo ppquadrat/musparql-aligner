@@ -419,7 +419,7 @@ def prepare_expanded_workshop_source(
         "review_scope_policy": {
             "include_reviewed": True,
             "reveal_previous_decision": False,
-            "default_scope": "mixed",
+            "default_scope": "all",
             "counts": selected_counts,
         },
         "workshop_pass_order": list(WORKSHOP_PASS_ORDER),

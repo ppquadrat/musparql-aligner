@@ -133,6 +133,7 @@
     : `musparql-review:schema4:${data.dataset_id}:${data.reviewer_id}`;
   let reviews = loadReviews();
   let privateExportReady = false;
+  const requestedDefaultScope = data.review_scope_policy?.default_scope;
   const state = {
     selectedReviewId: data.records[0].review_id,
     search: "",
@@ -140,7 +141,9 @@
     mode: "all",
     status: "all",
     holdout: "all",
-    scope: data.review_scope_policy?.default_scope || "all",
+    scope: ["new", "previously_reviewed"].includes(requestedDefaultScope)
+      ? requestedDefaultScope
+      : "all",
     run: "all",
   };
 

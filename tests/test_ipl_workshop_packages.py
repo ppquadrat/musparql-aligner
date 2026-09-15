@@ -191,6 +191,7 @@ def test_expanded_source_trims_large_packages_and_adds_polifonia_packages(
         for record in bundle["records"]
         if record.get("review_scope") == "previously_reviewed"
     } == {"meetups", "organs"}
+    assert bundle["review_scope_policy"]["default_scope"] == "all"
 
 
 def test_provisional_package_set_is_complete_deterministic_and_disabled(tmp_path: Path) -> None:
