@@ -55,6 +55,7 @@ class Reviewer(Base):
     privacy_notice_acknowledged_at: Mapped[str | None] = mapped_column(String, nullable=True)
     registration_method: Mapped[str] = mapped_column(String)
     email_verified_at: Mapped[str | None] = mapped_column(String, nullable=True)
+    future_review_contact_allowed: Mapped[bool] = mapped_column(Boolean, default=False)
     consent_statement_version: Mapped[str | None] = mapped_column(String, nullable=True)
     consented_at: Mapped[str | None] = mapped_column(String, nullable=True)
     __table_args__ = (

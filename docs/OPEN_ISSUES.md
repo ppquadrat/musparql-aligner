@@ -25,10 +25,18 @@ procedures, and ICF/ODOMA questions are now recorded in
 ICF has confirmed the controller allocation, consent basis, participant contact
 route, ICF-owned hosting arrangement, retention position, and allocation of
 rights and incident responsibilities; these decisions are recorded in
-[`ICF_HOSTING_BOUNDARY.md`](ICF_HOSTING_BOUNDARY.md). Before collecting real
-reviewer data, the remaining governance dependency is ICF's confirmation of the
-final participant notice and acknowledgement wording. Production SMTP and the
-other technical real-reviewer gates in that boundary must also pass.
+[`ICF_HOSTING_BOUNDARY.md`](ICF_HOSTING_BOUNDARY.md). ICF approved the final
+participant notice and affirmative-consent wording on 15 September 2026 as
+`musparql-workshop-2026-09-16-v1`. The approved source and deployable copy are
+checked in. The production service must be updated to that version before real
+participants enter. The remaining ICF data-management-plan registration check
+and applicable technical gates still need an explicit readiness record.
+
+The profile now offers a separate, optional, unticked preference allowing email
+invitations to future Musparql review rounds. ICF approval of that additional
+purpose and participant-facing wording is still required before deploying the
+preference for real participants; it is not silently treated as part of the
+already approved workshop notice.
 
 Retention periods, access/correction/deletion procedures, and the proposed
 consequences of withdrawal are decided for implementation but remain subject to
@@ -186,17 +194,18 @@ The database was returned to a clean synthetic rehearsal baseline on
 before real-reviewer invitations is governed by
 [`ICF_HOSTING_BOUNDARY.md`](ICF_HOSTING_BOUNDARY.md):
 
-- obtain ICF confirmation of the final participant notice and acknowledgement
-  wording;
+- deploy and verify the approved `musparql-workshop-2026-09-16-v1` participant
+  notice and affirmative-consent wording;
+- record completion of ICF's data-management-plan registration check;
 - complete and verify production SMTP delivery and its failure/retry behaviour;
 - validate an isolated coherent database-plus-files restore, deletion replay,
   and owner-visible backup/service alerts;
 - record the accepted recovery-point objective and complete the required
   restart/reboot check; and
-- pass or explicitly re-scope the outstanding human mobile-browser observation.
+- keep the workshop laptop-only; mobile-browser use was explicitly removed from
+  the 16 September workshop scope by the owner on 15 September 2026.
 
 The linguistic-dimensions instruction-page redesign is a pre-pilot usability
-item rather than an infrastructure dependency. Human mobile-browser validation
-was deliberately deferred; the automated narrow-viewport contract passes, but
-the Phase 9 operational gate is not fully recorded as passed unless its current
-human-observation requirement is either completed or explicitly re-scoped.
+item rather than an infrastructure dependency. The automated narrow-viewport
+contract passes; human mobile-browser validation remains future work and is not
+a gate for the laptop-only IPL workshop.

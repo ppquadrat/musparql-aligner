@@ -1,0 +1,151 @@
+## **Invitation and purpose**
+
+You are invited to take part in Musparql, a small expert-review study conducted within the GRAPHIA research project. Please read this notice before deciding whether to participate.
+
+Musparql develops evaluation data for systems that translate natural-language questions into SPARQL queries over knowledge graphs. It starts from queries and supporting material published by knowledge-graph projects. Human reviewers assess what the queries mean and whether proposed natural-language questions represent them accurately.
+
+The study will help us:
+
+- build a larger and more diverse collection of reviewed question-query pairs;
+- test whether the review method works across reviewers and subject areas;
+- understand where reviewers agree or disagree;
+- study how relevant subject expertise and familiarity with a knowledge graph relate to review judgements; and
+- evaluate linguistic qualities such as naturalness, communicative focus, and room for interpretation.
+
+The purpose is to study the review method and the resulting benchmark data. It is not to rank, evaluate, or make decisions about individual reviewers. The public benchmark is separate from the private reviewer research dataset used to study expertise, familiarity, learning, and reviewer agreement.
+
+## **Who is responsible for your data**
+
+The data controller is:
+
+**Industry Commons Foundation (insamlingsstiftelse)**
+
+Organisation number: 802481-2599
+
+7A Centralen, Vasagatan 7
+
+111 20 Stockholm, Sweden
+
+The Musparql researcher operates the service on ICF’s behalf. For questions, withdrawal, or requests concerning your personal data, contact: musparql@industrycommons.net.
+
+## **Taking part is voluntary**
+
+Participation is voluntary. You may decline the invitation without giving a reason and without disadvantage. If you participate, you may stop an assignment at any time and may withdraw your consent through the withdrawal control in Musparql, by telling the workshop facilitator, or by emailing musparql@industrycommons.net.
+
+Withdrawing consent does not affect the lawfulness of processing carried out before your withdrawal. What happens to information already supplied is explained under **Withdrawal and retention** below.
+
+Musparql’s first release is intended only for invited adults aged 18 or over.
+
+## **What you will be asked to do**
+
+The facilitator will give you a workshop entry code, limited to this session, capped at 30 participants and revocable. Each use creates a separate participant account and session. You will consent individually before completing a short profile and, before each assignment, confirm your relevant subject expertise and familiarity with the assigned knowledge graph. Please note your reviewer ID before leaving so we can find your records if you contact us later.
+
+For the IPL workshop, you may work alone or in a self-selected reviewing group. Each participant consents and completes their profile individually. A group makes one joint submission, attributed to the pseudonymous reviewer identifiers of the members who contributed to it.
+
+Depending on the assignment, you may be asked to:
+
+- assess whether a SPARQL query expresses a meaningful information need;
+- accept, rewrite, or reject a proposed natural-language question;
+- record alternative wording or a comment;
+- identify a problem in a query, its source material, or a proposed question; or
+- compare and rate alternative formulations against a fixed reference.
+
+Your invitation will describe the expected size and timing of the particular assignment. You may pause or stop during the session.
+
+## **What personal data we collect**
+
+We collect only the information needed to operate the invited review service and conduct the study:
+
+- **Operational identity and contact:** your name, optional affiliation, account status, and the confidential link to your pseudonymous reviewer identifier. These details identify and administer your workshop account; they are not research variables. Email login is not used at this workshop. If you email us about your data, we process that correspondence to answer your request.
+- **Languages:** the languages you select and your self-described proficiency.
+- **General expertise:** research domains you enter and your selected expertise level in each domain.
+- **Technical experience:** your self-described experience with knowledge graphs and ontologies, SPARQL, and natural-language processing or language models.
+- **Assignment-specific assessments:** your subject expertise relevant to an assigned knowledge graph and your familiarity with its resource, data, data model, or graph representation.
+- **Review contributions:** decisions, rewrites, alternative formulations, ratings, comments, problem reports, submission timestamps, and, for joint submissions, the reviewing group’s pseudonymous identifier and the pseudonymous reviewer identifiers of its contributors.
+- **Service and security records:** workshop-code and session records, assignment status, submission receipts, processing status, and limited security/audit records needed to protect and operate the service.
+
+Please do not enter sensitive personal information, such as health information, political opinions, religious beliefs, sexual orientation, trade-union membership, biometric/genetic information, or information about criminal offences, in any free-text field.
+
+## **How and why we use the data**
+
+ICF uses the data to:
+
+- provide controlled workshop access and administer reviewer accounts;
+- provide assignments and preserve submitted review work;
+- understand which forms of expertise and knowledge-graph familiarity are represented in the reviewer cohort;
+- compare review judgements across reviewers and, where relevant, across time;
+- construct, verify, document, and publish the Musparql benchmark and public alternatives/provenance file;
+- conduct private reviewer-level analyses of expertise, familiarity, learning, and agreement, and publish only appropriate aggregate findings without disclosing identifiable reviewer-level findings;
+- secure, back up, restore, maintain, and audit the service; and
+- answer participant questions and data-protection requests.
+
+We do not use your data for marketing or unrelated profiling. Musparql does not make automated decisions about you. Language models cannot approve a benchmark decision or make a consequential decision about a reviewer.
+
+## **Lawful basis and consent**
+
+ICF relies on your consent (GDPR Article 6(1)(a)) for participation and for collecting, using and retaining your profile, language, expertise, familiarity and review data for the research described here. This includes research after the workshop, for the retention period below. Participation is voluntary and you can refuse or withdraw without disadvantage. Workshop administration records needed to manage your assignments also use this basis.
+
+From the outset, ICF separately relies on its legitimate interests (Article 6(1)(f)) for limited security and access logs, evidence of consent and withdrawal, records needed to handle data-protection requests and incidents, and encrypted recovery backups. These records protect the service, demonstrate how consent and rights requests were handled, support the establishment or defence of legal claims, and allow recovery after failure. They are not used to continue research after withdrawal. You can request details of ICF’s assessment and object as explained below.
+
+## **Pseudonymisation and research outputs**
+
+The system assigns you a pseudonymous reviewer identifier. Musparql keeps two separate private records:
+
+- an operational contact registry containing your name, optional affiliation, account information, and the identity-to-reviewer link; and
+- a pseudonymous research dataset containing your annotations and the language, expertise, and KG-familiarity information needed to interpret them.
+
+The public Musparql release has two data components: a concise benchmark file containing canonical question–SPARQL pairs and an alternatives/provenance file containing accepted formulations and methodological provenance. New releases using external reviewers will not publish their stable reviewer IDs, reviewer-level language, expertise or familiarity, or linked individual annotation histories.
+
+Public reporting about reviewer characteristics will use appropriate aggregate results and avoid singling out an identifiable reviewer. The private research dataset remains personal data even after the direct identity link is removed if a reviewer could still reasonably be identified from their contribution or combination of characteristics.
+
+## **Who can access the data and where it is stored**
+
+Access to identifiable and confidential information is limited to the authorised Musparql researcher and authorised ICF administrators when access is necessary for the research, continuity, security, recovery, or incident response.
+
+The application is hosted for ICF by Hetzner on a dedicated server in Germany. Encrypted backups are stored in ICF-controlled off-server storage and retained for up to 90 days. The authorised researcher may securely access the system from the United Kingdom; the European Commission currently recognises the UK as providing adequate protection for GDPR transfers.
+
+ODOMA does not receive Musparql reviewer personal data. Any future shared authentication, joint analysis, or sharing that changes this position would require a documented decision and an updated notice before it begins.
+
+Individual-level reviewer research data is not published or routinely shared. If another researcher asks for access in future, ICF will consider that request separately. No access will be provided merely because it was requested. Any approved access must have a defined purpose, appropriate safeguards and agreements, and any further notice or consent required at that time.
+
+If the Musparql researcher’s relationship with ICF changes, the private data do not automatically transfer to the researcher or a new institution. ICF remains responsible for the data unless it formally approves and documents a lawful successor or continued-access arrangement.
+
+## **Security**
+
+Musparql uses controlled access, a time-limited and capped workshop entry code, revocable sessions, HTTPS, access controls, restricted service accounts, redacted operational logs, encrypted off-server backups, security updates, and tested recovery procedures. No online service can eliminate every risk, but ICF and the researcher take measures proportionate to the limited scale and nature of the study.
+
+If a personal-data incident occurs, ICF leads the response and will inform affected participants when required.
+
+## **Withdrawal and retention**
+
+You may stop an assignment or withdraw consent at any time using the withdrawal control in Musparql, by telling the workshop facilitator, or by emailing musparql@industrycommons.net. Give your reviewer ID if you contact us outside your session. Where we have reasonable doubts, we may ask for proportionate information to confirm the account is yours. You do not need to give a reason.
+
+On withdrawal we stop using your personal research data, stop assigning work and disable your account. We delete your name, optional affiliation, account information, identity-to-reviewer link, profile, language, expertise, familiarity and reviewer-linked contributions from the live service without undue delay, and within 30 days at the latest. The period allows us to complete and check removal; it does not allow continued research use in the meantime.
+
+For a joint submission, we remove your personal data and attribution. We retain a remaining output only if it no longer relates to you as an identifiable person. Removing a reviewer ID alone is not enough. If your personal data cannot be separated safely, we delete the joint submission. Genuinely non-identifying benchmark questions, queries and alternative formulations, including those already published, can remain. We check for indirect identification before publishing outputs.
+
+If you do not withdraw, the operational identity records, pseudonymous research data and associated assignment records are kept only while needed for the stated research, and no later than two years after formal project closure. At that point they are deleted or made genuinely anonymous. Removing the identity link alone does not establish anonymity. The project lead recommends closure and ICF records the closure date when no recruitment, annotation rounds or planned analyses requiring the private dataset remain active and no approved successor arrangement exists. ICF reviews project status periodically so the study is not left open indefinitely.
+
+Security and access logs are kept for up to 90 days. The minimum consent and withdrawal record (reviewer ID, notice and consent versions, timestamps and what was deleted), and summary records of rights requests and incidents, are kept until two years after formal project closure. They contain no retained research profile or annotation content. Rights-request correspondence in the Musparql mailbox and its forwarded copy is deleted within 90 days of completing the request.
+
+Encrypted backup snapshots expire within 90 days. Data deleted from the live service may therefore remain in older backups for up to a further 90 days. Backups are used only for recovery. We reapply recorded deletions before restored data return to use. The minimum record needed to reapply a deletion is retained until the affected backups have expired, if that is later than the ordinary record-retention deadline.
+
+## **Your data-protection rights**
+
+Depending on the circumstances, you may ask ICF to:
+
+- give you information about and access to your personal data;
+- correct inaccurate or incomplete information;
+- erase your personal data;
+- restrict how your data is used; or
+- provide personal data you supplied in a portable format where that right applies.
+
+You may withdraw consent at any time. Some rights can be limited in particular circumstances, but ICF will explain any decision not to fulfil a request. Contact musparql@industrycommons.net to exercise a right. ICF may ask for proportionate information to verify your identity, using your workshop session or reviewer ID with proportionate additional information where needed. The reviewer ID alone is not proof of identity.
+
+**Right to object.** You may object at any time, on grounds relating to your particular situation, to processing based on ICF’s legitimate interests. ICF will no longer process those records unless it can demonstrate compelling legitimate grounds overriding your interests, rights and freedoms, or needs them to establish, exercise or defend legal claims.
+
+You also have the right to lodge a complaint with the Swedish Authority for Privacy Protection (Integritetsskyddsmyndigheten, IMY): https://www.imy.se/en/individuals/data-protection/your-rights-as-a-data-subject/. You can also complain to the supervisory authority where you live or work, or where you believe an infringement occurred.
+
+## **Changes to this notice**
+
+The system records which version of this notice you accepted. If a material change affects the purposes of the study or how your personal data is used, we will provide the revised notice and, where required, ask for fresh consent before the new processing begins.

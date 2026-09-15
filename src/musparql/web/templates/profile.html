@@ -3,10 +3,11 @@
 {% block content %}
   <h1>{% if profile_complete %}My profile{% else %}Complete your profile{% endif %}</h1>
   {% if current_reviewer.registration_method == 'workshop_code' %}
-    <p>Your workshop participant account is <strong>{{ current_reviewer.id }}</strong>. Your contact email is retained for workshop follow-up but is not verified and cannot be used to sign in.</p>
+    <p>Your workshop participant account is <strong>{{ current_reviewer.id }}</strong>. Your contact email is retained for workshop follow-up and, if you choose below, invitations to future review rounds. It is not verified and cannot be used to sign in.</p>
   {% else %}
     <p>Your email address is verified as <strong>{{ profile.email }}</strong>. Contact the project owner if it needs to change.</p>
   {% endif %}
+  <p><a href="{{ url_for('portal.participant_notice') }}">Read the participant information and privacy notice</a> (version {{ notice_version }}).</p>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
   <form method="post" action="{{ url_for('portal.profile') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -28,9 +29,13 @@
       {% if current_reviewer.registration_method == 'workshop_code' %}
         <label class="field" for="contact_email">Contact email
           <input id="contact_email" name="contact_email" type="email" maxlength="254" autocomplete="email" value="{% if not profile.email.endswith('@example.invalid') %}{{ profile.email }}{% endif %}" required>
-          <span class="metadata">Unverified. Used only for approved workshop follow-up; it is excluded from review bundles and exports.</span>
+          <span class="metadata">Unverified. Used for workshop follow-up and, only if you opt in below, future review invitations; excluded from review bundles and exports.</span>
         </label>
       {% endif %}
+      <label class="check">
+        <input type="checkbox" name="future_review_contact_allowed" value="yes"{% if profile.future_review_contact_allowed %} checked{% endif %}>
+        <span>You may contact me by email about future Musparql review rounds. <span class="optional">(optional)</span></span>
+      </label>
       <label class="field" for="title"><span>Title <span class="optional">(optional)</span></span>
         <input id="title" name="title" maxlength="50" autocomplete="honorific-prefix" value="{{ profile.title }}">
       </label>
@@ -186,5 +191,10 @@
 
     <button type="submit">Save profile</button>
   </form>
+  <section aria-labelledby="withdraw-consent-heading">
+    <h2 id="withdraw-consent-heading">Withdraw consent</h2>
+    <p>If you no longer want to take part, email the project team. The message includes your reviewer ID so we can locate your records.</p>
+    <a class="button" href="mailto:{{ contact_email }}?subject=Musparql%20consent%20withdrawal&amp;body=My%20reviewer%20ID%20is%20{{ current_reviewer.id }}.%0A%0AI%20withdraw%20my%20consent%20to%20participate%20in%20Musparql.">Withdraw consent</a>
+  </section>
   <script src="{{ url_for('static', filename='profile.js') }}" defer></script>
 {% endblock %}

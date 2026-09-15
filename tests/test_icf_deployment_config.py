@@ -212,6 +212,28 @@ def test_all_onboarding_notice_copy_uses_markdown_renderer() -> None:
     assert "{{ notice_body|notice_markdown }}" in profile
 
 
+def test_approved_ipl_workshop_notice_assets_are_versioned_and_complete() -> None:
+    root = Path(__file__).resolve().parents[1]
+    version = "musparql-workshop-2026-09-16-v1"
+    approved = root / "deploy" / "icf" / "approved-copy" / version
+    notice = (approved / "participant-notice.txt").read_text(encoding="utf-8")
+    summary = (approved / "consent-summary.txt").read_text(encoding="utf-8")
+    statement = (approved / "consent-statement.txt").read_text(encoding="utf-8")
+
+    assert "Industry Commons Foundation (insamlingsstiftelse)" in notice
+    assert "## **Withdrawal and retention**" in notice
+    assert "musparql@industrycommons.net" in notice
+    assert "[ICF" not in notice
+    assert "self-selected reviewing group" in summary
+    assert statement.startswith("I confirm that I am aged 18 or over")
+    assert (
+        root
+        / "docs"
+        / "participant-notices"
+        / "2026-09-16_Musparql_workshop_participant_notice_APPROVED.docx"
+    ).is_file()
+
+
 @pytest.mark.parametrize(
     ("version_key", "version"),
     (

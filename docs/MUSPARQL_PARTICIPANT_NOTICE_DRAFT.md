@@ -1,6 +1,13 @@
 # Musparql expert-review study: participant information and privacy notice
 
-Status: **draft for ICF review — not approved for use**
+Status: **superseded review draft — not for participant use**
+
+ICF approved the workshop-specific notice
+`musparql-workshop-2026-09-16-v1` on 15 September 2026. The exact approved DOCX
+is retained at
+[`participant-notices/2026-09-16_Musparql_workshop_participant_notice_APPROVED.docx`](participant-notices/2026-09-16_Musparql_workshop_participant_notice_APPROVED.docx),
+with deployable text extracts under
+`deploy/icf/approved-copy/musparql-workshop-2026-09-16-v1/`.
 
 Draft date: 12 September 2026
 

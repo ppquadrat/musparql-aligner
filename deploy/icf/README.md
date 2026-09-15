@@ -96,6 +96,21 @@ Participant profile, workshop, assignment, workbench, and submission access
 fails closed when either recorded version or acknowledgement timestamp is
 absent or obsolete.
 
+For the 16 September 2026 IPL workshop, the approved source DOCX is retained at
+`docs/participant-notices/2026-09-16_Musparql_workshop_participant_notice_APPROVED.docx`.
+Install its checked-in, application-ready copy with:
+
+```bash
+sudo install -o root -g musparql -m 0640 /opt/musparql/current/deploy/icf/approved-copy/musparql-workshop-2026-09-16-v1/participant-notice.txt /etc/musparql/participant-notice.txt
+sudo install -o root -g musparql -m 0640 /opt/musparql/current/deploy/icf/approved-copy/musparql-workshop-2026-09-16-v1/consent-summary.txt /etc/musparql/consent-summary.txt
+sudo install -o root -g musparql -m 0640 /opt/musparql/current/deploy/icf/approved-copy/musparql-workshop-2026-09-16-v1/consent-statement.txt /etc/musparql/consent-statement.txt
+```
+
+Both configured version values must be
+`musparql-workshop-2026-09-16-v1`. Restarting the application with the new
+version deliberately returns any existing participant to the affirmative
+consent screen before profile or workshop access.
+
 Create the database and the first owner. The prompts collect the owner's name
 and email directly in the terminal; do not paste either into an issue, log, or
 agent conversation. For this initial gate, use an obviously synthetic name and

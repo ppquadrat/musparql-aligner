@@ -51,6 +51,7 @@ class ProfileValue:
     last_name: str
     affiliation: str
     email: str
+    future_review_contact_allowed: bool
     kg_ontology_experience: str
     sparql_experience: str
     nlp_llm_experience: str
@@ -160,6 +161,7 @@ class ProfileService:
                 last_name=reviewer.last_name,
                 affiliation=reviewer.affiliation,
                 email=reviewer.email_display,
+                future_review_contact_allowed=reviewer.future_review_contact_allowed,
                 kg_ontology_experience=(experience.kg_ontology_experience if experience else ""),
                 sparql_experience=(experience.sparql_experience if experience else ""),
                 nlp_llm_experience=(experience.nlp_llm_experience if experience else ""),
@@ -285,6 +287,9 @@ class ProfileService:
             reviewer.last_name = last_name
             reviewer.name = f"{first_name} {last_name}"
             reviewer.affiliation = affiliation
+            reviewer.future_review_contact_allowed = (
+                form.get("future_review_contact_allowed") == "yes"
+            )
             reviewer.updated_at = now_text
             if not notice_is_current:
                 reviewer.privacy_notice_version = self.notice_version

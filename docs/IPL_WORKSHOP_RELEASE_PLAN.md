@@ -362,10 +362,14 @@ Shared-code redemption may use an internal placeholder only until profile
 completion. The profile requires the participant to enter a contact email
 before any group, package, assignment, or workbench route becomes available.
 That address remains unverified (`email_verified_at = NULL`) but is retained for
-best-effort follow-up under the approved notice; it must never enter a review
-bundle, submission, benchmark, or application log. The unverified address is
-excluded from normal login-code issuance and verification. If SMTP is
-unavailable, the practical MVP recovery procedure is facilitator-assisted:
+best-effort workshop follow-up under the approved notice. A separate, optional,
+unticked profile checkbox records whether the participant may be contacted by
+email about future Musparql review rounds. ICF approval of that additional
+purpose and checkbox wording is required before this version is deployed for
+real participants. The address and preference must never enter a review bundle,
+submission, benchmark, or application log. The unverified address is excluded
+from normal login-code issuance and verification. If SMTP is unavailable, the
+practical MVP recovery procedure is facilitator-assisted:
 keep the participant on the same browser where possible and provide one narrow,
 audited owner reset operation for a genuinely lost session. Do not build a
 general recovery system for next week.
@@ -612,9 +616,13 @@ synthetic rehearsal baseline on 13 September 2026 after a recoverable snapshot.
 
 ### Track B — remaining governance and operations
 
-- Obtain the final response on the participant notice/consent statement.
+- Deploy and verify the ICF-approved notice and consent version
+  `musparql-workshop-2026-09-16-v1`.
+- Record ICF's data-management-plan registration check.
 - Keep ICF's authoritative real-reviewer gates aligned with the final notice,
-  SMTP, restore/alert, restart, and mobile-browser evidence.
+  SMTP, restore/alert, and restart evidence.
+- Treat the 16 September workshop as laptop-only. The owner explicitly removed
+  mobile-browser use from scope on 15 September 2026.
 
 ### Explicitly defer
 

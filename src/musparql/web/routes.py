@@ -378,6 +378,9 @@ def profile():
             last_name=request.form.get("last_name", ""),
             affiliation=request.form.get("affiliation", ""),
             email=request.form.get("contact_email", value.email),
+            future_review_contact_allowed=(
+                request.form.get("future_review_contact_allowed") == "yes"
+            ),
             kg_ontology_experience=request.form.get("kg_ontology_experience", ""),
             sparql_experience=request.form.get("sparql_experience", ""),
             nlp_llm_experience=request.form.get("nlp_llm_experience", ""),
@@ -425,6 +428,7 @@ def profile():
         language_levels=("basic", "advanced", "fluent", "native"),
         notice_version=current_app.config["PRIVACY_NOTICE_VERSION"],
         notice_body=current_app.config["PRIVACY_NOTICE_BODY"],
+        contact_email=current_app.config["PARTICIPANT_CONTACT_EMAIL"],
         notice_acknowledged=notice_acknowledged,
         error=error,
     )

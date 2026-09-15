@@ -1,0 +1,11 @@
+Musparql is an ICF research study about reviewing natural-language questions and SPARQL queries. Taking part is voluntary. We collect your profile, expertise, language and review data to run the study and analyse the benchmark.
+
+For the IPL workshop, you may work alone or in a self-selected reviewing group. A group’s joint submission is attributed to the pseudonymous reviewer identifiers of the people who contributed to it.
+
+We publish benchmark questions and ambiguity or alternative data, but not your name, contact details, reviewer profile, or reviewer-linked annotations.
+
+You may stop or withdraw at any time using the withdrawal control in Musparql, by telling the workshop facilitator, or by emailing musparql@industrycommons.net. We stop using your personal research data and delete it as explained below. Genuinely non-identifying benchmark outputs may remain. ICF keeps limited security, accountability and backup records separately under its legitimate interests.
+
+**You can object to the records kept under legitimate interests. See Your data-protection rights below.**
+
+Contact musparql@industrycommons.net about the study or your data rights.

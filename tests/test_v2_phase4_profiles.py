@@ -100,9 +100,15 @@ def login(client, app, sender, email: str) -> None:
     assert response.status_code == 302
 
 
-def profile_form(client, *, domain_level: str = "advanced", name: str = "Synthetic Reviewer") -> MultiDict:
+def profile_form(
+    client,
+    *,
+    domain_level: str = "advanced",
+    name: str = "Synthetic Reviewer",
+    future_review_contact_allowed: bool = False,
+) -> MultiDict:
     first_name, last_name = name.rsplit(" ", 1)
-    return MultiDict(
+    form = MultiDict(
         [
             ("csrf_token", csrf(client)),
             ("notice_acknowledged", "yes"),
@@ -121,6 +127,9 @@ def profile_form(client, *, domain_level: str = "advanced", name: str = "Synthet
             ("new_domain_level", domain_level),
         ]
     )
+    if future_review_contact_allowed:
+        form.add("future_review_contact_allowed", "yes")
+    return form
 
 
 def test_incomplete_reviewer_is_redirected_and_completes_onboarding(phase4_app) -> None:
@@ -134,6 +143,14 @@ def test_incomplete_reviewer_is_redirected_and_completes_onboarding(phase4_app) 
     page = client.get("/profile")
     assert b"Complete your profile" in page.data
     assert b"Synthetic Phase 4 notice" in page.data
+    assert b"Read the participant information and privacy notice" in page.data
+    assert b'href="/participant-notice"' in page.data
+    assert b'name="future_review_contact_allowed"' in page.data
+    assert b"You may contact me by email about future Musparql review rounds." in page.data
+    assert b'name="future_review_contact_allowed" value="yes" checked' not in page.data
+    assert b">Withdraw consent</a>" in page.data
+    assert b"mailto:musparql@industrycommons.net?subject=Musparql%20consent%20withdrawal" in page.data
+    assert f"My%20reviewer%20ID%20is%20{REVIEWER_ID}".encode() in page.data
     assert b"Computational musicology" in page.data
     assert b"Add as written" not in page.data
     assert b"special-category personal data" not in page.data
@@ -147,7 +164,10 @@ def test_incomplete_reviewer_is_redirected_and_completes_onboarding(phase4_app) 
     assert b'autocomplete="off"' in page.data
     assert b"2 \xe2\x80\x94 Working knowledge" in page.data
 
-    response = client.post("/profile", data=profile_form(client))
+    response = client.post(
+        "/profile",
+        data=profile_form(client, future_review_contact_allowed=True),
+    )
     assert response.status_code == 302
     assert response.location.endswith("/?profile_saved=yes")
     next_page = client.get(response.location)
@@ -168,6 +188,7 @@ def test_incomplete_reviewer_is_redirected_and_completes_onboarding(phase4_app) 
             assert stored.name == "Synthetic Reviewer"
             assert stored.privacy_notice_version == "synthetic-phase4-v1"
             assert stored.privacy_notice_acknowledged_at is not None
+            assert stored.future_review_contact_allowed is True
             experience = session.get(ReviewerExperience, REVIEWER_ID)
             assert experience is not None and experience.sparql_experience == "expert"
             languages = list(
@@ -304,6 +325,7 @@ def test_invalid_or_stale_profile_is_atomic(phase4_app) -> None:
     client = app.test_client()
     login(client, app, sender, "reviewer@example.invalid")
     invalid = profile_form(client, name="Must Not Persist")
+    invalid.add("future_review_contact_allowed", "yes")
     invalid.add("existing_domain_id", "domain-not-owned")
     invalid.add("existing_assertion_id", "assertion-not-owned")
     invalid.add("existing_domain_level", "expert")
@@ -312,6 +334,7 @@ def test_invalid_or_stale_profile_is_atomic(phase4_app) -> None:
     assert b"Profile not saved: The submitted domain set is stale or invalid" in response.data
     assert b'value="Must Not"' in response.data
     assert b'value="Persist"' in response.data
+    assert b'name="future_review_contact_allowed" value="yes" checked' in response.data
 
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
@@ -319,6 +342,7 @@ def test_invalid_or_stale_profile_is_atomic(phase4_app) -> None:
         with sessions() as session:
             stored = session.get(Reviewer, REVIEWER_ID)
             assert stored is not None and stored.name != "Must Not Persist"
+            assert stored.future_review_contact_allowed is False
             assert session.scalar(select(ReviewerExperience)) is None
             assert session.scalar(select(ReviewerDomainExpertise)) is None
     finally:
