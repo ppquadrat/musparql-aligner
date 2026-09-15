@@ -320,6 +320,11 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
         app_asset = reviewer.get(f"/assignments/{assignment_id}/workbench/app.js")
         assert app_asset.status_code == 200
         assert app_asset.data == (ROOT / "review/app.js").read_bytes()
+        diagnostic_asset = reviewer.get(
+            f"/assignments/{assignment_id}/workbench/diagnostics.js"
+        )
+        assert diagnostic_asset.status_code == 200
+        assert diagnostic_asset.data == (ROOT / "review/diagnostics.js").read_bytes()
         context_asset = reviewer.get(
             f"/assignments/{assignment_id}/workbench/host_context.js"
         )
@@ -328,12 +333,19 @@ def test_owner_creation_assessment_gate_attribution_and_isolation(tmp_path: Path
         assert REVIEWER_ID.encode() in context_asset.data
         assert b'"holdout_capability":false' in context_asset.data
         assert b'"assignments_url":"/"' in context_asset.data
+        assert b'"client_diagnostic_url"' in context_asset.data
         data_asset = reviewer.get(
             f"/assignments/{assignment_id}/workbench/review_data.js"
         )
         assert data_asset.status_code == 200
         assert b'"mode":"initial"' in data_asset.data
         assert REVIEWER_ID.encode() in data_asset.data
+        diagnostic = reviewer.post(
+            f"/assignments/{assignment_id}/workbench/client-diagnostic",
+            json={"stage": "initialization-failed", "errors": ["Synthetic error"]},
+            headers={"X-CSRF-Token": csrf(reviewer)},
+        )
+        assert diagnostic.status_code == 204
         assert reviewer.get(
             f"/assignments/{assignment_id}/workbench/unknown.js"
         ).status_code == 404

@@ -1143,6 +1143,10 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
             "assignments_url": url_for("portal.index"),
             "logout_url": url_for("portal.logout"),
             "csrf_token": g.csrf_token,
+            "client_diagnostic_url": url_for(
+                "portal.assignment_workbench_client_diagnostic",
+                assignment_id=assignment_id,
+            ),
             "submission_url": (
                 None
                 if linguistic and payload.get("review_group_id")
@@ -1181,10 +1185,45 @@ def assignment_workbench_asset(assignment_id: str, asset_name: str):
             context, ensure_ascii=True, separators=(",", ":")
         ) + ";\n"
         return Response(body, mimetype="application/javascript")
-    if asset_name not in {"app.js", "styles.css"}:
+    if asset_name not in {"app.js", "diagnostics.js", "styles.css"}:
         abort(404)
     root_key = "LINGUISTIC_WORKBENCH_ROOT" if linguistic else "REVIEW_WORKBENCH_ROOT"
+    if linguistic and asset_name == "diagnostics.js":
+        abort(404)
     return send_from_directory(
         Path(current_app.config[root_key]).expanduser().resolve(),
         asset_name,
     )
+
+
+@portal.post("/assignments/<assignment_id>/workbench/client-diagnostic")
+@complete_profile_required
+def assignment_workbench_client_diagnostic(assignment_id: str):
+    _hosted_assignment_bundle(assignment_id)
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        abort(400)
+    allowed_stages = {
+        "host-context-missing",
+        "review-data-missing",
+        "record-list-invalid",
+        "record-list-empty",
+        "initialization-failed",
+    }
+    stage = str(body.get("stage") or "")
+    if stage not in allowed_stages:
+        abort(400)
+    supplied_errors = body.get("errors")
+    errors = []
+    if isinstance(supplied_errors, list):
+        errors = [
+            str(value).replace("\n", " ").replace("\r", " ")[:300]
+            for value in supplied_errors[:3]
+        ]
+    current_app.logger.warning(
+        "Workbench client diagnostic assignment=%s stage=%s errors=%r",
+        assignment_id,
+        stage,
+        errors,
+    )
+    return Response(status=204)

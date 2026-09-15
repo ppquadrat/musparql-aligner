@@ -154,6 +154,7 @@
   populateFilters();
   bindEvents();
   render();
+  window.MUSPARQL_WORKBENCH_READY = true;
   continueAfterSubmission = () => {
     const next = data.records.find((record) => !hasReviewerDecision(getReview(record)));
     if (next) state.selectedReviewId = next.review_id;
