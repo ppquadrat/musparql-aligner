@@ -685,7 +685,6 @@ def test_owner_can_issue_one_time_audited_workshop_session_recovery(workshop_app
         assert reviewer is not None
         reviewer_id = reviewer.id
     engine.dispose()
-
     reset = owner.post(
         f"/owner/workshop-entry/reviewers/{reviewer_id}/reset",
         data={"csrf_token": _csrf(owner)},
@@ -737,6 +736,53 @@ def test_owner_can_issue_one_time_audited_workshop_session_recovery(workshop_app
             )
         )
         assert active_sessions == 1
+    engine.dispose()
+
+
+def test_server_can_issue_one_time_owner_recovery(workshop_app) -> None:
+    app, sender, database_path, _bundle_root = workshop_app
+    existing = app.test_client()
+    _login(existing, app, sender, "owner@example.invalid")
+
+    code = app.extensions["musparql_auth"].issue_owner_recovery_code()
+    assert re.fullmatch(r"[0-9]{6}", code)
+    assert existing.get("/owner/workshop-entry").location == "/auth/login"
+
+    recovered = app.test_client()
+    response = recovered.post(
+        "/auth/workshop/recover",
+        data={
+            "csrf_token": _csrf(recovered),
+            "reviewer_id": OWNER_ID,
+            "code": code,
+        },
+    )
+    assert response.status_code == 302
+    assert response.location == "/owner/workshop-entry"
+    assert recovered.get("/owner/workshop-entry").status_code == 200
+
+    replay = app.test_client()
+    replay_response = replay.post(
+        "/auth/workshop/recover",
+        data={
+            "csrf_token": _csrf(replay),
+            "reviewer_id": OWNER_ID,
+            "code": code,
+        },
+    )
+    assert replay_response.status_code == 200
+    assert replay.get_cookie("musparql_session") is None
+
+    engine = create_database_engine(database_path)
+    sessions = session_factory(engine)
+    with sessions() as session:
+        reset = session.scalar(
+            select(WorkshopSessionReset).where(
+                WorkshopSessionReset.target_reviewer_id == OWNER_ID
+            )
+        )
+        assert reset is not None
+        assert reset.actor_reviewer_id == OWNER_ID
     engine.dispose()
 
 

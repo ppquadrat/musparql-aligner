@@ -27,12 +27,12 @@
   {% endif %}
   {% if not reauthenticate %}
     <details>
-      <summary>Recover a workshop session</summary>
-      <p>Use this only with a participant ID and one-time code supplied by the facilitator.</p>
+      <summary>Recover an existing session</summary>
+      <p>Use this only with a reviewer ID and one-time code supplied by the facilitator or server administrator.</p>
       {% if workshop_recovery_invalid %}<p class="error" role="alert">Those recovery details are not available.</p>{% endif %}
       <form method="post" action="{{ url_for('portal.workshop_recover') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="recovery-reviewer-id">Participant ID</label>
+        <label for="recovery-reviewer-id">Reviewer ID</label>
         <input id="recovery-reviewer-id" name="reviewer_id" autocomplete="off" maxlength="64" required>
         <label for="recovery-code">One-time recovery code</label>
         <input id="recovery-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>

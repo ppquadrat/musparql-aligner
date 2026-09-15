@@ -528,6 +528,57 @@ class AuthService:
             )
         return code
 
+    def issue_owner_recovery_code(self) -> str:
+        """Issue a short-lived, single-use code from the production console."""
+
+        now = self.clock()
+        now_text = timestamp(now)
+        reviewer_id = self.config["OWNER_REVIEWER_ID"]
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        challenge_id = "owner-recovery-" + secrets.token_urlsafe(24)
+        with self.sessions.begin() as session:
+            reviewer = session.get(Reviewer, reviewer_id)
+            if (
+                reviewer is None
+                or reviewer.status != "active"
+                or reviewer.registration_method == "workshop_code"
+            ):
+                raise ValueError("The configured owner is not eligible for recovery")
+            self._revoke_reviewer_sessions(session, reviewer_id, now)
+            session.execute(
+                update(LoginCode)
+                .where(
+                    LoginCode.email_normalized == reviewer.email_normalized,
+                    LoginCode.consumed_at.is_(None),
+                )
+                .values(consumed_at=now_text)
+            )
+            session.add(
+                LoginCode(
+                    id=challenge_id,
+                    email_normalized=reviewer.email_normalized,
+                    code_hash=self._digest("login-code", f"{challenge_id}\0{code}"),
+                    requested_at=now_text,
+                    expires_at=timestamp(
+                        now + timedelta(seconds=self.config["LOGIN_CODE_TTL_SECONDS"])
+                    ),
+                    consumed_at=None,
+                    failed_attempt_count=0,
+                    request_context_digest=self._digest(
+                        "owner-recovery", reviewer_id
+                    ),
+                )
+            )
+            session.add(
+                WorkshopSessionReset(
+                    id="owner-reset-" + uuid.uuid4().hex,
+                    actor_reviewer_id=reviewer_id,
+                    target_reviewer_id=reviewer_id,
+                    created_at=now_text,
+                )
+            )
+        return code
+
     def recover_workshop_session(
         self,
         reviewer_id: str,
@@ -536,7 +587,7 @@ class AuthService:
         *,
         current_token: str | None,
     ) -> tuple[str, Reviewer] | None:
-        """Consume an owner-issued reset code without verifying a fallback address."""
+        """Consume a server- or owner-issued recovery code."""
 
         now = self.clock()
         allowed = self._record_workshop_attempt(
@@ -557,20 +608,27 @@ class AuthService:
         try:
             session.execute(text("BEGIN IMMEDIATE"))
             reviewer = session.get(Reviewer, reviewer_id)
-            if (
-                reviewer is None
-                or reviewer.status != "active"
-                or reviewer.registration_method != "workshop_code"
-            ):
+            is_owner = reviewer_id == self.config["OWNER_REVIEWER_ID"]
+            eligible = bool(
+                reviewer is not None
+                and reviewer.status == "active"
+                and (
+                    (is_owner and reviewer.registration_method != "workshop_code")
+                    or (not is_owner and reviewer.registration_method == "workshop_code")
+                )
+            )
+            if not eligible:
                 self._digest("dummy-workshop-recovery", f"{reviewer_id}\0{code}")
                 session.rollback()
                 return None
+            assert reviewer is not None
+            recovery_namespace = "owner-recovery" if is_owner else "workshop-recovery"
             challenge = session.scalar(
                 select(LoginCode)
                 .where(
                     LoginCode.email_normalized == reviewer.email_normalized,
                     LoginCode.request_context_digest
-                    == self._digest("workshop-recovery", reviewer_id),
+                    == self._digest(recovery_namespace, reviewer_id),
                     LoginCode.consumed_at.is_(None),
                 )
                 .order_by(LoginCode.requested_at.desc())
@@ -605,7 +663,14 @@ class AuthService:
                     created_at=timestamp(now),
                     last_used_at=timestamp(now),
                     expires_at=timestamp(
-                        now + timedelta(seconds=self.config["REVIEWER_ABSOLUTE_SECONDS"])
+                        now
+                        + timedelta(
+                            seconds=self.config[
+                                "OWNER_ABSOLUTE_SECONDS"
+                                if is_owner
+                                else "REVIEWER_ABSOLUTE_SECONDS"
+                            ]
+                        )
                     ),
                     revoked_at=None,
                     remembered=False,

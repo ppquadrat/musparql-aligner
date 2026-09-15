@@ -512,7 +512,9 @@ def workshop_recover():
         ), 200
     token, reviewer = result
     response = redirect(
-        url_for("portal.consent_pending")
+        url_for("portal.owner_workshop_entry")
+        if reviewer.id == current_app.config["OWNER_REVIEWER_ID"]
+        else url_for("portal.consent_pending")
         if not has_current_consent(
             reviewer,
             current_app.config["CONSENT_STATEMENT_VERSION"],
