@@ -27,7 +27,7 @@
     <footer>
       <a href="{{ url_for('portal.participant_notice') }}">Participant information and privacy notice</a>
       {% if current_reviewer and current_reviewer.id != config.OWNER_REVIEWER_ID %}
-        <a href="{{ url_for('portal.consent_withdrawal') }}">Withdraw from the study</a>
+        <a href="mailto:{{ config.PARTICIPANT_CONTACT_EMAIL }}?subject=Musparql%20consent%20withdrawal&amp;body=My%20reviewer%20ID%20is%20{{ current_reviewer.id }}.%0A%0AI%20withdraw%20my%20consent%20to%20participate%20in%20Musparql.">Withdraw from the study</a>
       {% endif %}
     </footer>
   </body>

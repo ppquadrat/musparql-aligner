@@ -973,6 +973,11 @@ def test_affirmative_consent_records_both_versions_before_profile_collection(
     )
     withdrawal = participant.get("/consent/withdrawal")
     assert b"musparql@industrycommons.net" in withdrawal.data
+    assert (
+        b'mailto:musparql@industrycommons.net?subject=Musparql%20consent%20withdrawal'
+        in profile.data
+    )
+    assert b"My%20reviewer%20ID%20is%20reviewer-" in profile.data
 
 
 def test_email_login_with_missing_consent_routes_to_the_same_gate(workshop_app) -> None:
