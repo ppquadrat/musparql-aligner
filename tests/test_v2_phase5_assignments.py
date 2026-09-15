@@ -480,7 +480,7 @@ def test_assignment_creation_rejects_identity_paths_and_unfiltered_bundles(tmp_p
     engine.dispose()
 
 
-def test_workshop_records_are_randomized_with_deduplicated_pass_first() -> None:
+def _ordered_workshop_payload(kg_id: str) -> dict:
     records = [
         {
             "query_id": f"dedup-{index}",
@@ -495,34 +495,69 @@ def test_workshop_records_are_randomized_with_deduplicated_pass_first() -> None:
         for index in range(8)
     ]
     payload = {
-        "records": records,
+        "records": list(reversed(records)),
         "workshop_package": {
+            "kg_id": kg_id,
             "pass_order": ["deduplicated", "all_pairs"],
         },
     }
+    return payload
 
-    first = _randomize_workshop_records(
-        payload,
-        assignment_id="assignment-000000000000000000000001",
-        bundle_digest="sha256:" + "1" * 64,
-    )
-    repeated = _randomize_workshop_records(
-        payload,
-        assignment_id="assignment-000000000000000000000001",
-        bundle_digest="sha256:" + "1" * 64,
-    )
-    second = _randomize_workshop_records(
-        payload,
-        assignment_id="assignment-000000000000000000000002",
-        bundle_digest="sha256:" + "1" * 64,
-    )
 
-    assert first["workshop_package"]["presentation_order"] == repeated[
-        "workshop_package"
-    ]["presentation_order"]
-    assert first["workshop_package"]["presentation_order"] != second[
-        "workshop_package"
-    ]["presentation_order"]
-    assert [record["workshop_pass"] for record in first["records"]] == [
-        "deduplicated"
-    ] * 8 + ["all_pairs"] * 8
+def test_large_workshop_packages_are_randomized_per_assignment() -> None:
+    for kg_id in ("europeana", "camera-dei-deputati"):
+        payload = _ordered_workshop_payload(kg_id)
+        first = _randomize_workshop_records(
+            payload,
+            assignment_id="assignment-000000000000000000000001",
+            bundle_digest="sha256:" + "1" * 64,
+        )
+        repeated = _randomize_workshop_records(
+            payload,
+            assignment_id="assignment-000000000000000000000001",
+            bundle_digest="sha256:" + "1" * 64,
+        )
+        second = _randomize_workshop_records(
+            payload,
+            assignment_id="assignment-000000000000000000000002",
+            bundle_digest="sha256:" + "1" * 64,
+        )
+
+        assert first["workshop_package"]["presentation_order"] == repeated[
+            "workshop_package"
+        ]["presentation_order"]
+        assert first["workshop_package"]["presentation_order"] != second[
+            "workshop_package"
+        ]["presentation_order"]
+        assert first["workshop_package"]["presentation_strategy"] == (
+            "assignment-randomized-within-pass"
+        )
+        assert [record["workshop_pass"] for record in first["records"]] == [
+            "deduplicated"
+        ] * 8 + ["all_pairs"] * 8
+
+
+def test_other_workshop_records_use_query_id_order() -> None:
+    for kg_id in ("nfdi4culture", "cdec", "meetups", "musow", "organs"):
+        payload = _ordered_workshop_payload(kg_id)
+        first = _randomize_workshop_records(
+            payload,
+            assignment_id="assignment-000000000000000000000001",
+            bundle_digest="sha256:" + "1" * 64,
+        )
+        second = _randomize_workshop_records(
+            payload,
+            assignment_id="assignment-000000000000000000000002",
+            bundle_digest="sha256:" + "1" * 64,
+        )
+
+        assert first["workshop_package"]["presentation_order"] == second[
+            "workshop_package"
+        ]["presentation_order"]
+        assert first["workshop_package"]["presentation_strategy"] == (
+            "query-id-order-within-pass"
+        )
+        assert first["workshop_package"]["presentation_order"] == [
+            *(f"dedup-{index}" for index in range(8)),
+            *(f"all-{index}" for index in range(8)),
+        ]

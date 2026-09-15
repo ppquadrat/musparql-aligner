@@ -18,6 +18,7 @@ from musparql.workshop_packages import (
     build_package_set,
     canonical_json,
     digest_bytes,
+    prepare_expanded_workshop_source,
     prepare_quagga_workshop_source,
     register_package_set,
     validate_package_set,
@@ -116,20 +117,80 @@ def _candidate_report(*, deduplicated: bool = False) -> dict:
     }
 
 
-def test_quagga_reports_prepare_four_kg_two_pass_source() -> None:
+def test_quagga_reports_prepare_all_package_kgs_two_pass_source() -> None:
     bundle, selection = prepare_quagga_workshop_source(
         all_candidates=_candidate_report(),
         deduplicated_candidates=_candidate_report(deduplicated=True),
     )
 
-    assert bundle["record_count"] == 8
-    assert len(selection) == 8
+    assert bundle["record_count"] == 2 * len(IPL_PACKAGES)
+    assert len(selection) == 2 * len(IPL_PACKAGES)
     assert {record["kg_id"] for record in bundle["records"]} == {
         package.kg_id for package in IPL_PACKAGES
     }
-    assert sum(record["workshop_pass"] == "deduplicated" for record in bundle["records"]) == 4
-    assert sum(record["workshop_pass"] == "all_pairs" for record in bundle["records"]) == 4
+    assert sum(record["workshop_pass"] == "deduplicated" for record in bundle["records"]) == len(IPL_PACKAGES)
+    assert sum(record["workshop_pass"] == "all_pairs" for record in bundle["records"]) == len(IPL_PACKAGES)
     assert bundle["workshop_pass_order"] == ["deduplicated", "all_pairs"]
+
+
+def test_expanded_source_trims_large_packages_and_adds_polifonia_packages(
+    tmp_path: Path,
+) -> None:
+    quagga, _selection = prepare_quagga_workshop_source(
+        all_candidates=_candidate_report(),
+        deduplicated_candidates=_candidate_report(deduplicated=True),
+    )
+    quagga["records"] = [
+        record for record in quagga["records"] if record["kg_id"] in {
+            "europeana", "nfdi4culture", "camera-dei-deputati", "cdec"
+        }
+    ]
+    quagga["record_count"] = len(quagga["records"])
+    musow = _source_bundle(tmp_path / "expanded-source.json")
+    musow_payload = json.loads(musow.read_text(encoding="utf-8"))
+    musow_payload["records"] = [
+        {
+            **next(record for record in musow_payload["records"] if record["kg_id"] == "musow"),
+            "review_scope": "new",
+        }
+    ]
+    benchmark = []
+    for kg_id in ("meetups", "organs"):
+        benchmark.append(
+            {
+                "kg_id": kg_id,
+                "query_id": f"{kg_id}__synthetic-public",
+                "query_label": f"{kg_id}-0001",
+                "benchmark_id": f"{kg_id}::synthetic-public",
+                "gold_question": "What is the synthetic public question?",
+                "gold_question_source": "reviewer_rewrite",
+                "sparql": "SELECT * WHERE { ?s ?p ?o }",
+                "sparql_version": 0,
+                "sparql_hash": "sha256:" + ("a" if kg_id == "meetups" else "b") * 64,
+            }
+        )
+
+    bundle, selection = prepare_expanded_workshop_source(
+        quagga_source=quagga,
+        musow_source=musow_payload,
+        public_benchmark_records=benchmark,
+    )
+
+    selected = {(item["kg_id"], item["query_id"]) for item in selection}
+    for kg_id in ("europeana", "camera-dei-deputati"):
+        assert all(
+            record["workshop_pass"] == "deduplicated"
+            for record in bundle["records"]
+            if (record["kg_id"], record["query_id"]) in selected and record["kg_id"] == kg_id
+        )
+    assert {record["kg_id"] for record in bundle["records"]} == {
+        package.kg_id for package in IPL_PACKAGES
+    }
+    assert {
+        record["kg_id"]
+        for record in bundle["records"]
+        if record.get("review_scope") == "previously_reviewed"
+    } == {"meetups", "organs"}
 
 
 def test_provisional_package_set_is_complete_deterministic_and_disabled(tmp_path: Path) -> None:
@@ -407,7 +468,7 @@ def test_frozen_package_set_registers_idempotently_on_draft_round(tmp_path: Path
                 )
             )
 
-        assert register_package_set(manifest, sessions=sessions, bundle_root=root) == (4, 0)
+        assert register_package_set(manifest, sessions=sessions, bundle_root=root) == (len(IPL_PACKAGES), 0)
         assert register_package_set(manifest, sessions=sessions, bundle_root=root) == (0, 0)
         with sessions.begin() as session:
             session.get(WorkshopRound, "ipl-2026").status = "open"

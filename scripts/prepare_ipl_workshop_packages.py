@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare, build, validate, and register the four reviewer-neutral IPL packages."""
+"""Prepare, build, validate, and register the reviewer-neutral IPL packages."""
 from __future__ import annotations
 
 import argparse
@@ -14,6 +14,7 @@ from musparql.database.services import SeedSnapshotService
 from musparql.workshop_packages import (
     build_package_set,
     canonical_json,
+    prepare_expanded_workshop_source,
     prepare_quagga_workshop_source,
     register_package_set,
     validate_package_set,
@@ -31,6 +32,29 @@ def _mapping(path: Path, *, yaml_input: bool = False) -> dict[str, Any]:
     return payload
 
 
+def _records(path: Path) -> list[dict[str, Any]]:
+    return [
+        item
+        for line in path.read_text(encoding="utf-8-sig").splitlines()
+        if line.strip()
+        for item in [json.loads(line)]
+        if isinstance(item, dict)
+    ]
+
+
+def _review_bundle(path: Path) -> dict[str, Any]:
+    text = path.read_text(encoding="utf-8-sig").strip()
+    prefix = "window.REVIEW_DATA ="
+    if text.startswith(prefix):
+        text = text[len(prefix):].strip()
+        if text.endswith(";"):
+            text = text[:-1]
+    payload = json.loads(text)
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected a review-bundle object in {path}")
+    return payload
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     commands = result.add_subparsers(dest="command", required=True)
@@ -44,7 +68,17 @@ def parser() -> argparse.ArgumentParser:
     prepare.add_argument("--source-bundle-out", type=Path, required=True)
     prepare.add_argument("--selection-out", type=Path, required=True)
 
-    build = commands.add_parser("build", help="Create and immediately validate all four packages.")
+    expanded = commands.add_parser(
+        "prepare-expanded-source",
+        help="Combine the four-KG Quagga source, filtered MusOW source, and public benchmark reinspection pairs.",
+    )
+    expanded.add_argument("--quagga-source", type=Path, required=True)
+    expanded.add_argument("--musow-source", type=Path, required=True)
+    expanded.add_argument("--public-benchmark", type=Path, required=True)
+    expanded.add_argument("--source-bundle-out", type=Path, required=True)
+    expanded.add_argument("--selection-out", type=Path, required=True)
+
+    build = commands.add_parser("build", help="Create and immediately validate all workshop packages.")
     build.add_argument("--source-bundle", type=Path, required=True)
     build.add_argument("--seed-snapshots", type=Path, default=Path("catalog/kg_seed_snapshots.yaml"))
     build.add_argument("--bundle-root", type=Path, required=True)
@@ -88,9 +122,25 @@ def main(argv: list[str] | None = None) -> int:
         args.source_bundle_out.write_bytes(canonical_json(bundle))
         args.selection_out.write_bytes(canonical_json(selection))
         print(
-            f"Prepared {bundle['record_count']} four-KG records and "
+            f"Prepared {bundle['record_count']} Quagga records and "
             f"{sum(record['workshop_pass'] == 'deduplicated' for record in bundle['records'])} "
             "deduplicated-first records."
+        )
+        return 0
+
+    if args.command == "prepare-expanded-source":
+        bundle, selection = prepare_expanded_workshop_source(
+            quagga_source=_review_bundle(args.quagga_source),
+            musow_source=_review_bundle(args.musow_source),
+            public_benchmark_records=_records(args.public_benchmark),
+        )
+        args.source_bundle_out.parent.mkdir(parents=True, exist_ok=True)
+        args.selection_out.parent.mkdir(parents=True, exist_ok=True)
+        args.source_bundle_out.write_bytes(canonical_json(bundle))
+        args.selection_out.write_bytes(canonical_json(selection))
+        print(
+            f"Prepared {bundle['record_count']} seven-KG source records and "
+            f"{len(selection)} selected workshop records."
         )
         return 0
 

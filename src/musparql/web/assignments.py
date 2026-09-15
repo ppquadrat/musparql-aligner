@@ -38,12 +38,16 @@ _SAFE_HOLDOUT_POLICIES = {
     "identity_visible_selectors",
     "identity_private_filtered_upstream",
 }
+_ASSIGNMENT_RANDOMIZED_WORKSHOP_KGS = {
+    "europeana",
+    "camera-dei-deputati",
+}
 
 
 def _randomize_workshop_records(
     payload: dict[str, Any], *, assignment_id: str, bundle_digest: str
 ) -> dict[str, Any]:
-    """Keep workshop passes ordered while deterministically shuffling within each pass."""
+    """Apply the package-specific workshop presentation order."""
     workshop_package = payload.get("workshop_package")
     if not isinstance(workshop_package, dict):
         return payload
@@ -56,22 +60,30 @@ def _randomize_workshop_records(
         if name not in strata:
             raise ValueError(f"Workshop record has an invalid pass: {name}")
         strata[name].append(record)
+    kg_id = str(workshop_package.get("kg_id") or "")
+    randomized = kg_id in _ASSIGNMENT_RANDOMIZED_WORKSHOP_KGS
     ordered_records = []
     for name in pass_order:
-        seed = int.from_bytes(
-            hashlib.sha256(
-                f"{assignment_id}\0{bundle_digest}\0{name}".encode("utf-8")
-            ).digest(),
-            "big",
-        )
-        random.Random(seed).shuffle(strata[name])
+        strata[name].sort(key=lambda record: str(record.get("query_id") or ""))
+        if randomized:
+            seed = int.from_bytes(
+                hashlib.sha256(
+                    f"{assignment_id}\0{bundle_digest}\0{name}".encode("utf-8")
+                ).digest(),
+                "big",
+            )
+            random.Random(seed).shuffle(strata[name])
         ordered_records.extend(strata[name])
     return {
         **payload,
         "records": ordered_records,
         "workshop_package": {
             **workshop_package,
-            "presentation_strategy": "assignment-randomized-within-pass",
+            "presentation_strategy": (
+                "assignment-randomized-within-pass"
+                if randomized
+                else "query-id-order-within-pass"
+            ),
             "presentation_order": [
                 str(record.get("query_id") or "") for record in ordered_records
             ],

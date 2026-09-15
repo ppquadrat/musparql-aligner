@@ -1,4 +1,4 @@
-"""Deterministic preparation and registration of the four IPL work packages."""
+"""Deterministic preparation and registration of the IPL work packages."""
 from __future__ import annotations
 
 from contextlib import nullcontext
@@ -64,8 +64,30 @@ IPL_PACKAGES = (
         "Specialist work on CDEC's linked documentary record of Jews in twentieth-century Italy.",
         "specialist",
     ),
+    PackageDefinition(
+        "meetups",
+        "Musical Meetups Knowledge Graph",
+        "Polifonia specialist work on documented historical encounters between musical figures.",
+        "specialist",
+    ),
+    PackageDefinition(
+        "musow",
+        "Music On the Web (MusOW)",
+        "Polifonia specialist work on online music datasets, catalogues, and digital research resources.",
+        "specialist",
+    ),
+    PackageDefinition(
+        "organs",
+        "Organs Knowledge Graph",
+        "Polifonia specialist work on historical pipe organs, builders, components, places, and changes over time.",
+        "specialist",
+    ),
 )
 IPL_KG_IDS = frozenset(item.kg_id for item in IPL_PACKAGES)
+QUAGGA_KG_IDS = frozenset(
+    {"europeana", "nfdi4culture", "camera-dei-deputati", "cdec"}
+)
+PUBLIC_REINSPECTION_KG_IDS = frozenset({"meetups", "organs"})
 WORKSHOP_PASS_ORDER = ("deduplicated", "all_pairs")
 
 
@@ -229,6 +251,182 @@ def prepare_quagga_workshop_source(
         "records": records,
     }
     return bundle, sorted(selection, key=lambda item: (item["kg_id"], item["query_id"]))
+
+
+def prepare_expanded_workshop_source(
+    *,
+    quagga_source: Mapping[str, Any],
+    musow_source: Mapping[str, Any],
+    public_benchmark_records: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Combine the frozen sources for the seven-package workshop design."""
+    for label, source in (("Quagga", quagga_source), ("MusOW", musow_source)):
+        if source.get("schema") != "musparql.review-bundle.v2":
+            raise ValueError(f"{label} source uses an unsupported review-bundle schema")
+        if source.get("holdout_input_policy") not in {
+            "identity_visible_selectors",
+            "identity_private_filtered_upstream",
+        }:
+            raise ValueError(f"{label} source has not explicitly excluded holdouts")
+        if not isinstance(source.get("records"), list):
+            raise ValueError(f"{label} source has no record list")
+
+    records: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+
+    def append_record(record: Mapping[str, Any], *, workshop_pass: str) -> None:
+        kg_id = str(record.get("kg_id") or "")
+        query_id = str(record.get("query_id") or "")
+        if kg_id not in IPL_KG_IDS or not query_id:
+            raise ValueError(f"Expanded source contains an invalid identity: {kg_id}/{query_id}")
+        key = (kg_id, query_id)
+        if key in seen:
+            raise ValueError(f"Expanded source repeats an identity: {kg_id}/{query_id}")
+        if workshop_pass not in WORKSHOP_PASS_ORDER:
+            raise ValueError(f"Expanded source has an invalid workshop pass: {workshop_pass}")
+        copied = deepcopy(dict(record))
+        copied["workshop_pass"] = workshop_pass
+        _record_pin(copied)
+        records.append(copied)
+        seen.add(key)
+
+    for record in cast(list[Mapping[str, Any]], quagga_source["records"]):
+        kg_id = str(record.get("kg_id") or "")
+        if kg_id not in QUAGGA_KG_IDS:
+            continue
+        append_record(
+            record,
+            workshop_pass=str(record.get("workshop_pass") or "deduplicated"),
+        )
+
+    for record in cast(list[Mapping[str, Any]], musow_source["records"]):
+        if record.get("kg_id") != "musow":
+            continue
+        if record.get("review_scope") == "previously_reviewed":
+            raise ValueError("MusOW source unexpectedly contains a previously reviewed pair")
+        append_record(record, workshop_pass="deduplicated")
+
+    for item in public_benchmark_records:
+        kg_id = str(item.get("kg_id") or "")
+        if kg_id not in PUBLIC_REINSPECTION_KG_IDS:
+            continue
+        query_id = str(item.get("query_id") or "")
+        query_label = str(item.get("query_label") or "")
+        benchmark_id = str(item.get("benchmark_id") or "")
+        question = item.get("gold_question")
+        sparql = item.get("sparql")
+        version = item.get("sparql_version")
+        digest = item.get("sparql_hash")
+        if (
+            not query_id
+            or not query_label
+            or not benchmark_id
+            or not isinstance(question, str)
+            or not question.strip()
+            or not isinstance(sparql, str)
+            or isinstance(version, bool)
+            or not isinstance(version, int)
+            or version < 0
+            or not isinstance(digest, str)
+            or SHA256_RE.fullmatch(digest) is None
+        ):
+            raise ValueError(f"Public benchmark record is incomplete: {kg_id}/{query_id}")
+        append_record(
+            {
+                "review_id": f"workshop-reinspection::{benchmark_id}",
+                "prior_review_ids": [benchmark_id],
+                "review_scope": "previously_reviewed",
+                "has_prior_pair_review": True,
+                "run_id": "public-benchmark-v10",
+                "generation_run_id": "public-benchmark-v10",
+                "run_label": "public-benchmark-v10",
+                "kg_id": kg_id,
+                "query_id": query_id,
+                "query_label": query_label,
+                "input": {
+                    "sparql_clean": sparql,
+                    "sparql_version": version,
+                    "sparql_hash": digest,
+                    "evidence": [],
+                },
+                "output": {
+                    "nl_question": question,
+                    "nl_question_origin": {
+                        "mode": "public_benchmark_reinspection",
+                        "evidence_ids": [],
+                    },
+                },
+                "output_meta": {
+                    "model": None,
+                    "source_benchmark": "v10",
+                    "gold_question_source": item.get("gold_question_source"),
+                },
+            },
+            workshop_pass="all_pairs",
+        )
+
+    counts = {
+        kg_id: {
+            name: sum(
+                record["kg_id"] == kg_id and record["workshop_pass"] == name
+                for record in records
+            )
+            for name in WORKSHOP_PASS_ORDER
+        }
+        for kg_id in IPL_KG_IDS
+    }
+    empty = sorted(kg_id for kg_id, value in counts.items() if not sum(value.values()))
+    if empty:
+        raise ValueError("Expanded source does not cover every workshop KG: " + ", ".join(empty))
+
+    selected = [
+        record
+        for record in records
+        if record["kg_id"] not in {"europeana", "camera-dei-deputati"}
+        or record["workshop_pass"] == "deduplicated"
+    ]
+    selection = [
+        {
+            "kg_id": record["kg_id"],
+            "query_id": record["query_id"],
+            "sparql_version": _record_pin(record)[0],
+            "sparql_hash": _record_pin(record)[1],
+        }
+        for record in selected
+    ]
+    selection.sort(key=lambda item: (item["kg_id"], item["query_id"]))
+    selected_counts = {
+        "new_records": sum(record.get("review_scope") != "previously_reviewed" for record in selected),
+        "previously_reviewed_records": sum(
+            record.get("review_scope") == "previously_reviewed" for record in selected
+        ),
+        "previously_reviewed_excluded": 0,
+        "holdout_excluded": 0,
+    }
+    dataset_id = digest_bytes(
+        canonical_json(
+            [(record["kg_id"], record["query_id"], record["workshop_pass"]) for record in records]
+        )
+    )[7:23]
+    bundle = {
+        "schema": "musparql.review-bundle.v2",
+        "mode": "initial",
+        "dataset_id": f"ipl-expanded-{dataset_id}",
+        "source_run_id": "ipl-expanded-2026-09-16",
+        "holdout_input_policy": "identity_private_filtered_upstream",
+        "holdout_review_provenance_complete": False,
+        "record_count": len(records),
+        "review_scope_policy": {
+            "include_reviewed": True,
+            "reveal_previous_decision": False,
+            "default_scope": "mixed",
+            "counts": selected_counts,
+        },
+        "workshop_pass_order": list(WORKSHOP_PASS_ORDER),
+        "workshop_pass_counts": counts,
+        "records": sorted(records, key=lambda record: (record["kg_id"], record["query_id"])),
+    }
+    return bundle, selection
 
 
 def canonical_json(value: Any) -> bytes:
@@ -566,7 +764,9 @@ def validate_package_set(manifest: Mapping[str, Any], *, bundle_root: Path) -> N
             raise ValueError("Frozen IPL selection digest mismatch")
     packages = manifest.get("packages")
     if not isinstance(packages, list) or len(packages) != len(IPL_PACKAGES):
-        raise ValueError("IPL package manifest must contain exactly four packages")
+        raise ValueError(
+            f"IPL package manifest must contain exactly {len(IPL_PACKAGES)} packages"
+        )
     expected_round = manifest.get("workshop_round_id")
     record_membership: dict[str, list[str]] = {}
     for order, (row, definition) in enumerate(zip(packages, IPL_PACKAGES), start=1):
@@ -706,7 +906,7 @@ def register_package_set(
         )
         unexpected = [row for row in existing_rows if row.kg_id not in IPL_KG_IDS]
         if unexpected:
-            raise ValueError("Workshop round contains packages outside the IPL four")
+            raise ValueError("Workshop round contains packages outside the IPL package set")
         by_kg = {row.kg_id: row for row in existing_rows}
         for values in rows:
             seed = session.get(

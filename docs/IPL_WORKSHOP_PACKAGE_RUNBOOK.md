@@ -1,21 +1,25 @@
 # IPL workshop package preparation
 
 This runbook covers Track A item 6: preparing, validating, and registering the
-four reviewer-neutral IPL knowledge-graph packages. It does not authorise access
+seven reviewer-neutral IPL knowledge-graph packages. It does not authorise access
 to real holdout annotations or deployment to the ICF server.
 
-The fixed package order is:
+The fixed package order and membership policy are:
 
-1. Europeana Knowledge Graph (`europeana`, core)
-2. NFDI4Culture Culture Knowledge Graph (`nfdi4culture`, core)
-3. Camera dei Deputati Knowledge Graph (`camera-dei-deputati`, specialist)
-4. CDEC Knowledge Graph (`cdec`, specialist)
+1. Europeana Knowledge Graph (`europeana`, core): deduplicated candidates only;
+2. NFDI4Culture Culture Knowledge Graph (`nfdi4culture`, core): current package unchanged;
+3. Camera dei Deputati Knowledge Graph (`camera-dei-deputati`, specialist): deduplicated candidates only;
+4. CDEC Knowledge Graph (`cdec`, specialist): current package unchanged;
+5. Musical Meetups (`meetups`, specialist): public v10 pairs for reinspection;
+6. Music On the Web (`musow`, specialist): new, non-holdout pairs only; and
+7. Organs Knowledge Graph (`organs`, specialist): public v10 pairs for reinspection.
 
-Each package contains two ordered passes. Deduplicated candidates are presented
-first, followed by the remaining all-pairs candidates. Every assignment uses a
-stable assignment-specific shuffle within each pass. A group therefore sees no
-pair twice, while two groups claiming the same package provide independent
-overlapping judgments for inter-rater analysis.
+Each package retains the two-pass contract. Deduplicated/new candidates are
+presented first, followed by any existing/all-pairs records. Europeana and
+Camera dei Deputati are shuffled independently and reproducibly for each
+assignment to increase coverage when groups complete only part of a package.
+CKG, CDEC, Musical Meetups, MusOW, and Organs use ascending pair identity
+(`query_id`) within each pass. Item position is retained for later analysis.
 
 ## Safety boundary
 
@@ -27,7 +31,7 @@ assertion: it accepts only reviewer-neutral, initial-review data whose policy
 records actual holdout filtering and whose contents contain no holdout markers.
 
 The final selection is an annotation-free JSON array or JSONL file covering all
-four-KG package members. The source bundle marks the deduplicated subset with
+seven package members. The source bundle marks the deduplicated/new subset with
 `workshop_pass: deduplicated`; remaining records use `workshop_pass: all_pairs`.
 Every row contains exactly these immutable identity fields:
 
@@ -47,7 +51,7 @@ missing records, and stale SPARQL version/hash pins.
 ## Build a provisional rehearsal set
 
 A provisional build uses every eligible record in the source bundle. It creates
-all four packages but marks them `provisional` and disabled. It cannot be
+all seven packages but marks them `provisional` and disabled. It cannot be
 registered in the database, so its digests cannot be mistaken for the workshop
 freeze.
 
@@ -86,7 +90,7 @@ Then build the final set:
   --selection var/workshop/ipl-quagga-selection.json
 ```
 
-The command atomically replaces four canonical JSON bundles and `manifest.json`,
+The command atomically replaces seven canonical JSON bundles and `manifest.json`,
 then immediately validates them. Identical inputs produce identical package-set
 and bundle digests. The manifest embeds the canonical annotation-free selection
 pins and pins the source bundle, canonical selection digest, seed version/digest,
@@ -101,7 +105,7 @@ Revalidate files after copying them to their operational location:
   --bundle-root var/review/bundles
 ```
 
-Validation requires exactly the four fixed packages in the fixed order, at
+Validation requires exactly the seven fixed packages in the fixed order, at
 least one item per package, one KG per bundle, canonical record and path order,
 unique query identities, exact agreement with the embedded SPARQL pins,
 reviewer-neutral content, approved holdout handling, and independently derived
@@ -125,7 +129,7 @@ one transaction, is idempotent, and can insert or replace package metadata only
 while the round remains a draft.
 It refuses provisional sets, unexpected extra packages, missing seed snapshots,
 and replacement after a package has been claimed. Open the round only after
-recording and independently checking the four manifest digests.
+recording and independently checking the seven manifest digests.
 
 ## Verification
 
@@ -136,6 +140,6 @@ recording and independently checking the four manifest digests.
 ```
 
 Before the workshop, follow the release plan's run sheet: revalidate the copied
-manifest, compare its four digests with the recorded freeze, and run one
+manifest, compare its seven digests with the recorded freeze, and run one
 synthetic claim and submission. Package files and the operational database stay
 under ICF-backed-up paths in production.

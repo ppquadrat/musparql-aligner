@@ -21,7 +21,7 @@ governed by `IPL_WORKSHOP_UX_IMPLEMENTATION.md`.
 
 The workshop release has one narrow purpose: allow individually registered and
 consented participants to form reviewing groups of one or more people in the
-room, select one of four identical-for-everyone KG packages, complete the work,
+room, select one of seven identical-for-everyone KG packages, complete the work,
 and return for another assignment.
 
 Synthetic-rehearsal feedback led to the assignment-first participant journey
@@ -44,7 +44,7 @@ is out of scope.
    The shared code is never a shared account.
 3. The participant sees the approved notice, gives affirmative consent, and
    completes their own profile.
-4. The participant sees the same four frozen KG batches as everyone else. The
+4. The participant sees the same seven frozen KG batches as everyone else. The
    facilitator can advise which one to choose.
 5. Starting a batch creates its own one-member team and opens the KG-specific
    form. A participant working alone needs no separate team-creation step.
@@ -104,7 +104,7 @@ Only the following is workshop-critical:
 3. **Reviewing groups:** a simple batch-scoped 1+ member team, with direct
    collaborator addition by pseudonymous reviewer ID, no roles, and no
    membership-history workflow.
-4. **Reusable packages:** four owner-prepared frozen KG packages visible to all
+4. **Reusable packages:** seven owner-prepared frozen KG packages visible to all
    eligible groups and independently claimable more than once.
 5. **Group attribution:** assignments, submissions, and processing provenance
    must treat the reviewing group as one rater while retaining its contributor
@@ -268,11 +268,11 @@ workshop_work_packages
   created_at
 ```
 
-Prepare four primary packages. A package is a frozen template, not an
+Prepare seven primary packages. A package is a frozen template, not an
 assignment. Any number of groups may claim it and receive separate assignment
 and submission IDs over identical item identities and digests.
 
-The four workshop packages are fixed as follows:
+The workshop packages are fixed as follows:
 
 | Display name | Canonical `kg_id` |
 | --- | --- |
@@ -280,12 +280,18 @@ The four workshop packages are fixed as follows:
 | NFDI4Culture Culture Knowledge Graph (CKG) | `nfdi4culture` |
 | Camera dei Deputati Knowledge Graph | `camera-dei-deputati` |
 | CDEC Knowledge Graph | `cdec` |
+| Musical Meetups Knowledge Graph | `meetups` |
+| Music On the Web (MusOW) | `musow` |
+| Organs Knowledge Graph | `organs` |
 
-Each package contains two passes: received deduplicated candidates first, then
-the remaining eligible all-pairs candidates. The record set and pass membership
-are frozen in the package digest. Presentation is randomised independently for
-each assignment within each pass, so a group never sees a pair twice and
-multiple groups naturally provide overlapping judgments for inter-rater data.
+Europeana and Camera dei Deputati contain only the received deduplicated
+candidates. CKG and CDEC retain their current full packages. MusOW contains new,
+non-holdout pairs; Meetups and Organs contain their public v10 pairs for
+reinspection. The record set and pass membership are frozen in the package
+digest. Europeana and Camera dei Deputati are independently and reproducibly
+randomised for every assignment to increase coverage. CKG, CDEC, Musical
+Meetups, MusOW, and Organs use ascending pair identity (`query_id`) within each
+pass. Analysis retains item position so fatigue and learning can be considered.
 
 ### 5.4 Group assignments and submissions
 
@@ -405,8 +411,8 @@ create expertise roles.
 
 Package choice is intentionally simple:
 
-- all eligible groups see the same four enabled packages, with Europeana and
-  CKG labelled core and Camera dei Deputati and CDEC labelled specialist;
+- all eligible groups see the same seven enabled packages, with Europeana and
+  CKG labelled core and the other five labelled specialist;
 - there is no automatic matching or capacity allocation;
 - starting a package creates a fresh batch-scoped group assignment atomically;
 - several groups may claim the same package;
@@ -570,7 +576,7 @@ The complete notice is linked before login and throughout the site, together
 with the approved email-based withdrawal route.
 Group linguistic submission is kept unavailable as part of the explicit
 linguistic-mode deferral. The item 6 package tooling now builds and validates
-exactly the fixed four-KG set. Its v2 manifest embeds canonical annotation-free
+exactly the fixed seven-KG set. Its v2 manifest embeds canonical annotation-free
 selection pins; validation independently derives selection membership, record
 order, the selection digest, and the package-set ID, and rejects noncanonical
 bundle paths. Package files are replaced atomically without following existing
@@ -605,7 +611,7 @@ owner acceptance run remains in progress.
 3. Adapt assignment assessment checks and submission processing for groups.
 4. Add SMTP-first/shared-code-fallback registration.
 5. Add the versioned affirmative-consent gate.
-6. Prepare and validate the four anonymous KG packages.
+6. Prepare and validate the seven anonymous KG packages.
 7. Implement non-terminal complete/partial snapshots, direct return, and
    concurrent distinct-package assignments at the route/service level.
 8. Deploy the exact passing commit to the ICF VPS.
@@ -697,7 +703,7 @@ conditions remains red at the agreed cutoff:
 1. the final participant notice and consent statement have not been approved;
 2. the deployed application fails its security, consent, or data-isolation
    checks;
-3. the four primary packages are not frozen and validated;
+3. the seven primary packages are not frozen and validated;
 4. group attribution or durable submission fails in the synthetic rehearsal;
 5. the production database/files are outside the existing backup set or the
    restore test fails; or
@@ -714,7 +720,7 @@ Before participants arrive:
 
 - verify HTTPS health, web/worker state, disk space, database access, and owner
   access;
-- confirm the four package digests and run one synthetic claim/submission;
+- confirm the seven package digests and run one synthetic claim/submission;
 - confirm the last backup status and keep the pre-workshop snapshot;
 - choose SMTP or enable the shared-code fallback; and
 - open the workshop round shortly before entry.
