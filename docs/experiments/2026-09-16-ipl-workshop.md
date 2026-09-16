@@ -296,6 +296,7 @@ Additional follow-up should:
 
 ## Related records
 
+- [IPL Musparql–Quagga workshop slides](<../papers/IPL Musparql-Quagga workshop/Musparql_workflow_workshop_slides_with_ambiguity_sidecar.pptx>)
 - [`../IPL_WORKSHOP_RELEASE_PLAN.md`](../IPL_WORKSHOP_RELEASE_PLAN.md)
 - [`../IPL_WORKSHOP_UX_IMPLEMENTATION.md`](../IPL_WORKSHOP_UX_IMPLEMENTATION.md)
 - [`../IPL_WORKSHOP_PACKAGE_RUNBOOK.md`](../IPL_WORKSHOP_PACKAGE_RUNBOOK.md)
