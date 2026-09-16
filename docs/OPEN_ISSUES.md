@@ -5,6 +5,74 @@ items are listed first. A short resolved reference is retained where it explains
 the provenance of the currently deployed workshop packages; other completed
 findings belong in the implementation, tests, and durable runbooks.
 
+## Workshop admission throttling and 16 September incident
+
+The 16 September 2026 IPL workshop exposed a production-blocking conflict
+between the shared-code admission design and an ordinary venue network. The
+round allowed 30 participants, but workshop-code admission separately allowed
+only ten attempts from one trusted remote address in a rolling 15-minute
+window. Successful and unsuccessful attempts both consumed that allowance.
+Multiple participant devices behind the venue's shared NAT therefore appeared
+as one request context and exhausted the limit even though the round remained
+well below capacity.
+
+The production evidence is consistent with that failure mode. The first code
+had 17 successful redemptions in total and its last successful redemption was
+at 07:27:11 UTC. A replacement code was issued at 07:28:42 UTC, immediately
+revoking the first code, but reissuing did not clear the independent
+request-context throttle. At the time of diagnosis one digest-only context
+bucket was at the configured limit of ten attempts. The replacement code's
+first successful redemption was not until 07:46:11 UTC, after the 15-minute
+window had aged out; it then received two successful redemptions. The new code
+was valid throughout, so replacing it could not resolve the actual block.
+
+This materially disrupted the collection. The final operational audit found
+19 code redemptions, 16 active workshop accounts, 14 teams with valid
+submissions, and 49 schema-valid, digest-intact receipts whose processing jobs
+all succeeded. Four active accounts never joined a team or started an
+assignment, and two active accounts had started assignments but no receipt.
+These aggregates establish the durable state that landed; they do not show how
+many physical devices were used because device, User-Agent, session, and IP
+identifiers are deliberately not stored with submissions.
+
+SMTP does not make this issue disappear. Normal email login currently applies
+three requests per email address and ten requests per trusted remote address in
+the same 15-minute window. A cohort requesting email codes from one venue Wi-Fi
+could therefore reproduce the incident: later participants would receive the
+membership-neutral response but no email would be sent. Existing fallback
+workshop-code accounts also cannot automatically become email-login accounts,
+because their synthetic addresses are intentionally unverified.
+
+The verification gap was that concurrent shared-code tests supplied a distinct
+synthetic IP address for each participant. Submission load tests exercised
+concurrent reviewers but did not test admission or email-code delivery for many
+independent browsers behind one forwarded address. The implementation therefore
+proved the participant cap, per-context throttle, and submission concurrency in
+isolation without proving their combined behaviour on a realistic venue NAT.
+
+Do not reuse the current admission or email-login limits for another cohort
+until all of the following are complete:
+
+- redesign the shared-network limit so the expected cohort plus retry headroom
+  can authenticate behind one NAT while retaining per-address, per-code, round-
+  capacity, expiry, nonce, and failed-guess protections;
+- ensure valid admissions and valid invited-address email requests cannot
+  exhaust a small venue-wide failure budget merely through normal use;
+- add shared-code and SMTP tests with at least 30 distinct browsers/accounts
+  behind one trusted remote address, including retries and concurrent bursts;
+- give the owner a pseudonymous, non-sensitive warning when a context throttle
+  is blocking admission or email delivery, plus a narrow audited reset or
+  recovery procedure that does not weaken the infrastructure boundary;
+- preserve membership-neutral participant responses without silently treating
+  the absence of an email as adequate operational feedback; and
+- record a new production acceptance exercise using the deployed proxy path
+  before admitting another real cohort.
+
+The later `a61ba62` deployment fixed a separate submission-export defect in
+which an undecided touched item was sent with
+`benchmark_disposition: null`. It did not repair the admission throttle; the
+replacement workshop code began working because the rolling window expired.
+
 ## Reviewer administration and privacy
 
 ### Reviewer privacy approval and real-data gate
