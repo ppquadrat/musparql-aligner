@@ -701,7 +701,7 @@
       const exported = exportableReview(review, reviewId);
       if (exported.split === HOLDOUT_SPLIT || exported.benchmark_disposition === "withheld") {
         privateReviews[reviewId] = exported;
-      } else {
+      } else if (exported.benchmark_disposition !== null) {
         publicReviews[reviewId] = exported;
       }
     });

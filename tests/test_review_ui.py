@@ -42,7 +42,7 @@ def test_hosted_review_state_is_scoped_to_assignment_and_keeps_local_keys() -> N
     assert html.index('src="diagnostics.js?') < html.index('src="host_context.js?')
     assert "No data loaded" not in html
     assert "JavaScript is disabled in this browser" in html
-    assert html.count("review-workbench-20260916c") == 5
+    assert html.count("review-workbench-20260916d") == 5
     assert "window.MUSPARQL_WORKBENCH_READY = true" in app
     assert '["new", "previously_reviewed"].includes(requestedDefaultScope)' in app
     assert '? requestedDefaultScope\n      : "all"' in app
@@ -139,6 +139,30 @@ schema.validateImportedReviews(payload.reviews, true, payload);
 assert.throws(() => schema.validateReviewerImport(payload, {reviewer_id:"reviewer-0044", review_group_id:group}), /not a contributor/);
 assert.throws(() => schema.validateImportedReviews({record:{...review, review_id:"event::reviewer-0044", reviewer_id:"reviewer-0044"}}, true, payload), /outside the review group/);
 assert.throws(() => schema.validateV2Envelope({...payload, contributor_reviewer_ids:undefined}), /Invalid group contributor/);
+'''
+    subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
+
+
+def test_submission_omits_touched_reviews_without_a_decision() -> None:
+    script = r'''
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, querySelectorAll:()=>[]}};
+vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
+const schema = sandbox.window.MUSPARQL_REVIEW_SCHEMA;
+const decided = {
+  review_id:"decided::reviewer-5189", reviewer_id:"reviewer-5189",
+  reviewed_at:"2026-09-16T08:00:00Z", status:"accepted",
+};
+const touchedWithoutDecision = {
+  review_id:"undecided::reviewer-5189", reviewer_id:"reviewer-5189",
+  reviewed_at:"2026-09-16T08:01:00Z", public_comment:"Draft note",
+};
+const partitioned = schema.partitionReviewMap({decided, touchedWithoutDecision});
+assert.deepEqual(Object.keys(partitioned.publicReviews), ["decided"]);
+assert.deepEqual(Object.keys(partitioned.privateReviews), []);
+assert.equal(partitioned.publicReviews.decided.benchmark_disposition, "included");
 '''
     subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
 
