@@ -685,6 +685,7 @@ def test_owner_can_issue_one_time_audited_workshop_session_recovery(workshop_app
         assert reviewer is not None
         reviewer_id = reviewer.id
     engine.dispose()
+
     reset = owner.post(
         f"/owner/workshop-entry/reviewers/{reviewer_id}/reset",
         data={"csrf_token": _csrf(owner)},
@@ -737,6 +738,12 @@ def test_owner_can_issue_one_time_audited_workshop_session_recovery(workshop_app
         )
         assert active_sessions == 1
     engine.dispose()
+
+    app.extensions["musparql_auth"].delete_reviewer_identity(OWNER_ID, reviewer_id)
+    assert reviewer_id not in {
+        reviewer.id
+        for reviewer in app.extensions["musparql_auth"].list_workshop_reviewers()
+    }
 
 
 def test_server_can_issue_one_time_owner_recovery(workshop_app) -> None:

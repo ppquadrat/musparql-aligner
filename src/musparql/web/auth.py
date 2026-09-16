@@ -768,7 +768,10 @@ class AuthService:
             reviewers = list(
                 session.scalars(
                     select(Reviewer)
-                    .where(Reviewer.registration_method == "workshop_code")
+                    .where(
+                        Reviewer.registration_method == "workshop_code",
+                        Reviewer.status != "withdrawn",
+                    )
                     .order_by(Reviewer.id)
                 )
             )
