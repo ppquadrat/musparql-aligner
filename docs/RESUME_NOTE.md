@@ -14,8 +14,14 @@ No code has changed since 16 September 2026. The last code commit is
 paper work, and it is all committed as of today.
 
 - `main` is in sync with `origin/main`.
-- All `codex/*` branches are fully merged into `main`; none holds unmerged
-  work. They can be deleted whenever you want the branch list tidy.
+- All `codex/*` branches were fully merged into `main` and have been deleted,
+  locally and on GitHub.
+- One branch remains on GitHub and is **not** merged:
+  `feature/discover-kg-sources`, with two commits from Harshdeep —
+  `527b01f` (21 May 2026, "add module to discover kg sources automatically")
+  and `7148e17` (20 Aug 2026, "push discover kg sources"). It was left in
+  place deliberately. Decide whether it should land alongside
+  [`KG_SOURCE_DISCOVERY.md`](KG_SOURCE_DISCOVERY.md) or be dropped.
 - Working tree is clean.
 - **Nothing was deployed today, and nothing needs deploying.** Production
   still matches the code it was running in September.
