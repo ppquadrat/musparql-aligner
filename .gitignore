@@ -47,6 +47,13 @@ evals/reports/
 repos/
 tmp/
 
+# Confidential or not-yet-public paper material. Peer review correspondence is
+# venue-confidential, and forward venue planning is not a publication input.
+# The authors' own submitted and revised papers remain tracked.
+docs/papers/**/*reviews*.docx
+docs/papers/**/ResponseToReviewers.docx
+docs/papers/musparql-venues-*.xlsx
+
 # OS
 .DS_Store
 
