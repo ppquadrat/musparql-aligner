@@ -32,13 +32,14 @@ meta-reviewer's own.
 | | pairs |
 |---|---:|
 | adjudicated | 13 |
+| awaiting decision (assessment only) | 4 |
 | include (overriding an exclusion) | 3 |
 | exclude | 1 |
-| SPARQL correction required | 2 |
+| SPARQL correction required | 3 |
 | flagged as requiring graph context | 6 |
 
 Included: europeana-0032, europeana-0034, europeana-0049. Excluded: europeana-0011. Correction required:
-europeana-0039, europeana-0054 — queued in
+europeana-0039, europeana-0054 and cdec-0006 — queued in
 [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md).
 Graph context required: europeana-0011, europeana-0019, europeana-0022, europeana-0026, europeana-0049, nfdi4culture-0001.
 
@@ -309,6 +310,75 @@ Decision:
 - **graph context required**: yes
 - **rationale**: the two-type intersection is redundant on current data: all 22 fabio:DataRepository instances are also nfdicore:NFDI_0000123 (“data portal”, a subclass of “website”), while 69 data portals are not repositories. The query’s recall is therefore the coverage of TA4’s curated repository list, not of the graph. SAMPLE(?label) is non-deterministic in principle but harmless today, as all 22 resources carry exactly one label; SAMPLE(?resource) around the grouping key is redundant.
 
+
+## Still to decide: assessment-only disagreements
+
+Added 8 November 2026. Four further pairs were judged by two teams that agreed
+on the wording — no team proposed a rewording — but differed on
+`pipeline_assessment`, and with it on whether a team's comment survives into the
+benchmark. A tie-break on submission order was considered and abandoned: it would
+have discarded a reviewing team's report that `cdec-0006` does not parse. They
+are therefore adjudicated, and are not yet decided.
+
+Team letters continue the mapping used above. The working slots are in the
+untracked notes file; these blocks record the conflict so the tracked set is
+complete.
+
+### cdec-0006
+
+Conflict: assessment only
+
+Candidate wordings:
+
+- evidence label : Luoghi e date di partenza dei convogli e numero dei deportati per località di arresto
+- pipeline       : For each convoy, what are the departure places, dates, and the number of deported people per arrest location and Nazi camp?
+- Team J [included], submitted 2026-09-16: assessment `accepted`, no rewording
+- Team K [included], submitted 2026-09-16: assessment `input_data_improvement_recommended`, no rewording
+    - public comment: Double ORDER BY is not allowed; you only need one ORDER BY clause for multiple columns
+
+Decision: **pending** — SPARQL correction required regardless, see [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md)
+
+### europeana-0005
+
+Conflict: assessment only
+
+Candidate wordings:
+
+- evidence label : Objects provided to Europeana linking to edm:Place
+- pipeline       : What objects provided to Europeana link to a place?
+- Team B [included], submitted 2026-09-16: assessment `accepted`, no rewording
+- Team F [included], submitted 2026-09-16: assessment `prompt_improvement_recommended`, no rewording
+    - an internal comment was supplied (not quoted here)
+
+Decision: **pending**
+
+### europeana-0029
+
+Conflict: assessment only
+
+Candidate wordings:
+
+- evidence label : 
+- pipeline       : What are all the concept resources in the dataset?
+- Team F [included], submitted 2026-09-16: assessment `prompt_improvement_recommended`, no rewording
+    - an internal comment was supplied (not quoted here)
+- Team C [included], submitted 2026-09-16: assessment `accepted`, no rewording
+
+Decision: **pending**
+
+### europeana-0048
+
+Conflict: assessment only
+
+Candidate wordings:
+
+- evidence label : Distribution of objects per country and Europeana type
+- pipeline       : What is the distribution of objects per country and Europeana type?
+- Team F [included], submitted 2026-09-16: assessment `prompt_improvement_recommended`, no rewording
+    - public comment: Researcher not aware with EDM may not ask for Europeana type
+- Team B [included], submitted 2026-09-16: assessment `accepted`, no rewording
+
+Decision: **pending**
 ## Working copy
 
 The hand-edited working copy, which carries the group identifiers, is

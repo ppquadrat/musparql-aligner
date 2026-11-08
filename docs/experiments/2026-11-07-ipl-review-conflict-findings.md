@@ -62,7 +62,7 @@ or as one side of a disagreement.
 | pair reviews (team × pair) | 128 | **120** |
 | distinct pairs reviewed | 85 | **84** |
 | pairs judged by ≥ 2 teams | 28 | **26** |
-| pairs needing human adjudication | 14 | **13** |
+| pairs needing human adjudication | 14 | **17** |
 
 Per KG, excluding the non-reviews: Europeana 66 pair reviews over 34 distinct
 pairs (22 with ≥ 2 teams); MusoW 28 over 27 (1); Camera dei Deputati 11 over 11
@@ -77,9 +77,11 @@ inter-rater and adjudication work.
 Of the 26 pairs with two or more team judgments, 16 show no disagreement about
 wording: every team left `preferred_question` empty and accepted the pipeline
 wording. Three of those 16 are nevertheless contested, because a team excluded
-the pair without proposing any rewording, so 13 pairs are uncontested on every
-axis and 13 need a decision. The contested ones fall into three types, which
-need different handling.
+the pair without proposing any rewording. A further four agree on wording and
+disposition but differ on `pipeline_assessment`, which decides whether a team's
+comment survives into the benchmark, so only nine pairs are uncontested on every
+axis and 17 need a decision. The contested ones fall into four types, which need
+different handling.
 
 ### Competing rewrites — 4 pairs
 
@@ -113,6 +115,25 @@ consistently excluding, and neither left a reason on any of the four. Elsewhere
 the excluding team justified rejections on the grounds that the item is not a
 research question. The efficient resolution is to ask that team for their
 standard rather than adjudicating pair by pair.
+
+### Assessment-only disagreement — 4 pairs
+
+`cdec-0006`, `europeana-0005`, `-0029`, `-0048`.
+
+Two teams agree that the pair belongs in the benchmark and neither proposes a
+rewording, but one marks it `accepted` and the other recommends a prompt or
+input-data improvement. Nothing about the gold question is at stake; what is at
+stake is whether the dissenting team's comment reaches the benchmark at all,
+since the comment travels with the review that is applied.
+
+These were initially left to a documented tie-break on submission order. That
+was abandoned once it became clear what it discards: on `cdec-0006` the earlier
+review says `accepted` while the later one reports, in a public comment, that
+the query has two `ORDER BY` clauses and does not parse. Resolving by timestamp
+would have kept the `accepted` review, dropped the comment, and admitted an
+unparseable pair. Four cases is small enough to decide, and the general lesson is
+that an assessment disagreement is not a formality: it can carry the only record
+of a defect.
 
 ## Cross-cutting findings
 
@@ -164,12 +185,13 @@ directions.
 
 ### Gold-query faithfulness defects, independent of wording
 
-Two findings are defects in the pair itself rather than disagreements about
-phrasing. Neither is reachable by choosing between the reviewers' wordings:
-`europeana-0017` and `-0054` need a corrected filter or a narrowed question, and
-`europeana-0039` needs its type pattern and its date handling examined. Both
-should be routed to the SPARQL correction workflow rather than the adjudication
-round, even where a reviewer's rewrite also improves the wording.
+Three findings are defects in the pair itself rather than disagreements about
+phrasing, and none is reachable by choosing between the reviewers' wordings:
+`europeana-0017` and `-0054` need a corrected filter or a narrowed question,
+`europeana-0039` needs its type pattern and its date handling examined, and
+`cdec-0006` does not parse at all. All three are routed to the SPARQL correction
+workflow rather than the adjudication round, even where a reviewer's rewrite also
+improves the wording.
 
 **The licence filter (`europeana-0017`, `europeana-0054`).** Both queries ask for
 "openly licensed" content and both implement it as
@@ -328,8 +350,8 @@ The review form shaped the data in ways worth fixing before the next cohort.
 
 ## Recommendation
 
-Run a human adjudication round over the 13 contested pairs before any benchmark
-update. The round is small enough to be done in one sitting, and 13 cases are
+Run a human adjudication round over the 17 contested pairs before any benchmark
+update. The round is small enough to be done in one sitting, and 17 cases are
 far too few to validate an automatic aggregation rule — several are not wording
 disputes at all.
 
@@ -340,6 +362,8 @@ The round needs, per conflict type:
 - rewrite against pipeline-kept (6) — a decision plus a record that the point
   was contested, so a lone rewrite cannot pass silently;
 - include/exclude (4) — the excluding team's standard, not a pair-by-pair vote;
+- assessment only (4) — which team's assessment and comment stand, remembering
+  that the dissenting comment may be the only record of a defect;
 - the faithfulness defects (`europeana-0017`, `-0054`, `-0039`) — a SPARQL
   correction or a narrowed question, routed to the correction workflow rather
   than the wording decision.
