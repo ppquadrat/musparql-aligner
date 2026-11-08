@@ -74,9 +74,12 @@ inter-rater and adjudication work.
 
 ## The conflicts are fewer and more tractable than the overlap suggests
 
-Of the 26 pairs with two or more team judgments, 16 show no disagreement at all:
-every team left `preferred_question` empty and accepted the pipeline wording.
-The remainder fall into three types, which need different handling.
+Of the 26 pairs with two or more team judgments, 16 show no disagreement about
+wording: every team left `preferred_question` empty and accepted the pipeline
+wording. Three of those 16 are nevertheless contested, because a team excluded
+the pair without proposing any rewording, so 13 pairs are uncontested on every
+axis and 13 need a decision. The contested ones fall into three types, which
+need different handling.
 
 ### Competing rewrites — 4 pairs
 
