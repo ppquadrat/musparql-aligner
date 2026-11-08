@@ -31,16 +31,20 @@ meta-reviewer's own.
 
 | | pairs |
 |---|---:|
-| adjudicated | 14 |
-| awaiting decision (assessment only) | 3 |
-| include (overriding an exclusion) | 3 |
-| exclude | 2 |
-| SPARQL correction required | 3 |
+| adjudicated | 17 |
+| awaiting decision | 0 |
+| include | 12 |
+| exclude | 5 |
+| SPARQL correction required before the pair re-enters | 4 |
 | flagged as requiring graph context | 6 |
 
-Included: europeana-0032, europeana-0034, europeana-0049. Excluded: europeana-0011, europeana-0005. Correction required:
-europeana-0039, europeana-0054 and cdec-0006 — queued in
+All seventeen contested pairs are decided as of 8 November 2026.
+
+Excluded: europeana-0004, europeana-0005, europeana-0011, europeana-0029,
+europeana-0034. Correction required: europeana-0039, europeana-0048,
+europeana-0054 and cdec-0006 — queued in
 [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md).
+Included over an excluding team: europeana-0032, europeana-0049.
 Graph context required: europeana-0011, europeana-0019, europeana-0022, europeana-0026, europeana-0049, nfdi4culture-0001.
 
 A blank slot means the decision does not apply to that pair: an excluded pair
@@ -63,11 +67,20 @@ Candidate wordings:
 
 Decision:
 
-- **canonical wording**: Can you list 100 people or organisations in Europeana?
-- **record as alternative**: all
+- **include/exclude**: exclude — **reversed 8 November 2026**
+- **canonical wording**: — (was "Can you list 100 people or organisations in Europeana?")
+- **record as alternative**: none
 - **sparql correction**: no
 - **graph context required**: no
-- **rationale**: —
+- **rationale**: Reversed on the standalone-need criterion, on two grounds. It is
+  a bare class enumeration with no constraint and no label, so the answer is a
+  page of opaque URIs and no natural question has that as its answer. And the
+  answer it actually returns is junk: run as written against the live endpoint,
+  **100 of the 100** agent URIs are
+  `file:///home/jenkins/workspace/download-datasets-run/#…` — build-server
+  filesystem paths that leaked into the published graph through an ingestion run
+  that resolved relative URIs against local disk. No wording is a faithful
+  question for that result set.
 
 ### europeana-0011
 
@@ -184,12 +197,18 @@ Candidate wordings:
 
 Decision:
 
-- **include/exclude**: include
-- **canonical wording**: Which time periods are recorded in the graph?
-- **record as alternative**: all except evidence label
+- **include/exclude**: exclude — **reversed 8 November 2026**
+- **canonical wording**: — (was "Which time periods are recorded in the graph?")
+- **record as alternative**: none
 - **sparql correction**: no
 - **graph context required**: no
-- **rationale**: —
+- **rationale**: Reversed on the same two grounds as europeana-0004. A bare class
+  enumeration returning opaque URIs, and the URIs are largely the same
+  `file:///home/jenkins/workspace/download-datasets-run/…` ingestion artefacts,
+  most carrying no `skos:prefLabel` at all. Real `edm:TimeSpan` instances do
+  exist — Spanish-language period labels from Hispana, for example — but they are
+  not what the query returns, so the question as worded cannot be answered
+  faithfully from the result.
 
 ### europeana-0039
 
@@ -333,16 +352,16 @@ place" sense. The SPARQL is syntactically correct; the modelling is the problem.
 Excluding it also settles the assessment disagreement, since a dismissed pair
 carries no assessment.
 
-## Still to decide: assessment-only disagreements
+## Assessment-only disagreements
 
 Added 8 November 2026. Four further pairs were judged by two teams that agreed
 on the wording — no team proposed a rewording — but differed on
 `pipeline_assessment`, and with it on whether a team's comment survives into the
 benchmark. A tie-break on submission order was considered and abandoned: it would
 have discarded a reviewing team's report that `cdec-0006` does not parse. They
-are therefore adjudicated. `europeana-0005` has since been decided — excluded,
-for reasons that have nothing to do with the assessment — and is recorded above;
-the remaining three are not yet decided.
+are therefore adjudicated. All four are now decided. `europeana-0005` is
+recorded above, excluded for reasons that have nothing to do with the
+assessment.
 
 Team letters continue the mapping used above. The working slots are in the
 untracked notes file; these blocks record the conflict so the tracked set is
@@ -360,7 +379,16 @@ Candidate wordings:
 - Team K [included], submitted 2026-09-16: assessment `input_data_improvement_recommended`, no rewording
     - public comment: Double ORDER BY is not allowed; you only need one ORDER BY clause for multiple columns
 
-Decision: **pending** — SPARQL correction required regardless, see [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md)
+Decision:
+
+- **include/exclude**: include, after correction
+- **pipeline assessment**: `input_data_improvement_recommended` — Team K's
+- **canonical wording**: unchanged from the pipeline wording
+- **sparql correction**: required, see [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md)
+- **rationale**: The wording was never contested; both teams kept the pipeline
+  question. Team K's comment is the only record of the defect, so its assessment
+  stands over the accepting one. The pair re-enters the benchmark once the
+  duplicate `ORDER BY` and the missing `GROUP BY` are corrected.
 
 ### europeana-0029
 
@@ -374,7 +402,16 @@ Candidate wordings:
     - an internal comment was supplied (not quoted here)
 - Team C [included], submitted 2026-09-16: assessment `accepted`, no rewording
 
-Decision: **pending**
+Decision:
+
+- **include/exclude**: exclude
+- **rationale**: It returns a list of IRIs, not labels. A bare class enumeration
+  with no constraint: the answer is a page of opaque concept URIs. As a step
+  inside a larger task that is the right output, but as a standalone information
+  need there is no natural question whose answer is an identifier list. Excluding
+  it overrides **both** teams rather than a minority, which no other decision in
+  this round does — one accepted the pair and the other asked for a better
+  prompt, so neither proposed dropping it.
 
 ### europeana-0048
 
@@ -388,7 +425,24 @@ Candidate wordings:
     - public comment: Researcher not aware with EDM may not ask for Europeana type
 - Team B [included], submitted 2026-09-16: assessment `accepted`, no rewording
 
-Decision: **pending**
+Decision:
+
+- **include/exclude**: include, after correction
+- **pipeline assessment**: `input_data_improvement_recommended` — neither team's
+  reasoning, but the nearer of the two labels
+- **canonical wording**: still open; it needs "Europeana type" replaced by
+  "media type". `edm:type` takes exactly `IMAGE`, `TEXT`, `SOUND`, `VIDEO` and
+  `3D` on this endpoint, so Team F was right about the phrase.
+- **sparql correction**: required, see [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md)
+- **rationale**: Neither team's assessment stands. Team F was right that
+  "Europeana type" is EDM vocabulary a researcher would not use, but the pair's
+  real defect is arithmetic and both teams missed it. `?AggregationProvider` and
+  `?Provider` are neither projected nor grouped, so the middle clause only
+  multiplies solutions, and `count(*)` counts solutions. Objects that arrived
+  through an aggregator carry two aggregations typed `ore:Aggregation` and are
+  counted twice: Azerbaijan reports 54 against 27 real objects, while Montenegro
+  and Georgia are exact. The distortion varies by country, so it destroys the
+  between-country comparison the question exists to make.
 ## Working copy
 
 The hand-edited working copy, which carries the group identifiers, is

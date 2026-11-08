@@ -487,6 +487,68 @@ therefore deserves a presumption of being a demonstration until a reviewer says
 otherwise, which would have caught all five before three teams in Brussels spent
 time on them.
 
+**Applying the criterion overturned two decisions already made.** `europeana-0004`
+(`?Agent rdf:type edm:Agent`, `LIMIT 100`) and `europeana-0034`
+(`?TimeSpan rdf:type edm:TimeSpan`) had both been adjudicated as *include* with
+reworded gold questions before the criterion was articulated. Both are bare class
+enumerations, and checking them against the live endpoint produced a second,
+independent ground for excluding them.
+
+**A build-server path leak makes those two answers junk.** Run exactly as
+written, `europeana-0004` returns **100 of 100** results of the form
+
+```
+file:///home/jenkins/workspace/download-datasets-run/#Adolf_Graf_Schwarzenberg_Besitzer
+file:///home/jenkins/workspace/download-datasets-run/#Agostino_Barbarigo_Besitzer
+```
+
+These are filesystem paths from an ingestion run that resolved relative URIs
+against the local disk of a Jenkins worker, and they are published in the graph
+as entity URIs. The same artefacts dominate `edm:TimeSpan`
+(`…/LX3390073XBRAHMSX1884X06X01X1884X06X30`) and occur among `skos:Concept` as
+well. Real instances of these classes exist and are reachable — non-`file:` time
+spans carry Spanish-language period labels from Hispana, agents carry
+`skos:prefLabel` — but an unconstrained enumeration returns the artefacts first,
+and many of them carry no label at all.
+
+This is why the two grounds reinforce rather than merely coincide. A constrained
+query over the same classes is unaffected: `europeana-0019` filters agents to
+`strstarts(str(?Agent), "http://viaf.org/viaf/")` and never sees a `file:` URI,
+which is one reason it survives the pass while `europeana-0004` does not. It is
+the *absence* of a constraint that both removes the information need and exposes
+the ingestion junk. A benchmark pair whose gold answer is a page of build-server
+paths would score a correct system wrong.
+
+**What the criterion does not reach.** Four pairs return bare object URIs but
+survive, because the need is real and the fix is a projection rather than an
+exclusion: `europeana-0017`, `-0022`, `-0026` and `-0032` are all constrained
+searches ("objects that reference an agent from VIAF", "objects about a place")
+whose answer set is legitimately a set of objects; they would be more usable if
+they also projected `dc:title`, which is a query improvement to note rather than
+grounds for dropping them. `europeana-0019` keeps its bare URIs for a different
+reason again: the question is which agents carry VIAF identifiers, so the
+identifier *is* the content, exactly as with `jazzontology-0020`. And
+`europeana-0053` and `-0054` only look like URI enumerations — `edm:datasetName`
+binds a literal, so they return names.
+
+### The excluded set is a record, not a bin
+
+Five of the seventeen contested pairs were excluded, and the exclusions are worth
+more than the pairs were: each one now carries a written rationale naming the
+class of defect, and together they describe the boundary of what the benchmark is
+for in a way no inclusion does. `europeana-0011` marks the limit of publication
+convention; `europeana-0005` marks unconstrained property traversal; `-0004`,
+`-0029` and `-0034` mark the bare enumeration, with `-0004` and `-0034` also
+documenting a live data-quality defect in Europeana's own graph that nothing else
+in the project records.
+
+This argues for treating exclusion as a first-class, reasoned outcome rather than
+a deletion. The practical consequence is that the exclusion *reason* should be a
+field rather than free text, so that pairs dropped on the same grounds can be
+counted and so that a later round does not re-derive the same judgment from
+scratch — which is what happened here, since v10's dismissal comments had already
+made this argument twice in prose and nothing downstream could see it.
+
 ## Instrument findings
 
 The review form shaped the data in ways worth fixing before the next cohort.
