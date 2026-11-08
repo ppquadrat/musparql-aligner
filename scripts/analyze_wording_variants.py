@@ -143,6 +143,7 @@ def classify(by_pair: dict[str, list[dict[str, Any]]]) -> dict[str, list[str]]:
         "pairs_conflicting_wordings": [],
         "pairs_rewrite_vs_accept": [],
         "pairs_conflicting_disposition": [],
+        "pairs_conflicting_assessment": [],
     }
     for key, reviews in by_pair.items():
         buckets["pairs_reviewed"].append(key)
@@ -161,6 +162,11 @@ def classify(by_pair: dict[str, list[dict[str, Any]]]) -> dict[str, list[str]]:
             buckets["pairs_rewrite_vs_accept"].append(key)
         if len({r["disposition"] for r in reviews if r["disposition"]}) >= 2:
             buckets["pairs_conflicting_disposition"].append(key)
+        if len({r["assessment"] for r in reviews if r["assessment"]}) >= 2:
+            # the teams agree the pair belongs and may agree on wording, but
+            # differ on pipeline_assessment, which decides whose comment is
+            # applied with the review and so reaches the benchmark
+            buckets["pairs_conflicting_assessment"].append(key)
     return buckets
 
 
@@ -215,6 +221,11 @@ def build_report(
     strict = sorted(buckets["pairs_conflicting_wordings"])
     rewrite_only = sorted(set(buckets["pairs_rewrite_vs_accept"]) - set(strict))
     disposition = sorted(buckets["pairs_conflicting_disposition"])
+    # only those where nothing else is contested: elsewhere the pair already
+    # appears under its wording or disposition conflict
+    assessment_only = sorted(
+        set(buckets["pairs_conflicting_assessment"]) - set(strict) - set(rewrite_only) - set(disposition)
+    )
     lines = [
         "<!-- GENERATED FILE. Overwritten by scripts/analyze_wording_variants.py --report.",
         "     Do not hand-edit: record meta-review decisions in a separate file. -->",
@@ -235,12 +246,17 @@ def build_report(
         f"| >= 2 competing rewrites | {len(strict)} |",
         f"| one rewrite vs teams keeping the pipeline wording | {len(rewrite_only)} |",
         f"| include/exclude disagreement | {len(disposition)} |",
+        f"| assessment disagreement only | {len(assessment_only)} |",
         "",
     ]
     sections = (
         ("Pairs with two or more competing rewrites", strict),
         ("Pairs where one team rewrote and others kept the pipeline wording", rewrite_only),
         ("Include/exclude disagreement (separate conflict type)", disposition),
+        (
+            "Assessment disagreement only (wording and disposition agreed)",
+            assessment_only,
+        ),
     )
     for title, keys in sections:
         lines.append(f"## {title}\n")
@@ -286,6 +302,7 @@ def main() -> int:
     print(f"  wordings actually differ:         {len(buckets['pairs_conflicting_wordings'])}")
     print(f"  rewrite vs pipeline-kept:         {len(buckets['pairs_rewrite_vs_accept'])}")
     print(f"  include/exclude disagreement:     {len(buckets['pairs_conflicting_disposition'])}")
+    print(f"  assessment disagreement:          {len(buckets['pairs_conflicting_assessment'])}")
     print()
 
     shown = buckets["pairs_conflicting_wordings"] or buckets["pairs_rewrite_vs_accept"]
