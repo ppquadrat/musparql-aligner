@@ -31,14 +31,14 @@ meta-reviewer's own.
 
 | | pairs |
 |---|---:|
-| adjudicated | 13 |
-| awaiting decision (assessment only) | 4 |
+| adjudicated | 14 |
+| awaiting decision (assessment only) | 3 |
 | include (overriding an exclusion) | 3 |
-| exclude | 1 |
+| exclude | 2 |
 | SPARQL correction required | 3 |
 | flagged as requiring graph context | 6 |
 
-Included: europeana-0032, europeana-0034, europeana-0049. Excluded: europeana-0011. Correction required:
+Included: europeana-0032, europeana-0034, europeana-0049. Excluded: europeana-0011, europeana-0005. Correction required:
 europeana-0039, europeana-0054 and cdec-0006 — queued in
 [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md).
 Graph context required: europeana-0011, europeana-0019, europeana-0022, europeana-0026, europeana-0049, nfdi4culture-0001.
@@ -311,6 +311,28 @@ Decision:
 - **rationale**: the two-type intersection is redundant on current data: all 22 fabio:DataRepository instances are also nfdicore:NFDI_0000123 (“data portal”, a subclass of “website”), while 69 data portals are not repositories. The query’s recall is therefore the coverage of TA4’s curated repository list, not of the graph. SAMPLE(?label) is non-deterministic in principle but harmless today, as all 22 resources carry exactly one label; SAMPLE(?resource) around the grouping key is redundant.
 
 
+### europeana-0005
+
+Conflict: assessment only
+
+Candidate wordings:
+
+- evidence label : Objects provided to Europeana linking to edm:Place
+- pipeline       : What objects provided to Europeana link to a place?
+- Team B [included], submitted 2026-09-16: assessment `accepted`, no rewording
+- Team F [included], submitted 2026-09-16: assessment `prompt_improvement_recommended`, no rewording
+    - an internal comment was supplied (not quoted here)
+
+Decision: **exclude**
+
+Rationale: the query reaches a place through any property at all, which is an
+exploration of how places are linked rather than an information need. Its results
+include objects whose `dc:creator` is mistakenly a place, so no natural question
+describes them faithfully. `europeana-0026` keeps the same need in its "about a
+place" sense. The SPARQL is syntactically correct; the modelling is the problem.
+Excluding it also settles the assessment disagreement, since a dismissed pair
+carries no assessment.
+
 ## Still to decide: assessment-only disagreements
 
 Added 8 November 2026. Four further pairs were judged by two teams that agreed
@@ -318,7 +340,9 @@ on the wording — no team proposed a rewording — but differed on
 `pipeline_assessment`, and with it on whether a team's comment survives into the
 benchmark. A tie-break on submission order was considered and abandoned: it would
 have discarded a reviewing team's report that `cdec-0006` does not parse. They
-are therefore adjudicated, and are not yet decided.
+are therefore adjudicated. `europeana-0005` has since been decided — excluded,
+for reasons that have nothing to do with the assessment — and is recorded above;
+the remaining three are not yet decided.
 
 Team letters continue the mapping used above. The working slots are in the
 untracked notes file; these blocks record the conflict so the tracked set is
@@ -337,20 +361,6 @@ Candidate wordings:
     - public comment: Double ORDER BY is not allowed; you only need one ORDER BY clause for multiple columns
 
 Decision: **pending** — SPARQL correction required regardless, see [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md)
-
-### europeana-0005
-
-Conflict: assessment only
-
-Candidate wordings:
-
-- evidence label : Objects provided to Europeana linking to edm:Place
-- pipeline       : What objects provided to Europeana link to a place?
-- Team B [included], submitted 2026-09-16: assessment `accepted`, no rewording
-- Team F [included], submitted 2026-09-16: assessment `prompt_improvement_recommended`, no rewording
-    - an internal comment was supplied (not quoted here)
-
-Decision: **pending**
 
 ### europeana-0029
 

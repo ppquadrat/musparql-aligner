@@ -118,7 +118,9 @@ standard rather than adjudicating pair by pair.
 
 ### Assessment-only disagreement — 4 pairs
 
-`cdec-0006`, `europeana-0005`, `-0029`, `-0048`.
+`cdec-0006`, `europeana-0005`, `-0029`, `-0048`. `europeana-0005` was
+subsequently excluded on modelling grounds unrelated to the assessment, which
+settles it: a dismissed pair carries no assessment. Three remain open.
 
 Two teams agree that the pair belongs in the benchmark and neither proposes a
 rewording, but one marks it `accepted` and the other recommends a prompt or
@@ -319,6 +321,63 @@ be read off the vocabulary:
   principle but harmless today, as all 22 resources carry exactly one label;
   `SAMPLE(?resource)` around the grouping key is redundant.
 
+### Near-duplicate pairs need gold questions that separate them
+
+`europeana-0005` and `europeana-0026` both retrieve objects linked to a typed
+`edm:Place`, and differ in one clause:
+
+```sparql
+# europeana-0026
+?Place rdf:type edm:Place .
+?Proxy dcterms:spatial|dc:coverage ?Place ; ore:proxyFor ?ProvidedCHO
+
+# europeana-0005
+?Place rdf:type edm:Place .
+?Proxy ?property ?Place ; ore:proxyIn ?Aggregation .
+?Aggregation edm:aggregatedCHO ?ProvidedCHO
+```
+
+The routing difference is cosmetic. A proxy, its aggregation and the CHO form a
+triangle: `ore:proxyFor` is the direct edge, while `ore:proxyIn` plus
+`edm:aggregatedCHO` is the long way round to the same object. No proxy in the
+graph has one edge without the other (`ASK { ?p ore:proxyIn ?a FILTER NOT EXISTS
+{ ?p ore:proxyFor ?cho } }` is false), so both reach the identical set and
+`europeana-0005` simply pays for an extra join.
+
+The property is the real difference. Constrained to actual proxies, the
+properties that link an object to an `edm:Place` are `dcterms:spatial`,
+`dc:coverage`, `dc:subject`, `edm:currentLocation` and `dc:creator`. So
+`europeana-0026` asks what place an object *is about*, while `europeana-0005`
+also admits where it is currently held, the place as its subject, and records
+where the creator is mistakenly a place. English hides this: "the place of a
+thing" can mean the place depicted or the place it is kept, and the data
+distinguishes them.
+
+A caution for anyone repeating this analysis: querying `?Proxy ?property ?Place`
+without requiring `?Proxy` to be a proxy returns a much longer property list,
+including `rdvocab:placeOfBirth` and `skos:broader`, which belong to agents and
+concepts rather than objects. The first pass of this analysis made that mistake.
+
+Two consequences. First, if both pairs carry the same gold question the benchmark
+asks one question with two different correct answers, and a system that produced
+the other pair's query would be marked wrong for a distinction the question never
+stated. Near-duplicate pairs have to state what separates them: "which objects
+are about a place?" against "which objects have a place associated with them?".
+
+Second, `europeana-0005` was excluded, and the reasoning generalises. Its breadth
+comes from a wildcard property rather than from an information need, which is the
+shape of an exploratory query — the same ground on which `europeana-0011` was
+excluded. A wildcard also makes the pair unusable as ground truth: asked for
+objects associated with a place, a competent system would name specific
+properties, which is better modelling and would be scored wrong. And part of its
+result set is a data error, so no wording can describe it faithfully. The SPARQL
+is syntactically correct; the modelling is the problem, and syntactic
+correctness is not sufficient for inclusion.
+
+`europeana-0005` is the only pair reaching `edm:currentLocation`, so excluding it
+leaves "where is this object held?" uncovered. That need deserves a pair built
+for it rather than one that reaches the property by accident.
+
 ## Instrument findings
 
 The review form shaped the data in ways worth fixing before the next cohort.
@@ -362,8 +421,9 @@ The round needs, per conflict type:
 - rewrite against pipeline-kept (6) — a decision plus a record that the point
   was contested, so a lone rewrite cannot pass silently;
 - include/exclude (4) — the excluding team's standard, not a pair-by-pair vote;
-- assessment only (4) — which team's assessment and comment stand, remembering
-  that the dissenting comment may be the only record of a defect;
+- assessment only (4, of which 3 remain) — which team's assessment and comment
+  stand, remembering that the dissenting comment may be the only record of a
+  defect;
 - the faithfulness defects (`europeana-0017`, `-0054`, `-0039`) — a SPARQL
   correction or a narrowed question, routed to the correction workflow rather
   than the wording decision.
