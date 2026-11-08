@@ -328,6 +328,35 @@ with several `dc:date` values is counted more than once; and
 `HAVING (?count>1)` drops decades holding a single newspaper, which the paired
 question does not mention.
 
+### Requested coordinates are computed and discarded (`meetups-0008`)
+
+Published in benchmark v10. The gold question is "List all places in the graph
+with their coordinates", and the query binds both coordinates and then drops
+them:
+
+```sparql
+select DISTINCT ?s ?label
+where {
+ ?s rdf:type mtp:Location ;
+    rdfs:label ?label ;
+    geo:lat ?lat ;
+    geo:long ?long .
+}
+```
+
+`?lat` and `?long` are never projected, so the query answers "which places have
+coordinates recorded" rather than "what are their coordinates". The two readings
+differ in their result shape, and a system that returned the coordinates would be
+a better translation of the question and would score wrong against this gold
+query. Either project the coordinates or narrow the question; the former is
+likely intended, since the triple patterns are otherwise pointless.
+
+Note also that the `geo:` prefix is declared as
+`<https://www.w3.org/2003/01/geo/wgs84_pos>` with no trailing `#`, so `geo:lat`
+expands to a URI that is not the WGS84 property. This needs checking against the
+endpoint: if it matches nothing, the pattern is silently restricting the result
+to the empty set, and the published result for this pair should be re-derived.
+
 ## Regression walkthrough
 
 Before the next release candidate, repeat a short manual round that covers:

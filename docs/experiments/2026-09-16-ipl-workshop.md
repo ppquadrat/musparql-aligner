@@ -305,6 +305,58 @@ Additional follow-up should:
 5. review whether earlier MusoW judgments outside benchmark v10 need a separate
    identity-based comparison before calling every selected MusoW pair new.
 
+### Addendum, 8 November 2026: triage the queries before the reviewers see them
+
+The workshop was designed around a hypothesis that the meta-review pass has not
+borne out: that putting several reviewers on the same pair would itself produce a
+gold wording. It does not. Of the 26 pairs with more than one team, 13 were
+uncontested and the other 13 required a human decision that no aggregation rule
+over the submissions could have supplied — 4 competing rewrites with no majority,
+6 where a lone rewrite faced teams that had merely left the pipeline wording
+alone, 4 include/exclude splits, and 4 where the teams agreed on the wording and
+differed only on the assessment. Keeping a wording because two teams did not
+object to it is not the same as two teams endorsing it, and the submission form
+cannot tell the two apart. A meta-review round is therefore structural, not a
+consequence of this particular cohort.
+
+More attention, distributed and cheap, also turned out not to substitute for one
+expert reviewer with time. The most valuable single artefact of the round was not
+any rewording but a set of internal comments identifying real defects in the
+queries — an unparseable double `ORDER BY`, a licence filter that cannot match
+anything in the graph, a substring test that assumes a date format the data does
+not use. Those came from reviewers who looked closely at one pair, not from the
+fact that three teams looked at it.
+
+The clearest operational lesson is that the triage should come first. A
+meaningful share of the pairs put in front of multiple teams were never going to
+enter the benchmark: some had broken SPARQL, and some were intermediate
+operations whose answer is a list of identifiers and which the project's own
+policy already excludes (see
+[`2026-11-07-ipl-review-conflict-findings.md`](2026-11-07-ipl-review-conflict-findings.md)).
+Reviewing those consumed scarce workshop time, produced conflicts that then had
+to be adjudicated, and ended in dismissal regardless. The requirement was already
+on record: [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md)
+carries a P0 titled "exclude unsuitable queries before pair review", written
+before the workshop, which names non-standalone queries and gives as its reason
+that reviewing them later wastes effort. It was not implemented in time, and the
+cost it predicted is what the round incurred. A pre-review pass — run
+the SPARQL, check that the question and the query correspond, and drop the
+non-standalone queries — should precede any further multi-reviewer round, and
+should be weighted towards the sources that produced the problem pairs, which
+here were the Europeana console and API example files rather than the curated
+corpora.
+
+For a larger round the corollaries are:
+
+- require a rewording whenever a reviewer recommends prompt improvement, since
+  at this scale a recommendation with nothing actionable attached cannot be
+  chased up individually;
+- give the form an explicit place for a corrected SPARQL query and a skip state,
+  so a reviewer who spots a broken query is not forced to express that through
+  the wording field;
+- record the exclusion *reason* as a field rather than free text, so that pairs
+  dismissed on the same grounds can be counted.
+
 ## Related records
 
 - [IPL Musparql–Quagga workshop slides](<../papers/IPL Musparql-Quagga workshop/Musparql_workflow_workshop_slides_with_ambiguity_sidecar.pptx>)

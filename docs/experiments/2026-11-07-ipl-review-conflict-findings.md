@@ -378,6 +378,111 @@ correctness is not sufficient for inclusion.
 leaves "where is this object held?" uncovered. That need deserves a pair built
 for it rather than one that reaches the property by accident.
 
+### Queries whose answer is an identifier: standalone need or intermediate operation
+
+Added 8 November 2026. This began as a question about two Europeana pairs and
+turned out to be a benchmark-wide criterion that was already in use without
+being named.
+
+`europeana-0029` is `SELECT DISTINCT ?Concept WHERE { ?Concept rdf:type
+skos:Concept }`, and `europeana-0004` is the same shape for `edm:Agent`. Neither
+returns a name: the answer is a page of opaque URIs. As a step inside a larger
+task — get the concept URIs, then ask something about them — that is exactly the
+right output. As a standalone research need it is not a question anyone asks, and
+the project's own [`../REVIEW_POLICY.md`](../REVIEW_POLICY.md) already names
+"intermediate operation" and "non-standalone" among its exclusion grounds.
+[`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md) goes
+further: its P0 "exclude unsuitable queries before pair review" was written
+before the workshop, names "non-standalone" in as many words, and gives the
+reason that "asking them to review the pair later wastes effort". It is not
+implemented, and the workshop paid exactly the cost it predicted.
+
+What the benchmark is for decides the answer. For natural-language-to-SPARQL
+these pairs are a liability: there is no natural question whose answer is a bare
+identifier list, so any wording is either jargon or a loose gloss. For
+SPARQL-to-natural-language they are merely hard. Musparql's stated purpose is
+the first, so the pairs are a liability.
+
+**No syntactic test identifies them.** Two were tried against v10 and both
+over-flag badly. "Returns no labels or literals" flags 22 of 100, including
+`linkedmusic-0053` "Find all MusicBrainz recordings made by Taylor Swift", which
+is a perfectly good need whose answer set happens to be recording URIs. "Has no
+selective constraint" flags 15 of 100 and also catches the Taylor Swift query,
+because the constraint is a literal the pattern failed to parse. Narrowing to
+pairs that project only variables appearing as the subject of a triple — that
+is, entity identifiers and nothing else — gives a defensible 19 of 100, but the
+19 contain both kinds. The judgment is not recoverable from the query text, which
+is why it belongs to review rather than to validation.
+
+**Returning identifiers is not the test; needing a name is.** `meetups-0006`,
+`meetups-0008`, `organs-0001` and `linkedmusic-0009` all look like bare
+enumerations and all in fact project `?s ?label` with an `rdfs:label` binding, so
+they answer in names and are sound. Conversely `jazzontology-0020`, "Find
+duplicate audio signals in the graph", returns only signal URIs and a shared
+fingerprint, and is a standard MIR research question: for duplicate detection the
+*identity* of the two signals is the answer, and a label would not help. The
+operative question is therefore whether an identifier answers the need, not
+whether the projection contains a literal.
+
+**v10's own dismissals already apply this criterion.** Of the six pairs dismissed
+from v10, the recorded reasons give it in the reviewer's own words:
+
+> `jazzontology-0013` — "This seems to be a disambiguation query rather then
+> search, since we already have the name. I would dismiss it"
+
+> `jazzontology-0003` — "The wording is fine but the concept of ReleaseEvent is
+> not very NL friendly ... on its own, this query does not make much sense to
+> anyone not intimately [familiar with the ontology]"
+
+So the criterion has been in consistent use since before the workshop; it simply
+never became a recorded field, which is why nothing downstream can tell that two
+of the six dismissals share a reason with each other or with `europeana-0005`.
+
+**v10 is internally inconsistent on it.** The four dismissed jazzontology pairs
+are structurally identical to seven that were published. All take a name or title
+in and return an entity identifier out:
+
+| dismissed | published |
+|---|---|
+| `-0002` title → album | `-0004` title → record label |
+| `-0003` title + time → release event | `-0005` title + count → release |
+| `-0006` title + number → record | `-0012` name → band |
+| `-0013` name + performer → artist | `-0010`, `-0011` name → artist |
+|  | `-0007`, `-0008` given CD or performance → tracks, performers |
+
+`jazzontology-0010` and `-0011` are the weakest of these on a second ground as
+well: the gold questions are "Is there more than one composer with this name in
+the graph?" and the arranger equivalent, but the queries are `SELECT DISTINCT`
+over the artist, so answering the question means counting the rows rather than
+reading the result. The question form and the query form do not correspond.
+
+**Dismiss rather than flag.** A `split`-style label distinguishing standalone
+needs from intermediate operations was considered and rejected. The pairs that
+would carry the label are the pairs with no faithful natural-language wording at
+all — that is what makes them intermediate — so keeping them means either
+publishing jargon or publishing a gloss only an expert in that one schema can
+read, and the benchmark should contain neither. The label would preserve the
+defect and record that it is a defect. Dismissal with the reason recorded
+achieves the same traceability without putting the wording into the published
+set.
+
+This leaves one incidental defect worth routing separately: `meetups-0008`'s
+gold question is "List all places in the graph with their coordinates", but the
+query binds `?lat` and `?long` and then projects only `?s ?label`. The
+coordinates are requested, computed and discarded, which is a faithfulness defect
+of the same family as the three recorded above and is queued in
+[`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md).
+
+**Provenance.** All five workshop bare enumerations are Europeana pairs, and all
+five trace to `europeana-sparql-console-select-examples.jsonl` or
+`europeana-sparql-api-examples.jsonl`. Console and API examples exist to
+demonstrate a schema, not to answer questions — "Listing of `edm:Agent`" is
+documentation. v10's corpora came from repositories and site snapshots and
+contain none of this shape. A query harvested from a console-examples source
+therefore deserves a presumption of being a demonstration until a reviewer says
+otherwise, which would have caught all five before three teams in Brussels spent
+time on them.
+
 ## Instrument findings
 
 The review form shaped the data in ways worth fixing before the next cohort.
