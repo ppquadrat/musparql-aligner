@@ -206,6 +206,49 @@ def render_example(key: str, reviews: list[dict[str, Any]], record: dict[str, An
     return "\n".join(lines)
 
 
+def build_report(
+    buckets: dict[str, list[str]],
+    by_pair: dict[str, list[dict[str, Any]]],
+    records: dict[str, dict[str, Any]],
+) -> str:
+    """Render the per-pair detail report, including verbatim reviewer comments."""
+    strict = sorted(buckets["pairs_conflicting_wordings"])
+    rewrite_only = sorted(set(buckets["pairs_rewrite_vs_accept"]) - set(strict))
+    disposition = sorted(buckets["pairs_conflicting_disposition"])
+    lines = [
+        "<!-- GENERATED FILE. Overwritten by scripts/analyze_wording_variants.py --report.",
+        "     Do not hand-edit: record meta-review decisions in a separate file. -->",
+        "",
+        "# IPL workshop: contested canonical wordings (16 September 2026)",
+        "",
+        "Derived from the latest valid revision per reviewing team. Pseudonymous reviewer",
+        "and group IDs only. Reviewer comments are reproduced in full, **including",
+        "`internal_comment`**, which is internal-only working material and must not enter",
+        "a public benchmark release or the public repository. The tracked summary is",
+        "docs/experiments/2026-11-07-ipl-review-conflict-findings.md.",
+        "",
+        "| | pairs |",
+        "|---|---:|",
+        f"| distinct pairs reviewed | {len(buckets['pairs_reviewed'])} |",
+        f"| judged by >= 2 teams | {len(buckets['pairs_multi_team'])} |",
+        f"| canonical wording contested at all | {len(set(buckets['pairs_rewrite_vs_accept']) | set(strict))} |",
+        f"| >= 2 competing rewrites | {len(strict)} |",
+        f"| one rewrite vs teams keeping the pipeline wording | {len(rewrite_only)} |",
+        f"| include/exclude disagreement | {len(disposition)} |",
+        "",
+    ]
+    sections = (
+        ("Pairs with two or more competing rewrites", strict),
+        ("Pairs where one team rewrote and others kept the pipeline wording", rewrite_only),
+        ("Include/exclude disagreement (separate conflict type)", disposition),
+    )
+    for title, keys in sections:
+        lines.append(f"## {title}\n")
+        for key in keys:
+            lines += [render_example(key, by_pair[key], records.get(key)), "---\n"]
+    return "\n".join(lines)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("export_dir", type=Path, help="directory of non_holdout_review_export JSON files")
@@ -217,6 +260,12 @@ def main() -> int:
         help='drop reviews whose literal_wording begins "Not reviewed" (see is_self_declared_non_review)',
     )
     parser.add_argument("--json", type=Path, default=None, help="write the full grouping to this file")
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+        help="write the per-pair markdown report to this file (OVERWRITES it; never hand-edit the target)",
+    )
     args = parser.parse_args()
 
     exports = load_exports(args.export_dir)
@@ -243,6 +292,10 @@ def main() -> int:
     for key in shown[: args.examples]:
         print(render_example(key, by_pair[key], records.get(key)))
         print("-" * 72)
+
+    if args.report:
+        args.report.write_text(build_report(buckets, by_pair, records))
+        print(f"wrote {args.report}")
 
     if args.json:
         args.json.write_text(
