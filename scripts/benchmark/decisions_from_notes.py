@@ -80,6 +80,24 @@ def parse_notes(path: Path, known_labels: set[str]) -> List[Dict[str, Any]]:
     return blocks
 
 
+PLACEHOLDER_PREFIXES = ("still open", "tbd", "pending", "todo", "open —", "open -", "?")
+
+
+def reject_placeholder(label: str, slot: str, value: str) -> str:
+    """A note to the meta-reviewer must never be published as a gold question.
+
+    The notes format takes slot values verbatim, so a value like
+    "STILL OPEN — needs ..." would otherwise become `canonical_question` and
+    ship as the question text. Leave the slot blank and say it in the rationale.
+    """
+    if value.strip().lower().startswith(PLACEHOLDER_PREFIXES):
+        raise SystemExit(
+            f"{label}: the '{slot}' slot holds a placeholder, not a decision: "
+            f"{value!r}\nLeave it blank and record the open point in the rationale."
+        )
+    return value
+
+
 def resolve_alternatives(spec: str, record: Dict[str, Any], team_wordings: List[str], canonical: str) -> List[str]:
     evidence = (record.get("input", {}).get("evidence") or [{}])[0].get("snippet", "")
     pipeline = record.get("output", {}).get("nl_question") or ""
@@ -126,7 +144,7 @@ def main() -> int:
             continue
         record = records[label]
         disposition = {"include": "included", "exclude": "excluded"}.get(slots.get("include/exclude", ""), "included")
-        canonical = slots.get("canonical wording", "")
+        canonical = reject_placeholder(label, "canonical wording", slots.get("canonical wording", ""))
         alternatives = (
             resolve_alternatives(slots.get("record as alternative", ""), record, team_wordings.get(label, []), canonical)
             if disposition == "included"

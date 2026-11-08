@@ -36,6 +36,7 @@ meta-reviewer's own.
 | include | 12 |
 | exclude | 5 |
 | SPARQL correction required before the pair re-enters | 4 |
+| canonical wording deferred to the post-correction review | 1 |
 | flagged as requiring graph context | 6 |
 
 All seventeen contested pairs are decided as of 8 November 2026.
@@ -427,13 +428,14 @@ Candidate wordings:
 
 Decision:
 
-- **include/exclude**: include, after correction
+- **include/exclude**: SPARQL correction first, then include
 - **pipeline assessment**: `input_data_improvement_recommended` — neither team's
   reasoning, but the nearer of the two labels
-- **canonical wording**: still open; it needs "Europeana type" replaced by
-  "media type". `edm:type` takes exactly `IMAGE`, `TEXT`, `SOUND`, `VIDEO` and
-  `3D` on this endpoint, so Team F was right about the phrase.
-- **sparql correction**: required, see [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md)
+- **canonical wording**: deferred to the post-correction review, decided with the
+  corrected query in hand. It must replace "Europeana type" with "media type":
+  `edm:type` takes exactly `IMAGE`, `TEXT`, `SOUND`, `VIDEO` and `3D` on this
+  endpoint, so Team F was right about the phrase.
+- **sparql correction**: required first, see [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md)
 - **rationale**: Neither team's assessment stands. Team F was right that
   "Europeana type" is EDM vocabulary a researcher would not use, but the pair's
   real defect is arithmetic and both teams missed it. `?AggregationProvider` and

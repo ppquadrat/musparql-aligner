@@ -391,7 +391,11 @@ objects that have a provider — which the clause does not achieve, since it doe
 not exclude anything in the slices tested — that belongs in a `FILTER EXISTS`,
 which cannot multiply solutions.
 
-Separately, the wording needs "Europeana type" replaced. `edm:type` takes exactly
+The meta-review decision is **correction first, then include**: the pair does not
+re-enter the benchmark until the count is right, and its canonical wording is
+decided afterwards with the corrected query in hand.
+
+The wording also needs "Europeana type" replaced. `edm:type` takes exactly
 five values on this endpoint — `IMAGE`, `TEXT`, `SOUND`, `VIDEO`, `3D` — so it is
 the media type, and the reviewer who objected that a researcher unfamiliar with
 EDM would not ask for "Europeana type" was right about the phrase. That is a
