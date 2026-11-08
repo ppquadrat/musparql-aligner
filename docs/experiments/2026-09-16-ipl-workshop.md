@@ -262,6 +262,17 @@ the workshop. Earlier reviews that were not represented in that benchmark would
 not be detectable from the frozen deduplication metadata and remain a limitation
 of this classification.
 
+### Addendum, 7 November 2026: analytical correction to these counts
+
+The counts above describe what was submitted and processed, and remain correct
+in that sense. A later pass over the same exports found that one team used the
+optional `literal_wording` field as a status box, marking eight items "Not
+reviewed"; all eight carry the untouched form defaults (`included`, and seven of
+eight `accepted`). Excluding them, the analytical figures are 120 pair reviews
+over 84 distinct pairs, with 26 pairs judged by at least two teams rather than
+28. Use those figures for inter-rater and adjudication work. See
+[`2026-11-07-ipl-review-conflict-findings.md`](2026-11-07-ipl-review-conflict-findings.md).
+
 ## Interpretation and follow-up
 
 The workflow successfully preserved the work that reached submission: every
