@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -73,6 +74,15 @@ def main() -> None:
     parser.add_argument("--previous-benchmark", required=True, help="Previous benchmark/vN directory.")
     parser.add_argument("--bundle", default="review/review_data.js", help="Normal review bundle.")
     parser.add_argument("--reviews", required=True, help="Exported initial-review decisions.")
+    parser.add_argument(
+        "--decisions",
+        default=None,
+        help=(
+            "Optional meta-review decisions JSONL (catalog/curated/meta_review_decisions.jsonl). "
+            "Alternative wordings a meta-reviewer chose to keep are recorded as accepted "
+            "alternatives; without it only the model output can become one."
+        ),
+    )
     parser.add_argument("--outdir", required=True, help="Output benchmark/vN directory.")
     parser.add_argument(
         "--kg-queries",
@@ -99,6 +109,13 @@ def main() -> None:
         raise ValueError(
             f"Dataset mismatch: bundle has {bundle.get('dataset_id')}, review export has {review_export.get('dataset_id')}"
         )
+
+    decisions_by_pair: Dict[str, Dict[str, Any]] = {}
+    if args.decisions:
+        for line in Path(args.decisions).read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                decision = json.loads(line)
+                decisions_by_pair[str(decision.get("pair_review_id") or "")] = decision
 
     reviews = review_export.get("reviews")
     if not isinstance(reviews, dict):
@@ -128,6 +145,7 @@ def main() -> None:
     overlaps: List[Tuple[str, Tuple[str, str]]] = []
     replaced_keys: set[Tuple[str, str]] = set()
     replaced_sparql_revisions = 0
+    meta_alternatives = 0
 
     for review_id, review in reviews.items():
         if not isinstance(review, dict):
@@ -199,6 +217,27 @@ def main() -> None:
                             record=record,
                         ),
                     )
+            for index, alternative in enumerate(
+                (decisions_by_pair.get(str(review_id), {}) or {}).get("alternative_questions") or [],
+                start=1,
+            ):
+                entry = make_rephrasing_entry(
+                    text=alternative,
+                    source_type="meta_review_alternative",
+                    review=review,
+                    review_id=str(review_id),
+                    review_path=review_path,
+                    dataset_id=dataset_id,
+                    record=record,
+                )
+                if entry:
+                    # one id per alternative; make_rephrasing_entry would reuse the
+                    # single "candidate" role for every text.
+                    entry["formulation_id"] = (
+                        f"{review.get('review_id') or review_id}::formulation::alternative::{index}"
+                    )
+                    add_formulation(alternatives, "accepted_alternatives", entry)
+                    meta_alternatives += 1
             add_formulation(
                 alternatives,
                 "literal_formulations",
@@ -286,6 +325,7 @@ def main() -> None:
             "pipeline_assessment_counts": dict(Counter(str(row.get("pipeline_assessment")) for row in included)),
             "benchmark_disposition_counts": dict(Counter(str(row.get("benchmark_disposition")) for row in included + dismissed)),
             "applied_normal_reviews": applied,
+            "applied_meta_review_alternatives": meta_alternatives,
             "replaced_sparql_revisions": replaced_sparql_revisions,
             "applied_pipeline_assessment_counts": dict(assessment_counts),
             "applied_benchmark_disposition_counts": dict(disposition_counts),
