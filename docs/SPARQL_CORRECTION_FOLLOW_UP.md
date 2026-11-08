@@ -328,6 +328,75 @@ with several `dc:date` values is counted more than once; and
 `HAVING (?count>1)` drops decades holding a single newspaper, which the paired
 question does not mention.
 
+### A redundant join double-counts aggregator material (`europeana-0048`)
+
+Reviewed in the IPL workshop round. The gold question is "What is the
+distribution of objects per country and Europeana type?" and the query is:
+
+```sparql
+SELECT ?Country ?EuropeanaType (count(*) as ?count)
+WHERE {
+  ?AggregationEuropeana edm:country ?Country ;
+                        edm:aggregatedCHO ?ProvidedCHO .
+  ?AggregationProvider edm:aggregatedCHO ?ProvidedCHO ;
+                       rdf:type ore:Aggregation ;
+                       edm:provider ?Provider .
+  ?Proxy ore:proxyIn ?AggregationEuropeana ;
+         edm:type ?EuropeanaType .
+} GROUP BY ?Country ?EuropeanaType
+ORDER BY ?Country ?EuropeanaType
+```
+
+`?AggregationProvider` and `?Provider` are neither projected nor grouped, so the
+middle clause cannot affect the result except through the number of solutions —
+and `count(*)` counts solutions, not objects.
+
+Verified on the live endpoint:
+
+- `edm:country` occurs only on `edm:EuropeanaAggregation`, so the first clause is
+  the Europeana aggregation and the middle one reaches for a different node.
+- The subclass inference is not materialised: no `edm:EuropeanaAggregation` is
+  also typed `ore:Aggregation`, and no `edm:EuropeanaAggregation` carries
+  `edm:provider`. So `rdf:type ore:Aggregation` already discriminates, and
+  `edm:provider ?Provider` adds nothing.
+- No aggregation carries two different `edm:provider` values.
+- **A CHO can have two aggregations typed `ore:Aggregation`.** Material that
+  arrived through an aggregator has both
+  `data.europeana.eu/aggregation/aggregator/...` and
+  `.../aggregation/provider/...`, and both carry `edm:provider`. For
+  `item/2024904/www_topfoto_co_uk_Europeana_WEAVE_1458820_jpg` the query body
+  yields **2 solutions for one object**.
+
+The effect on the published answer, measured per country:
+
+| country | `count(*)` as written | distinct objects |
+|---|---|---|
+| Montenegro | 84 | 84 |
+| Georgia | 34 | 34 |
+| **Azerbaijan** | **54** | **27** |
+
+Every Azerbaijani object came in through an aggregator, so the figure is exactly
+doubled; Montenegro and Georgia are unaffected. The inflation is therefore not a
+uniform scale factor but varies by country, which destroys the comparison
+between countries that the question exists to make. A system that answered with
+the true distribution would be scored wrong against this gold query.
+
+The Montenegro and Georgia figures also show the clause filters nothing in those
+slices, and that one proxy per Europeana aggregation holds there, since
+`count(*)` and `count(distinct ?ProvidedCHO)` agree.
+
+The fix is to drop the middle clause and count objects rather than solutions:
+`(count(distinct ?ProvidedCHO) as ?count)`. If the intent was to restrict to
+objects that have a provider — which the clause does not achieve, since it does
+not exclude anything in the slices tested — that belongs in a `FILTER EXISTS`,
+which cannot multiply solutions.
+
+Separately, the wording needs "Europeana type" replaced. `edm:type` takes exactly
+five values on this endpoint — `IMAGE`, `TEXT`, `SOUND`, `VIDEO`, `3D` — so it is
+the media type, and the reviewer who objected that a researcher unfamiliar with
+EDM would not ask for "Europeana type" was right about the phrase. That is a
+wording fix, not the reason the pair fails.
+
 ### Requested coordinates are computed and discarded (`meetups-0008`)
 
 Published in benchmark v10. The gold question is "List all places in the graph

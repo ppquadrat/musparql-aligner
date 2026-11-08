@@ -187,11 +187,15 @@ directions.
 
 ### Gold-query faithfulness defects, independent of wording
 
-Three findings are defects in the pair itself rather than disagreements about
+Four findings are defects in the pair itself rather than disagreements about
 phrasing, and none is reachable by choosing between the reviewers' wordings:
 `europeana-0017` and `-0054` need a corrected filter or a narrowed question,
-`europeana-0039` needs its type pattern and its date handling examined, and
-`cdec-0006` does not parse at all. All three are routed to the SPARQL correction
+`europeana-0039` needs its type pattern and its date handling examined,
+`cdec-0006` does not parse at all, and `europeana-0048` double-counts every
+object that arrived through an aggregator because a redundant join multiplies the
+solutions that `count(*)` then counts (Azerbaijan: 54 reported against 27 real
+objects, while Montenegro and Georgia are exact — so the distortion varies by
+country and destroys the comparison the question exists to make). All three are routed to the SPARQL correction
 workflow rather than the adjudication round, even where a reviewer's rewrite also
 improves the wording.
 
