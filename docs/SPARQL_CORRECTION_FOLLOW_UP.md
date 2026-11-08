@@ -270,6 +270,35 @@ on real values in this graph: jurisdiction ports (`/at/`, `/de/`, `/es/`,
 `/vocab/`, and one value carrying a trailing zero-width space (U+200B). Decide
 also whether the `NoC-*` rights statements fall inside "openly licensed".
 
+### Two ORDER BY clauses make the convoy query unparseable
+
+Affects `cdec-0006` ("For each convoy, what are the departure places, dates, and
+the number of deported people per arrest location and Nazi camp?"). The query
+ends:
+
+```
+}ORDER BY ?convoy ORDER BY ?labelDeparPlace
+```
+
+SPARQL allows one `ORDER BY` clause with several expressions, not two clauses.
+`rdflib.plugins.sparql.prepareQuery` rejects it with
+`Expected end of text, found 'ORDER'`; collapsing the two into
+`ORDER BY ?convoy ?labelDeparPlace` parses. This is a syntax error, so unlike
+the other entries here the pair fails even the minimal bar for inclusion: a
+query that expresses an information need and parses.
+
+A second issue to settle in the same edit: the projection mixes
+`(count(?ArrestPlace) as ?count)` with ungrouped variables and the query has no
+`GROUP BY`, which SPARQL 1.1 also disallows. Decide what the intended
+aggregation is — a count of deportees per convoy, arrest place and camp —
+rather than only removing the duplicate `ORDER BY`.
+
+A reviewing team reported the `ORDER BY` defect during the workshop, in a public
+comment, and marked the pair `input_data_improvement_recommended`; a second team
+had marked it `accepted`. The finding was nearly lost, because resolving that
+disagreement by submission order would have kept the `accepted` review and
+discarded the comment.
+
 ### Type pattern and date handling in the newspapers-per-decade query
 
 Affects `europeana-0039`. Two independent issues, and unlike the licence filter
