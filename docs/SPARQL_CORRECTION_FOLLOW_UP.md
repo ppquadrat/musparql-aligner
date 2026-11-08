@@ -231,6 +231,74 @@ message instead of a traceback. This does not indicate data loss: browser-local
 drafts remain local, while only exported and applied decisions affect canonical
 data.
 
+## Specific queries awaiting correction (added 8 November 2026)
+
+Unlike the rest of this document, these are not tooling changes: they are named
+non-holdout queries whose SPARQL does not express the information need of its
+paired question. Both were identified while analysing the IPL workshop review
+data; see
+[`experiments/2026-11-07-ipl-review-conflict-findings.md`](experiments/2026-11-07-ipl-review-conflict-findings.md).
+
+Neither is an execution problem. Consistent with the principle above that
+execution is evidence rather than a gate, the defect in each case is the
+correspondence between the natural-language question and the query, which fails
+independently of what any endpoint returns.
+
+### Hardcoded licence enumeration excludes the licences it claims
+
+Affects `europeana-0017` ("openly licensed video resources and their respective
+objects") and `europeana-0054` ("datasets with openly licensed content"). Both
+restrict `edm:rights` with `FILTER (?Rights IN (...))` over four URIs: Public
+Domain Mark 1.0, CC0 1.0, CC BY **1.0** and CC BY-SA **1.0**.
+
+The licence version is part of the URI and `IN` compares whole URIs, so the two
+CC entries name a version superseded in 2002 that occurs nowhere in the graph.
+The CC BY and BY-SA material that does exist carries 2.5, 3.0 and 4.0, and is
+excluded. The filter therefore admits public-domain material only, and no future
+ingest of openly licensed content could change that.
+
+Correction options to decide between:
+
+- widen the filter to the intended sense of "openly licensed", matching licence
+  families by prefix rather than enumerating URIs; or
+- narrow both questions to public-domain content and drop the two inert entries.
+
+A prefix match is the more robust option because exact-URI matching also fails
+on real values in this graph: jurisdiction ports (`/at/`, `/de/`, `/es/`,
+`/pl/`), inconsistent trailing slashes on otherwise identical licences, an
+`https` variant alongside `http`, `rightsstatements.org/page/` alongside
+`/vocab/`, and one value carrying a trailing zero-width space (U+200B). Decide
+also whether the `NoC-*` rights statements fall inside "openly licensed".
+
+### Type pattern and date handling in the newspapers-per-decade query
+
+Affects `europeana-0039`. Two independent issues, and unlike the licence filter
+this one is **not settled** — it needs investigation before a correction is
+chosen.
+
+First, the query selects on `edm:hasType` pointing at the Getty AAT newspapers
+concept (`aat:300026656`). Nothing in the graph currently carries both that and
+a `dc:date`, while `dc:type` with the same concept and `dc:date` do co-occur. If
+newspaper-ness is expressed through `dc:type` here, the pattern does not pick
+out newspapers and the question is not what the query asks. Establish whether
+`edm:hasType` ever carried this concept alongside dates, and what the curated
+console example ran against, before treating it as an error rather than a
+remodelling casualty.
+
+Second, the decade bucketing is `CONCAT(SUBSTR(?dat, 1, 3), "0")`. That logic is
+correct given a `YYYY`-prefixed string literal, but real `dc:date` values are
+not reliably that: sampling returned IRIs with the date in a URL-encoded
+fragment (an ingestion artifact) and literals as short as `"2"`. `SUBSTR` on an
+IRI is a type error and the erroring `BIND` leaves the variable unbound, so such
+objects collapse into one unbound group; `"2"` buckets as decade `"20"`. Any
+correction should guard the input form rather than assume it.
+
+Two lesser points for the same query: `COUNT(*)` counts solutions rather than
+newspapers, and `?x` is not constrained to one proxy per object, so an object
+with several `dc:date` values is counted more than once; and
+`HAVING (?count>1)` drops decades holding a single newspaper, which the paired
+question does not mention.
+
 ## Regression walkthrough
 
 Before the next release candidate, repeat a short manual round that covers:
