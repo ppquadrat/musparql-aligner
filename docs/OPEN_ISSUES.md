@@ -168,6 +168,15 @@ implementation and reviewer-facing wording remain open.
 
 ## Reviewer-ID exposure and the v12 release blocker
 
+**Status, 10 November 2026: the release blocker is lifted and v11 and v12 are
+published.** The projection fix landed on 9 November, the release readiness was
+verified on 10 November (see *Release readiness* below), and both snapshots are
+committed and pushed. The sections between here and that one record how the
+problem looked when it was found; they are kept for the history and are no
+longer the current state. What remains open is the human indirect-identification
+check, the local-file purge, and the ICF-versus-notice difference on withdrawal,
+none of which blocks a release.
+
 Found on 9 November 2026 while checking the docs against the new snapshots.
 This supersedes an earlier framing in this file that called the commitment an
 unimplemented draft action: it is a commitment in the notice participants
@@ -213,24 +222,28 @@ participants must be told is separate and prior.
 
 ### The release blocker
 
-`benchmark/v11` and `benchmark/v12` are built and audit clean, and **neither may
-be published as a public release.** A release built from v12 carries reviewer
-identity on 77 of its 177 pairs, naming nine reviewers, eight of them external
-workshop participants.
+*Superseded on 10 November 2026: resolved. Recorded as it stood on 9 November.*
 
-The identity is not confined to one field. In each public benchmark record it
-appears three times — as `provenance.reviewer_id`, and embedded inside
-`provenance.approval_review_id` and `provenance.formulation_id` — which is 251
+`benchmark/v11` and `benchmark/v12` were built and audit clean, and **neither
+could be published as a public release.** A release built from v12 carried
+reviewer identity on 77 of its 177 pairs, naming nine reviewers, eight of them
+external workshop participants.
+
+The identity was not confined to one field. In each public benchmark record it
+appeared three times — as `provenance.reviewer_id`, and embedded inside
+`provenance.approval_review_id` and `provenance.formulation_id` — which was 251
 mentions in `benchmark.jsonl` and 18 more in `alternatives.jsonl`. Dropping the
-field alone would not de-identify anything, and `validate_public_reviewer_ids`
-positively *requires* the embedding to be consistent: a review-event ID must end
+field alone would not have de-identified anything, and
+`validate_public_reviewer_ids` positively *requires* the embedding to be
+consistent: a review-event ID must end
 in its reviewer's pseudonym and a formulation ID must contain that event. So the
 projection change means minting release-local identifiers for review events and
 formulations, not deleting a key.
 
-These snapshots are also tracked, so v11 and v12 must not be pushed in their
-current form either. Nothing from this work has been pushed: `origin/main` is at
-`233f1a7` with 17 local commits ahead of it.
+These snapshots are also tracked, so v11 and v12 could not be pushed in that
+form either. At the time of writing nothing from this work had been pushed:
+`origin/main` was at `233f1a7` with 17 local commits ahead of it. Both snapshots
+were pushed on 9–10 November once the projection carried no identity.
 
 ### What publishing the IDs would buy, and why it is not needed
 
