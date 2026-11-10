@@ -12,6 +12,7 @@ from scripts.run_queries import (
     is_remote_executable,
     non_executable_reason,
     record_matches_sources,
+    read_only_query_reason,
     record_query_execution,
 )
 from musparql.sparql_versions import sparql_hash
@@ -119,3 +120,27 @@ WHERE { ?s ?p ?o }"""
 FROM NAMED <https://example.org/published-graph>
 WHERE { GRAPH ?g { ?s ?p ?o } }"""
     assert adapt_query_for_local_dump(named) == named
+
+
+def test_a_comment_between_prologue_lines_does_not_hide_a_select():
+    """meetups-0008 carries `# ==== PLACES` between its PREFIX lines.
+
+    clean_query only drops leading and trailing comment-only lines, so a
+    comment sitting between two declarations used to stop the prologue scan and
+    make a plain SELECT look like an unsupported, non-read-only operation.
+    """
+    query = (
+        "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
+        "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
+        "# ==================== PLACES\n"
+        "prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>\n"
+        "\n"
+        "select DISTINCT ?s where { ?s geo:lat ?lat }"
+    )
+    assert read_only_query_reason(query) is None
+
+
+def test_a_comment_does_not_make_a_write_operation_look_read_only():
+    for body in ("ASK { ?s ?p ?o }", "CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o }", "INSERT DATA { <a> <b> <c> }"):
+        query = f"PREFIX a: <http://example.invalid/ns#>\n# a comment\n{body}"
+        assert read_only_query_reason(query) == "non_read_only_operation"

@@ -24,7 +24,7 @@ from musparql.web.email import SyntheticEmailSender
 ROOT = Path(__file__).resolve().parents[1]
 SECRET = "synthetic-phase4-secret-that-is-at-least-32-bytes"
 OWNER_ID = "reviewer-0001"
-REVIEWER_ID = "reviewer-0042"
+REVIEWER_ID = "reviewer-9042"
 
 
 def reviewer(reviewer_id: str, email: str, *, status: str = "active") -> Reviewer:

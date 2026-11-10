@@ -723,7 +723,7 @@ class DismissedExclusionTests(unittest.TestCase):
                 "pipeline_assessment": "accepted",
                 "review": {
                     "note": "included note",
-                    "reviewer_id": "reviewer-0007",
+                    "reviewer_id": "reviewer-9007",
                 },
             }
             improvement_recommended = {

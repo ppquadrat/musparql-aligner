@@ -142,8 +142,19 @@ def make_benchmark_record(
     gold_source = "reviewer_rewrite" if preferred else "approved_model_output"
     disposition = benchmark_disposition(review)
     assessment = pipeline_assessment(review)
+    # Independent judgements behind this pair. A meta-review that superseded
+    # team reviews is an adjudication of theirs, not a further reading, so the
+    # count is the superseded set and the pair is marked adjudicated.
+    prior = [item for item in (review.get("prior_review_ids") or []) if str(item).strip()]
+    # merge_adjudicated_reviews stamps the true count, because only it sees the
+    # submissions a tie-break discarded. prior_review_ids is the fallback for a
+    # round that did not go through the merge.
+    stamped = review.get("review_submissions")
+    submissions = int(stamped) if isinstance(stamped, int) and stamped >= 0 else (len(prior) if prior else 1)
 
     return {
+        "review_submissions": submissions,
+        "adjudicated": bool(prior),
         "benchmark_id": review_id,
         "kg_id": record.get("kg_id"),
         "query_id": record.get("query_id"),

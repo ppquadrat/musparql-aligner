@@ -101,16 +101,16 @@ def test_normalized_rated_and_non_rating_outcomes() -> None:
     item = stimulus("one")
     ids = [candidate["formulation_id"] for candidate in item["candidates"]]
     ratings = {candidate_id: {"naturalness": 0, "pragmatism": -25, "interpretation_room": 80} for candidate_id in ids}
-    rated = normalized_trial(item, assignment_id="assignment-synthetic", dataset_id="synthetic", reviewer_id="reviewer-0042", display_order=list(reversed(ids)), outcome="rated", ratings=ratings, started_at="2026-08-19T10:00:00Z", completed_at="2026-08-19T10:01:00Z")
+    rated = normalized_trial(item, assignment_id="assignment-synthetic", dataset_id="synthetic", reviewer_id="reviewer-9042", display_order=list(reversed(ids)), outcome="rated", ratings=ratings, started_at="2026-08-19T10:00:00Z", completed_at="2026-08-19T10:01:00Z")
     assert rated["display_order"] == list(reversed(ids))
     assert rated["ratings"][ids[0]]["naturalness"] == 0
-    export = {"schema": "musparql.linguistic-annotation-export.v1", "assignment_id": "assignment-synthetic", "dataset_id": "synthetic", "reviewer_id": "reviewer-0042", "task_design_version": "phase-6b-v1", "exported_at": "2026-08-19T10:01:00Z", "annotations": [rated]}
+    export = {"schema": "musparql.linguistic-annotation-export.v1", "assignment_id": "assignment-synthetic", "dataset_id": "synthetic", "reviewer_id": "reviewer-9042", "task_design_version": "phase-6b-v1", "exported_at": "2026-08-19T10:01:00Z", "annotations": [rated]}
     export_schema = json.loads((ROOT / "schemas/linguistic_annotation_export.schema.json").read_text())
     Draft202012Validator(export_schema, format_checker=FormatChecker()).validate(export)
-    flagged = normalized_trial(item, assignment_id="assignment-synthetic", dataset_id="synthetic", reviewer_id="reviewer-0042", display_order=ids, outcome="literal_inaccurate", proposed_literal="A correction", started_at="2026-08-19T10:00:00Z", completed_at="2026-08-19T10:01:00Z")
+    flagged = normalized_trial(item, assignment_id="assignment-synthetic", dataset_id="synthetic", reviewer_id="reviewer-9042", display_order=ids, outcome="literal_inaccurate", proposed_literal="A correction", started_at="2026-08-19T10:00:00Z", completed_at="2026-08-19T10:01:00Z")
     assert "ratings" not in flagged and flagged["proposed_literal"] == "A correction"
     with pytest.raises(ValueError):
-        normalized_trial(item, assignment_id="assignment-synthetic", dataset_id="synthetic", reviewer_id="reviewer-0042", display_order=ids, outcome="rated", ratings={ids[0]: ratings[ids[0]]}, started_at="2026-08-19T10:00:00Z", completed_at="2026-08-19T10:01:00Z")
+        normalized_trial(item, assignment_id="assignment-synthetic", dataset_id="synthetic", reviewer_id="reviewer-9042", display_order=ids, outcome="rated", ratings={ids[0]: ratings[ids[0]]}, started_at="2026-08-19T10:00:00Z", completed_at="2026-08-19T10:01:00Z")
 
 
 def test_browser_contract_tracks_touch_and_assignment_isolation() -> None:
@@ -121,7 +121,7 @@ const vm = require("node:vm");
 const sandbox = {window:{REVIEW_DATA:null, MUSPARQL_HOSTED_CONTEXT:null}, document:{getElementById:()=>null}};
 vm.runInNewContext(fs.readFileSync("review/linguistic/app.js", "utf8"), sandbox);
 const api = sandbox.window.MUSPARQL_LINGUISTIC;
-assert.notEqual(api.stateKey({dataset_id:"d"},{reviewer_id:"reviewer-0042",assignment_id:"a"}), api.stateKey({dataset_id:"d"},{reviewer_id:"reviewer-0042",assignment_id:"b"}));
+assert.notEqual(api.stateKey({dataset_id:"d"},{reviewer_id:"reviewer-9042",assignment_id:"a"}), api.stateKey({dataset_id:"d"},{reviewer_id:"reviewer-9042",assignment_id:"b"}));
 assert.deepEqual(JSON.parse(JSON.stringify(api.shuffled(["a","b"], () => 0))), ["b","a"]);
 const merged = api.mergeState(
  {queue:["t3"],completed:{t1:{outcome:"rated"}},drafts:{t3:{}},skips:{t3:1},finished:false},
@@ -151,11 +151,11 @@ const draft = {display_order:["c2","c1"],started_at:"2026-08-19T10:00:00Z",ratin
  c1:{naturalness:{value:0,touched:false},pragmatism:{value:1,touched:true},interpretation_room:{value:2,touched:true}},
  c2:{naturalness:{value:0,touched:true},pragmatism:{value:1,touched:true},interpretation_room:{value:2,touched:true}}
 }};
-assert.throws(() => api.normalizedTrial(stimulus,{assignment_id:"a",reviewer_id:"reviewer-0042"},{dataset_id:"d"},draft,"rated"), /six controls/);
+assert.throws(() => api.normalizedTrial(stimulus,{assignment_id:"a",reviewer_id:"reviewer-9042"},{dataset_id:"d"},draft,"rated"), /six controls/);
 draft.ratings.c1.naturalness.touched = true;
-const rated = api.normalizedTrial(stimulus,{assignment_id:"a",reviewer_id:"reviewer-0042"},{dataset_id:"d"},draft,"rated");
+const rated = api.normalizedTrial(stimulus,{assignment_id:"a",reviewer_id:"reviewer-9042"},{dataset_id:"d"},draft,"rated");
 assert.equal(rated.ratings.c1.naturalness, 0);
-const flagged = api.normalizedTrial(stimulus,{assignment_id:"a",reviewer_id:"reviewer-0042"},{dataset_id:"d"},draft,"literal_inaccurate",{proposed_literal:"fixed"});
+const flagged = api.normalizedTrial(stimulus,{assignment_id:"a",reviewer_id:"reviewer-9042"},{dataset_id:"d"},draft,"literal_inaccurate",{proposed_literal:"fixed"});
 assert.equal(Object.hasOwn(flagged,"ratings"), false);
 '''
     subprocess.run(["node", "-e", script], cwd=ROOT, check=True)

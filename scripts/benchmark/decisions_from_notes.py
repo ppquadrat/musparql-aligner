@@ -128,6 +128,14 @@ def main() -> int:
     parser.add_argument("--exports", type=Path, required=True, help="team exports for the round")
     parser.add_argument("--out", type=Path, required=True, help="decisions JSONL to write")
     parser.add_argument("--round", required=True, help="round identifier, e.g. ipl-2026-09-16")
+    parser.add_argument(
+        "--superseded-out",
+        default=None,
+        help=(
+            "Where to write the superseded review IDs. Defaults to a sidecar beside the notes, "
+            "which is under var/ and therefore not tracked."
+        ),
+    )
     parser.add_argument("--decided-at", required=True, help="date the decisions were made, YYYY-MM-DD")
     args = parser.parse_args()
 
@@ -136,6 +144,7 @@ def main() -> int:
     blocks = parse_notes(args.notes, set(records))
 
     out: List[Dict[str, Any]] = []
+    superseded: Dict[str, List[str]] = {}
     skipped: List[str] = []
     for block in blocks:
         label, slots = block["label"], block["slots"]
@@ -175,12 +184,26 @@ def main() -> int:
             "graph_context_note": context.split(":", 1)[1].strip() if context.lower().startswith("yes:") else "",
             "sparql_correction_required": slots.get("sparql correction", "").startswith("NEEDED"),
             "rationale": slots.get("rationale", ""),
-            "superseded_review_ids": sorted(team_review_ids.get(label, [])),
+            # The IDs themselves go to an ignored sidecar: a team review ID ends
+            # in its reviewer's pseudonym, and this file is tracked. The count
+            # is what a tracked artefact needs, and it identifies nobody.
+            "superseded_review_count": len(team_review_ids.get(label, [])),
             "decided_at": args.decided_at,
         })
+        superseded[str(record.get("review_id"))] = sorted(team_review_ids.get(label, []))
 
     args.out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in out), encoding="utf-8")
     print(f"wrote {args.out} with {len(out)} decisions")
+    sidecar = Path(args.superseded_out) if args.superseded_out else args.notes.parent / (
+        f"{args.round}-superseded-reviews.json"
+    )
+    sidecar.parent.mkdir(parents=True, exist_ok=True)
+    sidecar.write_text(
+        json.dumps({"round": args.round, "superseded_review_ids": superseded}, indent=2, ensure_ascii=False)
+        + "\n",
+        encoding="utf-8",
+    )
+    print(f"wrote {sidecar} with the superseded review IDs for {len(superseded)} pairs (not tracked)")
     if skipped:
         print(f"skipped {len(skipped)} blocks with no decision recorded yet: {', '.join(skipped)}")
     return 0

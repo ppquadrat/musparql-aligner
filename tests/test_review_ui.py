@@ -111,9 +111,9 @@ const vm = require("node:vm");
 const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, querySelectorAll:()=>[]}};
 vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
 const validate = sandbox.window.MUSPARQL_REVIEW_SCHEMA.validateReviewerImport;
-validate({reviewer_id:"reviewer-0002"}, {reviewer_id:"reviewer-0002"});
-if (!(() => { try { validate({reviewer_id:"reviewer-0001"}, {reviewer_id:"reviewer-0002"}); return false; } catch (_) { return true; } })()) process.exit(1);
-if (!(() => { try { validate({}, {reviewer_id:"reviewer-0002"}); return false; } catch (_) { return true; } })()) process.exit(2);
+validate({reviewer_id:"reviewer-9002"}, {reviewer_id:"reviewer-9002"});
+if (!(() => { try { validate({reviewer_id:"reviewer-0001"}, {reviewer_id:"reviewer-9002"}); return false; } catch (_) { return true; } })()) process.exit(1);
+if (!(() => { try { validate({}, {reviewer_id:"reviewer-9002"}); return false; } catch (_) { return true; } })()) process.exit(2);
 validate({}, {reviewer_id:"reviewer-0001"});
 '''
     subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
@@ -128,16 +128,16 @@ const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, q
 vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
 const schema = sandbox.window.MUSPARQL_REVIEW_SCHEMA;
 const group = "group-000000000000000000000001";
-const review = {review_id:"event::reviewer-0042", reviewer_id:"reviewer-0042", reviewed_at:"2026-08-20T10:00:00Z", prior_review_ids:[], authored_formulation_ids:[], approved_formulation_ids:["event::reviewer-0042::formulation::candidate"], benchmark_disposition:"included", pipeline_assessment:"accepted", preferred_question:"", literal_wording:"", public_comment:"", internal_comment:"", split:"", interpretive:{naturalness:null, pragmatism:null, room_for_interpretation:null, requires_graph_context_knowledge:false}};
-const payload = {schema:"musparql.review-export.v2", kind:"non_holdout_review_export", assignment_id:"assignment-000000000000000000000001", bundle_digest:`sha256:${"a".repeat(64)}`, reviewer_id:"reviewer-0042", review_group_id:group, submitted_by_reviewer_id:"reviewer-0042", contributor_reviewer_ids:["reviewer-0042", "reviewer-0043"], dataset_id:"synthetic", run_id:"run", run_ids:["run"], runs:[], exported_at:"2026-08-20T10:01:00Z", reviews:{record:review}};
+const review = {review_id:"event::reviewer-9042", reviewer_id:"reviewer-9042", reviewed_at:"2026-08-20T10:00:00Z", prior_review_ids:[], authored_formulation_ids:[], approved_formulation_ids:["event::reviewer-9042::formulation::candidate"], benchmark_disposition:"included", pipeline_assessment:"accepted", preferred_question:"", literal_wording:"", public_comment:"", internal_comment:"", split:"", interpretive:{naturalness:null, pragmatism:null, room_for_interpretation:null, requires_graph_context_knowledge:false}};
+const payload = {schema:"musparql.review-export.v2", kind:"non_holdout_review_export", assignment_id:"assignment-000000000000000000000001", bundle_digest:`sha256:${"a".repeat(64)}`, reviewer_id:"reviewer-9042", review_group_id:group, submitted_by_reviewer_id:"reviewer-9042", contributor_reviewer_ids:["reviewer-9042", "reviewer-9043"], dataset_id:"synthetic", run_id:"run", run_ids:["run"], runs:[], exported_at:"2026-08-20T10:01:00Z", reviews:{record:review}};
 assert.equal(schema.validateV2Envelope(payload), true);
 assert.equal(schema.validateV2Envelope({...payload, completion_type:"completed", completion_item_count:1, completion_total_count:1}), true);
 assert.throws(() => schema.validateV2Envelope({...payload, completion_item_count:1}), /supplied together/);
 assert.throws(() => schema.validateV2Envelope({...payload, completion_item_count:2, completion_total_count:1}), /Invalid completion counts/);
-schema.validateReviewerImport(payload, {reviewer_id:"reviewer-0043", review_group_id:group});
+schema.validateReviewerImport(payload, {reviewer_id:"reviewer-9043", review_group_id:group});
 schema.validateImportedReviews(payload.reviews, true, payload);
-assert.throws(() => schema.validateReviewerImport(payload, {reviewer_id:"reviewer-0044", review_group_id:group}), /not a contributor/);
-assert.throws(() => schema.validateImportedReviews({record:{...review, review_id:"event::reviewer-0044", reviewer_id:"reviewer-0044"}}, true, payload), /outside the review group/);
+assert.throws(() => schema.validateReviewerImport(payload, {reviewer_id:"reviewer-9044", review_group_id:group}), /not a contributor/);
+assert.throws(() => schema.validateImportedReviews({record:{...review, review_id:"event::reviewer-9044", reviewer_id:"reviewer-9044"}}, true, payload), /outside the review group/);
 assert.throws(() => schema.validateV2Envelope({...payload, contributor_reviewer_ids:undefined}), /Invalid group contributor/);
 '''
     subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
@@ -152,11 +152,11 @@ const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, q
 vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
 const schema = sandbox.window.MUSPARQL_REVIEW_SCHEMA;
 const decided = {
-  review_id:"decided::reviewer-5189", reviewer_id:"reviewer-5189",
+  review_id:"decided::reviewer-9189", reviewer_id:"reviewer-9189",
   reviewed_at:"2026-09-16T08:00:00Z", status:"accepted",
 };
 const touchedWithoutDecision = {
-  review_id:"undecided::reviewer-5189", reviewer_id:"reviewer-5189",
+  review_id:"undecided::reviewer-9189", reviewer_id:"reviewer-9189",
   reviewed_at:"2026-09-16T08:01:00Z", public_comment:"Draft note",
 };
 const partitioned = schema.partitionReviewMap({decided, touchedWithoutDecision});
@@ -175,9 +175,9 @@ const vm = require("node:vm");
 const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, querySelectorAll:()=>[]}};
 vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
 const identity = sandbox.window.MUSPARQL_REVIEW_SCHEMA.reviewIdentityForEditor;
-const prior = {review_id:"record::reviewer-0042", reviewer_id:"reviewer-0042"};
-assert.equal(identity(prior, "record", "reviewer-0043"), "record::reviewer-0043");
-assert.equal(identity(prior, "record", "reviewer-0042"), prior.review_id);
+const prior = {review_id:"record::reviewer-9042", reviewer_id:"reviewer-9042"};
+assert.equal(identity(prior, "record", "reviewer-9043"), "record::reviewer-9043");
+assert.equal(identity(prior, "record", "reviewer-9042"), prior.review_id);
 '''
     subprocess.run(["node", "-e", script], check=True, cwd=ROOT)
 
@@ -190,8 +190,8 @@ const vm = require("node:vm");
 const sandbox = {window:{REVIEW_DATA:null}, document:{getElementById:()=>null, querySelectorAll:()=>[]}};
 vm.runInNewContext(fs.readFileSync("review/app.js", "utf8"), sandbox);
 const schema = sandbox.window.MUSPARQL_REVIEW_SCHEMA;
-const review = {review_id:"event::reviewer-0042", reviewer_id:"reviewer-0042", reviewed_at:"2026-08-20T10:00:00Z", prior_review_ids:[], authored_formulation_ids:[], approved_formulation_ids:["event::reviewer-0042::formulation::candidate"], benchmark_disposition:"included", pipeline_assessment:"accepted", preferred_question:"", literal_wording:"", public_comment:"", internal_comment:"", split:"", interpretive:{naturalness:null, pragmatism:null, room_for_interpretation:null, requires_graph_context_knowledge:false}};
-const payload = {schema:"musparql.review-export.v2", kind:"non_holdout_review_export", assignment_id:"assignment-000000000000000000000001", bundle_digest:`sha256:${"a".repeat(64)}`, reviewer_id:"reviewer-0042", dataset_id:"synthetic", run_id:"run", run_ids:["run"], runs:[], exported_at:"2026-08-20T10:01:00Z", reviews:{record:review}};
+const review = {review_id:"event::reviewer-9042", reviewer_id:"reviewer-9042", reviewed_at:"2026-08-20T10:00:00Z", prior_review_ids:[], authored_formulation_ids:[], approved_formulation_ids:["event::reviewer-9042::formulation::candidate"], benchmark_disposition:"included", pipeline_assessment:"accepted", preferred_question:"", literal_wording:"", public_comment:"", internal_comment:"", split:"", interpretive:{naturalness:null, pragmatism:null, room_for_interpretation:null, requires_graph_context_knowledge:false}};
+const payload = {schema:"musparql.review-export.v2", kind:"non_holdout_review_export", assignment_id:"assignment-000000000000000000000001", bundle_digest:`sha256:${"a".repeat(64)}`, reviewer_id:"reviewer-9042", dataset_id:"synthetic", run_id:"run", run_ids:["run"], runs:[], exported_at:"2026-08-20T10:01:00Z", reviews:{record:review}};
 assert.equal(schema.validateV2Envelope(payload), true);
 schema.validateImportedReviews(payload.reviews, true);
 assert.throws(() => schema.validateV2Envelope({...payload, debug:true}), /undeclared/);
@@ -215,14 +215,14 @@ const prior = {
   status:"accepted", preferred_question:"Prior wording?",
   approved_formulation_ids:["prior::reviewer-0001::formulation::preferred"],
 };
-const current = {review_id:"current::reviewer-0002", reviewer_id:"reviewer-0002"};
+const current = {review_id:"current::reviewer-9002", reviewer_id:"reviewer-9002"};
 const reused = schema.reusedPreviousReview(prior, current, "wrong-bundle-key");
 assert.equal(reused.copied_from_review_id, "prior::reviewer-0001");
 let next = {...reused, ...schema.resetFormulationAttribution({status:"accepted", preferred_question:""})};
 let exported = schema.exportableReview(next, "current-key");
 assert.equal(exported.copied_from_review_id, undefined);
 assert.deepEqual(JSON.parse(JSON.stringify(exported.approved_formulation_ids)), [
-  "current::reviewer-0002::formulation::candidate"
+  "current::reviewer-9002::formulation::candidate"
 ]);
 next = {...reused, ...schema.resetFormulationAttribution({status:"excluded"})};
 exported = schema.exportableReview(next, "current-key");
@@ -235,10 +235,10 @@ const preferredEdited = {
 };
 exported = schema.exportableReview(preferredEdited, "current-key");
 assert.deepEqual(JSON.parse(JSON.stringify(exported.authored_formulation_ids)), [
-  "current::reviewer-0002::formulation::preferred"
+  "current::reviewer-9002::formulation::preferred"
 ]);
 assert.equal(exported.authored_formulation_ids.includes(
-  "current::reviewer-0002::formulation::literal"
+  "current::reviewer-9002::formulation::literal"
 ), false, "unchanged copied literal must not be attributed to the current reviewer");
 
 const literalEdited = {
@@ -248,7 +248,7 @@ const literalEdited = {
 };
 exported = schema.exportableReview(literalEdited, "current-key");
 assert.deepEqual(JSON.parse(JSON.stringify(exported.authored_formulation_ids)), [
-  "current::reviewer-0002::formulation::literal"
+  "current::reviewer-9002::formulation::literal"
 ]);
 assert.equal(exported.approved_formulation_ids.includes(
   "prior::reviewer-0001::formulation::preferred"

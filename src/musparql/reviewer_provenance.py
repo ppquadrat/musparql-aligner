@@ -56,8 +56,12 @@ RESOURCE_FAMILIARITY_ASSESSMENT_FIELDS = frozenset({
 LANGUAGE_TAG_RE = re.compile(r"^[a-z]{2,3}(?:-[A-Z]{2})?$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+$")
 REVIEW_EVENT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]*::(reviewer-[0-9]{4,})$")
+# A review event may approve several alternative wordings at once, so the
+# `alternative` role is indexed: one formulation id per alternative, since the
+# unindexed roles are one-per-event by construction.
 FORMULATION_RE = re.compile(
-    r"^(.+::reviewer-[0-9]{4,})::formulation::(candidate|preferred|literal|sparql)$"
+    r"^(.+::reviewer-[0-9]{4,})::formulation::"
+    r"(candidate|preferred|literal|sparql|alternative::[0-9]+)$"
 )
 
 

@@ -337,6 +337,13 @@ Snapshots created under the v2 review model expose only the pseudonymous reviewe
 ID and review/formulation links needed for provenance. Published snapshots v1
 through v10 remain immutable legacy single-reviewer artifacts.
 
+From v11 onwards a snapshot may hold both: records carried forward from a legacy
+snapshot keep their original provenance untouched, while newly admitted pairs
+carry v2-model provenance. v12 is the first snapshot holding reviews by more
+than one reviewer per pair, since it applies an adjudicated workshop round, and
+the first whose records name external reviewers rather than only the project's
+own.
+
 When identical formulation text is approved more than once, the alternatives
 sidecar merges `approval_review_ids` and `approval_reviewer_ids` rather than
 discarding later approvals. `authored_by_reviewer_id` remains distinct.

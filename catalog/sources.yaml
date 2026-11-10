@@ -191,6 +191,18 @@ sources:
     query_role: edit_source
     description: Append-only approved SPARQL versions with immutable hashes and minimal non-private provenance, used to restore version state after clean extraction.
 
+  - source_id: musparql-meta-review-decisions
+    type: derivative
+    title: Musparql meta-review decisions for the IPL workshop round
+    local_path: catalog/curated/meta_review_decisions.jsonl
+    derived_from:
+      - europeana-sparql-console-select-examples
+      - europeana-sparql-api-examples
+      - cdec-official-sparql-examples
+      - nfdi4culture-ckg-approved-examples
+    query_role: none
+    description: Generated from the hand-written meta-review notes by scripts/benchmark/decisions_from_notes.py; records each contested or superseded pair's benchmark disposition, canonical and alternative wordings, and whether a SPARQL correction was required. Carries pseudonymous reviewer group and review identifiers only.
+
   - source_id: alyra-talos-dataset-page
     type: web_document
     title: TALOS AI4SSH ALyrA dataset page

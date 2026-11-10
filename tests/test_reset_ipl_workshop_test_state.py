@@ -28,7 +28,7 @@ def test_clean_database_preserves_workshop_and_removes_participant_state(
                'owner@example.invalid', 'owner@example.invalid', 'active', NULL,
                '2026-09-12T00:00:00Z', '2026-09-12T00:00:00Z', NULL, NULL,
                'email_invitation', '2026-09-12T00:00:00Z', NULL, NULL),
-              ('reviewer-1234', 'Participant', '', 'Test', 'Participant', '',
+              ('reviewer-9234', 'Participant', '', 'Test', 'Participant', '',
                'participant@example.invalid', 'participant@example.invalid',
                'active', NULL, '2026-09-12T00:00:00Z',
                '2026-09-12T00:00:00Z', NULL, NULL, 'workshop_code', NULL,
@@ -42,7 +42,7 @@ def test_clean_database_preserves_workshop_and_removes_participant_state(
               30, 1, NULL, '2026-09-12T00:00:00Z'
             );
             INSERT INTO workshop_entry_redemptions VALUES (
-              'redemption-1', 'entry-1', 'reviewer-1234',
+              'redemption-1', 'entry-1', 'reviewer-9234',
               '2026-09-12T00:00:00Z'
             );
             """

@@ -1,9 +1,10 @@
 # Musparql
 
 Musparql is a human-curated workflow for building natural-language–SPARQL
-benchmark pairs from existing domain knowledge graphs. The current benchmark
-uses music knowledge graphs, but the workflow is intended to transfer to other
-research domains.
+benchmark pairs from existing domain knowledge graphs. It began with music
+knowledge graphs; as of v12 the benchmark also covers cultural-heritage and
+parliamentary ones, so the intended transfer to other research domains has
+started.
 
 The project aims to harvest information needs already expressed in
 human-authored SPARQL and its surrounding source material, not to invent new
@@ -13,9 +14,16 @@ a faithful wording where it is missing, and ask a human reviewer to decide what
 belongs in the benchmark. Generated wording never becomes gold data without
 human review.
 
-The current public benchmark is under [`benchmark/v10`](benchmark/v10). It
-contains 100 reviewed pairs from Musical Meetups, the Jazz Ontology, MusOW,
-Organs, and LinkedMusic.
+The current public benchmark is under [`benchmark/v12`](benchmark/v12). It
+contains 177 reviewed pairs from MusOW (47), Musical Meetups (30), Europeana
+(27), LinkedMusic (21), the Jazz Ontology (20), the Camera dei Deputati KG (11),
+Organs (9), CDEC Shoah (6) and NFDI4Culture (6).
+
+`benchmark/v11` admitted the pairs whose question was settled without a
+generation round and re-pinned one corrected query; `benchmark/v12` then applied
+the 16 September 2026 IPL workshop round, which brought in four further
+knowledge graphs. Neither has been published as a public release yet: see the
+release-projection item in [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md).
 
 The deployed IPL workshop release adds self-formed reviewing groups,
 reusable KG packages, shared assignment drafts, server-derived joint

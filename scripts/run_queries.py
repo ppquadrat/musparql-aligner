@@ -271,7 +271,17 @@ def run_select_query(endpoint: str, query: str, timeout_s: int = 30) -> Dict[str
         if resp.status_code != 200:
             content_type = resp.headers.get("Content-Type", "")
             snippet = resp.text[:500] if resp.text else ""
-            if "text/html" in content_type.lower() and resp.text:
+            # An HTML body is an endpoint's explanation of a rejected query only
+            # when the status is one the endpoint itself uses to reject one.
+            # A 403, 429 or 5xx carrying HTML is a gateway page: the request
+            # never reached the SPARQL processor, so calling it a query error
+            # puts a verdict about the query on evidence that has none. Every
+            # query_error ever recorded here was in fact a Cloudflare 403.
+            if (
+                resp.status_code in ENDPOINT_QUERY_REJECTION_STATUSES
+                and "text/html" in content_type.lower()
+                and resp.text
+            ):
                 error_msg = extract_html_error(resp.text)
                 error_line = extract_html_error_line(resp.text)
                 status = "parse_error" if "parseexception" in error_msg.lower() or "parseexception" in error_line.lower() else "query_error"
@@ -519,6 +529,13 @@ def build_query_jobs(
     return jobs
 
 
+# Statuses an endpoint itself uses to reject a query it has read and refused.
+# Anything else arriving as HTML -- 401, 403, 407, 429, or a 5xx gateway page --
+# is the infrastructure in front of the endpoint talking, not a verdict on the
+# query.
+ENDPOINT_QUERY_REJECTION_STATUSES = frozenset({400, 422})
+
+
 def clean_query(query: str) -> str:
     # Drop leading/trailing comment-only lines to avoid endpoint parser quirks.
     lines = query.splitlines()
@@ -635,7 +652,17 @@ def is_remote_executable(query: str) -> bool:
 def read_only_query_reason(query: str) -> Optional[str]:
     """Return a reason when text is not a read-only SPARQL query form."""
     text = clean_query(query)
-    prologue = re.compile(r"(?is)^\s*(?:(?:prefix\s+(?:[A-Za-z_][\w.-]*)?:\s*<[^>]+>)|(?:base\s*<[^>]+>))\s*")
+    # A comment between the prologue declarations must not decide whether a
+    # query is read-only. clean_query only drops leading and trailing
+    # comment-only lines, so one sitting between two PREFIX lines would
+    # otherwise stop the scan and make a plain SELECT look like an unsupported
+    # operation. At the scan position a `#` can only start a comment: each
+    # declaration is consumed whole, including the `#` inside its IRI.
+    prologue = re.compile(
+        r"(?is)^\s*(?:(?:prefix\s+(?:[A-Za-z_][\w.-]*)?:\s*<[^>]+>)"
+        r"|(?:base\s*<[^>]+>)"
+        r"|(?:#[^\r\n]*))\s*"
+    )
     while True:
         match = prologue.match(text)
         if not match:
@@ -821,6 +848,16 @@ def main() -> None:
         help="Only execute queries carrying evidence or edit provenance from this source ID; may be repeated.",
     )
     parser.add_argument(
+        "--query-label",
+        action="append",
+        dest="query_labels",
+        help=(
+            "Only execute this query label; may be repeated. Use it to record an observation "
+            "for a handful of corrected queries without re-running whole knowledge graphs "
+            "against their endpoints."
+        ),
+    )
+    parser.add_argument(
         "--sparql-version",
         default="latest",
         help="SPARQL version to execute: original, latest, all, or a non-negative integer (default: latest).",
@@ -833,6 +870,7 @@ def main() -> None:
         )
     selected_kg_ids = set(args.kg_ids or [])
     selected_source_ids = set(args.source_ids or [])
+    selected_query_labels = set(args.query_labels or [])
     holdout_keys = set()
     holdout_selector_records = []
     if args.holdout_selectors:
@@ -841,6 +879,8 @@ def main() -> None:
     def record_is_selected(record: Dict[str, object]) -> bool:
         kg_id = record.get("kg_id")
         if selected_kg_ids and kg_id not in selected_kg_ids:
+            return False
+        if selected_query_labels and record.get("query_label") not in selected_query_labels:
             return False
         if not selected_source_ids:
             return True
@@ -859,6 +899,11 @@ def main() -> None:
         endpoints = {kg_id: value for kg_id, value in endpoints.items() if kg_id in selected_kg_ids}
         datasets = {kg_id: value for kg_id, value in datasets.items() if kg_id in selected_kg_ids}
     raw_queries = load_query_records(queries_path)
+    if selected_query_labels:
+        known_labels = {str(record.get("query_label") or "") for record in raw_queries}
+        unknown = sorted(selected_query_labels - known_labels)
+        if unknown:
+            raise ValueError(f"Unknown --query-label values: {unknown}")
     if holdout_selector_records:
         holdout_keys = validate_selectors_current(holdout_selector_records, raw_queries)
     for record in raw_queries:

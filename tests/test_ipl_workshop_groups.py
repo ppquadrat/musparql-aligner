@@ -53,9 +53,9 @@ from musparql.web.workshops import WorkshopAccessError
 ROOT = Path(__file__).resolve().parents[1]
 SECRET = "synthetic-ipl-group-secret-at-least-32-bytes"
 OWNER_ID = "reviewer-0001"
-FIRST_ID = "reviewer-0042"
-SECOND_ID = "reviewer-0043"
-THIRD_ID = "reviewer-0044"
+FIRST_ID = "reviewer-9042"
+SECOND_ID = "reviewer-9043"
+THIRD_ID = "reviewer-9044"
 
 
 def _reviewer(
@@ -373,7 +373,7 @@ def test_active_workbench_can_add_an_enrolled_teammate_by_reviewer_number(
     assert SECOND_ID in added.get_json()["missing_assessment_reviewer_ids"]
     second_form = second.get(f"/assignments/{assignment_id}")
     assert second_form.status_code == 200
-    assert b"Form for Synthetic reviewer-0043" in second_form.data
+    assert b"Form for Synthetic reviewer-9043" in second_form.data
     assert f"Reviewer ID: <code>{SECOND_ID}</code>".encode() in second_form.data
 
     repeated = first.post(

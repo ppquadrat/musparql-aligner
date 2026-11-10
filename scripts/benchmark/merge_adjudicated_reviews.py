@@ -54,7 +54,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
@@ -131,7 +131,7 @@ def synth_review(
         "review_id": review_id,
         "reviewer_id": meta_reviewer_id,
         "reviewed_at": reviewed_at,
-        "prior_review_ids": list(decision.get("superseded_review_ids") or []),
+        "prior_review_ids": list(decision.get("_superseded_review_ids") or []),
         "authored_formulation_ids": authored,
         "approved_formulation_ids": approved,
         "benchmark_disposition": decision["benchmark_disposition"],
@@ -155,6 +155,12 @@ def main() -> int:
     parser.add_argument("--exports", type=Path, required=True, help="directory of team exports, one per team")
     parser.add_argument("--bundles", type=Path, required=True, help="frozen review bundle directory")
     parser.add_argument("--decisions", type=Path, required=True, help="meta-review decisions JSONL")
+    parser.add_argument(
+        "--superseded",
+        type=Path,
+        default=None,
+        help="Sidecar holding the superseded review IDs; defaults to beside the decisions file.",
+    )
     parser.add_argument("--meta-reviewer-id", required=True, help="the meta-reviewer's pseudonymous reviewer-NNNN id")
     parser.add_argument("--outdir", type=Path, required=True, help="where to write the merged exports")
     parser.add_argument("--round", default=None, help="only use decisions from this round")
@@ -191,6 +197,18 @@ def main() -> int:
         skipped_pairs = {str(d["pair_review_id"]) for d in needs_correction}
         decisions = [d for d in decisions if not d.get("sparql_correction_required")]
     by_pair_decision = {str(d["pair_review_id"]): d for d in decisions}
+    # The superseded review IDs live beside the notes, not in the tracked
+    # decisions file, because each one ends in its reviewer's pseudonym.
+    sidecar = args.superseded or (args.decisions.parent / f"{args.round}-superseded-reviews.json")
+    if Path(sidecar).exists():
+        stored = (read_json(Path(sidecar)).get("superseded_review_ids") or {})
+        for pair, decision in by_pair_decision.items():
+            decision["_superseded_review_ids"] = list(stored.get(pair) or [])
+    elif any(d.get("superseded_review_count") for d in decisions):
+        raise SystemExit(
+            f"decisions record superseded reviews but the sidecar is missing: {sidecar}\n"
+            "Re-run decisions_from_notes to regenerate it."
+        )
 
     # which teams reviewed each pair
     teams_by_pair: Dict[str, List[tuple[str, Dict[str, Any], Dict[str, Any]]]] = defaultdict(list)
@@ -230,6 +248,12 @@ def main() -> int:
             f"Adjudicate them or drop --strict to accept the tie-break. Examples: {listed}"
         )
 
+    # How many independent submissions covered each pair. The builder cannot
+    # work this out: a tie-broken pair keeps one team's review and drops the
+    # rest, and an adjudicated pair's prior_review_ids cover only the reviews
+    # the meta-review superseded. Counting here is the only place it is right.
+    submissions_by_pair = {pair: len(entries) for pair, entries in teams_by_pair.items()}
+
     reviewed_at = args.decided_at or (
         f"{decisions[0].get('decided_at', '1970-01-01')}T00:00:00Z" if decisions else "1970-01-01T00:00:00Z"
     )
@@ -242,9 +266,9 @@ def main() -> int:
         record = records.get(pair)
         if record is None:
             raise SystemExit(f"pair {pair} is not present in the frozen bundles under {args.bundles}")
-        meta_by_dataset[str(decision["dataset_id"])][pair] = synth_review(
-            decision, record, args.meta_reviewer_id, reviewed_at
-        )
+        synthesized = synth_review(decision, record, args.meta_reviewer_id, reviewed_at)
+        synthesized["review_submissions"] = submissions_by_pair.get(pair, 1)
+        meta_by_dataset[str(decision["dataset_id"])][pair] = synthesized
 
     for dataset_id, reviews in sorted(meta_by_dataset.items()):
         source = next(e for e in exports if e.get("dataset_id") == dataset_id)
@@ -269,7 +293,7 @@ def main() -> int:
     for export in exports:
         team = str(export.get("review_group_id") or export["_path"])
         kept = {
-            pair: review
+            pair: {**review, "review_submissions": submissions_by_pair.get(str(pair), 1)}
             for pair, review in (export.get("reviews") or {}).items()
             if owner.get(str(pair)) == team
         }
@@ -282,6 +306,30 @@ def main() -> int:
         path = args.outdir / f"{export['dataset_id']}--{team}.json"
         path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         written.append({"path": str(path), "dataset_id": export["dataset_id"], "reviews": len(kept), "author": team})
+
+    # The round-level aggregate belongs here, where the original submissions are
+    # still visible. Counts only: a per-pair contributor count would leak group
+    # size, and only this step knows the true submission totals.
+    contributor_sizes = Counter(
+        len(export.get("contributor_reviewer_ids") or []) or 1 for export in exports
+    )
+    summary = {
+        "round": args.round,
+        "submissions": len(exports),
+        "reviewing_groups": len({str(e.get("review_group_id") or e["_path"]) for e in exports}),
+        "pairs_reviewed": len(teams_by_pair),
+        "submissions_per_pair": {
+            str(k): v for k, v in sorted(Counter(submissions_by_pair.values()).items())
+        },
+        "contributors_per_submission": {str(k): v for k, v in sorted(contributor_sizes.items())},
+        "note": (
+            "Submissions are independent judgements. Contributors within one submission "
+            "deliberated, so they are not independent ratings."
+        ),
+    }
+    (args.outdir / "round-summary.json").write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     total = sum(item["reviews"] for item in written)
     print(f"teams: {len(exports)}   decided pairs: {len(by_pair_decision)}   pairs resolved: {len(owner)}")

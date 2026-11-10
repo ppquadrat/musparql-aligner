@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from collections import Counter
 from datetime import datetime, timezone
@@ -69,35 +70,34 @@ def is_reviewed_sparql_replacement(record: Dict[str, Any], previous: Dict[str, A
     return str(current_input.get("sparql_clean") or "").strip() != str(previous.get("sparql") or "").strip()
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Add initial-review decisions to an existing benchmark snapshot.")
-    parser.add_argument("--previous-benchmark", required=True, help="Previous benchmark/vN directory.")
-    parser.add_argument("--bundle", default="review/review_data.js", help="Normal review bundle.")
-    parser.add_argument("--reviews", required=True, help="Exported initial-review decisions.")
-    parser.add_argument(
-        "--decisions",
-        default=None,
-        help=(
-            "Optional meta-review decisions JSONL (catalog/curated/meta_review_decisions.jsonl). "
-            "Alternative wordings a meta-reviewer chose to keep are recorded as accepted "
-            "alternatives; without it only the model output can become one."
-        ),
-    )
-    parser.add_argument("--outdir", required=True, help="Output benchmark/vN directory.")
-    parser.add_argument(
-        "--kg-queries",
-        default="var/queries/kg_queries.jsonl",
-        help="Canonical query catalogue used to summarize execution observations.",
-    )
-    args = parser.parse_args()
+def apply_stage(
+    *,
+    bundle_path: Path,
+    review_path: Path,
+    decisions_by_pair: Dict[str, Dict[str, Any]],
+    included_by_key: Dict[Tuple[str, str], Dict[str, Any]],
+    dismissed_by_key: Dict[Tuple[str, str], Dict[str, Any]],
+    alternatives_by_key: Dict[Tuple[str, str], Dict[str, Any]],
+    annotations_by_key: Dict[Tuple[str, str], Dict[str, Any]],
+    existing_keys: set[Tuple[str, str]],
+    outdir: Path,
+) -> Dict[str, Any]:
+    """Apply one bundle/export pair to the accumulating snapshot state.
 
-    previous_dir = Path(args.previous_benchmark)
-    bundle_path = Path(args.bundle)
-    review_path = Path(args.reviews)
-    outdir = Path(args.outdir)
-    query_path = Path(args.kg_queries)
-    outdir.mkdir(parents=True, exist_ok=True)
-
+    A review round can produce several exports -- one per reviewing team
+    plus a synthesized meta-review, each pinned to its own dataset's
+    bundle -- and they are all one update to one snapshot. Each call records
+    what it applied so the manifest can name every export, rather than the
+    build chaining through throwaway snapshots whose provenance is lost.
+    """
+    assessment_counts: Counter[str] = Counter()
+    disposition_counts: Counter[str] = Counter()
+    applied = 0
+    missing_records: List[str] = []
+    overlaps: List[Tuple[str, Tuple[str, str]]] = []
+    replaced_keys: set[Tuple[str, str]] = set()
+    replaced_sparql_revisions = 0
+    meta_alternatives = 0
     bundle = read_review_bundle(bundle_path)
     if bundle.get("mode") == "compare":
         raise ValueError("Initial-review update requires an initial-review bundle, not comparative mode.")
@@ -110,12 +110,6 @@ def main() -> None:
             f"Dataset mismatch: bundle has {bundle.get('dataset_id')}, review export has {review_export.get('dataset_id')}"
         )
 
-    decisions_by_pair: Dict[str, Dict[str, Any]] = {}
-    if args.decisions:
-        for line in Path(args.decisions).read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                decision = json.loads(line)
-                decisions_by_pair[str(decision.get("pair_review_id") or "")] = decision
 
     reviews = review_export.get("reviews")
     if not isinstance(reviews, dict):
@@ -130,22 +124,8 @@ def main() -> None:
         if isinstance(record, dict) and record.get("review_id")
     }
 
-    included_by_key = {pair_key(rec): rec for rec in read_jsonl(included_records_path(previous_dir))}
-    dismissed_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "dismissed.jsonl")}
-    alternatives_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / ALTERNATIVES_FILE)}
-    annotations_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / LINGUISTIC_ANNOTATIONS_FILE)}
-    existing_keys = set(included_by_key) | set(dismissed_by_key)
-
     current_run = source_run(bundle)
     dataset_id = str(review_export.get("dataset_id") or bundle.get("dataset_id") or "")
-    assessment_counts: Counter[str] = Counter()
-    disposition_counts: Counter[str] = Counter()
-    applied = 0
-    missing_records: List[str] = []
-    overlaps: List[Tuple[str, Tuple[str, str]]] = []
-    replaced_keys: set[Tuple[str, str]] = set()
-    replaced_sparql_revisions = 0
-    meta_alternatives = 0
 
     for review_id, review in reviews.items():
         if not isinstance(review, dict):
@@ -217,9 +197,8 @@ def main() -> None:
                             record=record,
                         ),
                     )
-            for index, alternative in enumerate(
-                (decisions_by_pair.get(str(review_id), {}) or {}).get("alternative_questions") or [],
-                start=1,
+            for alternative in (
+                (decisions_by_pair.get(str(review_id), {}) or {}).get("alternative_questions") or []
             ):
                 entry = make_rephrasing_entry(
                     text=alternative,
@@ -231,11 +210,9 @@ def main() -> None:
                     record=record,
                 )
                 if entry:
-                    # one id per alternative; make_rephrasing_entry would reuse the
-                    # single "candidate" role for every text.
-                    entry["formulation_id"] = (
-                        f"{review.get('review_id') or review_id}::formulation::alternative::{index}"
-                    )
+                    # No indexing needed any more: alternative_id is derived
+                    # from the wording itself, so two alternatives of the same
+                    # pair already differ.
                     add_formulation(alternatives, "accepted_alternatives", entry)
                     meta_alternatives += 1
             add_formulation(
@@ -268,6 +245,7 @@ def main() -> None:
             if annotations.get("interpretive_annotations"):
                 annotations_by_key[key] = annotations
 
+        existing_keys.add(key)
         disposition_counts[disposition] += 1
         if assessment:
             assessment_counts[assessment] += 1
@@ -282,6 +260,120 @@ def main() -> None:
             "Adjudicate or use a conflict-aware merge before updating. "
             f"Examples: {examples}"
         )
+
+    # A merged export's filename carries the reviewing group's ID, so the
+    # tracked manifest names it by content digest instead. The path itself is
+    # retained per record in the ignored included.jsonl.
+    export_digest = "sha256:" + hashlib.sha256(review_path.read_bytes()).hexdigest()
+    return {
+        "mode": "initial",
+        "source_bundle": str(bundle_path),
+        "source_review_export_digest": export_digest,
+        "dataset_id": dataset_id,
+        "current_run": current_run,
+        "applied_reviews": applied,
+        "applied_meta_review_alternatives": meta_alternatives,
+        "replaced_sparql_revisions": replaced_sparql_revisions,
+        "applied_pipeline_assessment_counts": dict(assessment_counts),
+        "applied_benchmark_disposition_counts": dict(disposition_counts),
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Add initial-review decisions to an existing benchmark snapshot.")
+    parser.add_argument("--previous-benchmark", required=True, help="Previous benchmark/vN directory.")
+    parser.add_argument(
+        "--bundle",
+        action="append",
+        default=None,
+        help=(
+            "Normal review bundle. Repeat it, paired in order with --reviews, to apply a round "
+            "whose reviews were exported per team and per dataset as one update."
+        ),
+    )
+    parser.add_argument(
+        "--reviews",
+        action="append",
+        required=True,
+        help="Exported initial-review decisions; repeat it once per --bundle, in the same order.",
+    )
+    parser.add_argument(
+        "--decisions",
+        default=None,
+        help=(
+            "Optional meta-review decisions JSONL (catalog/curated/meta_review_decisions.jsonl). "
+            "Alternative wordings a meta-reviewer chose to keep are recorded as accepted "
+            "alternatives; without it only the model output can become one."
+        ),
+    )
+    parser.add_argument("--outdir", required=True, help="Output benchmark/vN directory.")
+    parser.add_argument(
+        "--kg-queries",
+        default="var/queries/kg_queries.jsonl",
+        help="Canonical query catalogue used to summarize execution observations.",
+    )
+    args = parser.parse_args()
+
+    previous_dir = Path(args.previous_benchmark)
+    bundle_paths = [Path(value) for value in (args.bundle or ["review/review_data.js"])]
+    review_paths = [Path(value) for value in args.reviews]
+    if len(bundle_paths) != len(review_paths):
+        raise ValueError(
+            f"--bundle and --reviews must be paired in order: {len(bundle_paths)} bundles "
+            f"against {len(review_paths)} exports"
+        )
+    outdir = Path(args.outdir)
+    query_path = Path(args.kg_queries)
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    decisions_by_pair: Dict[str, Dict[str, Any]] = {}
+    if args.decisions:
+        for line in Path(args.decisions).read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                decision = json.loads(line)
+                decisions_by_pair[str(decision.get("pair_review_id") or "")] = decision
+
+    included_by_key = {pair_key(rec): rec for rec in read_jsonl(included_records_path(previous_dir))}
+    dismissed_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / "dismissed.jsonl")}
+    alternatives_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / ALTERNATIVES_FILE)}
+    annotations_by_key = {pair_key(rec): rec for rec in read_jsonl(previous_dir / LINGUISTIC_ANNOTATIONS_FILE)}
+    existing_keys = set(included_by_key) | set(dismissed_by_key)
+
+    stages: List[Dict[str, Any]] = []
+    for bundle_path, review_path in zip(bundle_paths, review_paths):
+        stages.append(
+            apply_stage(
+                bundle_path=bundle_path,
+                review_path=review_path,
+                decisions_by_pair=decisions_by_pair,
+                included_by_key=included_by_key,
+                dismissed_by_key=dismissed_by_key,
+                alternatives_by_key=alternatives_by_key,
+                annotations_by_key=annotations_by_key,
+                existing_keys=existing_keys,
+                outdir=outdir,
+            )
+        )
+
+    applied = sum(stage["applied_reviews"] for stage in stages)
+    meta_alternatives = sum(stage["applied_meta_review_alternatives"] for stage in stages)
+    replaced_sparql_revisions = sum(stage["replaced_sparql_revisions"] for stage in stages)
+    assessment_counts: Counter[str] = Counter()
+    disposition_counts: Counter[str] = Counter()
+    for stage in stages:
+        assessment_counts.update(stage["applied_pipeline_assessment_counts"])
+        disposition_counts.update(stage["applied_benchmark_disposition_counts"])
+    dataset_ids = sorted({str(stage["dataset_id"]) for stage in stages if stage["dataset_id"]})
+    # The round-level aggregate comes from merge_adjudicated_reviews, which is
+    # the only step that sees the original submissions. Counting the merged
+    # exports here instead would describe the merge artefacts, not the cohort.
+    review_cohort = None
+    for review_path in review_paths:
+        summary_path = review_path.parent / "round-summary.json"
+        if summary_path.exists():
+            review_cohort = read_json(summary_path)
+            break
+    single = len(stages) == 1
 
     included = sort_records(included_by_key.values())
     dismissed = sort_records(dismissed_by_key.values())
@@ -300,17 +392,49 @@ def main() -> None:
         built_at=built_at,
     )
 
+    # Carry forward every assertion the previous snapshot made about its own
+    # content. v9 and v10 dropped v8's source_prompt policy key while still
+    # carrying its 20 LinkedMusic records, which left a fifth of the snapshot
+    # resting on a statement the snapshot no longer made.
+    gold_question_policy = dict(previous_manifest.get("gold_question_policy") or {})
+    gold_question_policy.update(
+        {
+            "benchmark_contains_all_human_confirmed_included_pairs": True,
+            "preferred_question_used_when_present": True,
+            "approved_model_output_used_otherwise": True,
+            "unchanged_previous_items_carried_forward": True,
+        }
+    )
+
     manifest = {
         "benchmark_version": benchmark_version,
         "built_at": built_at,
-        "update_type": "normal_review_update",
+        "update_type": "normal_review_update" if single else "multi_export_review_update",
         "previous_benchmark": str(previous_dir),
         "previous_benchmark_version": previous_manifest.get("benchmark_version"),
-        "source_bundle": str(bundle_path),
-        "source_review_export": str(review_path),
-        "dataset_id": dataset_id,
-        "current_run": current_run,
+        # A single-export update keeps the scalar fields it has always had. A
+        # round exported per team and per dataset names every export instead,
+        # so no stage's provenance is dropped.
+        "source_bundle": stages[0]["source_bundle"] if single else [s["source_bundle"] for s in stages],
+        "source_review_export_digest": (
+            stages[0]["source_review_export_digest"]
+            if single
+            else [s["source_review_export_digest"] for s in stages]
+        ),
+        "dataset_id": dataset_ids[0] if len(dataset_ids) == 1 else dataset_ids,
+        "current_run": stages[0]["current_run"] if single else [s["current_run"] for s in stages],
+        "review_stages": [
+            {
+                "mode": stage["mode"],
+                "source_bundle": stage["source_bundle"],
+                "source_review_export_digest": stage["source_review_export_digest"],
+                "dataset_id": stage["dataset_id"],
+                "applied_reviews": stage["applied_reviews"],
+            }
+            for stage in stages
+        ],
         "sparql_version_policy": "latest_retained",
+        **({"review_cohort": review_cohort} if review_cohort else {}),
         "execution_snapshot": canonical_execution_snapshot(
             included,
             query_path=query_path,
@@ -340,12 +464,7 @@ def main() -> None:
             "dismissed": "dismissed.jsonl",
             "linguistic_annotations_internal": LINGUISTIC_ANNOTATIONS_FILE,
         },
-        "gold_question_policy": {
-            "benchmark_contains_all_human_confirmed_included_pairs": True,
-            "preferred_question_used_when_present": True,
-            "approved_model_output_used_otherwise": True,
-            "unchanged_previous_items_carried_forward": True,
-        },
+        "gold_question_policy": gold_question_policy,
         "conflict_policy": {
             "overlapping_normal_reviews": "replace_only_attested_re_reviewed_sparql_revisions; otherwise fail",
         },

@@ -2382,7 +2382,7 @@
       reviewerInput.pattern = "reviewer-[0-9]{4,}";
       reviewerInput.maxLength = 64;
       reviewerInput.autocomplete = "off";
-      reviewerInput.placeholder = "reviewer-0002";
+      reviewerInput.placeholder = "reviewer-9002";
       reviewerInput.setAttribute("aria-label", "Teammate reviewer number");
       const addButton = document.createElement("button");
       addButton.type = "submit";

@@ -369,3 +369,53 @@ const normalized = schema.normalizeReview({decision:"approve_edit", evidence_ids
 if (normalized.decision !== "approve_edit" || normalized.evidence_ids[0] !== "e1") process.exit(2);
 '''
     subprocess.run(["node", "-e", script], check=True, cwd=root)
+
+
+def test_a_gateway_refusal_is_not_a_verdict_on_the_query():
+    """Every query_error ever recorded in this project was a Cloudflare 403.
+
+    The endpoint never read those queries, so the observation cannot support
+    `likely_correction` at high priority. It is an instruction to re-run, not a
+    finding.
+    """
+    for status in ("http_error", "query_error", "parse_error"):
+        for code in (401, 403, 407, 429):
+            triage = classify_failure(failure(status=status, http_status=code))
+            assert triage["reason_code"] == "gateway_blocked_request"
+            assert triage["category"] == "investigate"
+            assert triage["priority"] == "medium"
+
+
+def test_an_endpoint_rejection_still_reads_as_a_likely_correction():
+    for code in (400, 422):
+        triage = classify_failure(failure(status="http_error", http_status=code))
+        assert triage["reason_code"] == "endpoint_rejected_query"
+        assert triage["category"] == "likely_correction"
+
+
+def test_a_gateway_error_is_infrastructure_not_an_investigation():
+    for code in (502, 503, 504):
+        triage = classify_failure(failure(status="http_error", http_status=code))
+        assert triage["reason_code"] == "endpoint_unavailable"
+        assert triage["category"] == "infrastructure"
+        assert triage["priority"] == "informational"
+
+
+def test_an_unsupported_form_reports_the_runtime_not_a_defect():
+    triage = classify_failure(failure(status="unsupported", http_status=None))
+    assert triage["reason_code"] == "unsupported_query_form"
+    assert triage["category"] == "runtime_environment"
+
+
+def test_a_timeout_is_separated_from_the_catch_all():
+    triage = classify_failure(failure(status="request_error", http_status=None))
+    assert triage["reason_code"] == "execution_timeout"
+    assert triage["category"] == "investigate"
+
+
+def test_static_diagnostics_still_outrank_an_execution_observation():
+    triage = classify_failure(
+        failure(status="http_error", http_status=403),
+        [{"code": "missing_prefix"}],
+    )
+    assert triage["reason_code"] == "static_sparql_validation"

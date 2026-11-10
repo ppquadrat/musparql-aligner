@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from collections import Counter
 from datetime import datetime, timezone
@@ -448,6 +449,25 @@ def review_provenance(
     }
 
 
+def review_submission_count(rec: Dict[str, Any]) -> int:
+    """How many independent judgements stand behind this pair.
+
+    An adjudicated pair's independent judgements are the team submissions the
+    meta-review superseded; the adjudication itself is not a further
+    independent reading. A pair admitted from a source with no review at all
+    reports zero, which is accurate and worth seeing.
+    """
+    if isinstance(rec.get("review_submissions"), int):
+        return int(rec["review_submissions"])
+    review = rec.get("review") if isinstance(rec.get("review"), dict) else {}
+    prior = [item for item in (review.get("prior_review_ids") or []) if str(item).strip()]
+    if prior:
+        return len(prior)
+    if rec.get("gold_question_source") == "source_prompt":
+        return 0
+    return 1 if review.get("review_id") or review.get("reviewer_id") else 0
+
+
 def make_rephrasing_entry(
     *,
     text: str,
@@ -461,28 +481,22 @@ def make_rephrasing_entry(
     clean_text = " ".join(str(text or "").split())
     if not clean_text:
         return None
-    event_review_id = str(review.get("review_id") or review_id)
-    role = "literal" if source_type == "literal_sparql_wording" else "candidate"
-    formulation_identifier = f"{event_review_id}::formulation::{role}"
-    authored_ids = review.get("authored_formulation_ids", [])
+    normalized = normalize_rephrasing_text(clean_text)
+    # A wording is identified by its own content, not by who approved it. That
+    # keeps the ID stable across releases, keeps reviewer identity out of a
+    # tracked artefact, and leaves the ID meaningful after a withdrawal removes
+    # the attribution. Full attribution stays in included.jsonl and in the
+    # round's review exports, neither of which is tracked.
+    alternative_identifier = "alt-" + hashlib.sha256(
+        "\n".join([str(record.get("query_id") or "") if record else "", normalized]).encode("utf-8")
+    ).hexdigest()[:16]
     return {
-        "formulation_id": formulation_identifier,
+        "alternative_id": alternative_identifier,
         "text": clean_text,
-        "normalized_text": normalize_rephrasing_text(clean_text),
+        "normalized_text": normalized,
         "source_type": source_type,
-        "authored_by_reviewer_id": review.get("reviewer_id")
-        if formulation_identifier in authored_ids else None,
-        "approval_review_ids": [event_review_id]
-        if formulation_identifier in review.get("approved_formulation_ids", []) else [],
-        "approval_reviewer_ids": [review.get("reviewer_id")]
-        if review.get("reviewer_id") and formulation_identifier in review.get("approved_formulation_ids", []) else [],
-        **review_provenance(
-            review=review,
-            review_id=review_id,
-            review_path=review_path,
-            dataset_id=dataset_id,
-            record=record,
-        ),
+        "generation_run_id": run_metadata(record or {}).get("generation_run_id"),
+        "model": run_metadata(record or {}).get("model"),
     }
 
 
@@ -662,15 +676,15 @@ def benchmark_gold_records(
             "source_type": source.get("source_type") or "human_review",
         }
         review = rec.get("review") if isinstance(rec.get("review"), dict) else {}
-        reviewer_id = review.get("reviewer_id")
-        review_id = review.get("review_id") or rec.get("benchmark_id")
-        if reviewer_id:
-            provenance["reviewer_id"] = reviewer_id
-            provenance["approval_review_id"] = review_id
-            role = "preferred" if rec.get("gold_question_source") == "reviewer_rewrite" else "candidate"
-            provenance["formulation_id"] = f"{review_id}::formulation::{role}"
-            if role == "preferred":
-                provenance["authored_by_reviewer_id"] = reviewer_id
+        # No reviewer identity reaches a public record. The approved participant
+        # notice commits that releases using external reviewers will not publish
+        # stable reviewer IDs or linked individual annotation histories, and the
+        # ID used to be embedded in approval_review_id and formulation_id as
+        # well as named outright, so all three are gone. What a reader actually
+        # needs is how many independent judgements stand behind the pair, which
+        # is a property of the pair and identifies nobody.
+        provenance["review_submissions"] = review_submission_count(rec)
+        provenance["adjudicated"] = bool(rec.get("adjudicated"))
         public_comment, _ = review_comments(review)
         if public_comment:
             provenance["reviewer_comment"] = public_comment

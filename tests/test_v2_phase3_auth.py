@@ -51,8 +51,8 @@ def portal_app(tmp_path: Path):
     sessions = session_factory(engine)
     with sessions.begin() as session:
         session.add(reviewer(OWNER_ID, "owner@example.invalid"))
-        session.add(reviewer("reviewer-0042", "reviewer@example.invalid", status="invited"))
-        session.add(reviewer("reviewer-0043", "active@example.invalid"))
+        session.add(reviewer("reviewer-9042", "reviewer@example.invalid", status="invited"))
+        session.add(reviewer("reviewer-9043", "active@example.invalid"))
     engine.dispose()
 
     sender = SyntheticEmailSender()
@@ -143,7 +143,7 @@ def test_phase3_migration_is_current_and_audit_is_append_only(portal_app) -> Non
             event = OwnerAuditEvent(
                 id="synthetic-audit-event",
                 actor_reviewer_id=OWNER_ID,
-                target_reviewer_id="reviewer-0042",
+                target_reviewer_id="reviewer-9042",
                 action="disable",
                 created_at=timestamp(utc_now()),
             )
@@ -239,7 +239,7 @@ def test_login_response_does_not_wait_for_email_delivery_or_hold_database_lock(
     sessions = session_factory(engine)
     try:
         with sessions.begin() as session:
-            active = session.get(Reviewer, "reviewer-0043")
+            active = session.get(Reviewer, "reviewer-9043")
             assert active is not None
             active.affiliation = "Updated while delivery is blocked"
     finally:
@@ -426,15 +426,15 @@ def test_successful_login_activates_invitation_and_rotates_existing_session(port
     second_token = client.get_cookie("musparql_session", path="/")
     assert second_token is not None and second_token.value != first_token.value
 
-    first_sessions = sessions_for(database_path, "reviewer-0043")
+    first_sessions = sessions_for(database_path, "reviewer-9043")
     assert len(first_sessions) == 1 and first_sessions[0].revoked_at is not None
-    invited_sessions = sessions_for(database_path, "reviewer-0042")
+    invited_sessions = sessions_for(database_path, "reviewer-9042")
     assert len(invited_sessions) == 1 and not invited_sessions[0].remembered
     engine = create_database_engine(database_path)
     sessions = session_factory(engine)
     try:
         with sessions() as session:
-            invited = session.get(Reviewer, "reviewer-0042")
+            invited = session.get(Reviewer, "reviewer-9042")
             assert invited.status == "active"
             assert invited.email_verified_at is not None
     finally:
@@ -454,7 +454,7 @@ def test_logout_all_revokes_other_browser_and_shared_browser_default(portal_app)
     assert first.get_cookie("musparql_session", path="/") is None
     assert second.get("/").status_code == 200
     assert b"Invitation-only review" in second.get("/").data
-    assert all(item.revoked_at is not None for item in sessions_for(database_path, "reviewer-0043"))
+    assert all(item.revoked_at is not None for item in sessions_for(database_path, "reviewer-9043"))
 
 
 def test_idle_expiry_revokes_server_session(portal_app) -> None:
@@ -466,7 +466,7 @@ def test_idle_expiry_revokes_server_session(portal_app) -> None:
     try:
         with sessions.begin() as session:
             stored = session.scalar(
-                select(AuthSession).where(AuthSession.reviewer_id == "reviewer-0043")
+                select(AuthSession).where(AuthSession.reviewer_id == "reviewer-9043")
             )
             stored.last_used_at = timestamp(
                 utc_now() - timedelta(seconds=app.config["REVIEWER_IDLE_SECONDS"] + 1)
@@ -475,7 +475,7 @@ def test_idle_expiry_revokes_server_session(portal_app) -> None:
         assert b"Invitation-only review" in response.data
         with sessions() as session:
             stored = session.scalar(
-                select(AuthSession).where(AuthSession.reviewer_id == "reviewer-0043")
+                select(AuthSession).where(AuthSession.reviewer_id == "reviewer-9043")
             )
             assert stored.revoked_at is not None
     finally:
@@ -491,13 +491,13 @@ def test_absolute_expiry_revokes_server_session(portal_app) -> None:
     try:
         with sessions.begin() as session:
             stored = session.scalar(
-                select(AuthSession).where(AuthSession.reviewer_id == "reviewer-0043")
+                select(AuthSession).where(AuthSession.reviewer_id == "reviewer-9043")
             )
             stored.expires_at = timestamp(utc_now() - timedelta(seconds=1))
         assert b"Invitation-only review" in client.get("/").data
         with sessions() as session:
             stored = session.scalar(
-                select(AuthSession).where(AuthSession.reviewer_id == "reviewer-0043")
+                select(AuthSession).where(AuthSession.reviewer_id == "reviewer-9043")
             )
             assert stored.revoked_at is not None
     finally:
@@ -526,14 +526,14 @@ def test_owner_controls_require_recent_auth_and_audit_actions(portal_app) -> Non
     assert owner_cookie is not None and owner_cookie.expires is None
 
     response = owner.post(
-        "/owner/reviewers/reviewer-0043/disable",
+        "/owner/reviewers/reviewer-9043/disable",
         data={"csrf_token": csrf(owner)},
     )
     assert response.status_code == 302
     assert b"Invitation-only review" in reviewer_client.get("/").data
 
     response = owner.post(
-        "/owner/reviewers/reviewer-0043/restore",
+        "/owner/reviewers/reviewer-9043/restore",
         data={"csrf_token": csrf(owner)},
     )
     assert response.status_code == 302
@@ -584,7 +584,7 @@ def test_owner_controls_require_recent_auth_and_audit_actions(portal_app) -> Non
                 utc_now() - timedelta(seconds=app.config["OWNER_RECENT_AUTH_SECONDS"] + 1)
             )
         response = owner.post(
-            "/owner/reviewers/reviewer-0043/disable",
+            "/owner/reviewers/reviewer-9043/disable",
             data={"csrf_token": csrf(owner)},
         )
         assert response.status_code == 401
@@ -685,7 +685,7 @@ def test_invitation_delivery_does_not_hold_database_lock(portal_app) -> None:
     sessions = session_factory(engine)
     try:
         with sessions.begin() as session:
-            active = session.get(Reviewer, "reviewer-0043")
+            active = session.get(Reviewer, "reviewer-9043")
             assert active is not None
             active.affiliation = "Updated during invitation delivery"
     finally:
@@ -703,7 +703,7 @@ def test_restore_preserves_pending_invitation_state(portal_app) -> None:
     login(owner, sender, "owner@example.invalid")
     for action in ("disable", "restore"):
         response = owner.post(
-            f"/owner/reviewers/reviewer-0042/{action}",
+            f"/owner/reviewers/reviewer-9042/{action}",
             data={"csrf_token": csrf(owner)},
         )
         assert response.status_code == 302
@@ -712,7 +712,7 @@ def test_restore_preserves_pending_invitation_state(portal_app) -> None:
     sessions = session_factory(engine)
     try:
         with sessions() as session:
-            restored = session.get(Reviewer, "reviewer-0042")
+            restored = session.get(Reviewer, "reviewer-9042")
             assert restored is not None
             assert restored.status == "invited"
             assert restored.disabled_from_status is None
@@ -726,7 +726,7 @@ def test_non_owner_cannot_access_owner_accounts(portal_app) -> None:
     login(client, sender, "active@example.invalid")
     assert client.get("/owner/reviewers").status_code == 403
     assert client.post(
-        "/owner/reviewers/reviewer-0042/disable",
+        "/owner/reviewers/reviewer-9042/disable",
         data={"csrf_token": csrf(client)},
     ).status_code == 403
 

@@ -157,7 +157,7 @@ pre-review analysis rather than misclassifying it.
 After an accepted submission, show a non-blocking success panel such as:
 
 > Submitted successfully. The KG background form is still missing for
-> reviewer-1234. Please complete it if you have time. **Fill in the form**
+> reviewer-9234. Please complete it if you have time. **Fill in the form**
 
 For several missing contributors, list each pseudonymous reviewer ID and link
 only the signed-in reviewer to the form they are authorised to complete. The

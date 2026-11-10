@@ -1,0 +1,230 @@
+{
+  "benchmark_version": "v12",
+  "built_at": "2026-11-09T22:49:23+00:00",
+  "update_type": "multi_export_review_update",
+  "previous_benchmark": "benchmark/v11",
+  "previous_benchmark_version": "v11",
+  "source_bundle": [
+    "var/review/bundles/ipl-2026-20260916-seven-kg/03-camera-dei-deputati.json",
+    "var/review/bundles/ipl-2026-20260916-seven-kg/04-cdec.json",
+    "var/review/bundles/ipl-2026-20260916-seven-kg/01-europeana.json",
+    "var/review/bundles/ipl-2026-20260916-seven-kg/01-europeana.json",
+    "var/review/bundles/ipl-2026-20260916-seven-kg/01-europeana.json",
+    "var/review/bundles/ipl-2026-20260916-seven-kg/01-europeana.json",
+    "var/review/bundles/ipl-2026-20260916-seven-kg/06-musow.json",
+    "var/review/bundles/ipl-2026-20260916-seven-kg/06-musow.json",
+    "var/review/bundles/ipl-2026-20260916-seven-kg/02-nfdi4culture.json",
+    "var/review/bundles/ipl-2026-20260916-seven-kg/02-nfdi4culture.json",
+    "var/review/bundles/ipl-2026-20260916-seven-kg/02-nfdi4culture.json"
+  ],
+  "source_review_export_digest": [
+    "sha256:085ac87c8372afe683dee49bf69cbd0b99dc98e623c3870cae87a4cd900d823f",
+    "sha256:9e1dc4b267f9f0af0695b994cdc25c280f83a9e71584f6b1df7805480d7e21f7",
+    "sha256:9abb1df367babd937584619e1cc56904b0e4c9a33552ae31e7ab18edaa9f0da3",
+    "sha256:79f79cc3a42b845f4803b837f20bf498f781f2481775ce93361641c89455225b",
+    "sha256:04398b0c1b0b9f73786c78930ce7e19b02241ca2b38c56f392bf73f43844fae1",
+    "sha256:c8077b64ea7432fff6f962a3796e36fe613e8a7ceebe7e7ee1ce9bedfae28db6",
+    "sha256:1a9c89c1b9b99207d1f836abf2cd74bb7dafaefd7c89b8da66f02562a61e7813",
+    "sha256:7e9806f40309470faac59cdc7e551e0cc957708a06916a44dde1c3d3d3a6a9dd",
+    "sha256:b508b050b43934ec81bba2ddc2e89cae0a25f707606180a301b55e33a17c5d2f",
+    "sha256:11a4478add79f8fe30a80fa06c61a1e9bb8ef7fb649791a9b7e186588618ec79",
+    "sha256:5502706b6b93a7b1265190960dd872e8adbb1b62c20d76d19b77580198532fe5"
+  ],
+  "dataset_id": [
+    "ipl-ipl-2026-camera-dei-deputati-633160069243b144",
+    "ipl-ipl-2026-cdec-633160069243b144",
+    "ipl-ipl-2026-europeana-633160069243b144",
+    "ipl-ipl-2026-musow-633160069243b144",
+    "ipl-ipl-2026-nfdi4culture-633160069243b144"
+  ],
+  "current_run": [
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {}
+  ],
+  "review_stages": [
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/03-camera-dei-deputati.json",
+      "source_review_export_digest": "sha256:085ac87c8372afe683dee49bf69cbd0b99dc98e623c3870cae87a4cd900d823f",
+      "dataset_id": "ipl-ipl-2026-camera-dei-deputati-633160069243b144",
+      "applied_reviews": 11
+    },
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/04-cdec.json",
+      "source_review_export_digest": "sha256:9e1dc4b267f9f0af0695b994cdc25c280f83a9e71584f6b1df7805480d7e21f7",
+      "dataset_id": "ipl-ipl-2026-cdec-633160069243b144",
+      "applied_reviews": 5
+    },
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/01-europeana.json",
+      "source_review_export_digest": "sha256:9abb1df367babd937584619e1cc56904b0e4c9a33552ae31e7ab18edaa9f0da3",
+      "dataset_id": "ipl-ipl-2026-europeana-633160069243b144",
+      "applied_reviews": 12
+    },
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/01-europeana.json",
+      "source_review_export_digest": "sha256:79f79cc3a42b845f4803b837f20bf498f781f2481775ce93361641c89455225b",
+      "dataset_id": "ipl-ipl-2026-europeana-633160069243b144",
+      "applied_reviews": 10
+    },
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/01-europeana.json",
+      "source_review_export_digest": "sha256:04398b0c1b0b9f73786c78930ce7e19b02241ca2b38c56f392bf73f43844fae1",
+      "dataset_id": "ipl-ipl-2026-europeana-633160069243b144",
+      "applied_reviews": 7
+    },
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/01-europeana.json",
+      "source_review_export_digest": "sha256:c8077b64ea7432fff6f962a3796e36fe613e8a7ceebe7e7ee1ce9bedfae28db6",
+      "dataset_id": "ipl-ipl-2026-europeana-633160069243b144",
+      "applied_reviews": 1
+    },
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/06-musow.json",
+      "source_review_export_digest": "sha256:1a9c89c1b9b99207d1f836abf2cd74bb7dafaefd7c89b8da66f02562a61e7813",
+      "dataset_id": "ipl-ipl-2026-musow-633160069243b144",
+      "applied_reviews": 26
+    },
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/06-musow.json",
+      "source_review_export_digest": "sha256:7e9806f40309470faac59cdc7e551e0cc957708a06916a44dde1c3d3d3a6a9dd",
+      "dataset_id": "ipl-ipl-2026-musow-633160069243b144",
+      "applied_reviews": 1
+    },
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/02-nfdi4culture.json",
+      "source_review_export_digest": "sha256:b508b050b43934ec81bba2ddc2e89cae0a25f707606180a301b55e33a17c5d2f",
+      "dataset_id": "ipl-ipl-2026-nfdi4culture-633160069243b144",
+      "applied_reviews": 1
+    },
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/02-nfdi4culture.json",
+      "source_review_export_digest": "sha256:11a4478add79f8fe30a80fa06c61a1e9bb8ef7fb649791a9b7e186588618ec79",
+      "dataset_id": "ipl-ipl-2026-nfdi4culture-633160069243b144",
+      "applied_reviews": 4
+    },
+    {
+      "mode": "initial",
+      "source_bundle": "var/review/bundles/ipl-2026-20260916-seven-kg/02-nfdi4culture.json",
+      "source_review_export_digest": "sha256:5502706b6b93a7b1265190960dd872e8adbb1b62c20d76d19b77580198532fe5",
+      "dataset_id": "ipl-ipl-2026-nfdi4culture-633160069243b144",
+      "applied_reviews": 1
+    }
+  ],
+  "sparql_version_policy": "latest_retained",
+  "review_cohort": {
+    "round": "ipl-2026-09-16",
+    "submissions": 14,
+    "reviewing_groups": 14,
+    "pairs_reviewed": 84,
+    "submissions_per_pair": {
+      "1": 58,
+      "2": 18,
+      "3": 6,
+      "4": 2
+    },
+    "contributors_per_submission": {
+      "1": 11,
+      "2": 3
+    },
+    "note": "Submissions are independent judgements. Contributors within one submission deliberated, so they are not independent ratings."
+  },
+  "execution_snapshot": {
+    "source": "var/queries/kg_queries.jsonl",
+    "captured_through": "2026-11-09T22:49:23+00:00",
+    "selected_queries": 177,
+    "selected_versions_with_execution": 176,
+    "status_counts": {
+      "empty": 43,
+      "http_error": 9,
+      "not_attempted": 1,
+      "ok": 110,
+      "request_error": 6,
+      "skipped_local_query": 8
+    },
+    "note": "Execution observations are trust provenance only; missing or failed observations do not affect inclusion."
+  },
+  "counts": {
+    "benchmark": 177,
+    "included": 177,
+    "dismissed": 13,
+    "alternatives": 62,
+    "linguistic_annotations": 15,
+    "pipeline_assessment_counts": {
+      "accepted": 122,
+      "prompt_improvement_recommended": 21,
+      "not_applicable": 25,
+      "input_data_improvement_recommended": 9
+    },
+    "benchmark_disposition_counts": {
+      "included": 177,
+      "excluded": 13
+    },
+    "applied_normal_reviews": 79,
+    "applied_meta_review_alternatives": 11,
+    "replaced_sparql_revisions": 0,
+    "applied_pipeline_assessment_counts": {
+      "accepted": 59,
+      "prompt_improvement_recommended": 10,
+      "input_data_improvement_recommended": 3
+    },
+    "applied_benchmark_disposition_counts": {
+      "included": 72,
+      "excluded": 7
+    },
+    "overlapping_reviewed_pairs": 0
+  },
+  "files": {
+    "benchmark": "benchmark.jsonl",
+    "alternatives": "alternatives.jsonl"
+  },
+  "working_files": {
+    "included": "included.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
+  },
+  "gold_question_policy": {
+    "benchmark_contains_all_human_confirmed_included_pairs": true,
+    "preferred_question_used_when_present": true,
+    "approved_model_output_used_otherwise": true,
+    "unchanged_previous_items_carried_forward": true,
+    "authored_pairs_admitted_without_generation_or_review": true,
+    "meta_review_canonical_question_used_for_authored_pairs": true,
+    "previous_question_kept_when_sparql_was_repinned": true
+  },
+  "conflict_policy": {
+    "overlapping_normal_reviews": "replace_only_attested_re_reviewed_sparql_revisions; otherwise fail"
+  },
+  "release_boundary": {
+    "public_release_files": [
+      "manifest.json",
+      "benchmark.jsonl",
+      "alternatives.jsonl",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "internal_only_files": [
+      "included.jsonl",
+      "linguistic_annotations.jsonl",
+      "dismissed.jsonl"
+    ]
+  }
+}

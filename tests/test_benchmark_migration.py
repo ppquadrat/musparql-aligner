@@ -676,7 +676,7 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
             build_public_release.assert_public_safe({
                 "accepted_alternatives": [{
                     "formulation_id": "event::reviewer-0001::formulation::preferred",
-                    "approval_review_ids": ["approval::reviewer-0002"],
+                    "approval_review_ids": ["approval::reviewer-9002"],
                     "approval_reviewer_ids": ["reviewer-0001"],
                 }]
             })
@@ -698,15 +698,15 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
         }
         export = {
             "schema": "musparql.review-export.v2",
-            "reviewer_id": "reviewer-0002",
+            "reviewer_id": "reviewer-9002",
         }
         with self.assertRaisesRegex(ValueError, "Reviewer mismatch"):
             build_benchmark.assert_reviewer_assignment(bundle, export)
 
     def test_group_export_accepts_member_authors_as_one_judgment(self) -> None:
         review = {
-            "review_id": "event::reviewer-0002",
-            "reviewer_id": "reviewer-0002",
+            "review_id": "event::reviewer-9002",
+            "reviewer_id": "reviewer-9002",
             "reviewed_at": "2026-08-20T10:00:00Z",
             "prior_review_ids": [],
             "authored_formulation_ids": [],
@@ -718,21 +718,21 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
             "reviewer_id": "reviewer-0001",
             "review_group_id": "group-000000000000000000000001",
             "submitted_by_reviewer_id": "reviewer-0001",
-            "contributor_reviewer_ids": ["reviewer-0001", "reviewer-0002"],
+            "contributor_reviewer_ids": ["reviewer-0001", "reviewer-9002"],
             "reviews": {"record": review},
         }
         build_benchmark.assert_non_holdout_export(export)
         build_benchmark.assert_reviewer_assignment(
             {
                 "schema": "musparql.review-bundle.v2",
-                "reviewer_id": "reviewer-0002",
+                "reviewer_id": "reviewer-9002",
                 "review_group_id": "group-000000000000000000000001",
             },
             export,
         )
         outsider = deepcopy(export)
-        outsider["reviews"]["record"]["review_id"] = "event::reviewer-0003"
-        outsider["reviews"]["record"]["reviewer_id"] = "reviewer-0003"
+        outsider["reviews"]["record"]["review_id"] = "event::reviewer-9003"
+        outsider["reviews"]["record"]["reviewer_id"] = "reviewer-9003"
         with self.assertRaisesRegex(ValueError, "not a group contributor"):
             build_benchmark.assert_non_holdout_export(outsider)
 
@@ -794,21 +794,21 @@ if (reusedPrivate.split !== "private_holdout" || reusedPrivate.copied_from_revie
         working = build_review_diff_bundle.benchmark_review_for_record(
             {
                 "benchmark_id": "benchmark-1",
-                "review": {"review_id": "event::reviewer-0002"},
+                "review": {"review_id": "event::reviewer-9002"},
             },
             "included",
             Path("benchmark/v11"),
         )
-        self.assertEqual(working["review_id"], "event::reviewer-0002")
+        self.assertEqual(working["review_id"], "event::reviewer-9002")
         public_only = build_review_diff_bundle.benchmark_review_for_record(
             {
                 "benchmark_id": "benchmark-1",
-                "provenance": {"approval_review_id": "public-event::reviewer-0003"},
+                "provenance": {"approval_review_id": "public-event::reviewer-9003"},
             },
             "included",
             Path("benchmark/v11"),
         )
-        self.assertEqual(public_only["review_id"], "public-event::reviewer-0003")
+        self.assertEqual(public_only["review_id"], "public-event::reviewer-9003")
 
     def test_current_snapshot_has_normalized_public_comments(self) -> None:
         repository = Path(__file__).resolve().parents[1]

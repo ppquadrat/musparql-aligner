@@ -112,8 +112,8 @@ Legacy sanitized non-holdout exports can be backfilled explicitly:
 ```
 
 The migration accepts only explicit paths under `var/review/exports/`; it
-cannot target a benchmark snapshot or holdout artifact. Published v1-v10
-snapshots remain unchanged. Re-running it for an existing v2 export is
+cannot target a benchmark snapshot or holdout artifact. Published snapshots
+remain unchanged. Re-running it for an existing v2 export is
 idempotent only with that export's declared reviewer ID; it rejects attempts to
 reassign a v2 review to another reviewer.
 
@@ -143,3 +143,53 @@ Check that:
 Confirm that the sanitized export is saved, complete any holdout clearing steps,
 close the browser, and stop the local server. Do not rely on browser cache
 clearing as a substitute for the explicit private-state flow.
+
+## Fetching a round's submission receipts, and getting rid of them again
+
+The receipts are the authoritative record of which wording each reviewer or
+group proposed for each pair. They live on the ICF server under
+`/srv/musparql/var/review/submissions`, inside the daily encrypted backup, and
+each submission's database row carries its path and digest.
+
+What they contain, checked rather than assumed: pseudonymous reviewer and group
+identifiers, the wordings each proposed, and about 4.5 KB of free-text comments
+across 35 of the round's 128 reviews. No name, email, affiliation, language,
+expertise or familiarity field appears in a receipt, and the identity registry
+is not on the researcher's machine. So a local working copy is pseudonymous
+research data, not the identity link.
+
+Keep a round's receipts for as long as you are working on that round. The
+purge is for when you are finished with it, or when a withdrawal has to be
+applied — not a daily routine.
+
+```bash
+# what the server has for the round: digests and statuses, no annotations
+.venv/bin/python -m scripts.fetch_review_receipts --round ipl-2026-09-16 --manifest-only
+
+# fetch and verify every receipt against its recorded digest
+.venv/bin/python -m scripts.fetch_review_receipts --round ipl-2026-09-16
+
+# ... build ...
+
+# then remove them
+.venv/bin/python -m scripts.fetch_review_receipts --round ipl-2026-09-16 --purge
+```
+
+`--from-dir` reads from a directory already on disk, such as an isolated
+restore, instead of contacting the server. Without a `receipt-manifest.json`
+beside the files it cannot verify them, so it reports each digest and says so.
+
+The script runs only read-only commands on the server, selects no reviewer
+identity in its manifest query, writes only inside the round's directory, and
+has nothing to do with backups or their credentials. A non-zero exit means at
+least one receipt matched no recorded digest, which may mean it belongs to
+another round — check before building from it.
+
+Its real value is the digest check and the re-fetch path: the laptop copies
+need not be backed up, because the server's copy is authoritative and backed up
+daily, and this is how they come back.
+
+A purge of the receipts does not clear the benchmark working files
+(`included.jsonl` and its siblings), which hold the same attribution. The
+withdrawal purge covering all of it is still to be written; see the reviewer-ID
+entry in [`OPEN_ISSUES.md`](OPEN_ISSUES.md).

@@ -1,0 +1,103 @@
+{
+  "benchmark_version": "v11",
+  "built_at": "2026-11-09T22:49:23+00:00",
+  "update_type": "authored_pair_admission",
+  "previous_benchmark": "benchmark/v10",
+  "previous_benchmark_version": "v10",
+  "source_bundle": null,
+  "source_review_export": null,
+  "authored_pairs": "var/benchmark/authored-pairs-2026-11-09.jsonl",
+  "meta_review_decisions": "catalog/curated/meta_review_decisions.jsonl",
+  "meta_review_adjudicated": true,
+  "holdout_input_policy": "identity_visible_selectors",
+  "sparql_version_policy": "latest_retained",
+  "execution_snapshot": {
+    "source": "var/queries/kg_queries.jsonl",
+    "captured_through": "2026-11-09T22:49:23+00:00",
+    "selected_queries": 105,
+    "selected_versions_with_execution": 104,
+    "status_counts": {
+      "empty": 38,
+      "http_error": 5,
+      "not_attempted": 1,
+      "ok": 51,
+      "request_error": 2,
+      "skipped_local_query": 8
+    },
+    "note": "Execution observations are trust provenance only; missing or failed observations do not affect inclusion."
+  },
+  "counts": {
+    "benchmark": 105,
+    "included": 105,
+    "dismissed": 6,
+    "alternatives": 51,
+    "linguistic_annotations": 10,
+    "admitted_authored_pairs": 6,
+    "admitted_authored_pair_origins": {
+      "meta_review_decision": 5,
+      "retained_sparql_repin": 1
+    },
+    "replaced_existing_pairs": 0,
+    "repinned_existing_pairs": 1,
+    "pipeline_assessment_counts": {
+      "not_applicable": 25,
+      "accepted": 63,
+      "prompt_improvement_recommended": 11,
+      "input_data_improvement_recommended": 6
+    },
+    "benchmark_disposition_counts": {
+      "included": 105,
+      "excluded": 6
+    }
+  },
+  "files": {
+    "benchmark": "benchmark.jsonl",
+    "alternatives": "alternatives.jsonl"
+  },
+  "working_files": {
+    "included": "included.jsonl",
+    "dismissed": "dismissed.jsonl",
+    "linguistic_annotations_internal": "linguistic_annotations.jsonl"
+  },
+  "gold_question_policy": {
+    "benchmark_contains_all_human_confirmed_included_pairs": true,
+    "preferred_question_used_when_present": true,
+    "approved_model_output_used_otherwise": true,
+    "unchanged_previous_items_carried_forward": true,
+    "authored_pairs_admitted_without_generation_or_review": true,
+    "meta_review_canonical_question_used_for_authored_pairs": true,
+    "previous_question_kept_when_sparql_was_repinned": true
+  },
+  "authored_pair_policy": {
+    "origins": [
+      "source_prompt",
+      "meta_review_decision",
+      "retained_sparql_repin"
+    ],
+    "pipeline_assessment": "not_applicable; an authored pair has no model output to assess",
+    "confirmation": {
+      "source_prompt": "source_authored_pairing",
+      "meta_review_decision": "single_meta_reviewer",
+      "retained_sparql_repin": "carried_forward_from_previous_review"
+    },
+    "replaced_existing_pairs": [],
+    "repinned_existing_pairs": [
+      "meetups/meetups-0008"
+    ],
+    "repin": "retained_sparql_repin moves an already reviewed pair to the latest retained SPARQL, keeping its question and its review; nothing is re-decided"
+  },
+  "release_boundary": {
+    "public_release_files": [
+      "manifest.json",
+      "benchmark.jsonl",
+      "alternatives.jsonl",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "internal_only_files": [
+      "included.jsonl",
+      "linguistic_annotations.jsonl",
+      "dismissed.jsonl"
+    ]
+  }
+}

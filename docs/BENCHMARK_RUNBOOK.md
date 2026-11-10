@@ -72,6 +72,38 @@ same benchmark identity. The review-bundle record must attest both
 hash must differ from the previous snapshot. This is still an initial-review
 update when the bundle and export are not compare-mode artifacts.
 
+### A round exported per team and per dataset
+
+A workshop round produces one export per reviewing team plus a synthesized
+meta-review, each pinned to its own dataset's bundle. Repeat `--bundle` and
+`--reviews`, paired in order, so the whole round is one update to one snapshot:
+
+```bash
+.venv/bin/python -m scripts.benchmark.update_from_initial_review \
+  --previous-benchmark benchmark/vN \
+  --bundle <bundle-a> --reviews <export-a1> \
+  --bundle <bundle-a> --reviews <export-a2> \
+  --bundle <bundle-b> --reviews <export-b1> \
+  --decisions catalog/curated/meta_review_decisions.jsonl \
+  --outdir benchmark/vN+1
+```
+
+Build the exports with `merge_adjudicated_reviews` first, which resolves pairs
+several teams judged and leaves the builder's overlap guard intact. Order does
+not matter, because the merged exports contain no pair twice; a pair applied by
+an earlier stage is still an overlap for a later one.
+
+The manifest then records every stage in `review_stages`, with the bundle,
+export, dataset and applied count for each, and `update_type` becomes
+`multi_export_review_update`. `source_bundle`, `source_review_export`,
+`dataset_id` and `current_run` become lists. A single-export update is
+unchanged: the scalar fields and `normal_review_update` stay as they were.
+
+Do not chain one invocation per export through throwaway directories. Only the
+last stage would be named in the snapshot it writes, and `previous_benchmark`
+would point at a scratch path, so the rest of the round's provenance would be
+lost.
+
 ### Comparative-review update
 
 Use `update_benchmark` only with a bundle and export produced by the comparative
@@ -89,6 +121,57 @@ review workflow. Both must have `mode: compare`:
 This applies reviewed side-by-side decisions while carrying forward unchanged
 records and their provenance. The command rejects an initial-review bundle or
 export rather than guessing the intended update semantics.
+
+### Authored pairs, with no generation round
+
+Use `add_authored_pairs` when a pair's question is already settled and there is
+nothing for a model to propose or a reviewer to judge:
+
+```bash
+.venv/bin/python -m scripts.benchmark.add_authored_pairs \
+  --previous-benchmark benchmark/vN \
+  --pairs var/benchmark/<authored-pairs>.jsonl \
+  --decisions catalog/curated/meta_review_decisions.jsonl \
+  --meta-reviewer-id reviewer-NNNN \
+  --outdir benchmark/vN+1 \
+  --holdout-selectors var/holdout/selectors.jsonl
+```
+
+Each line of the pairs file names `kg_id`, `query_label` and an `origin`:
+
+- `meta_review_decision` — the wording was decided in meta-review. The
+  question, disposition and alternatives are read from the decisions file, so
+  no wording is retyped and there is one source of truth. The decision must
+  record a canonical question; a blank slot is refused.
+- `source_prompt` — the source published question and SPARQL together, as the
+  LinkedMusic public query database did. The line carries `gold_question` and a
+  `source` block, because that provenance lives outside this repository. It
+  cannot carry alternatives: an accepted alternative needs an approving
+  reviewer, and a source-authored pairing has none.
+- `retained_sparql_repin` — the pair is already in the previous snapshot and
+  only its SPARQL has changed. The question and the review that approved it are
+  carried forward untouched and just the version pin moves. Use this rather
+  than re-admitting a reviewed pair, which would discard its attribution.
+
+An authored pair carries `pipeline_assessment: not_applicable`, because there is
+no model output in the record to assess. A meta-review decision's own
+`pipeline_assessment` judges the wording the pipeline produced, which is not the
+wording being admitted, so it is preserved in the `source` block as
+`meta_review_pipeline_assessment`. The `source` block also records
+`confirmation`: `source_authored_pairing`, `single_meta_reviewer`, or
+`carried_forward_from_previous_review`. That distinction matters — a review
+round gives multi-reviewer agreement that question and SPARQL match, while a
+meta-review wording has one expert's, and the record says which.
+
+Replacing a pair already in the previous snapshot needs `--replace-existing`,
+which is never implicit because the replaced record loses its reviewer
+attribution. `--dry-run` reports the counts without writing.
+
+The manifest's `gold_question_policy` is unioned with the previous snapshot's,
+so an assertion made when content was admitted keeps travelling with later
+snapshots. This matters: v9 and v10 dropped v8's
+`source_prompt_used_for_curated_linkedmusic` key while still carrying its 20
+LinkedMusic records forward.
 
 Historical migration and snapshot-regeneration scripts are not normal
 benchmark-building commands.

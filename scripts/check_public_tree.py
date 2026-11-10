@@ -60,6 +60,29 @@ PRIVATE_TEXT_RE = re.compile(
 DATA_SUFFIXES = {".json", ".jsonl"}
 
 
+# Reviewer pseudonyms must not enter the public tree. The approved participant
+# notice commits that releases using external reviewers will not publish stable
+# reviewer IDs or linked individual annotation histories, and this repository is
+# a public one, so `git add` is the real boundary rather than the release build.
+# Only two forms are allowed: reviewer-0001, the project owner's own documented
+# example identity, and the reserved reviewer-9000..reviewer-9999 block for
+# synthetic fixtures. Any other pseudonym in a tracked blob is a real reviewer.
+REVIEWER_ID_RE = re.compile(r"\breviewer-(\d{4,})\b")
+ALLOWED_REVIEWER_IDS = frozenset({"0001"})
+RESERVED_SYNTHETIC_RANGE = range(9000, 10000)
+
+
+def disallowed_reviewer_ids(text: str) -> list[str]:
+    found = []
+    for digits in REVIEWER_ID_RE.findall(text):
+        if digits in ALLOWED_REVIEWER_IDS:
+            continue
+        if len(digits) == 4 and int(digits) in RESERVED_SYNTHETIC_RANGE:
+            continue
+        found.append(f"reviewer-{digits}")
+    return sorted(set(found))
+
+
 def git(*args: str) -> str:
     return subprocess.run(
         ["git", *args], check=True, text=True,
@@ -127,6 +150,18 @@ def check(*, staged: bool = False, rev: str | None = None) -> list[str]:
     errors: list[str] = []
     for path in candidate_paths(staged=staged, rev=rev):
         name = PurePosixPath(path).name
+        try:
+            reviewer_hits = disallowed_reviewer_ids(blob_text(path, staged=staged, rev=rev))
+        except (UnicodeDecodeError, subprocess.CalledProcessError):
+            # A binary blob carries no greppable pseudonym; the approved notice
+            # .docx is one of these.
+            reviewer_hits = []
+        if reviewer_hits:
+            errors.append(
+                f"{path}: reviewer pseudonyms must not enter the public tree: "
+                f"{', '.join(reviewer_hits[:5])}. Use the reserved reviewer-9000..9999 block for "
+                "fixtures; real attribution belongs in the ignored working files."
+            )
         if PRIVATE_NAME_RE.match(name) or CORRECTION_NAME_RE.match(name) or matches(path, FORBIDDEN_PATHS):
             if path.startswith("tests/fixtures/") and "synthetic" in name.lower():
                 pass

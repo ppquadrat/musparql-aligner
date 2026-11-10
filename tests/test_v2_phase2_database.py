@@ -59,7 +59,7 @@ def database(tmp_path: Path):
         engine.dispose()
 
 
-def _reviewer(reviewer_id: str = "reviewer-0042") -> Reviewer:
+def _reviewer(reviewer_id: str = "reviewer-9042") -> Reviewer:
     return Reviewer(
         id=reviewer_id,
         name="Synthetic Reviewer",
@@ -82,7 +82,9 @@ def _reviewer(reviewer_id: str = "reviewer-0042") -> Reviewer:
 
 
 def _workshop_reviewer(index: int) -> Reviewer:
-    reviewer_id = f"reviewer-{index:04d}"
+    # Synthetic fixtures live in the reserved reviewer-9000..9999 block, which
+    # check_public_tree enforces so a real pseudonym cannot be committed.
+    reviewer_id = f"reviewer-9{index % 1000:03d}"
     return Reviewer(
         id=reviewer_id,
         name=f"Synthetic Workshop Reviewer {index}",
@@ -123,7 +125,7 @@ def _seed_database(sessions) -> None:
         session.add(
             ReviewAssignment(
                 id="synthetic-assignment-0001",
-                reviewer_id="reviewer-0042",
+                reviewer_id="reviewer-9042",
                 mode="initial",
                 status="active",
                 bundle_path="synthetic/bundle.json",
@@ -190,7 +192,7 @@ def test_alembic_upgrade_creates_complete_schema_and_sqlite_safety(database) -> 
 def test_workshop_groups_allow_one_or_more_members_and_cross_group_help(database) -> None:
     _path, _engine, sessions = database
     with sessions.begin() as session:
-        session.add_all([_reviewer(), _reviewer("reviewer-0043")])
+        session.add_all([_reviewer(), _reviewer("reviewer-9043")])
         session.add(
             WorkshopRound(
                 id="workshop-synthetic",
@@ -225,17 +227,17 @@ def test_workshop_groups_allow_one_or_more_members_and_cross_group_help(database
             [
                 ReviewGroupMember(
                     group_id="group-synthetic-1",
-                    reviewer_id="reviewer-0042",
+                    reviewer_id="reviewer-9042",
                     joined_at="2026-09-10T10:00:00Z",
                 ),
                 ReviewGroupMember(
                     group_id="group-synthetic-2",
-                    reviewer_id="reviewer-0042",
+                    reviewer_id="reviewer-9042",
                     joined_at="2026-09-10T10:02:00Z",
                 ),
                 ReviewGroupMember(
                     group_id="group-synthetic-2",
-                    reviewer_id="reviewer-0043",
+                    reviewer_id="reviewer-9043",
                     joined_at="2026-09-10T10:03:00Z",
                 ),
             ]
@@ -243,7 +245,7 @@ def test_workshop_groups_allow_one_or_more_members_and_cross_group_help(database
 
     with sessions() as session:
         assert len(session.scalars(select(ReviewGroupMember)).all()) == 3
-        assert session.get(Reviewer, "reviewer-0042").registration_method == "email_invitation"
+        assert session.get(Reviewer, "reviewer-9042").registration_method == "email_invitation"
 
 
 def test_workshop_allows_only_one_unrevoked_shared_code_per_round(database) -> None:
@@ -409,7 +411,7 @@ def test_reviewer_registration_and_consent_provenance_is_consistent(database) ->
         with sessions.begin() as session:
             session.add(invalid_method)
 
-    incomplete_consent = _reviewer("reviewer-0043")
+    incomplete_consent = _reviewer("reviewer-9043")
     incomplete_consent.consent_statement_version = "synthetic-consent-v1"
     with pytest.raises(IntegrityError, match="ck_reviewers_consent_pair"):
         with sessions.begin() as session:
@@ -511,12 +513,12 @@ def test_group_assignment_and_submission_freeze_member_provenance(database) -> N
             [
                 ReviewGroupMember(
                     group_id="group-provenance",
-                    reviewer_id="reviewer-0201",
+                    reviewer_id="reviewer-9201",
                     joined_at="2026-09-10T10:00:00Z",
                 ),
                 ReviewGroupMember(
                     group_id="group-provenance",
-                    reviewer_id="reviewer-0202",
+                    reviewer_id="reviewer-9202",
                     joined_at="2026-09-10T10:05:00Z",
                 ),
             ]
@@ -561,7 +563,7 @@ def test_group_assignment_and_submission_freeze_member_provenance(database) -> N
             assignment_id="group-assignment-provenance",
             reviewer_id=None,
             review_group_id="group-provenance",
-            submitted_by_reviewer_id="reviewer-0202",
+            submitted_by_reviewer_id="reviewer-9202",
             contributor_reviewer_ids=contributors,
             export_path="synthetic/submission.json",
             export_digest="sha256:" + submission_id[-1] * 64,
@@ -576,26 +578,26 @@ def test_group_assignment_and_submission_freeze_member_provenance(database) -> N
             session.add(
                 submission(
                     "group-submission-invalid-3",
-                    ["reviewer-0201", "reviewer-0202", "reviewer-0203"],
+                    ["reviewer-9201", "reviewer-9202", "reviewer-9203"],
                 )
             )
     with sessions.begin() as session:
         session.add(
             submission(
-                "group-submission-valid-4", ["reviewer-0201", "reviewer-0202"]
+                "group-submission-valid-4", ["reviewer-9201", "reviewer-9202"]
             )
         )
     with sessions() as session:
         stored = session.get(ReviewSubmission, "group-submission-valid-4")
         assert stored is not None
         assert stored.review_group_id == "group-provenance"
-        assert stored.submitted_by_reviewer_id == "reviewer-0202"
-        assert stored.contributor_reviewer_ids == ["reviewer-0201", "reviewer-0202"]
+        assert stored.submitted_by_reviewer_id == "reviewer-9202"
+        assert stored.contributor_reviewer_ids == ["reviewer-9201", "reviewer-9202"]
 
     domain = _json("reviewer-kg-domain-assessment.synthetic.json")
     familiarity = _json("reviewer-resource-familiarity-assessment.synthetic.json")
     for record in (domain, familiarity):
-        record["reviewer_id"] = "reviewer-0202"
+        record["reviewer_id"] = "reviewer-9202"
         record["assignment_id"] = "group-assignment-provenance"
         record["id"] = record["id"].replace("0001", "0202")
     ProvenanceService(sessions).append_pre_review_assessments([domain], [familiarity])
@@ -603,7 +605,7 @@ def test_group_assignment_and_submission_freeze_member_provenance(database) -> N
     nonmember_domain = deepcopy(domain)
     nonmember_familiarity = deepcopy(familiarity)
     for record in (nonmember_domain, nonmember_familiarity):
-        record["reviewer_id"] = "reviewer-0203"
+        record["reviewer_id"] = "reviewer-9203"
         record["id"] = record["id"].replace("0202", "0203")
     with pytest.raises(ValueError, match="assigned group member"):
         ProvenanceService(sessions).append_pre_review_assessments(
@@ -630,7 +632,7 @@ def test_group_assignment_and_submission_freeze_member_provenance(database) -> N
                 WorkshopAssessmentDeferral(
                     id="deferral-nonmember",
                     assignment_id="group-assignment-provenance",
-                    reviewer_id="reviewer-0203",
+                    reviewer_id="reviewer-9203",
                     deferred_at="2026-09-10T10:30:00Z",
                 )
             )
@@ -638,11 +640,11 @@ def test_group_assignment_and_submission_freeze_member_provenance(database) -> N
         assignment = session.get(ReviewAssignment, "group-assignment-provenance")
         assignment.participant_status = "completed"
         assignment.completed_at = "2026-09-10T11:00:00Z"
-        assignment.closed_contributor_ids = ["reviewer-0201", "reviewer-0202"]
+        assignment.closed_contributor_ids = ["reviewer-9201", "reviewer-9202"]
     with pytest.raises(IntegrityError, match="closed contributors are immutable"):
         with sessions.begin() as session:
             assignment = session.get(ReviewAssignment, "group-assignment-provenance")
-            assignment.closed_contributor_ids = ["reviewer-0201"]
+            assignment.closed_contributor_ids = ["reviewer-9201"]
 
 
 def test_alembic_downgrade_and_reupgrade(tmp_path: Path) -> None:
@@ -708,7 +710,7 @@ def test_migration_marks_preexisting_active_email_accounts_verified(tmp_path: Pa
             "privacy_notice_acknowledged_at"
             ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                "reviewer-0099",
+                "reviewer-9099",
                 "Synthetic Migrated Reviewer",
                 "",
                 "migrated@example.invalid",
@@ -728,7 +730,7 @@ def test_migration_marks_preexisting_active_email_accounts_verified(tmp_path: Pa
     sessions = session_factory(engine)
     try:
         with sessions() as session:
-            migrated = session.get(Reviewer, "reviewer-0099")
+            migrated = session.get(Reviewer, "reviewer-9099")
             assert migrated is not None
             assert migrated.registration_method == "email_invitation"
             assert migrated.email_verified_at == "2026-08-02T10:00:00Z"
@@ -759,7 +761,7 @@ def test_seed_archive_import_is_idempotent_and_assignment_digest_is_enforced(dat
         session.add(_reviewer())
         session.add(
             ReviewAssignment(
-                id="assignment-wrong-digest", reviewer_id="reviewer-0042", mode="initial",
+                id="assignment-wrong-digest", reviewer_id="reviewer-9042", mode="initial",
                 status="draft", bundle_path="synthetic/bundle.json",
                 bundle_digest="sha256:" + "b" * 64, previous_benchmark_path=None,
                 processing_recipe="validate_initial_review", holdout_capability=False,
@@ -890,7 +892,7 @@ def test_failed_multirow_transaction_is_atomic(database) -> None:
             session.add(_reviewer())
             session.add(
                 ReviewerExperience(
-                    reviewer_id="reviewer-0042",
+                    reviewer_id="reviewer-9042",
                     kg_ontology_experience="invented",
                     sparql_experience="none",
                     nlp_llm_experience="none",
@@ -898,7 +900,7 @@ def test_failed_multirow_transaction_is_atomic(database) -> None:
                 )
             )
     with sessions() as session:
-        assert session.get(Reviewer, "reviewer-0042") is None
+        assert session.get(Reviewer, "reviewer-9042") is None
 
 
 def test_assignment_modes_accept_only_matching_supported_recipes(database) -> None:
@@ -909,7 +911,7 @@ def test_assignment_modes_accept_only_matching_supported_recipes(database) -> No
     def assignment(assignment_id: str, mode: str, recipe: str) -> ReviewAssignment:
         return ReviewAssignment(
             id=assignment_id,
-            reviewer_id="reviewer-0042",
+            reviewer_id="reviewer-9042",
             mode=mode,
             status="draft",
             bundle_path="synthetic/bundle.json",
@@ -982,6 +984,6 @@ def test_schema_cli_diagnostics_do_not_print_profile_fields(tmp_path: Path, caps
     engine.dispose()
     assert main(["check", "--database", str(database_path)]) == 0
     output = capsys.readouterr().out
-    assert "Reviewer IDs: reviewer-0042." in output
+    assert "Reviewer IDs: reviewer-9042." in output
     assert "Synthetic Reviewer" not in output
     assert "@example.invalid" not in output

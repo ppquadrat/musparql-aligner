@@ -263,6 +263,19 @@ def classify_failure(
             "priority": "normal",
             "summary": "Execution completed, but semantic correction review remains available.",
         }
+    if status in {"http_error", "query_error", "parse_error"} and http_status in {401, 403, 407, 429}:
+        return {
+            "reason_code": "gateway_blocked_request",
+            "category": "investigate",
+            "priority": "medium",
+            "summary": (
+                "A gateway refused the request, so the endpoint never saw the query and this "
+                "observation is not evidence about the SPARQL. Re-run it through the pipeline "
+                "before judging it: a block that only appears from the review workbench is "
+                "about the requester, while one that persists from the pipeline is about the "
+                "query text and the query needs rewriting."
+            ),
+        }
     if status in {"parse_error", "query_error"}:
         return {
             "reason_code": "endpoint_rejected_query",
@@ -276,6 +289,34 @@ def classify_failure(
             "category": "likely_correction",
             "priority": "high",
             "summary": "The submitted request received a 400/422 response; endpoint health and query validity still require review.",
+        }
+    if status == "http_error" and http_status in {502, 503, 504}:
+        return {
+            "reason_code": "endpoint_unavailable",
+            "category": "infrastructure",
+            "priority": "informational",
+            "summary": "The endpoint or its gateway was unavailable; this is not evidence of invalid SPARQL.",
+        }
+    if status == "unsupported":
+        return {
+            "reason_code": "unsupported_query_form",
+            "category": "runtime_environment",
+            "priority": "informational",
+            "summary": (
+                "This runtime executes SELECT only, so the observation reflects the runtime's "
+                "reach rather than a defect. Confirm the query's actual form before treating "
+                "it as one."
+            ),
+        }
+    if status == "request_error":
+        return {
+            "reason_code": "execution_timeout",
+            "category": "investigate",
+            "priority": "medium",
+            "summary": (
+                "The request did not complete. Cost is a query property as much as an endpoint "
+                "one, so this may be an unselective pattern rather than a slow server."
+            ),
         }
     if status == "skipped_local_query" and skip_reason == "parameterized_template":
         return {

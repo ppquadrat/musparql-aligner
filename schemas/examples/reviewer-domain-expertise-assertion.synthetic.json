@@ -1,7 +1,7 @@
 {
   "schema": "musparql.reviewer-domain-expertise-assertion.v1",
   "id": "synthetic-domain-expertise-0001",
-  "reviewer_id": "reviewer-0042",
+  "reviewer_id": "reviewer-9042",
   "domain_id": "synthetic-general-domain-0001",
   "entered_label": "Synthetic music studies",
   "normalized_label": "synthetic music studies",
