@@ -618,6 +618,7 @@ The round needs, per conflict type:
 ## Related records
 
 - [`2026-09-16-ipl-workshop.md`](2026-09-16-ipl-workshop.md)
+- [`2026-11-10-ipl-round-lessons.md`](2026-11-10-ipl-round-lessons.md)
 - [`../REVIEW_POLICY.md`](../REVIEW_POLICY.md)
 - [`../SPARQL_CORRECTION_FOLLOW_UP.md`](../SPARQL_CORRECTION_FOLLOW_UP.md)
 - [`../OPEN_ISSUES.md`](../OPEN_ISSUES.md)
